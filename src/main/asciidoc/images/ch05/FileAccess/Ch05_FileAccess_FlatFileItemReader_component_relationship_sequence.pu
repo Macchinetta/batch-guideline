@@ -1,0 +1,49 @@
+@startuml
+
+participant FlatFileItemReader
+participant BufferedReaderFactory
+participant BufferedReader
+participant FlatFile <<Resource>>
+participant LineMapper
+participant LineTokenizer
+participant FieldSetMapper
+participant FieldSet
+
+autonumber
+hide footbox
+
+activate FlatFileItemReader
+FlatFileItemReader -> BufferedReaderFactory : create BufferedReader
+activate BufferedReaderFactory
+BufferedReaderFactory -> BufferedReader : create instance
+activate BufferedReader
+BufferedReaderFactory <-- BufferedReader : BufferedReader
+FlatFileItemReader <-- BufferedReaderFactory : BufferedReader
+deactivate BufferedReaderFactory
+FlatFileItemReader -> BufferedReader : read line
+BufferedReader -> FlatFile : read line
+activate FlatFile
+BufferedReader <-- FlatFile : line
+deactivate FlatFile
+FlatFileItemReader <-- BufferedReader : line
+deactivate BufferedReader
+FlatFileItemReader -> LineMapper : mapping line to bean
+activate LineMapper
+LineMapper -> LineTokenizer : tokenize line into FieldSet
+activate LineTokenizer
+LineTokenizer -> FieldSet : tokenize line into FieldSet
+activate FieldSet
+LineTokenizer <-- FieldSet : FieldSet
+LineMapper <-- LineTokenizer : FieldSet
+deactivate LineTokenizer
+LineMapper -> FieldSetMapper : mapping FieldSet to bean
+activate FieldSetMapper
+FieldSetMapper -> FieldSet : get data from FieldSet
+FieldSetMapper <-- FieldSet : data
+deactivate FieldSet
+LineMapper <-- FieldSetMapper : Bean
+deactivate FieldSetMapper
+FlatFileItemReader <-- LineMapper : Bean
+deactivate LineMapper
+deactivate FlatFileItemReader
+@enduml

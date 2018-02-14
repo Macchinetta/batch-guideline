@@ -1,0 +1,22 @@
+[[Ch02]]
+= Macchinetta Batch Framework (2.x)のコンセプト
+include::_include_all.adoc[]
+
+// 節から始まるドキュメントをリンクするため、更に一段階レベルを下げる
+:leveloffset: +1
+
+include::Ch02_GeneralBatchProcessing.adoc[]
+
+<<<
+
+include::Ch02_MacchinettaBatchStack.adoc[]
+
+<<<
+
+include::Ch02_SpringBatchArchitecture.adoc[]
+
+<<<
+
+include::Ch02_MacchinettaBatchArchitecture.adoc[]
+
+:leveloffset: -1

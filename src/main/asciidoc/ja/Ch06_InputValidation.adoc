@@ -1,0 +1,617 @@
+include::_include_all.adoc[]
+
+[[Ch06_InputValidation]]
+= 入力チェック
+
+[[Ch06_InputValidation_Overview]]
+== Overview
+
+本節では、ジョブの入力データに対する妥当性のチェック(以降、入力チェックと呼ぶ)について説明する。
+
+本機能は、チャンクモデルとタスクレットモデルとで同じ使い方になる。
+
+一般的に、バッチ処理における入力チェックは、他システム等から受領したデータに対して、
+自システムにおいて妥当であることを確認するために実施する事が多い。 +
+反対に、自システム内の信頼できるデータ(たとえば、データベースに格納されたデータ)に対して、
+入力チェックを実施することは不要と言える。
+
+入力チェックは{server5_shortname}の内容と重複するため、{server5_guide}の
+{server5_url}/ArchitectureInDetail/WebApplicationDetail/Validation.html[入力チェック]
+も合わせて参照すること。
+以下に、主な比較について示す。
+
+[cols="30,35,35", options="header"]
+.主な比較一覧
+|===
+
+|比較対象
+|{server5_shortname}
+|{batch5_shortname}
+
+|使用できる入力チェックルール
+2+^|{server5_shortname}と同様
+
+|ルールを付与する対象
+|``フォームクラス``
+|``DTO``
+
+|チェックの実行方法
+|``Controllerに@Validatedアノテーションを付与する``
+|``ValidatorクラスのAPIをコールする``
+
+|エラーメッセージの設定
+2+^|{server5_guide}の
+{server5_url}/ArchitectureInDetail/WebApplicationDetail/Validation.html#validation-message-def[エラーメッセージの定義]と同様
+
+|エラーメッセージの出力先
+|画面
+|ログ等
+
+|===
+
+なお、本節で説明対象とする入力チェックは、主にステップが処理する入力データを対象とする。 +
+ジョブパラメータのチェックについては<<Ch04_JobParameter.adoc#Ch04_JobParameter_HowToUse_ParamsValidation,パラメータの妥当性検証>>を参照のこと。
+
+[[Ch06_InputValidation_Overview_Category]]
+=== 入力チェックの分類
+
+入力チェックは、単項目チェック、相関項目チェックに分類される。
+
+[cols="15,30,25,30", options="header"]
+.設定内容の項目一覧
+|===
+|種類
+|説明
+|例
+|実現方法
+
+|単項目チェック
+|単一のフィールドで完結するチェック
+|入力必須チェック +
+桁チェック +
+型チェック
+|Bean Validation(実装ライブラリとしてHibernate Validatorを使用)
+
+|相関項目チェック
+|複数のフィールドを比較するチェック
+|数値の大小比較 +
+日付の前後比較
+|``org.springframework.validation.Validator``インターフェースを実装した``Validation``クラス +
+または Bean Validation
+|===
+
+Springは、Java標準であるBean Validationをサポートしている。
+単項目チェックには、このBean Validationを利用する。
+相関項目チェックの場合は、Bean ValidationまたはSpringが提供している``org.springframework.validation.Validator``インターフェースを利用する。
+
+この点は、
+{server5_guide}の {server5_url}/ArchitectureInDetail/WebApplicationDetail/Validation.html#id3[入力チェックの分類]
+と同様である。
+
+[[Ch06_InputValidation_Overview_Arch]]
+=== 入力チェックの全体像
+
+チャンクモデル、タスクレットモデルにて入力チェックを行うタイミングは以下のとおりである。 +
+
+* チャンクモデルの場合は``ItemProcessor``で行う。
+* タスクレットモデルの場合は``Tasklet#execute()``にて、任意のタイミングで行う。
+
+チャンクモデル、タスクレットモデルにおいて入力チェックの実装方法は同様となるため、
+ここではチャンクモデルの``ItemProcessor``で入力チェックを行う場合について説明する。
+
+まず、入力チェックの全体像を説明する。入力チェックに関連するクラスの関係は以下のとおりである。
+
+.入力チェックの関連クラス
+image::Ch06_InputValidation_Architecture_classes.png[InputValidation architecture]
+
+* ``ItemProcessor``に、``org.springframework.batch.item.validator.Validator``の実装である
+  ``org.springframework.batch.item.validator.SpringValidator``をインジェクションしvalidateメソッドを実行する。
+** ``SpringValidator``は内部に``org.springframework.validation.Validator``を保持し、validateメソッドを実行する。 +
+  いわば、``org.springframework.validation.Validator``のラッパーといえる。 +
+  ``org.springframework.validation.Validator``の実装は、
+  ``org.springframework.validation.beanvalidation.LocalValidatorFactoryBean``となる。
+  このクラスを通じてHibernate Validatorを使用する。
+* 何件目のデータで入力チェックエラーになったのかを判別するために``org.springframework.batch.item.ItemCountAware``を入力DTOに実装する。
+
+[IMPORTANT]
+.データ件数の設定
+====
+``ItemCountAware#setItemCount``は``AbstractItemCountingItemStreamItemReader``によって設定される。
+よって、タスクレットモデルで``ItemReader``を使わない場合、更新されない。
+この場合は何件目のデータでエラーになったかはユーザにて設定すること。
+====
+
+[IMPORTANT]
+.javax.validation.Validatorやorg.springframework.validation.Validatorといったバリデータは直接使用しない。
+====
+``javax.validation.Validator``や``org.springframework.validation.Validator``といったバリデータは直接使用せず、
+``org.springframework.batch.item.validator.SpringValidator``を使用する。
+
+``SpringValidator``は``org.springframework.validation.Validator``のラッパーである。 +
+``SpringValidator``は発生した例外を``BindException``にラップし、``ValidationException``としてスローする。 +
+そのため、``ValidationException``を通して``BindException``にアクセスでき、柔軟なハンドリングがしやすくなる。
+
+一方、``javax.validation.Validator``や``org.springframework.validation.Validator``といったバリデータを直接使用すると、バリデーションエラーになった情報を処理する際に煩雑なロジックになってしまう。
+====
+
+[IMPORTANT]
+.org.springframework.batch.item.validator.ValidatingItemProcessorは使用しない
+====
+``org.springframework.validation.Validator``による入力チェックは、
+{SB}が提供する``ValidatingItemProcessor``を使用しても実現可能である。
+
+しかし、以下の理由により状況によっては拡張を必要としてしまうため、
+実装方法を統一する観点より使用しないこととする。
+
+* 入力チェックエラーをハンドリングし処理を継続することができない。
+* 入力チェックエラーとなったデータに対して柔軟な対応を行うことができない。
+** 入力チェックエラーとなったデータに対しての処理は、利用者によって多種多様(ログ出力のみ、エラーデータを別ファイルに退避する、など)となると想定される。
+====
+
+[[Ch06_InputValidation_HowToUse]]
+== How to use
+
+先にも述べたが、入力チェックの実現方法は以下のとおり{server5_shortname}と同様である。
+
+* 単項目チェックは、Bean Validationを利用する。
+* 相関項目チェックは、Bean ValidationまたはSpringが提供している``org.springframework.validation.Validator``インターフェースを利用する。
+
+入力チェックの方法について以下の順序で説明する。
+
+* <<Ch06_InputValidation_HowToUse_Settings>>
+* <<Ch06_InputValidation_HowToUse_defRules>>
+* <<Ch06_InputValidation_HowToUse_Execution>>
+* <<Ch06_InputValidation_HowToUse_ErrorHandling>>
+
+[[Ch06_InputValidation_HowToUse_Settings]]
+=== 各種設定
+
+入力チェックにはHibernate Validatorを使用する。
+ライブラリの依存関係にHibernate Validatorの定義があり、必要なBean定義が存在することを確認する。
+これらは、{batch5_shortname}が提供するブランクプロジェクトではすでに設定済である。
+
+[source, xml]
+.依存ライブラリの設定例
+----
+<dependency>
+    <groupId>org.hibernate</groupId>
+    <artifactId>hibernate-validator</artifactId>
+</dependency>
+----
+
+[source, xml]
+.launch-context.xml
+----
+<bean id="validator" class="org.springframework.batch.item.validator.SpringValidator"
+      p:validator-ref="beanValidator"/>
+
+<bean id="beanValidator"
+      class="org.springframework.validation.beanvalidation.LocalValidatorFactoryBean" />
+----
+
+.エラーメッセージの設定
+
+先にも述べたが、エラーメッセージの設定については、
+{server5_guide}の {server5_url}/ArchitectureInDetail/WebApplicationDetail/Validation.html#validation-message-def[エラーメッセージの定義]
+を参照すること。
+
+[[Ch06_InputValidation_HowToUse_defRules]]
+=== 入力チェックルールの定義
+
+入力チェックのルールを実装する対象は``ItemReader``を通じて取得するDTOである。
+``ItemReader``を通じて取得するDTOは以下の要領で実装する。
+
+* 何件目のデータで入力チェックエラーになったのかを判別するために、``org.springframework.batch.item.ItemCountAware``を実装する。
+** ``setItemCount``メソッドにて引数で受けた現在処理中のitemが読み込み何件目であるかをあらわす数値をクラスフィールドに保持する。
+* 入力チェックルールを定義する。
+** {server5_guide}の {server5_url}/ArchitectureInDetail/WebApplicationDetail/Validation.html[入力チェック] を参照。
+
+以下に、入力チェックルールを定義したDTOの例を示す。
+
+[source,java]
+.入力チェックルールを定義したDTOの例
+----
+public class VerificationSalesPlanDetail implements ItemCountAware {  // (1)
+
+    private int count;
+
+    @NotEmpty
+    @Size(min = 1, max = 6)
+    private String branchId;
+
+    @NotNull
+    @Min(1)
+    @Max(9999)
+    private int year;
+
+    @NotNull
+    @Min(1)
+    @Max(12)
+    private int month;
+
+    @NotEmpty
+    @Size(min = 1, max = 10)
+    private String customerId;
+
+    @NotNull
+    @DecimalMin("0")
+    @DecimalMax("9999999999")
+    private BigDecimal amount;
+
+    @Override
+    public void setItemCount(int count) {
+        this.count = count;  // (2)
+    }
+
+    // omitted getter/setter
+}
+----
+
+[cols="10,90", options="header"]
+.設定内容の項目一覧
+|===
+|項番
+|説明
+
+|(1)
+|``ItemCountAware``クラスを実装し、``setItemCount``メソッドをオーバーライドする。 +
+``ItemCountAware#setItemCount()``は、``ItemReader``が読み込んだデータが何件目であるかを引数に渡される。
+
+|(2)
+|引数で受ける``count``をクラスフィールドに保持する。 +
+この値は、何件目のデータで入力チェックエラーになったのかを判別するため使用する。
+|===
+
+[[Ch06_InputValidation_HowToUse_Execution]]
+=== 入力チェックの実施
+
+入力チェックの実施方法について説明する。
+入力チェック実施は以下の要領で実装する。
+
+* ``ItemProcessor``の実装にて、``org.springframework.batch.item.validator.Validator#validate()``を実行する。
+** ``Validator``には``SpringValidator``のインスタンスをインジェクトして使用する。
+* 入力チェックエラーをハンドリングする。詳細は<<Ch06_InputValidation_HowToUse_ErrorHandling>>を参照すること。
+
+入力チェックの実施例を以下に示す。
+
+[source,java]
+.入力チェックを実施する例
+----
+@Component
+public class ValidateAndContinueItemProcessor implements ItemProcessor<VerificationSalesPlanDetail, SalesPlanDetail> {
+    @Inject  // (1)
+    Validator<VerificationSalesPlanDetail> validator;
+
+    @Override
+    public SalesPlanDetail process(VerificationSalesPlanDetail item) throws Exception {
+        try {  // (2)
+            validator.validate(item);  // (3)
+        } catch (ValidationException e) {
+          // omitted exception handling
+        }
+
+        SalesPlanDetail salesPlanDetail = new SalesPlanDetail();
+        // omitted business logic
+
+        return salesPlanDetail;
+    }
+}
+----
+
+[cols="10,90", options="header"]
+.設定内容の項目一覧
+|===
+|項番
+|説明
+
+|(1)
+|``SpringValidator``のインスタンスをインジェクトする。 +
+``org.springframework.batch.item.validator.Validator``の型引数には、``ItemReader``を通じて取得するDTOを設定する。
+
+|(2)
+|入力チェックエラーをハンドリングする。 +
+例では例外をtry/catchで捕捉する方法で処理している。 +
+詳細は<<Ch06_InputValidation_HowToUse_ErrorHandling>>を参照すること。
+
+|(3)
+|``ItemReader``を通じて取得するDTOを引数として``Validator#validate()``を実行する。
+|===
+
+[[Ch06_InputValidation_HowToUse_ErrorHandling]]
+=== 入力チェックエラーのハンドリング
+
+入力チェックエラーが発生した場合の選択肢は以下の2択となる。
+
+. 入力チェックエラーが発生した時点で処理を打ち切り、ジョブを異常終了させる。
+. 入力チェックエラーが発生したことをログ等に残し、後続データの処理は継続する。その後、ジョブ終了時に、ジョブを警告終了させる。
+
+[[Ch06_InputValidation_HowToUse_ErrorHandling_Abend]]
+==== 処理を異常終了する場合
+
+例外発生時に処理を異常終了するためには、``java.lang.RuntimeException``またはそのサブクラスをスローする。
+
+例外発生時にログ出力等の処理を行う方法は以下の2とおりがある。
+
+. 例外をtry/catchで捕捉し、例外をスローする前に行う。
+. 例外をtry/catchで捕捉せず、``ItemProcessListener``を実装しonProcessErrorメソッドにて行う。
+** ``ItemProcessListener#onProcessError()``は``@OnProcessError``アノテーションを使用して実装してもよい。
+   詳細は、<<Ch04_Listener.adoc#Ch04_Listener,リスナー>>を参照のこと。
+
+例外発生時に、例外情報をログ出力し、処理を異常終了する例を以下に示す。
+
+[source,java]
+.try/catchによるハンドリング例
+----
+@Component
+public class ValidateAndAbortItemProcessor implements ItemProcessor<VerificationSalesPlanDetail, SalesPlanDetail> {
+    /**
+     * Logger.
+     */
+    private static final Logger logger = LoggerFactory.getLogger(ValidateAndAbortItemProcessor.class);
+
+    @Inject
+    Validator<VerificationSalesPlanDetail> validator;
+
+    @Override
+    public SalesPlanDetail process(VerificationSalesPlanDetail item) throws Exception {
+        try {  // (1)
+            validator.validate(item);  // (2)
+        } catch (ValidationException e) {
+            // (3)
+            logger.error("Exception occurred in input validation at the {} th item. [message:{}]",
+                    item.getCount(), e.getMessage());
+            throw e;  // (4)
+        }
+
+        SalesPlanDetail salesPlanDetail = new SalesPlanDetail();
+        // omitted business logic
+
+        return salesPlanDetail;
+    }
+}
+----
+
+[cols="10,90", options="header"]
+.設定内容の項目一覧
+|===
+|項番
+|説明
+
+|(1)
+|try/catchにて例外を捕捉する。
+
+|(2)
+|入力チェックを実行する。
+
+|(3)
+|例外をスローする前にログ出力処理を行う。
+
+|(4)
+|例外をスローする。 +
+``org.springframework.batch.item.validator.ValidationException``は``RuntimeException``のサブクラスであるため、
+そのままスローしなおしてよい。
+|===
+
+[source,java]
+.ItemProcessListener#OnProcessErrorによるハンドリング例
+----
+@Component
+public class ValidateAndAbortItemProcessor implements ItemProcessor<VerificationSalesPlanDetail, SalesPlanDetail> {
+
+    /**
+     * Logger.
+     */
+    private static final Logger logger = LoggerFactory.getLogger(ValidateAndAbortItemProcessor.class);
+
+    @Inject
+    Validator<VerificationSalesPlanDetail> validator;
+
+    @Override
+    public SalesPlanDetail process(VerificationSalesPlanDetail item) throws Exception {
+        validator.validate(item);  // (1)
+
+        SalesPlanDetail salesPlanDetail = new SalesPlanDetail();
+        // omitted business logic
+
+        return salesPlanDetail;
+    }
+
+    @OnProcessError  // (2)
+    void onProcessError(VerificationSalesPlanDetail item, Exception e) {
+        // (3)
+        logger.error("Exception occurred in input validation at the {} th item. [message:{}]", item.getCount() ,e.getMessage());
+    }
+}
+----
+
+[cols="10,90", options="header"]
+.設定内容の項目一覧
+|===
+|項番
+|説明
+
+|(1)
+|入力チェックを実行する。
+
+|(2)
+|``ItemProcessListener#onProcessError()``を``@OnProcessError``アノテーションを使用して実装する。
+
+|(3)
+|例外をスローする前にログ出力処理を行う。
+
+|===
+
+[WARNING]
+.ItemProcessListener#onProcessError()使用時の注意点
+====
+onProcessErrorメソッドの利用は業務処理と例外ハンドリングを切り離すことができるためソースコードの可読性、保守性の向上等に有用である。 +
+しかし、上記の例でハンドリング処理を行っている``ValidationException``以外の例外が発生した場合も同じメソッドが実行されるため注意が必要である。
+
+``ItemProcessor#process()``におけるログ出力を例外によって出力し分ける場合は、
+onProcessErrorメソッドにて発生した例外の種類を判定して例外処理を行う必要がある。
+これが煩雑である場合は、try/catchによるハンドリングにて入力チェックエラーのみを処理し、それ以外はリスナーに移譲するように責務を分担するとよい。
+====
+
+[[Ch06_InputValidation_HowToUse_ErrorHandling_Skip]]
+==== エラーレコードをスキップする場合
+
+入力チェックエラーが発生したレコードの情報をログ出力等を行った後、エラーが発生したレコードをスキップして後続データの処理を継続する場合は以下の要領で実装する。
+
+* 例外をtry/catchで捕捉する。
+* 例外発生時のログ出力等を行う。
+* ``ItemProcessor#process()``の返り値として``null``を返却する。
+** ``null``を返却することで入力チェックエラーが発生したレコードは後続の処理対象(``ItemWriter``による出力)に含まれなくなる。
+
+[source,java]
+.ItemProcessorによるスキップ例
+----
+@Component
+public class ValidateAndContinueItemProcessor implements ItemProcessor<VerificationSalesPlanDetail, SalesPlanDetail> {
+    /**
+     * Logger.
+     */
+    private static final Logger logger = LoggerFactory.getLogger(ValidateAndContinueItemProcessor.class);
+
+    @Inject
+    Validator<VerificationSalesPlanDetail> validator;
+
+    @Override
+    public SalesPlanDetail process(VerificationSalesPlanDetail item) throws Exception {
+        try {  // (1)
+            validator.validate(item);  // (2)
+        } catch (ValidationException e) {
+            // (3)
+            logger.warn("Skipping item because exception occurred in input validation at the {} th item. [message:{}]",
+                    item.getCount(), e.getMessage());
+            // (4)
+            return null;  // skipping item
+        }
+
+        SalesPlanDetail salesPlanDetail = new SalesPlanDetail();
+        // omitted business logic
+
+        return salesPlanDetail;
+    }
+}
+----
+
+[cols="10,90", options="header"]
+.設定内容の項目一覧
+|===
+|項番
+|説明
+
+|(1)
+|try/catchにて例外を捕捉する。
+
+|(2)
+|入力チェックを実行する。
+
+|(3)
+|``null``を返却する前にログ出力処理を行う。
+
+|(4)
+|``null``を返却することで当該データをスキップし次のデータ処理へ移る。
+|===
+
+[[Ch06_InputValidation_HowToUse_ErrorHandling_ExitCode]]
+==== 終了コードの設定
+
+入力チェックエラーが発生した場合、入力チェックエラーが発生しなかった場合とジョブの状態を区別するために必ず正常終了ではない終了コードを設定すること。 +
+入力チェックエラーが発生したデータをスキップした場合、異常終了した場合においても終了コードの設定は必須である。
+
+終了コードの設定方法については、<<Ch07_JobManagement.adoc#Ch07_JobManagement,ジョブの管理>>を参照すること。
+
+[[Ch06_InputValidation_HowToUse_ErrorHandling_ErrorMessage]]
+==== エラーメッセージの出力
+
+入力チェックエラーが発生した場合にMessageSourceを使用することで、任意のエラーメッセージを出力することができる。
+エラーメッセージの設定については、
+{server5_guide}の {server5_url}/ArchitectureInDetail/WebApplicationDetail/Validation.html#validation-message-def[エラーメッセージの定義]
+を参照すること。エラーメッセージを出力する場合は以下の要領で実装する。
+
+1レコード内におけるエラーメッセージを出力する方法として、以下の2とおりがある。
+
+. まとめて1つのエラーメッセージとして出力する。
+. レコード内の各項目について、エラーメッセージを出力する。
+
+例では、各項目のエラーメッセージを出力する方法で実装している。
+
+
+* 入力チェックエラーで発生する例外``ValidationException``を``try/catch``で捕捉する。
+* ``ValidationException``の``getCause``メソッドにより``org.springframework.validation.BindException``を取得する。
+** ``BindException``は``BindResult``を``implements``しているため、``FiledError``を取得することができる。
+* ``getFieldErrors``メソッドにより``FiledError``をエラーの件数分、1件ずつ繰り返し取得する。
+* 取得した``FieldError``を引数として、``MessageSource``により1件ずつエラーメッセージの出力を行う。
+
+[source,java]
+.MessageSourceによるエラーメッセージ出力例
+----
+@Component
+public class ValidateAndMessageItemProcessor implements ItemProcessor<VerificationSalesPlanDetail, SalesPlanDetail> {
+    /**
+     * Logger.
+     */
+    private static final Logger logger = LoggerFactory.getLogger(ValidateAndMessageItemProcessor.class);
+
+    @Inject
+    Validator<VerificationSalesPlanDetail> validator;
+
+    @Inject
+    MessageSource messageSource;  // (1)
+
+    @Override
+    public SalesPlanDetail process(VerificationSalesPlanDetail item) throws Exception {
+        try {  // (2)
+            validator.validate(item);  // (3)
+        } catch (ValidationException e) {
+            // (4)
+            BindException errors = (BindException) e.getCause();
+
+            // (5)
+            for (FieldError fieldError : errors.getFieldErrors()) {
+                // (6)
+                logger.warn(messageSource.getMessage(fieldError, null) +
+                                "Skipping item because exception occurred in input validation at the {} th item. [message:{}]",
+                                    item.getCount(), e.getMessage());
+            // (7)
+            return null;  // skipping item
+        }
+
+        SalesPlanDetail salesPlanDetail = new SalesPlanDetail();
+        // omitted business logic
+
+        return salesPlanDetail;
+    }
+}
+----
+
+[cols="10,90", options="header"]
+.設定内容の項目一覧
+|===
+|項番
+|説明
+
+|(1)
+|``ResourceBundleMessageSource``のインスタンスをインジェクトする。 +
+``MassageSorce``のBean定義は<<Ch07_JobManagement.adoc#Ch07_JobManagement_HowToUse_MessageManagement,メッセージ管理>>を参照すること。
+
+|(2)
+|try/catchにて例外を捕捉する。
+
+|(3)
+|入力チェックを実行する。
+
+|(4)
+|``getCause()``で``org.springframework.validation.BindException``を取得する。
+
+|(5)
+|``getFieldErrors()``で1件分の``FiledError``を取得する。
+
+|(6)
+|取得した``FieldError``を引数にして、``messageSource``でエラーメッセージの出力処理を行う。 +
+1レコード内に3項目のエラーがある場合、3件のエラーメッセージを繰り返し出力する。
+
+|(7)
+|``null``を返却することで当該データをスキップし次のデータ処理へ移る。
+|===

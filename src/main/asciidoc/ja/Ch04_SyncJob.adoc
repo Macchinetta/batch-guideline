@@ -1,0 +1,170 @@
+include::_include_all.adoc[]
+
+[[Ch04_SyncJob]]
+= 同期実行
+
+[[Ch04_SyncJob_Overview]]
+== Overview
+
+同期実行について説明する。
+同期実行とは、ジョブスケジューラなどによりシェルを介して新規プロセスとして起動し、ジョブの実行結果を呼び出し元に返却する実行方法である。
+
+.同期実行の概要
+image::Ch04_syncJob_overview.png[overview of sync job]
+
+.同期実行の流れ
+image::Ch04_syncjob_seq.png[sequence of sync job]
+
+本機能は、チャンクモデルとタスクレットモデルとで同じ使い方になる。
+
+[[Ch04_SyncJob_HowToUse]]
+== How to use
+
+``CommandLineJobRunner``によってジョブを起動する方法を説明する。
+
+なお、アプリケーションのビルドや実行については、<<Ch03_CreateProject.adoc#Ch03_CreateProject_HowToCreate,プロジェクトの作成>>を参照のこと。
+また、起動パラメータの指定方法や活用方法については、<<Ch04_JobParameter.adoc#Ch04_JobParameter,ジョブの起動パラメータ>>を参照のこと。
+これらと本節の説明は一部重複するが、同期実行の要素に注目して説明する。
+
+[[Ch04_SyncJob_HowToUse_Run]]
+=== 実行方法
+
+{batch5_shortname}において、同期実行は {SB} が提供する``CommandLineJobRunner``によって実現する。
+``CommandLineJobRunner``は、以下の要領にてjavaコマンドを発行することで起動する。
+
+[[Ch04_SyncJob_HowToUse_Run_Syntax]]
+[source,console]
+.CommandLineJobRunnerの構文
+----
+$ java org.springframework.batch.core.launch.support.CommandLineJobRunner <jobPath> <options> <jobIdentifier> <jobParameters>
+----
+
+[cols="10,80,10", options="header"]
+.引数にて指定する項目
+|===
+|指定する項目
+|説明
+|必須
+
+|jobPath
+|起動するジョブの設定を記述したBean定義ファイルのパス。classpathからの相対パスにて指定する。
+|icon:check[]
+
+|options
+|起動する際の各種オプション(停止、リスタートなど)を指定する。
+|
+
+|jobIdentifier
+|ジョブの識別子として、Bean定義上のジョブ名、もしくはジョブを実行後のジョブ実行IDを指定する。
+通常はジョブ名を指定する。ジョブ実行IDは停止やリスタートの際にのみ指定する。
+|icon:check[]
+
+|jobParameters
+|ジョブの引数を指定する。指定は``key=value``形式となる。
+|
+
+|===
+
+以下に、必須項目のみを指定した場合の実行例を示す。
+
+[source,console]
+.コマンドプロンプトでのCommandLineJobRunnerの実行例
+----
+C:\xxx>java -cp "target\[artifactId]-[version].jar;lib\*" ^   # (1)
+    org.springframework.batch.core.launch.support.CommandLineJobRunner ^ # (2)
+    META-INF/jobs/job01.xml job01 # (3)
+----
+
+.BashでのCommandLineJobRunnerの実行例
+----
+$ java -cp 'target/[artifactId]-[version].jar:lib/*' \ # (1)
+    org.springframework.batch.core.launch.support.CommandLineJobRunner \ # (2)
+    META-INF/jobs/job01.xml job01 # (3)
+----
+
+
+[source,xml]
+.Bean定義の設定(抜粋)
+----
+<batch:job id="job01" job-repository="jobRepository"> <!-- (3) -->
+    <batch:step id="job01.step01">
+        <batch:tasklet transaction-manager="jobTransactionManager">
+            <batch:chunk reader="employeeReader"
+                         processor="employeeProcessor"
+                         writer="employeeWriter" commit-interval="10" />
+        </batch:tasklet>
+    </batch:step>
+</batch:job>
+----
+
+[cols="10,90", options="header"]
+.設定内容の項目一覧
+|===
+|項番
+|説明
+
+|(1)
+|``java``コマンドを実行する際に、バッチアプリケーションのjarと、依存するjarを``classpath``に指定する。
+ ここではコマンド引数で指定しているが、環境変数等を用いてもよい。
+
+|(2)
+|起動するクラスに、``CommandLineJobRunner``をFQCNで指定する。
+
+|(3)
+|``CommandLineJobRunner``に沿って、起動引数を渡す。
+ここでは、``jobPath``と``jobIdentifier``としてジョブ名の2つを指定している。
+
+|===
+
+次に、任意項目として起動パラメータを指定した場合の実行例を示す。
+
+[source,console]
+.コマンドプロンプトでのCommandLineJobRunnerの実行例
+----
+C:\xxx>java -cp "target\[artifactId]-[version].jar;lib\*" ^
+    org.springframework.batch.core.launch.support.CommandLineJobRunner ^
+    META-INF/jobs/setupJob.xml setupJob target=server1 outputFile=/tmp/result.csv # (1)
+----
+
+.BashでのCommandLineJobRunnerの実行例
+----
+$ java -cp 'target/[artifactId]-[version].jar:lib/*' \
+    org.springframework.batch.core.launch.support.CommandLineJobRunner \
+    META-INF/jobs/setupJob.xml setupJob target=server1 outputFile=/tmp/result.csv # (1)
+----
+
+[cols="10,90", options="header"]
+.設定内容の項目一覧
+|===
+|項番
+|説明
+
+|(1)
+|ジョブの起動パラメータとして、``target=server1``と``outputFile=/tmp/result.csv``を指定している。
+
+|===
+
+
+[[Ch04_SyncJob_HowToUse_Options]]
+=== 任意オプション
+
+<<Ch04_SyncJob_HowToUse_Run_Syntax>>で示した任意のオプションについて補足する。
+
+``CommandLineJobRunner``では以下の4つの起動オプションが使用できる。
+ここでは個々の説明は他に委ねることとし、概要のみ説明する。
+
+-restart::
+  失敗したジョブを再実行する。詳細は、<<Ch06_ReProcessing.adoc#Ch06_RerunRestart,処理の再実行>>を参照のこと。
+-stop::
+  実行中のジョブを停止する。詳細は、<<Ch07_JobManagement.adoc#Ch07_JobManagement,ジョブの管理>>を参照のこと。
+-abandon::
+  停止されたジョブを放棄する。放棄されたジョブは再実行不可となる。
+  {batch5_shortname}では、このオプションを活用するシーンがないため、説明を割愛する。
+-next::
+  過去に一度実行完了したジョブを再度実行する。ただし、{batch5_shortname}では、このオプションを利用しない。 +
+  なぜなら、{batch5_shortname}では、{SB}のデフォルトである「同じパラメータで起動したジョブは同一ジョブとして認識され、同一ジョブは1度しか実行できない」
+  という制約を回避しているためである。 +
+  詳細は<<Ch04_JobParameter.adoc#Ch04_JobParameter_HowToUse_Converter,パラメータ変換クラスについて>>にて説明する。 +
+  また、本オプションを利用するには、``JobParametersIncrementer``というインターフェースの実装クラスが必要だが、
+  {batch5_shortname}では設定を行っていない。 +
+  そのため、本オプションを指定して起動すると、必要なBean定義が存在しないためエラーとなる。

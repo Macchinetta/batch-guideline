@@ -1,0 +1,85 @@
+@startuml
+
+hide footbox
+autonumber
+
+participant Step
+box "tasklet model" #lightblue
+participant Tasklet
+participant TransactionManager
+participant Repository
+end box
+database "Resource" as db
+
+[->Step : execute()
+activate Step
+group Framework Transaction (Resourceless)
+    Step -> Tasklet : execute()
+    activate Tasklet
+    loop until exhausted read data
+        group User Transaction
+            Tasklet -> TransactionManager : beginTransaction()
+            activate Repository
+            activate TransactionManager
+            loop until chunk size
+                Tasklet -> Repository : find()
+                Repository --> Tasklet : item
+                Tasklet -> Tasklet : business logic
+                activate Tasklet
+                deactivate Tasklet
+                Tasklet -> Repository : update(item)
+                Repository -X db : update
+            end
+            Tasklet -> Tasklet : exception handling
+            activate Tasklet
+            deactivate Tasklet
+            Tasklet -> TransactionManager : rollback()
+            TransactionManager [#red]-> db : <font color="red"><b>rollback</b></font>
+            deactivate TransactionManager
+            deactivate Repository
+        end
+        note right of Tasklet
+            Interrupt processing of the tasklet.
+        end note
+    end
+    Tasklet -> Step : throw Exception
+    deactivate Tasklet
+    Step -[#red]>] : <font color="red"><b>rollback</b></font>
+end
+Step-->[ : ExitStatus
+deactivate Step
+
+
+'Set styles such as format and color of each figure
+skinparam Note {
+  BackgroundColor #b7fab1
+  BorderColor black
+}
+
+skinparam Class {
+  BorderColor black
+  ArrowColor black
+}
+
+skinparam Sequence {
+  BorderColor black
+  ActorBorderColor black
+  ArrowColor black
+  LifeLineBorderColor black
+  BoxLineColor black
+  ParticipantBorderColor black
+}
+
+skinparam componentStyle uml2
+
+skinparam Component {
+  BorderColor black
+  ArrowColor black
+}
+
+skinparam Interface {
+  BorderColor black
+  ArrowColor black
+}
+
+@enduml

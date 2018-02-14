@@ -1,0 +1,64 @@
+@startuml
+
+'Interface and class difinitions
+
+
+package usercode {
+  class "ItemProcessorImpl" as proc {
+    + validator : Validator
+    + process()
+  }
+  class "InputDTO" as dto {
+    - count : int
+    + setItemCount(count:int) : void
+    + getItemCount() : int
+  }
+}
+
+package org.springframework {
+
+  package batch.item {
+    interface "ItemCountAware" as aware {
+      setItemCount(count:int) : void
+    }
+    package validator {
+      interface "Validator" as sbv {
+        + validate() : void
+      }
+      class "SpringValidator" as sbsv {
+        - validator : Validator
+        + validate()
+      }
+    }
+    package support {
+      class "AbstractItemCountingItemStreamItemReader" as reader {
+
+      }
+    }
+  }
+
+  package validation {
+    interface "Validator" as sv {
+      + validate() : void
+    }
+    package beanvalidation {
+      class "LocalValidatorFactoryBean" as lvfb {
+        + targetValidator : javax.validation.Validator
+        + validate()
+      }
+    }
+  }
+
+}
+
+'Component relationship
+proc ..> sbv : <<use>>
+sbv <|-- sbsv : <<impl>>
+sbsv .r.> sv : <<use>>
+sv <|-l- lvfb : <<impl>>
+
+aware <|.. dto : <<extends>>
+proc .r.> dto : <<use>>
+reader .u.> dto : <<set count>>
+
+@enduml

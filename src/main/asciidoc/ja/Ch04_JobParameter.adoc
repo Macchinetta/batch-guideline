@@ -1,0 +1,732 @@
+include::_include_all.adoc[]
+
+[[Ch04_JobParameter]]
+= ジョブの起動パラメータ
+
+[[Ch04_JobParameter_Overview]]
+== Overview
+
+本節では、ジョブの起動パラメータ(以降、パラメータ)の利用方法について説明する。
+
+本機能は、チャンクモデルとタスクレットモデルとで同じ使い方になる。
+
+パラメータは、以下のような実行環境や実行タイミングに応じてジョブの動作を柔軟に切替える際に使用する。
+
+* 処理対象のファイルパス
+* システムの運用日時
+
+パラメータを与える方法は、以下のとおりである。
+
+. <<Ch04_JobParameter_HowToUse_CLIArgs>>
+. <<Ch04_JobParameter_HowToUse_FromFile>>
+
+指定したパラメータは、Bean定義やSpring管理下のJavaで参照できる。
+
+[[Ch04_JobParameter_HowToUse]]
+== How to use
+
+[[Ch04_JobParameter_HowToUse_Converter]]
+=== パラメータ変換クラスについて
+
+{SB}では、受け取ったパラメータを以下の流れで処理する。
+
+. ``JobParametersConverter``の実装クラスが``JobParameters``に変換する。
+. Bean定義やSpring管理下のJavaにて``JobParameters``からパラメータを参照する。
+
+.パラメータ変換クラスの実装クラスについて
+
+前述した``JobParametersConverter``の実装クラスは複数提供されている。
+以下にそれぞれの特徴を示す。
+
+* DefaultJobParametersConverter
+** パラメータのデータ型を指定することができる(String、Long、Date、Doubleの4種類)。
+
+* JsrJobParametersConverter
+** パラメータのデータ型を指定することができない(Stringのみ)。
+** パラメータにジョブ実行を識別するID(RUN_ID)を``jsr_batch_run_id``という名称で自動的に付与する。
+*** RUN_IDは、ジョブが実行される都度増加する。増加は、データベースのSEQUENCE(名称は``JOB_SEQ``となる)を利用するため、重複することがない。
+*** {SB}では、同じパラメータで起動したジョブは同一ジョブとして認識され、同一ジョブは1度しか実行できない、という仕様がある。
+    これに対し、``jsr_batch_run_id``という名称のパラメータを一意な値で付加することにより、別のジョブと認識する仕組みとなっている。
+    詳細は、<<Ch02_SpringBatchArchitecture.adoc#Ch02_SpringBatchArch, {SB}のアーキテクチャ>>を参照すること。
+
+{SB}ではBean定義で使用する``JobParametersConverter``の実装クラスを指定しない場合、``DefaultJobParametersConverter``が使用される。 +
+しかし、{batch5_shortname}では以下の理由により``DefaultJobParametersConverter``は採用しない。
+
+* 1つのジョブを同じパラメータによって、異なるタイミングで起動することは一般的である。
+* 起動時刻のタイムスタンプなどを指定し、異なるジョブとして管理することも可能だが、それだけのためにジョブパラメータを指定するのは煩雑である。
+* ``DefaultJobParametersConverter``はパラメータに対しデータ型を指定することができるが、型変換に失敗した場合のハンドリングが煩雑になる。
+
+{batch5_shortname}では、``JsrJobParametersConverter``を利用することで、ユーザが意識することなく自動的にRUN_IDを付与している。
+この仕組みにより、ユーザから見ると同一ジョブを{SB}としては異なるジョブとして扱っている。
+
+.パラメータ変換クラスの設定について
+
+{batch5_shortname}では、予め``launch-context.xml``にて``JsrJobParametersConverter``を使用するように設定している。 +
+そのため{batch5_shortname}を推奨設定で使用する場合は``JobParametersConverter``の設定を行う必要はない。
+
+[source, xml]
+.META-INF\spring\launch-context.xml
+----
+<bean id="jobParametersConverter"
+      class="org.springframework.batch.core.jsr.JsrJobParametersConverter"
+      c:dataSource-ref="adminDataSource" />
+
+<bean id="jobOperator"
+      class="org.springframework.batch.core.launch.support.SimpleJobOperator"
+      p:jobRepository-ref="jobRepository"
+      p:jobRegistry-ref="jobRegistry"
+      p:jobExplorer-ref="jobExplorer"
+      p:jobParametersConverter-ref="jobParametersConverter"
+      p:jobLauncher-ref="jobLauncher" />
+----
+
+以降は``JsrJobParametersConverter``を利用する前提で説明する。
+
+[[Ch04_JobParameter_HowToUse_CLIArgs]]
+=== コマンドライン引数から与える
+
+まず、もっとも基本的な、コマンドライン引数から与える方法について説明する。
+
+.パラメータの付与
+
+コマンドライン引数として``CommandLineJobRunner``の第3引数以降に``<パラメータ名>=<値>``形式で列挙する。
+
+パラメータの個数や長さは、{SB}や{batch5_shortname}においては制限がない。
+しかし、OSにはコマンド引数の長さに制限がある。 +
+そのため、あまりに大量の引数が必要な場合は、<<Ch04_JobParameter_HowToUse_FromFile>>や
+<<Ch04_JobParameter_HowToExtends_PropertyConbination>>などの方法を活用すること。
+
+[source, console]
+.コマンドライン引数としてパラメータを設定する例
+----
+# Execute job
+$ java org.springframework.batch.core.launch.support.CommandLineJobRunner \
+    JobDefined.xml JOBID param1=abc outputFileName=/tmp/result.csv
+----
+
+.パラメータの参照
+
+以下のように、Bean定義またはJavaで参照することができる。
+
+* Bean定義で参照する
+** ``#{jobParameters['xxx']}``で参照可能
+* Javaで参照する
+** ``@Value("#{jobParameters['xxx']}")``で参照可能
+
+[IMPORTANT]
+.JobParametersを参照するBeanのスコープはStepスコープでなければならない
+====
+``JobParameters``を参照する際は、参照するBeanのスコープを``Step``スコープとする必要がある。
+これは、``JobParameters``を参照する際に、{SB}の**late binding**という仕組みを使用しているためである。
+
+**late binding**とはその名のとおり、遅延して値を設定することである。
+Spring Frameworkの``ApplicationContext``は、デフォルトでは各種Beanのプロパティを解決してから``ApplicationContext``のインスタンスを生成する。
+{SB}では``ApplicationContext``のインスタンスを生成する時にはプロパティを解決せず、
+各種Beanが必要になった際にプロパティを解決する機能をもつ。これが**遅延**という言葉が意味することである。
+この機能により、{SB}自体の実行に必要な``ApplicationContext``を生成し実行した後に、
+パラメータに応じて各種Beanの振る舞いを切替えることが可能となる。
+
+なお、``Step``スコープは{SB}独自のスコープであり、Stepの実行ごとに新たなインスタンスが生成される。
+また、**late binding**による値の解決は、Bean定義においてSpEL式を用いることで可能となる。
+====
+
+[IMPORTANT]
+.Stepスコープの指定では@StepScopeアノテーションは使用できない
+====
+{SB}では、``Step``スコープを指定するアノテーションとして``@StepScope``が提供されているが、
+これはJavaConfigにおいてのみ使用できるアノテーションである。
+
+そのため、{batch5_shortname}における``Step``スコープの指定は以下のいずれかの方法で行う。
+
+. Bean定義では、Beanに``scope="step"``を付与する。
+. Javaでは、クラスに``@Scope("step")``を付与する。
+====
+
+[source, xml]
+.コマンドライン引数で与えたパラメータをBean定義で参照する例
+----
+<!-- (1) -->
+<bean id="reader"
+      class="org.springframework.batch.item.file.FlatFileItemReader" scope="step"
+      p:resource="file:#{jobParameters['inputFile']}">  <!-- (2) -->
+    <property name="lineMapper">
+        <!-- omitted settings -->
+    </property>
+</bean>
+----
+
+[cols="10,90", options="header"]
+.設定内容の項目一覧
+|===
+
+|項番
+|説明
+
+|(1)
+|beanタグにscope属性としてスコープを指定する。
+
+|(2)
+|参照するパラメータを指定する。
+
+|===
+
+[source, java]
+.コマンドライン引数で与えたパラメータをJavaで参照する例
+----
+@Component
+@Scope("step")  // (1)
+public class ParamRefInJavaTasklet implements Tasklet {
+
+    /**
+     * Holds a String type value
+     */
+    @Value("#{jobParameters['str']}")  // (2)
+    private String str;
+
+    // omitted execute()
+}
+----
+
+[cols="10,90", options="header"]
+.設定内容の項目一覧
+|===
+
+|項番
+|説明
+
+|(1)
+|クラスに``@Scope``アノテーションを付与してスコープを指定する。
+
+|(2)
+|``@Value``アノテーションを使用して参照するパラメータを指定する。
+|===
+
+[[Ch04_JobParameter_HowToUse_FromFile]]
+=== ファイルから標準入力へリダイレクトする
+
+ファイルから標準入力へリダイレクトする方法について説明する。
+
+.パラメータを定義するファイルの作成
+
+パラメータは下記のようにファイルに定義する。
+
+[source, txt]
+.params.txt
+----
+param1=abc
+outputFile=/tmp/result.csv
+----
+
+.パラメータを定義したファイルを標準入力へリダイレクトする
+
+コマンドライン引数としてパラメータを定義したファイルをリダイレクトする。
+
+[source, console]
+.実行方法
+----
+# Execute job
+$ java org.springframework.batch.core.launch.support.CommandLineJobRunner \
+    JobDefined.xml JOBID < params.txt
+----
+
+.パラメータの参照
+
+パラメータの参照方法は<<Ch04_JobParameter_HowToUse_CLIArgs>>方法と同様である。
+
+[[Ch04_JobParameter_HowToUse_DefaultValue]]
+=== パラメータのデフォルト値を設定する
+
+パラメータを任意とした場合、以下の形式でデフォルト値を設定することができる。
+
+* ``#{jobParameters['パラメータ名'] ?: デフォルト値}``
+
+ただし、パラメータを使用して値を設定している項目であるということは、デフォルト値もパラメータと同様に環境や実行タイミングによって異なる可能性がある。
+
+まずは、デフォルト値をソースコード上にハードコードをする方法を説明する。
+しかし、後述の<<Ch04_JobParameter_HowToExtends_PropertyConbination>>を活用する方が適切なケースが多いため、合わせて参照すること。
+
+.デフォルト値を設定したパラメータの参照
+
+該当するパラメータが設定されなかった場合にデフォルト値に設定した値が参照される。
+
+[source, xml]
+.コマンドライン引数で与えたパラメータをBean定義で参照する例
+----
+<!-- (1) -->
+<bean id="reader"
+      class="org.springframework.batch.item.file.FlatFileItemReader" scope="step"
+      p:resource="file:#{jobParamaters[inputFile] ?: /input/sample.csv}">  <!-- (2) -->
+    <property name="lineMapper">
+        // omitted settings
+    </property>
+</bean>
+
+----
+
+[cols="10,90", options="header"]
+.設定内容の項目一覧
+|===
+
+|項番
+|説明
+
+|(1)
+|beanタグにscope属性としてスコープを指定する。
+
+|(2)
+|参照するパラメータを指定する。 +
+デフォルト値に``/output/result.csv``を設定している。
+
+|===
+
+[source, java]
+.コマンドライン引数で与えたパラメータをJavaで参照する例
+----
+@Component
+@Scope("step")  // (1)
+public class ParamRefInJavaTasklet implements Tasklet {
+
+    /**
+     * Holds a String type value
+     */
+    @Value("#{jobParameters['str'] ?: 'xyz'}")  // (2)
+    private String str;
+
+    // omitted execute()
+}
+----
+
+[cols="10,90", options="header"]
+.設定内容の項目一覧
+|===
+
+|項番
+|説明
+
+|(1)
+|クラスに``@Scope``アノテーションを付与してスコープを指定する。
+
+|(2)
+|``@Value``アノテーションを使用して参照するパラメータを指定する。 +
+デフォルト値に``xyz``を設定している。
+|===
+
+[[Ch04_JobParameter_HowToUse_ParamsValidation]]
+=== パラメータの妥当性検証
+
+オペレーションミスや意図しない挙動を防ぐために、ジョブの起動時にパラメータの妥当性検証が必要となる場合もある。 +
+パラメータの妥当性検証は{SB}が提供する``JobParametersValidator``を活用することで実現可能である。
+
+パラメータはItemReader/ItemProcessor/ItemWriterといった様々な場所で参照するため、
+ジョブの起動直後に妥当性検証が行われる。
+
+パラメータの妥当性を検証する方法は2つあり、検証の複雑度によって異なる。
+
+* <<Ch04_JobParameter_HowToUse_ParamsValidation_Default>>
+** 適用例
+*** 必須パラメータが設定されていることの検証
+*** 意図しないパラメータが設定されていないことの検証
+** 使用するバリデータ
+*** {SB}が提供している``DefaultJobParametersValidator``
+
+* <<Ch04_JobParameter_HowToUse_ParamsValidation_Origin>>
+** 適用例
+*** 数値の範囲検証やパラメータ間の相関チェックなどの複雑な検証
+*** {SB}が提供している``DefaultJobParametersValidator``にて実現不可能な検証
+** 使用するバリデータ
+*** ``JobParametersValidator``を自作で実装したクラス
+
+<<Ch04_JobParameter_HowToUse_ParamsValidation_Default>>および<<Ch04_JobParameter_HowToUse_ParamsValidation_Origin>>の妥当性を検証する方法についてそれぞれ説明する。
+
+[[Ch04_JobParameter_HowToUse_ParamsValidation_Default]]
+==== 簡易な妥当性検証
+
+{SB}は``JobParametersValidator``のデフォルト実装として、``DefaultJobParametersValidator``を提供している。 +
+このバリデータでは設定により以下を検証することができる。
+
+* 必須パラメータが設定されていること
+* 必須または任意パラメータ以外のパラメータが指定されていないこと
+
+以下に定義例を示す。
+
+[source, xml]
+.DefaultJobParametersValidatorを使用する妥当性検証の定義
+----
+<!-- (1) -->
+<bean id="jobParametersValidator"
+      class="org.springframework.batch.core.job.DefaultJobParametersValidator">
+  <property name="requiredKeys">  <!-- (2) -->
+    <list>
+        <value>jsr_batch_run_id</value>  <!-- (3) -->
+        <value>inputFileName</value>
+        <value>outputFileName</value>
+    </list>
+  </property>
+  <property name="optionalKeys">  <!-- (4) -->
+    <list>
+        <value>param1</value>
+        <value>param2</value>
+    </list>
+  </property>
+</bean>
+
+<batch:job id="jobUseDefaultJobParametersValidator" job-repository="jobRepository">
+  <batch:step id="jobUseDefaultJobParametersValidator.step01">
+    <batch:tasklet ref="sampleTasklet" transaction-manager="jobTransactionManager"/>
+  </batch:step>
+  <batch:validator ref="jobParametersValidator"/>  <!-- (5) -->
+</batch:job>
+----
+
+[cols="10,90", options="header"]
+.設定内容の項目一覧
+|===
+|項番
+|説明
+
+|(1)
+|``DefaultJobParametersValidator``のBeanを定義する。
+
+|(2)
+|必須パラメータはプロパティ``requiredKeys``に設定する。 +
+listタグを使用して必須パラメータのパラメータ名を複数指定できる。
+
+|(3)
+|必須パラメータに``jsr_batch_run_id``を設定する。 +
+{batch5_shortname}では、``DefaultJobParametersValidator``を使用する場合はこの設定が必須である。 +
+必須となる理由は後述する。
+
+|(4)
+|任意パラメータはプロパティ``optionalKeys``に設定する。 +
+listタグを使用して任意パラメータのパラメータ名を複数指定できる。
+
+|(5)
+|jobタグ内にvalidatorタグを使用してジョブにバリデータを適用する。
+|===
+
+[IMPORTANT]
+.{batch5_shortname}では省略できない必須パラメータ
+====
+{batch5_shortname}ではパラメータ変換に``JsrJobParametersConverter``を採用しているため、以下のパラメータが常に設定される。
+
+* ``jsr_batch_run_id``
+
+そのため、``requiredKeys``には、``jsr_batch_run_id``を必ず含めること。 +
+詳細な説明は、<<Ch04_JobParameter_HowToUse_Converter>>を参照すること。
+
+[source, xml]
+.パラメータの定義例
+----
+<bean id="jobParametersValidator"
+      class="org.springframework.batch.core.job.DefaultJobParametersValidator">
+  <property name="requiredKeys">
+    <list>
+        <value>jsr_batch_run_id</value>  <!-- mandatory -->
+        <value>inputFileName</value>
+        <value>outputFileName</value>
+    </list>
+  </property>
+  <property name="optionalKeys">
+    <list>
+        <value>param1</value>
+        <value>param2</value>
+    </list>
+  </property>
+</bean>
+----
+====
+
+.DefaultJobParametersValidatorを使用した場合のOKケースとNGケース
+
+``DefaultJobParametersValidator``にて検証可能な条件の理解を深めるため、検証結果がOKとなる場合とNGとなる場合の例を示す。
+
+[source, xml]
+.DefaultJobParametersValidator定義例
+----
+<bean id="jobParametersValidator"
+    class="org.springframework.batch.core.job.DefaultJobParametersValidator"
+    p:requiredKeys="outputFileName"
+    p:optionalKeys="param1"/>
+----
+
+[source, console]
+.NGケース1
+----
+# Execute job
+$ java org.springframework.batch.core.launch.support.CommandLineJobRunner \
+    JobDefined.xml JOBID param1=aaa
+----
+
+必須パラメータ``outputFile``が設定されていないためNGとなる。
+
+[source, console]
+.NGケース2
+----
+# Execute job
+$ java org.springframework.batch.core.launch.support.CommandLineJobRunner \
+    JobDefined.xml JOBID outputFileName=/tmp/result.csv param2=aaa
+----
+
+必須パラメータ、任意パラメータのどちらにも指定されていないパラメータ``param2``が設定されたためNGとなる。
+
+[source, console]
+.OKケース1
+----
+# Execute job
+$ java org.springframework.batch.core.launch.support.CommandLineJobRunner \
+    JobDefined.xml JOBID param1=aaa outputFileName=/tmp/result.csv
+----
+
+必須および任意として指定されたパラメータが設定されているためOKとなる。
+
+[source, console]
+.OKケース2
+----
+# Execute job
+$ java org.springframework.batch.core.launch.support.CommandLineJobRunner \
+    JobDefined.xml JOBID fileoutputFilename=/tmp/result.csv
+----
+
+必須パラメータが設定されているためOKとなる、任意パラメータは設定されていなくてもよい。
+
+[[Ch04_JobParameter_HowToUse_ParamsValidation_Origin]]
+==== 複雑な妥当性検証
+
+``JobParametersValidator``インターフェースの実装を自作することで、
+要件に応じたパラメータの検証を実現することができる。
+
+``JobParametersValidator``クラスは以下の要領で実装する。
+
+* ``JobParametersValidator``クラスを実装し、validateメソッドをオーバーライドする
+* validateメソッドは以下の要領で実装する
+** ``JobParameters``から各パラメータを取得し検証する
+*** 検証の結果がOKである場合には、何もする必要はない
+*** 検証の結果がNGである場合には、``JobParametersInvalidException``をスローする
+
+``JobParametersValidator``クラスの実装例を示す。
+ここでは、``str``で指定された文字列の長さが、``num``で指定された数値以下であることを検証している。
+
+[source, java]
+.JobParametersValidatorインターフェースの実装例
+----
+public class ComplexJobParametersValidator implements JobParametersValidator {  // (1)
+    @Override
+    public void validate(JobParameters parameters) throws JobParametersInvalidException {
+        Map<String, JobParameter> params = parameters.getParameters();  // (2)
+
+        String str = params.get("str").getValue().toString();  // (3)
+        int num = Integer.parseInt(params.get("num").getValue().toString()); // (4)
+
+        if(str.length() > num){
+            throw new JobParametersInvalidException(
+            "The str must be less than or equal to num. [str:"
+                    + str + "][num:" + num + "]");  // (5)
+        }
+    }
+}
+----
+
+[cols="10,90", options="header"]
+.設定内容の項目一覧
+|===
+|項番
+|説明
+
+|(1)
+|``JobParametersValidator``クラスを実装しvalidateメソッドをオーバーライドする。
+
+|(2)
+|パラメータは``JobParameters``型で引数として受ける。 +
+``parameters.getParameters()``とすることで、Map形式で取得することでパラメータの参照が容易になる。
+
+|(3)
+|keyを指定してパラメータを取得する。
+
+|(4)
+|パラメータをint型へ変換する。String型以外を扱う場合は適宜変換を行うこと。
+
+|(5)
+|パラメータ``str``の文字列長がパラメータ``num``の値を超えている場合に妥当性検証結果NGとしている。
+|===
+
+[source, xml]
+.ジョブの定義例
+----
+<batch:job id="jobUseComplexJobParametersValidator" job-repository="jobRepository">
+    <batch:step id="jobUseComplexJobParametersValidator.step01">
+        <batch:tasklet ref="sampleTasklet" transaction-manager="jobTransactionManager"/>
+    </batch:step>
+    <batch:validator>  <!-- (1) -->
+        <bean class="jp.co.ntt.fw.macchinetta.batch.functionaltest.ch04.jobparameter.ComplexJobParametersValidator"/>
+    </batch:validator>
+</batch:job>
+----
+
+[cols="10,90", options="header"]
+.設定内容の項目一覧
+|===
+|項番
+|説明
+
+|(1)
+|jobタグ内にvalidatorタグを使用してジョブにバリデータを適用する。
+|===
+
+[WARNING]
+.非同期起動時におけるパラメータの妥当性検証について
+====
+非同期起動方式(DBポーリングやWebコンテナ)でも、同様にジョブ起動時に検証することは可能だが、
+以下のようなタイミングでジョブを起動する前に検証することが望ましい。
+
+* DBポーリング
+** ジョブ要求テーブルへのINSERT前
+* Webコンテナ
+** Controller呼び出し時(@Validatedを付与する)
+
+非同期起動の場合、結果は別途確認する必要が生じるため、パラメータ設定ミスのような
+場合は早期にエラーを応答し、ジョブの要求をリジェクトすることが望ましい。
+
+また、この時の妥当性検証において、``JobParametersValidator``を使う必要はない。
+ジョブ要求テーブルへINSERTする機能や、Webコンテナ上のControllerは
+多くの場合{SB}に依存していないはずであり、
+``JobParametersValidator``を使用するためだけに{SB}に依存することは避けた方がよい。
+====
+
+[[Ch04_JobParameter_HowToExtends]]
+== How to extends
+
+[[Ch04_JobParameter_HowToExtends_PropertyConbination]]
+=== パラメータとプロパティの併用
+
+{SB}のベースであるSpring Frameworkには、プロパティ管理の機能が備わっており、
+環境変数やプロパティファイルに設定した値を扱うことができる。
+詳細は、{server5_guide}の
+{server5_url}/ArchitectureInDetail/GeneralFuncDetail/PropertyManagement.html[プロパティ管理] を参照すること。
+
+プロパティとパラメータを組み合わせることで、大部分のジョブに共通的な設定をプロパティファイルに行ったうえで、一部をパラメータで上書きするといったことが可能になる。
+
+[TIP]
+.パラメータとプロパティが解決されるタイミングについて
+====
+前述のとおり、パラメータとプロパティは、機能を提供するコンポーネントが異なる。 +
+{SB}はパラメータ管理の機能をもち、Spring Frameworkはプロパティ管理の機能をもつ。 +
+この差は記述方法の差に現れている。
+
+* {SB}がもつ機能の場合
+** ``#{jobParamaters[xxx]}``
+* Spring Frameworkがもつ機能の場合
+** ``@Value("${xxx}")``
+
+また、それぞれの値が解決されるタイミングが異なる。
+
+* {SB}がもつ機能の場合
+** Application Contextを生成後、ジョブを実行するタイミングで設定される。
+* Spring Frameworkがもつ機能の場合
+** Application Contextの生成時に設定される。
+
+よって、{SB}によるパラメータの値が優先される結果になる。 +
+この点を念頭におくと、組み合わせる際に応用が効くため両者を区別して扱うこと。
+====
+
+以降、プロパティとパラメータを組み合わせて設定する方法について説明する。
+
+.環境変数による設定に加えて、コマンドライン引数で追加設定する場合
+
+環境変数による設定に加えて、コマンドライン引数を使用してパラメータを設定する方法を説明する。 +
+Bean定義においても同様に参照可能である。
+
+[source, console]
+.環境変数に加えてコマンドライン引数でパラメータを設定する例
+----
+# Set environment variables
+$ export env1=aaa
+$ export env2=bbb
+
+# Execute job
+$ java org.springframework.batch.core.launch.support.CommandLineJobRunner \
+    JobDefined.xml JOBID param3=ccc outputFile=/tmp/result.csv
+----
+
+[source, java]
+.Javaにおいて環境変数とパラメータを参照する例
+----
+@Value("${env1}")  // (1)
+private String param1;
+
+@Value("${env2}")  // (1)
+private String param2;
+
+private String param3;
+
+@Value("#{jobParameters['param3']")  // (2)
+public void setParam3(String param3) {
+    this.param3 = param3;
+}
+----
+
+[cols="10,90", options="header"]
+.設定内容の項目一覧
+|===
+|項番
+|説明
+
+|(1)
+|``@Value``アノテーションを使用して参照する環境変数を指定する。 +
+参照する際の形式は``${環境変数名}``である。
+
+|(2)
+|``@Value``アノテーションを使用して参照するパラメータを指定する。 +
+参照する際の形式は``#{jobParameters['パラメータ名']``である。
+|===
+
+.環境変数をデフォルト値とし、コマンドライン引数で上書き設定する場合
+
+[source, console]
+.環境変数をデフォルトとする場合の例
+----
+# Set environment variables
+$ export env1=aaa
+
+# Execute job
+$ java org.springframework.batch.core.launch.support.CommandLineJobRunner \
+    JobDefined.xml JOBID param1=bbb outputFile=/tmp/result.csv
+----
+
+[source, java]
+.Javaにおいて環境変数をデフォルト値としてパラメータを参照する例
+----
+@Value("#{jobParameters['param1'] ?: '${env1}'}")  // (1)
+public void setParam1(String param1) {
+    this.param1 = param1;
+}
+----
+
+[cols="10,90", options="header"]
+.設定内容の項目一覧
+|===
+|項番
+|説明
+
+|(1)
+|環境変数をデフォルト値として``@Value``アノテーションを使用して参照するパラメータを指定する。 +
+パラメータが設定されなかった場合、環境変数の値が設定される。
+|===
+
+[WARNING]
+.誤ったデフォルト値の設定方法
+====
+以下の要領で定義した場合、コマンドライン引数からparam1を設定しない場合に、
+env1の値が設定されてほしいにも関わらず、param1にnullが設定されてしまうため注意すること。
+
+[source, java]
+.誤ったデフォルト値の設定方法例
+----
+@Value("${env1}")
+private String param1;
+
+@Value("#{jobParameters['param1']}")
+public void setParam1(String param1) {
+  this.param1 = param1;
+}
+----
+====

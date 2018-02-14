@@ -1,0 +1,22 @@
+[[Ch05]]
+= データの入出力
+include::_include_all.adoc[]
+
+// 節から始まるドキュメントをリンクするため、更に一段階レベルを下げる
+:leveloffset: +1
+
+include::Ch05_Transaction.adoc[]
+
+<<<
+
+include::Ch05_DBAccess.adoc[]
+
+<<<
+
+include::Ch05_FileAccess.adoc[]
+
+<<<
+
+include::Ch05_ExclusiveControl.adoc[]
+
+:leveloffset: -1

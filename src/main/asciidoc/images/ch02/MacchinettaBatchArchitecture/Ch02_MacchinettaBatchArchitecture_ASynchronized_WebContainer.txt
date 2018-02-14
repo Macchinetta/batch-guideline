@@ -1,0 +1,7 @@
+           Request              start                         execute
++--------+           +--------+         +-------------------+          +---------+   +---------------+
+| cCCC   +---------->| c1FF   +========>| cGRE              +--------->| c3F3    |   | {s} cC9F      |
+| Client |           | Web AP |         | SimpleJobOperator |          |   Job   +==>| JobRepository |
+|        |<----------+        |<========+                   |<---------+         |   |               |
++--------+           +--------+         +-------------------+          +---------+   +---------------+
+           Response             JobExecutionId                JobExecutionId

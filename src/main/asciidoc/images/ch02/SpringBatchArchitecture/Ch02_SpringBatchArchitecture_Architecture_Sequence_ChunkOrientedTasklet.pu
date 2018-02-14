@@ -1,0 +1,66 @@
+@startuml
+
+hide footbox
+autonumber
+
+participant ChunkOrientedTasklet
+participant ItemReader <<interface>>
+participant ItemProcessor <<interface>>
+participant ItemWriter <<interface>>
+
+
+[->ChunkOrientedTasklet : execute()
+activate ChunkOrientedTasklet
+group Framework Transaction
+    group Create chunk (items)
+        note right of ItemReader: Repeat until chunk size is reached
+        ChunkOrientedTasklet -> ItemReader : read()
+        activate ItemReader
+        ItemReader --> ChunkOrientedTasklet : item
+        deactivate ItemReader
+        ChunkOrientedTasklet -> ItemProcessor : process(item)
+        activate ItemProcessor
+        ItemProcessor --> ChunkOrientedTasklet : item
+        deactivate ItemProcessor
+    end
+    ChunkOrientedTasklet -> ItemWriter : write(items)
+    activate ItemWriter
+    deactivate ItemWriter
+end
+ChunkOrientedTasklet-->[ : RepeatStatus
+deactivate ChunkOrientedTasklet
+
+
+'Set styles such as format and color of each figure
+skinparam Note {
+  BackgroundColor #b1f8fa
+  BorderColor black
+}
+
+skinparam Class {
+  BorderColor black
+  ArrowColor black
+}
+
+skinparam Sequence {
+  BorderColor black
+  ActorBorderColor black
+  ArrowColor black
+  LifeLineBorderColor black
+  BoxLineColor black
+  ParticipantBorderColor black
+}
+
+skinparam componentStyle uml2
+
+skinparam Component {
+  BorderColor black
+  ArrowColor black
+}
+
+skinparam Interface {
+  BorderColor black
+  ArrowColor black
+}
+
+@enduml

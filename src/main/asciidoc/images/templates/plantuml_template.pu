@@ -1,0 +1,35 @@
+@startuml
+
+'Set styles such as format and color of each figure
+skinparam Note {
+  BackgroundColor #b1f8fa
+  BorderColor black
+}
+
+skinparam Class {
+  BorderColor black
+  ArrowColor black
+}
+
+skinparam Sequence {
+  BorderColor black
+  ActorBorderColor black
+  ArrowColor black
+  LifeLineBorderColor black
+  BoxLineColor black
+  ParticipantBorderColor black
+}
+
+skinparam componentStyle uml2
+
+skinparam Component {
+  BorderColor black
+  ArrowColor black
+}
+
+skinparam Interface {
+  BorderColor black
+  ArrowColor black
+}
+
+@enduml

@@ -1,0 +1,18 @@
+@startuml
+'Interface and class difinitions
+class FlatFileItemWriter {
+  - LineAggregator
+  + write() : T
+}
+interface LineAggregator {
+  + aggregate(item:T) : String
+}
+interface FieldExtractor {
+  + extract(item:T) : Object[]
+}
+
+'Component relationship
+ItemWriter ()-- FlatFileItemWriter
+FlatFileItemWriter .r.> LineAggregator : <<use>>
+LineAggregator .r.> FieldExtractor : <<use>>
+  @enduml

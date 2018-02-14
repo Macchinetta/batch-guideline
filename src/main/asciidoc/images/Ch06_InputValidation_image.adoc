@@ -1,0 +1,4 @@
+= Image of Input Validation
+== Images
+
+plantuml::ch06/InputValidation/Ch06_InputValidation_Architecture_classes.pu[]

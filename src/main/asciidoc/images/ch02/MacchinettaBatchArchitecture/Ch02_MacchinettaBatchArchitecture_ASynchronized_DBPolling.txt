@@ -1,0 +1,13 @@
+                                         start                         execute
++-------+                 +------------+         +-------------------+          +---------+   +---------------+
+| cCCC  |                 | c1FF       +-------->| cGRE              +--------->| c3F3    |   | {s} cC9F      |
+| User  |                 | DB Polling |         | SimpleJobOperator |          |   Job   +==>| JobRepository |
+|       |                 |            |<--------+                   |<---------+         |   |               |
++---+---+                 +---------+--+         +-------------------+          +---------+   +---------------+
+    |                Request ^      |    JobExecutionId                JobExecutionId
+    |                        |      |
+    |       +-------------+  |      |
+    |       | {s} cC9F    +--+      |
+    +------>| Job Request |         |
+   Register |             |<--------+
+            +-------------+  Polling Status

@@ -1,0 +1,15 @@
+include::_include_all.adoc[]
+
+[[Ch01_ChangeLog]]
+= 更新履歴
+
+[cols="15,25,60", options="header"]
+|===
+|更新日付
+|更新箇所
+|変更内容
+
+|2018-XX-XX
+|-
+|2.0.0 RELEASE 版公開
+|===

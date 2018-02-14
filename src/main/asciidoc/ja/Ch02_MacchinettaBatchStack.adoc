@@ -1,0 +1,350 @@
+include::_include_all.adoc[]
+
+[[Ch02_MacchinettaBatchStack]]
+= Macchinetta Batch Framework (2.x)のスタック
+
+[[Ch02_MacchinettaBatchStack_Overview]]
+== 概要
+{batch5_fullname}の構成について説明し、{batch5_fullname}の担当範囲を示す。
+
+[[Ch02_MacchinettaBatchStack_Stack]]
+== {batch5_fullname}のスタック
+{batch5_fullname}で使用するSoftware Frameworkは、
+http://projects.spring.io/spring-framework/[Spring Framework] (http://projects.spring.io/spring-batch/[{SB}])
+を中心としたOSSの組み合わせである。以下に{batch5_fullname}のスタック概略図を示す。
+
+.{batch5_fullname}のスタック概略図
+image::Ch02_MacchinettaBatchStack_Stack.png[{batch5_fullname} Stack]
+
+ジョブスケジューラやデータベースなどの製品についての説明は、本ガイドラインの説明対象外とする。
+
+[[Ch02_MacchinettaBatchStack_Stack_OSS]]
+=== 利用するOSSのバージョン
+{batch5_fullname}のバージョン{batch5_version}で利用するOSSのバージョン一覧を以下に示す。
+
+[NOTE]
+====
+{batch5_fullname}で使用するOSSのバージョンは、原則として、Spring IO platformの定義に準じている。
+なお、バージョン{batch5_version}におけるSpring IO platformのバージョンは、
+https://docs.spring.io/platform/docs/Brussels-SR5/reference/htmlsingle/[Brussels-SR5]である。 +
+Spring IO platformの詳細については、{server5_fullname}の
+{server5_url}/Overview/FrameworkStack.html#oss[利用するOSSのバージョン]を参照。
+====
+
+[cols="25,25,25,15,5,5", options="header"]
+.OSSバージョン一覧
+|===
+|Type
+|GroupId
+|ArtifactId
+|Version
+|Spring IO platform
+|Remarks
+
+|Spring
+|org.springframework
+|spring-aop
+|4.3.11.RELEASE
+^|*
+|
+
+|Spring
+|org.springframework
+|spring-beans
+|4.3.11.RELEASE
+^|*
+|
+
+|Spring
+|org.springframework
+|spring-context
+|4.3.11.RELEASE
+^|*
+|
+
+|Spring
+|org.springframework
+|spring-expression
+|4.3.11.RELEASE
+^|*
+|
+
+|Spring
+|org.springframework
+|spring-core
+|4.3.11.RELEASE
+^|*
+|
+
+|Spring
+|org.springframework
+|spring-tx
+|4.3.11.RELEASE
+^|*
+|
+
+|Spring
+|org.springframework
+|spring-jdbc
+|4.3.11.RELEASE
+^|*
+|
+
+|{SB}
+|org.springframework.batch
+|spring-batch-core
+|3.0.8.RELEASE
+^|*
+|
+
+|{SB}
+|org.springframework.batch
+|spring-batch-infrastructure
+|3.0.8.RELEASE
+^|*
+|
+
+|Spring Retry
+|org.springframework.retry
+|spring-retry
+|1.2.1.RELEASE
+^|*
+|
+
+|Java Batch
+|javax.batch
+|javax.batch-api
+|1.0.1
+^|*
+|
+
+|Java Batch
+|com.ibm.jbatch
+|com.ibm.jbatch-tck-spi
+|1.0
+^|*
+|
+
+|MyBatis3
+|org.mybatis
+|mybatis
+|3.4.5
+|
+|
+
+|MyBatis3
+|org.mybatis
+|mybatis-spring
+|1.3.1
+|
+|
+
+|MyBatis3
+|org.mybatis
+|mybatis-typehandlers-jsr310
+|1.0.2
+|
+|
+
+|DI
+|javax.inject
+|javax.inject
+|1
+^|*
+|
+
+|ログ出力
+|ch.qos.logback
+|logback-classic
+|1.1.11
+^|*
+|
+
+|ログ出力
+|ch.qos.logback
+|logback-core
+|1.1.11
+^|*
+^|*1
+
+|ログ出力
+|org.slf4j
+|jcl-over-slf4j
+|1.7.25
+^|*
+|
+
+|ログ出力
+|org.slf4j
+|slf4j-api
+|1.7.25
+^|*
+|
+
+|入力チェック
+|javax.validation
+|validation-api
+|1.1.0.Final
+^|*
+|
+
+|入力チェック
+|org.hibernate
+|hibernate-validator
+|5.3.5.Final
+^|*
+|
+
+|入力チェック
+|org.jboss.logging
+|jboss-logging
+|3.3.1.Final
+^|*
+^|*1
+
+|入力チェック
+|com.fasterxml
+|classmate
+|1.3.4
+^|*
+^|*1
+
+|コネクションプール
+|org.apache.commons
+|commons-dbcp2
+|2.1.1
+^|*
+|
+
+|コネクションプール
+|org.apache.commons
+|commons-pool2
+|2.4.2
+^|*
+|
+
+|EL式
+|org.glassfish
+|javax.el
+|3.0.0
+^|*
+|
+
+|インメモリデータベース
+|com.h2database
+|h2
+|1.4.193
+^|*
+|
+
+|XML
+|com.thoughtworks.xstream
+|xstream
+|1.4.10
+^|*
+^|*1
+
+|JSON
+|org.codehaus.jettison
+|jettison
+|1.2
+^|*
+^|*1
+
+|TERASOLUNA Batch
+|org.terasoluna.batch
+|terasoluna-batch
+|5.1.0.RELEASE
+|
+|
+
+|===
+
+.Remarksについて
+====
+. Spring IO platformでサポートしているライブラリが個別に依存しているライブラリ
+====
+
+[WARNING]
+.xstreamの標準エラー出力について
+====
+xstreamのバージョンが1.4.10になり、{SB}がBean定義を読み込み、ジョブ実行する際に標準エラー出力で以下のメッセージが出力される。
+
+[source,console]
+----
+Security framework of XStream not initialized, XStream is probably vulnerable.
+----
+
+現時点では、{SB}でXStreamのセキュリティ設定ができないため、メッセージの出力は抑制できない。
+
+開発したジョブBean定義を読み込む以外でXStreamを使用する場合(データ連携など)は、信頼できる生成元のXML以外はXStreamで読み込みを行わないようにすること。
+
+====
+
+[[Ch02_MacchinettaBatchStack_Components]]
+== {batch5_fullname}の構成要素
+{batch5_fullname}のSoftware Framework構成要素について説明する。
+
+.Software Framework構成要素の概略図
+image::Ch02_MacchinettaBatchStack_Stack_Detail.png[{batch5_fullname} Components of Software Framework]
+
+以下に、各要素の概要を示す。
+
+基盤フレームワーク::
+  フレームワークの基盤として、Spring Frameworkを利用する。DIコンテナをはじめ各種機能を活用する。
+
+  ** http://docs.spring.io/spring/docs/4.3.11.RELEASE/spring-framework-reference/htmlsingle/#spring-core[Spring Framework 4.3]
+
+バッチフレームワーク::
+  バッチフレームワークとして、{SB}を利用する。
+
+  ** http://docs.spring.io/spring-batch/trunk/reference/html/index.html[{SB} 3.0]
+
+非同期実行::
+  非同期実行を実現する方法として、以下の機能を利用する。
+
+  DBポーリングによる周期起動:::
+  {terasoluna_batch5_fullname}が提供するライブラリを利用する。
+
+  *** <<Ch04_AsyncJobWithDB.adoc#Ch04_AsyncJobWithDB,"非同期実行(DBポーリング)">>
+
+  Webコンテナ起動:::
+  Spring MVCを使用して、{SB}と連携をする。
+
+  *** http://docs.spring.io/spring/docs/4.3.11.RELEASE/spring-framework-reference/html/mvc.html[Spring MVC 4.3]
+
+O/R Mapper::
+  MyBatisを利用し、Spring Frameworkとの連携ライブラリとして、MyBatis-Springを使用する。
+
+  ** http://www.mybatis.org/mybatis-3/[MyBatis 3.4]
+  ** http://www.mybatis.org/spring/[MyBatis-Spring]
+
+ファイルアクセス::
+  http://docs.spring.io/spring-batch/trunk/reference/html/readersAndWriters.html#flatFiles[{SB}から提供されている機能]
+  に加えて、補助機能を{terasoluna_batch5_fullname}が提供する。
+
+  ** <<Ch05_FileAccess.adoc#Ch05_FileAccess,"ファイルアクセス">>
+
+ロギング::
+  ロガーはAPIにSLF4J、実装にLogbackを利用する。
+
+  ** https://www.slf4j.org/[SLF4J]
+  ** https://logback.qos.ch/[Logback]
+
+バリデーション::
+  単項目チェック:::
+    単項目チェックにはBean Validationを利用し、実装はHibernate Validatorを使用する。
+
+      *** http://download.oracle.com/otn-pub/jcp/bean_validation-1_1-fr-eval-spec/bean-validation-specification.pdf[Bean Validation 1.1]
+      *** http://docs.jboss.org/hibernate/validator/5.3/reference/en-US/html/[Hibernate Validator 5.3]
+
+  相関チェック:::
+    相関チェックにはBean Validation、もしくはSpring Validationを利用する。
+
+      *** http://docs.spring.io/spring/docs/4.3.11.RELEASE/spring-framework-reference/html/validation.html#validator[Spring Validation]
+
+コネクションプール::
+  コネクションプールには、DBCPを利用する。
+
+  ** https://commons.apache.org/proper/commons-dbcp/[DBCP 2]
+  ** https://commons.apache.org/proper/commons-pool/[Commons Pool 2]

@@ -1,0 +1,14 @@
+= Image of Parallel And Multiple
+== Images
+
+plantuml::ch08/ParallelAndMultiple/Ch08_ParallelAndMultiple_Overview_Multiple.pu[]
+
+plantuml::ch08/ParallelAndMultiple/Ch08_ParallelAndMultiple_Overview_Parallel.pu[]
+
+plantuml::ch08/ParallelAndMultiple/Ch08_ParallelAndMultiple_Parallel_Step.pu[]
+
+plantuml::ch08/ParallelAndMultiple/Ch08_ParallelAndMultiple_Partitioing_Step.pu[]
+
+plantuml::ch08/ParallelAndMultiple/Ch08_ParallelAndMultiple_Partitioing_fixed.pu[]
+
+plantuml::ch08/ParallelAndMultiple/Ch08_ParallelAndMultiple_Partitioing_variable.pu[]

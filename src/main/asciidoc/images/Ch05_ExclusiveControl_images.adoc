@@ -1,0 +1,4 @@
+= Image of ExclusiveControl
+== Images
+
+plantuml::ch05/ExclusiveControl/Ch05_ExclusiveControl_File_Senario.pu[]

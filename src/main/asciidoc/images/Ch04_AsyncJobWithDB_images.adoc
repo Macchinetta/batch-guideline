@@ -1,0 +1,6 @@
+= Image of Async Job with DB
+== Images
+
+plantuml::ch04/AsyncJobWithDB/Ch04_AsyncJobWithDB_Sequence_db_polling.pu[]
+
+plantuml::ch04/AsyncJobWithDB/Ch04_AsyncJobWithDB_MultipleActivation.pu[]

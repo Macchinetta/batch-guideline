@@ -1,0 +1,75 @@
+@startuml
+
+fork
+  -[#white]->
+  :Scheduler;
+  partition #lightblue "flow control by shceduler" {
+    :JOB1;
+    :JOB2;
+    if (condition) then (sucess)
+      :JOB3;
+    else (failure)
+      :JOB4;
+      stop
+    endif
+  }
+fork again
+  -[#white]->
+  :Scheduler;
+  partition "flow control by Macchinetta Batch 2.x" {
+    partition #lightgreen "Macchinetta Batch 2.x JOB" {
+      :JOB1
+      (STEP1);
+      :JOB2
+      (STEP2);
+      if (condition) then (sucess)
+        :JOB3
+        (STEP3);
+      else (failure)
+        :JOB4
+        (STEP4);
+        stop
+      endif
+    }
+  }
+end fork
+
+'Set styles such as format and color of each figure
+skinparam Note {
+  BackgroundColor #b1f8fa
+  BorderColor black
+}
+
+skinparam Class {
+  BorderColor black
+  ArrowColor black
+}
+
+skinparam Sequence {
+  BorderColor black
+  ActorBorderColor black
+  ArrowColor black
+  LifeLineBorderColor black
+  BoxLineColor black
+  ParticipantBorderColor black
+}
+
+skinparam componentStyle uml2
+
+skinparam Component {
+  BorderColor black
+  ArrowColor black
+}
+
+skinparam Interface {
+  BorderColor black
+  ArrowColor black
+}
+
+skinparam Activity  {
+  BorderColor black
+  BarColor white
+}
+
+
+@enduml

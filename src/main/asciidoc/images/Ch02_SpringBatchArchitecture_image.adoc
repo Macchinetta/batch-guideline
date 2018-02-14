@@ -1,0 +1,8 @@
+= Image of Spring Batch Architecture
+== Images
+
+ditaa::ch02/SpringBatchArchitecture/Ch02_SpringBatchArchitecture_Overview_MainComponents.txt[]
+
+plantuml::ch02/SpringBatchArchitecture/Ch02_SpringBatchArchitecture_Architecture_Sequence_ChunkOrientedTasklet.pu[]
+
+plantuml::ch02/SpringBatchArchitecture/Ch02_SpringBatchArchitecture_Architecture_ER.pu[]

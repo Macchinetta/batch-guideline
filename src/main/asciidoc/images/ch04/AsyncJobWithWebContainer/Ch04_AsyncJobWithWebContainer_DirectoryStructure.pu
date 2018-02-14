@@ -1,0 +1,13 @@
+@startsalt
+{
+{T
+<&folder> asyncapp
++ <&folder> asyncbatch
++ <&folder> asyncapp-domain
++ <&folder> asyncapp-env
++ <&folder> asyncapp-initdb
++ <&folder> asyncapp-selenium
++ <&folder> asyncapp-web
+}
+}
+@endsalt

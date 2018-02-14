@@ -1,0 +1,15 @@
+@startsalt
+{
+{T
+<&folder> asyncapp
++ <&folder> asyncapp-web
+++ <&folder> src
++++ <&folder> main
+++++ <&folder> resources
++++++ <&folder> META-INF
+++++++ <&folder> spring
++++++++ <&file> spring-mvc.xml (1)
++++++++ <&file> spring-mvc-rest.xml (2)
+}
+}
+@endsalt

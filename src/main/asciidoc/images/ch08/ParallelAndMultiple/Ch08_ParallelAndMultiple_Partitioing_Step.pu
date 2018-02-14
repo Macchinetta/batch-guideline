@@ -1,0 +1,59 @@
+@startuml
+
+start
+  note
+    Partitioning Step Job
+  end Note
+  partition "Master step phase" {
+    :Master Step\nPartitioner\n(generate partition keys);
+  }
+
+  partition "Slave step phase" {
+    fork
+      :Slave Step1\nProcess partition data #1;
+    fork again
+      :Slave Step2\nProcess partition data #2;
+    fork again
+      :Slave Step3\nProcess partition data #3;
+    end fork
+  }
+stop
+
+'Set styles such as format and color of each figure
+skinparam Note {
+  BackgroundColor #b1f8fa
+  BorderColor black
+}
+
+skinparam Class {
+  BorderColor black
+  ArrowColor black
+}
+
+skinparam Activity {
+  BorderColor black
+  ArrowColor black
+}
+
+skinparam Sequence {
+  BorderColor black
+  ActorBorderColor black
+  ArrowColor black
+  LifeLineBorderColor black
+  BoxLineColor black
+  ParticipantBorderColor black
+}
+
+skinparam componentStyle uml2
+
+skinparam Component {
+  BorderColor black
+  ArrowColor black
+}
+
+skinparam Interface {
+  BorderColor black
+  ArrowColor black
+}
+
+@enduml

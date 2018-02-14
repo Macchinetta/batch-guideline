@@ -1,0 +1,70 @@
+@startuml
+
+hide footbox
+autonumber
+
+participant Step
+box "tasklet model" #lightblue
+participant Tasklet
+participant Repository
+end box
+database "Resource" as db
+
+[->Step : execute()
+activate Step
+group Framework Transaction
+    Step -> Tasklet : execute()
+    activate Tasklet
+    activate Repository
+    loop until exhausted read data
+          Tasklet -> Repository : find()
+          Repository --> Tasklet : item
+
+          Tasklet -> Tasklet : business logic
+          activate Tasklet
+          deactivate Tasklet
+
+          Tasklet -> Repository : update()
+          Repository -> db : update
+      end
+    Tasklet -> Step : FINISHED
+    deactivate Repository
+    deactivate Tasklet
+Step [#blue]-> db : <font color="blue"><b>commit</b></font>
+end
+Step-->[ : ExitStatus
+deactivate Step
+
+'Set styles such as format and color of each figure
+skinparam Note {
+  BackgroundColor #b1f8fa
+  BorderColor black
+}
+
+skinparam Class {
+  BorderColor black
+  ArrowColor black
+}
+
+skinparam Sequence {
+  BorderColor black
+  ActorBorderColor black
+  ArrowColor black
+  LifeLineBorderColor black
+  BoxLineColor black
+  ParticipantBorderColor black
+}
+
+skinparam componentStyle uml2
+
+skinparam Component {
+  BorderColor black
+  ArrowColor black
+}
+
+skinparam Interface {
+  BorderColor black
+  ArrowColor black
+}
+
+@enduml

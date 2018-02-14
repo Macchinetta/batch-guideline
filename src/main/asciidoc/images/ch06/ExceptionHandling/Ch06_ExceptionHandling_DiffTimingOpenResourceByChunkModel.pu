@@ -1,0 +1,80 @@
+@startuml
+
+hide footbox
+
+title Chunk Model
+
+participant ChunkOrientedTasklet as chunkTasklet <<Spring Batch>>
+participant ItemReader as reader1
+participant ItemWriter as writer1
+database Resources as resource1
+participant ChunkListener
+
+activate chunkTasklet
+activate reader1
+activate writer1
+activate ChunkListener
+
+[->chunkTasklet : execute
+
+group open resource
+  chunkTasklet -> reader1 : open
+  reader1 -X resource1 : open
+  reader1 -[#red]>[ : <font color="red">exception</font>
+end
+
+== Begin Chunk ==
+
+group execute business logic
+  chunkTasklet -> reader1 : read
+  reader1 -> resource1 : read
+  chunkTasklet -> writer1 : writer
+  writer1 -X resource1 : writer
+  chunkTasklet -[#blue]> ChunkListener : <font color="blue">afterChunkError</font>
+end
+
+== EndC Chunk ==
+
+group close resource
+  chunkTasklet -> reader1 : close
+  reader1 -> resource1 : close
+  chunkTasklet -> writer1 : close
+  writer1 -X resource1 : close
+  writer1 -[#red]>[ : <font color="red">exception</font>
+end
+
+chunkTasklet -->[ : RepeatStatus
+
+'Set styles such as format and color of each figure
+skinparam Note {
+  BackgroundColor #b1f8fa
+  BorderColor black
+}
+
+skinparam Class {
+  BorderColor black
+  ArrowColor black
+}
+
+skinparam Sequence {
+  BorderColor black
+  ActorBorderColor black
+  ArrowColor black
+  LifeLineBorderColor black
+  BoxLineColor black
+  ParticipantBorderColor black
+}
+
+skinparam componentStyle uml2
+
+skinparam Component {
+  BorderColor black
+  ArrowColor black
+}
+
+skinparam Interface {
+  BorderColor black
+  ArrowColor black
+}
+
+@enduml

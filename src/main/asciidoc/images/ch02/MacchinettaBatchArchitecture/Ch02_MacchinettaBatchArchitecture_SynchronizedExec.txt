@@ -1,0 +1,9 @@
+
+                 launch                   launch                           execute
++--------------+         +--------------+         +----------------------+          +---------+
+| cBLU         +-------->| c1FF         +-------->| cGRE                 +--------->| c3F3    |
+| Job Schedule |         | Shell Script |         | CommandLineJobRunner |          |   Job   |
+|              |<--------+              |<--------+                      |<---------+         |
++--------------+         +--------------+         +----------------------+          +---------+
+                 Exit Code                Exit Code                        Exit Code
+                 (Numeric)                (Numeric)                        (String)

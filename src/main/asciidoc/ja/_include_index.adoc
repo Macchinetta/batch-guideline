@@ -1,0 +1,6 @@
+// indexページにのみ設定する項目を記述するためのadoc
+
+:doctitle: {doctitle-index}
+:author: {author-index}
+:revdate: {revdate-index}
+:revnumber: {revnumber-index}

@@ -1,0 +1,63 @@
+@startuml
+
+actor "Cron, Job Scheduler, etc" as 1
+participant Shell as 2 <<User code>>
+participant CommandLineJobRunner as 3 <<Spring Batch>>
+participant "Bean Definitions" as 4 <<User code>>
+participant BusinessLogic as 5 <<User code>>
+
+autonumber
+hide footbox
+
+activate 1
+1 -> 2 : launch
+activate 2
+2 -> 3 : launch
+activate 3
+3 -> 4 : load
+activate 4
+deactivate 4
+3 -> 5 : execute
+activate 5
+5 --> 3 : return status
+deactivate 5
+3 --> 2 : return exit-code
+deactivate 3
+2 --> 1 : return exit-code
+deactivate 2
+deactivate 1
+
+'Set styles such as format and color of each figure
+skinparam Note {
+  BackgroundColor #b1f8fa
+  BorderColor black
+}
+
+skinparam Class {
+  BorderColor black
+  ArrowColor black
+}
+
+skinparam Sequence {
+  BorderColor black
+  ActorBorderColor black
+  ArrowColor black
+  LifeLineBorderColor black
+  BoxLineColor black
+  ParticipantBorderColor black
+  EntityBorderColor black
+}
+
+skinparam componentStyle uml2
+
+skinparam Component {
+  BorderColor black
+  ArrowColor black
+}
+
+skinparam Interface {
+  BorderColor black
+  ArrowColor black
+}
+
+@enduml

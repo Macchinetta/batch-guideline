@@ -1,0 +1,32 @@
+@startuml
+'Interface and class difinitions
+class SalesPlanDetailMultiLayoutRecord {
+  # record : String
+}
+class SalesPlanDetailHeader {
+  - description : String
+}
+class SalesPlanDetailData {
+  - branchId : String
+  - year : int
+  - month : int
+  - customerId : String
+  - amount : BigDecimal
+}
+class SalesPlanDetailTrailer {
+  - branchId : String
+  - number : int
+  - total : BigDecimal
+}
+class SalesPlanDetailEnd {
+  - headNum : int
+  - trailerNum : int
+  - total : BigDecimal
+}
+
+'Component relationship
+SalesPlanDetailMultiLayoutRecord <|-- SalesPlanDetailHeader
+SalesPlanDetailMultiLayoutRecord <|-- SalesPlanDetailData
+SalesPlanDetailMultiLayoutRecord <|-- SalesPlanDetailTrailer
+SalesPlanDetailMultiLayoutRecord <|-- SalesPlanDetailEnd
+@enduml

@@ -1,0 +1,12 @@
+include::_include_all.adoc[]
+
+[[Ch05]]
+= データの入出力
+
+. <<Ch05_Transaction.adoc#Ch05_Transaction,トランザクション制御>>
+
+. <<Ch05_DBAccess.adoc#Ch05_DBAccess,データベースアクセス>>
+
+. <<Ch05_FileAccess.adoc#Ch05_FileAccess,ファイルアクセス>>
+
+. <<Ch05_ExclusiveControl.adoc#Ch05_ExclusiveControl,排他制御>>

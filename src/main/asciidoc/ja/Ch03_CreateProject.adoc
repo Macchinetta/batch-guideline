@@ -1,0 +1,728 @@
+include::_include_all.adoc[]
+
+[[Ch03_CreateProject]]
+= バッチアプリケーションの開発
+
+バッチアプリケーションの開発について、以下の流れで説明する。
+
+* <<Ch03_CreateProject_blank>>
+* <<Ch03_CreateProject_HowToCreate>>
+* <<Ch03_CreateProject_ProjectStructure>>
+* <<Ch03_CreateProject_Make>>
+* <<Ch03_CreateProject_BuildAndExec_Build>>
+
+
+[[Ch03_CreateProject_blank]]
+== ブランクプロジェクトとは
+
+ブランクプロジェクトとは、{SB}やMyBatis3をはじめとする各種設定を予め行った開発プロジェクトの雛形であり、
+アプリケーション開発のスタート地点である。 +
+本ガイドラインでは、シングルプロジェクト構成のブランクプロジェクトを提供する。 +
+構成の説明については、<<Ch03_CreateProject_ProjectStructure>>を参照のこと。
+
+[NOTE]
+.{server5_shortname}との違い
+====
+{server5_shortname}はマルチプロジェクト構成を推奨している。
+この理由は主に、以下の様なメリットを享受するためである。
+
+* 環境差分の吸収しやすくする
+* ビジネスロジックとプレゼンテーションを分離しやすくする
+
+しかし、本ガイドラインでは{server5_shortname}と異なりシングルプロジェクト構成としている。
+
+これは、前述の点はバッチアプリケーションの場合においても考慮すべきだが、
+シングルプロジェクト構成にすることで1ジョブに関連する資材を近づけることを優先している。 +
+また、バッチアプリケーションの場合、
+環境差分はプロパティファイルや環境変数で切替れば十分なケースが多いことも理由の1つである。
+====
+
+[[Ch03_CreateProject_HowToCreate]]
+== プロジェクトの作成
+``Maven Archetype Plugin``の``archetype:generate``を使用して、プロジェクトを作成する方法を説明する。
+
+[NOTE]
+.作成環境の前提について
+====
+以下を前提とし説明する。
+
+* Java SE Development Kit 8
+* Apache Maven 3.x
+** インターネットに繋がっていること
+** インターネットにプロキシ経由で繋ぐ場合は、Mavenのプロキシ設定 が行われていること
+* IDE
+** Spring Tool Suite / Eclipse 等
+====
+
+プロジェクトを作成するディレクトリにて、以下のコマンドを実行する。
+
+.コマンドプロンプト(Windows)
+[source,console,subs="normal,attributes"]
+----
+C:\xxx>mvn archetype:generate ^
+  -DarchetypeGroupId=jp.co.ntt.fw.macchinetta.batch ^
+  -DarchetypeArtifactId=macchinetta-batch-archetype ^
+  -DarchetypeVersion={batch5_version}
+----
+
+.Bash(Unix, Linux, ...)
+[source,console,subs="normal,attributes"]
+----
+$ mvn archetype:generate \
+  -DarchetypeGroupId=jp.co.ntt.fw.macchinetta.batch \
+  -DarchetypeArtifactId=macchinetta-batch-archetype \
+  -DarchetypeVersion={batch5_version}
+----
+
+その後、利用者の状況に合わせて、以下を対話式に設定する。
+
+* groupId
+* artifactId
+* version
+* package
+
+以下の値を設定し実行した例を示す。
+
+[cols="30,70", options="header"]
+.ブランクプロジェクトの各要素の説明
+|===
+|項目名
+|設定例
+
+|groupId
+|com.example.batch
+
+|artifactId
+|batch
+
+|version
+|1.0.0-SNAPSHOT
+
+|package
+|com.example.batch
+|===
+
+.コマンドプロンプトでの実行例
+[source,console,subs="normal,attributes"]
+----
+C:\xxx>mvn archetype:generate ^
+More? -DarchetypeGroupId=jp.co.ntt.fw.macchinetta.batch ^
+More? -DarchetypeArtifactId=macchinetta-batch-archetype ^
+More? -DarchetypeVersion={batch5_version}
+[INFO] Scanning for projects...
+[INFO]
+[INFO] ------------------------------------------------------------------------
+[INFO] Building Maven Stub Project (No POM) 1
+[INFO] ------------------------------------------------------------------------
+
+(.. omitted)
+
+Define value for property 'groupId': com.example.batch
+Define value for property 'artifactId': batch
+Define value for property 'version' 1.0-SNAPSHOT: : 1.0.0-SNAPSHOT
+Define value for property 'package' com.example.batch: :
+Confirm properties configuration:
+groupId: com.example.batch
+artifactId: batch
+version: 1.0.0-SNAPSHOT
+package: com.example.batch
+ Y: : y
+[INFO] ------------------------------------------------------------------------
+[INFO] Using following parameters for creating project from Archetype: macchinetta-batch-archetype:{batch5_version}
+[INFO] ------------------------------------------------------------------------
+[INFO] Parameter: groupId, Value: com.example.batch
+[INFO] Parameter: artifactId, Value: batch
+[INFO] Parameter: version, Value: 1.0.0-SNAPSHOT
+[INFO] Parameter: package, Value: com.example.batch
+[INFO] Parameter: packageInPathFormat, Value: com/example/batch
+[INFO] Parameter: package, Value: com.example.batch
+[INFO] Parameter: version, Value: 1.0.0-SNAPSHOT
+[INFO] Parameter: groupId, Value: com.example.batch
+[INFO] Parameter: artifactId, Value: batch
+[INFO] Project created from Archetype in dir: C:\xxx\batch
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time: 36.952 s
+[INFO] Finished at: 2017-07-25T14:23:42+09:00
+[INFO] Final Memory: 14M/129M
+[INFO] ------------------------------------------------------------------------
+----
+
+.Bashでの実行例
+[source,console,subs="normal,attributes"]
+----
+$ mvn archetype:generate \
+> -DarchetypeGroupId=jp.co.ntt.fw.macchinetta.batch \
+> -DarchetypeArtifactId=macchinetta-batch-archetype \
+> -DarchetypeVersion={batch5_version}
+[INFO] Scanning for projects...
+[INFO]
+[INFO] ------------------------------------------------------------------------
+[INFO] Building Maven Stub Project (No POM) 1
+[INFO] ------------------------------------------------------------------------
+
+(.. omitted)
+
+Define value for property 'groupId': com.example.batch
+Define value for property 'artifactId': batch
+Define value for property 'version' 1.0-SNAPSHOT: : 1.0.0-SNAPSHOT
+Define value for property 'package' com.example.batch: :
+Confirm properties configuration:
+groupId: com.example.batch
+artifactId: batch
+version: 1.0.0-SNAPSHOT
+package: com.example.batch
+ Y: : y
+[INFO] ----------------------------------------------------------------------------
+[INFO] Using following parameters for creating project from Archetype: macchinetta-batch-archetype:{batch5_version}
+[INFO] ----------------------------------------------------------------------------
+[INFO] Parameter: groupId, Value: com.example.batch
+[INFO] Parameter: artifactId, Value: batch
+[INFO] Parameter: version, Value: 1.0.0-SNAPSHOT
+[INFO] Parameter: package, Value: com.example.batch
+[INFO] Parameter: packageInPathFormat, Value: com/example/batch
+[INFO] Parameter: package, Value: com.example.batch
+[INFO] Parameter: version, Value: 1.0.0-SNAPSHOT
+[INFO] Parameter: groupId, Value: com.example.batch
+[INFO] Parameter: artifactId, Value: batch
+[INFO] Project created from Archetype in dir: C:\xxx\batch
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time: 01:19 min
+[INFO] Finished at: 2017-07-25T14:20:09+09:00
+[INFO] Final Memory: 17M/201M
+[INFO] ------------------------------------------------------------------------
+----
+
+以上により、プロジェクトの作成が完了した。
+
+正しく作成出来たかどうかは、以下の要領で確認できる。
+
+.コマンドプロンプトでの実行(正しく作成できたことの確認)
+[source,console]
+----
+C:\xxx>mvn clean dependency:copy-dependencies -DoutputDirectory=lib package
+C:\xxx>java -cp "lib/*;target/*" ^
+org.springframework.batch.core.launch.support.CommandLineJobRunner ^
+META-INF/jobs/job01.xml job01
+----
+
+.Bashでの実行(正しく作成できたことの確認)
+[source,console]
+----
+$ mvn clean dependency:copy-dependencies -DoutputDirectory=lib package
+$ java -cp 'lib/*:target/*' \
+org.springframework.batch.core.launch.support.CommandLineJobRunner \
+META-INF/jobs/job01.xml job01
+----
+
+以下の出力が得られれば正しく作成できている。
+
+.コマンドプロンプトでの出力例
+[source,console]
+----
+C:\xxx>mvn clean dependency:copy-dependencies -DoutputDirectory=lib package
+[INFO] Scanning for projects...
+[INFO]
+[INFO] ------------------------------------------------------------------------
+[INFO] Building Macchinetta Batch Framework (2.x) Blank Project 1.0.0-SNAPSHOT
+[INFO] ------------------------------------------------------------------------
+
+(.. omitted)
+
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time: 11.007 s
+[INFO] Finished at: 2017-07-25T14:24:36+09:00
+[INFO] Final Memory: 23M/165M
+[INFO] ------------------------------------------------------------------------
+
+C:\xxx>java -cp "lib/*;target/*" ^
+More? org.springframework.batch.core.launch.support.CommandLineJobRunner ^
+More? META-INF/jobs/job01.xml job01
+
+(.. omitted)
+
+[2017/07/25 14:25:22] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=job01]] launched with the following parameters: [{jsr_batch_run_id=1}]
+[2017/07/25 14:25:22] [main] [o.s.b.c.j.SimpleStepHandler] [INFO ] Executing step: [job01.step01]
+[2017/07/25 14:25:23] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=job01]] completed with the following parameters: [{jsr_batch_run_id=1}] and the following status: [COMPLETED]
+[2017/07/25 14:25:23] [main] [o.s.c.s.ClassPathXmlApplicationContext] [INFO ] Closing org.springframework.context.support.ClassPathXmlApplicationContext@62043840: startup date [Tue Jul 25 14:25:20 JST 2017]; root of context hierarchy
+----
+
+.Bashでの出力例
+[source,console]
+----
+$ mvn clean dependency:copy-dependencies -DoutputDirectory=lib package
+[INFO] Scanning for projects...
+[INFO]
+[INFO] ------------------------------------------------------------------------
+[INFO] Building Macchinetta Batch Framework (2.x) Blank Project 1.0.0-SNAPSHOT
+[INFO] ------------------------------------------------------------------------
+
+(.. omitted)
+
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time: 10.827 s
+[INFO] Finished at: 2017-07-25T14:21:19+09:00
+[INFO] Final Memory: 27M/276M
+[INFO] ------------------------------------------------------------------------
+
+$ java -cp 'lib/*:target/*' \
+> org.springframework.batch.core.launch.support.CommandLineJobRunner \
+> META-INF/jobs/job01.xml job01
+[2017/07/25 14:21:49] [main] [o.s.c.s.ClassPathXmlApplicationContext] [INFO ] Refreshing org.springframework.context.support.ClassPathXmlApplicationContext@62043840: startup date [Tue Jul 25 14:21:49 JST 2017]; root of context hierarchy
+
+(.. omitted)
+
+[2017/07/25 14:21:52] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=job01]] launched with the following parameters: [{jsr_batch_run_id=1}]
+[2017/07/25 14:21:52] [main] [o.s.b.c.j.SimpleStepHandler] [INFO ] Executing step: [job01.step01]
+[2017/07/25 14:21:52] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=job01]] completed with the following parameters: [{jsr_batch_run_id=1}] and the following status: [COMPLETED]
+[2017/07/25 14:21:52] [main] [o.s.c.s.ClassPathXmlApplicationContext] [INFO ] Closing org.springframework.context.support.ClassPathXmlApplicationContext@62043840: startup date [Tue Jul 25 14:21:49 JST 2017]; root of context hierarchy
+----
+
+[[Ch03_CreateProject_ProjectStructure]]
+== プロジェクトの構成
+
+前述までで作成したプロジェクトの構成について説明する。
+プロジェクトは、以下の点を考慮した構成となっている。
+
+* 起動方式に依存しないジョブの実装を実現する
+* {SB}やMyBatisといった各種設定の手間を省く
+* 環境依存の切替を容易にする
+
+以下に構成を示し、各要素について説明する。 +
+(わかりやすさのため、前述の``mvn archetype:generate``実行時の出力を元に説明する。)
+
+.プロジェクトのディレクトリ構造
+image::Ch03_CreateProject_BlankProjectDir.png[BlankProject Structure]
+
+[cols="10,90", options="header"]
+.ブランクプロジェクトの各要素の説明
+|===
+|項番
+|説明
+
+|(1)
+|バッチアプリケーション全体の各種クラスを格納するrootパッケージ。
+
+|(2)
+|1ジョブに関する各種クラスを格納するパッケージ。 +
+ここには、DTO、TaskletやProcessorの実装、MyBatis3のMapperインターフェースを格納する。 +
+本ガイドラインでは格納方法に制約は設けないので、これは一例として参考にしてほしい。
+
+初期状態を参考にユーザにて自由にカスタムしてよいが、
+ジョブ固有の資材を判断しやすくすることに配慮してほしい。
+
+|(3)
+|バッチアプリケーション全体に関わる設定ファイル。 +
+初期状態では、データベースの接続や、非同期実行に関する設定を記述している。
+ユーザにて、自由に追記してよい。
+
+|(4)
+|Logback(ログ出力)の設定ファイル。
+
+|(5)
+|BeanValidationを用いた入力チェックにて、エラーとなった際に表示するメッセージを定義する設定ファイル。 +
+初期状態では、BeanValidationと、その実装であるHibernateValidatorのデフォルトメッセージを定義したうえで、
+すべてコメントアウトしている。 +
+この状態ではデフォルトメッセージを使うため、メッセージをカスタマイズしたい場合にのみ
+コメントインし任意のメッセージに修正すること。
+
+|(6)
+|MyBatis3のMapperインターフェースの対となるMapper XMLファイル。
+
+|(7)
+|主にログ出力時に用いるメッセージを定義するプロパティファイル。
+
+|(8)
+|ジョブ固有のBean定義ファイルを格納するディレクトリ。 +
+階層構造はジョブ数に応じて自由に構成してよい。
+
+|(9)
+|バッチアプリケーション全体に関わるBean定義ファイルを格納するディレクトリ。 +
+{SB}やMyBatisの初期設定や、同期/非同期といった起動契機に依らずにジョブを起動するための設定を行っている。
+
+|(10)
+|非同期実行(DBポーリング)機能に関連する設定を記述したBean定義ファイル。
+
+|(11)
+|ジョブ固有のBean定義ファイルにてimportすることで、各種設定を削減するためのBean定義ファイル。 +
+これをimportすることで、ジョブは起動契機によるBean定義の差を吸収することが出来る。
+
+|(12)
+|{SB}の挙動や、ジョブ共通の設定に対するBean定義ファイル。
+|===
+
+また、各ファイルの関連図を以下に示す。
+
+.各ファイルの関連図
+image::Ch03_CreateProject_FilesRelation.png[Files Relation]
+
+[[Ch03_CreateProject_Make]]
+== 開発の流れ
+
+ジョブを開発する一連の流れについて説明する。 +
+ここでは、詳細な説明ではなく、大まかな流れを把握することを主眼とする。
+
+[[Ch03_CreateProject_Make_ImportToIDE]]
+=== IDEへの取り込み
+生成したプロジェクトはMavenのプロジェクト構成に従っているため、
+各種IDEによって、Mavenプロジェクトとしてimportする。 +
+詳細な手順は割愛する。
+
+[[Ch03_CreateProject_Make_Setting]]
+=== アプリケーション全体の設定
+ユーザの状況に応じて以下をカスタマイズする。
+
+* <<Ch03_CreateProject_Make_Setting_POM>>
+* <<Ch03_CreateProject_Make_Setting_DB>>
+
+これら以外の設定をカスタマイズする方法については、個々の機能にて説明する。
+
+[[Ch03_CreateProject_Make_Setting_POM]]
+==== pom.xmlのプロジェクト情報
+プロジェクトのPOMには以下の情報が仮の値で設定されているため、状況に応じて設定すること。
+
+* プロジェクト名(name要素)
+* プロジェクト説明(description要素)
+* プロジェクトURL(url要素)
+* プロジェクト創設年(inceptionYear要素)
+* プロジェクトライセンス(licenses要素)
+* プロジェクト組織(organization要素)
+
+[[Ch03_CreateProject_Make_Setting_DB]]
+==== データベース関連の設定
+
+データベース関連の設定は複数箇所にあるため、それぞれを修正すること。
+
+.pom.xml
+[source,xml]
+----
+<!-- (1) -->
+<dependency>
+    <groupId>com.h2database</groupId>
+    <artifactId>h2</artifactId>
+    <scope>runtime</scope>
+</dependency>
+
+<dependency>
+    <groupId>org.postgresql</groupId>
+    <artifactId>postgresql</artifactId>
+    <scope>runtime</scope>
+</dependency>
+----
+
+.batch-application.properties
+[source,txt]
+----
+# (2)
+# Admin DataSource settings.
+admin.jdbc.driver=org.h2.Driver
+admin.jdbc.url=jdbc:h2:mem:batch-admin;DB_CLOSE_DELAY=-1
+admin.jdbc.username=sa
+admin.jdbc.password=
+
+# (2)
+# Job DataSource settings.
+#jdbc.driver=org.postgresql.Driver
+#jdbc.url=jdbc:postgresql://localhost:5432/postgres
+#jdbc.username=postgres
+#jdbc.password=postgres
+jdbc.driver=org.h2.Driver
+jdbc.url=jdbc:h2:mem:batch;DB_CLOSE_DELAY=-1
+jdbc.username=sa
+jdbc.password=
+
+# (3)
+# Spring Batch schema initialize.
+data-source.initialize.enabled=true
+spring-batch.schema.script=classpath:org/springframework/batch/core/schema-h2.sql
+terasoluna-batch.commit.script=classpath:org/terasoluna/batch/async/db/schema-commit.sql
+----
+
+.META-INF/spring/launch-context.xml
+[source,xml]
+----
+<!-- (3) -->
+<jdbc:initialize-database data-source="adminDataSource"
+                          enabled="${data-source.initialize.enabled:false}"
+                          ignore-failures="ALL">
+    <jdbc:script location="${spring-batch.schema.script}" />
+    <jdbc:script location="${terasoluna-batch.commit.script}" />
+</jdbc:initialize-database>
+
+<!-- (4) -->
+<bean id="adminDataSource" class="org.apache.commons.dbcp2.BasicDataSource"
+      destroy-method="close"
+      p:driverClassName="${admin.jdbc.driver}"
+      p:url="${admin.jdbc.url}"
+      p:username="${admin.jdbc.username}"
+      p:password="${admin.jdbc.password}"
+      p:maxTotal="10"
+      p:minIdle="1"
+      p:maxWaitMillis="5000"
+      p:defaultAutoCommit="false"/>
+
+<!-- (4) -->
+<bean id="jobDataSource" class="org.apache.commons.dbcp2.BasicDataSource"
+      destroy-method="close"
+      p:driverClassName="${jdbc.driver}"
+      p:url="${jdbc.url}"
+      p:username="${jdbc.username}"
+      p:password="${jdbc.password}"
+      p:maxTotal="10"
+      p:minIdle="1"
+      p:maxWaitMillis="5000"
+      p:defaultAutoCommit="false" />
+
+<!-- (5) -->
+<bean id="jobSqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean"
+      p:dataSource-ref="jobDataSource" >
+    <property name="configuration">
+        <bean class="org.apache.ibatis.session.Configuration"
+            p:localCacheScope="STATEMENT"
+            p:lazyLoadingEnabled="true"
+            p:aggressiveLazyLoading="false"
+            p:defaultFetchSize="1000"
+            p:defaultExecutorType="REUSE" />
+    </property>
+</bean>
+----
+
+.META-INF/spring/async-batch-daemon.xml
+[source,xml]
+----
+<!-- (5) -->
+<bean id="adminSqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean"
+      p:dataSource-ref="adminDataSource" >
+    <property name="configuration">
+        <bean class="org.apache.ibatis.session.Configuration"
+              p:localCacheScope="STATEMENT"
+              p:lazyLoadingEnabled="true"
+              p:aggressiveLazyLoading="false"
+              p:defaultFetchSize="1000"
+              p:defaultExecutorType="REUSE" />
+    </property>
+</bean>
+----
+
+[cols="10,90", options="header"]
+.データベース関連の設定における各要素の説明
+|===
+|項番
+|説明
+
+|(1)
+|pom.xmlでは利用するデータベースへの接続に使用するJDBCドライバの依存関係を定義する。 +
+初期状態ではH2 Database(インメモリデータベース)とPostgreSQLが設定されているが、必要に応じて追加削除を行うこと。
+
+|(2)
+|JDBCドライバの接続設定をする。 +
+- ``admin.jdbc.xxx``は{SB}や{batch5_shortname}が利用する +
+- ``jdbc.xxx～``はジョブ個別が利用する +
+
+|(3)
+|{SB}や{batch5_shortname}が利用するデータベースの初期化処理を実行するか否か、および、利用するスクリプトを定義する。 +
+{SB}は**JobRepository**にアクセスするため、データベースが必須となる。
+また、{batch5_shortname}は**非同期実行(DBポーリング)**にて**ジョブ要求テーブル**にアクセスするため、
+データベースが必須となる。 +
+有効にするか否かは、以下を基準とするとよい。 +
+- H2 Databaseを利用する場合は有効にする。無効にすると**JobRepository**や**ジョブ要求テーブル**にアクセスできずエラーになる。 +
+- H2 Databaseを利用しない場合は事故を予防するために無効にする。
+
+|(4)
+|データソースの設定をする。 +
+必要に応じて接続数等をチューニングする。
+
+|(5)
+|MyBatisの挙動を設定する。 +
+必要に応じてフェッチサイズ等をチューニングする。
+|===
+
+[[Ch03_CreateProject_CreateJob]]
+== ジョブの作成
+ジョブの作成方法は、以下を参照のこと。
+
+* <<Ch03_CreateChunkJob.adoc#Ch03_CreateChunkJob,チャンクモデルジョブの作成>>
+* <<Ch03_CreateTaskletJob.adoc#Ch03_CreateTaskletJob,タスクレットモデルジョブの作成>>
+
+[[Ch03_CreateProject_BuildAndExec]]
+== プロジェクトのビルドと実行
+プロジェクトのビルドと実行について説明する。
+
+[[Ch03_CreateProject_BuildAndExec_Build]]
+=== アプリケーションのビルド
+プロジェクトのルートディレクトリに移動し、以下のコマンドを発行する。
+
+.ビルド(Windows/Bash)
+[source,console]
+----
+$ mvn clean dependency:copy-dependencies -DoutputDirectory=lib package
+----
+
+これにより、以下が生成される。
+
+* <ルートディレクトリ>/target/[artifactId]-[version].jar
+** 作成したバッチアプリケーションのJarが生成される
+* <ルートディレクトリ>/lib/(依存Jarファイル)
+** 依存するJarファイル一式がコピーされる
+
+試験環境や商用環境へ配備する際は、これらのJarファイルを任意のディレクトリにコピーすればよい。
+
+[[Ch03_CreateProject_BuildAndExec_BuildPerEnv]]
+=== 環境に応じた設定ファイルの切替
+
+プロジェクトのpom.xmlでは、初期値として以下のProfileを設定している。
+
+.pom.xmlのProfiles設定
+[source,xml]
+----
+<profiles>
+    <!-- Including application properties and log settings into package. (default) -->
+    <profile>
+        <id>IncludeSettings</id>
+        <activation>
+            <activeByDefault>true</activeByDefault>
+        </activation>
+        <properties>
+            <exclude-property/>
+            <exclude-log/>
+        </properties>
+    </profile>
+
+    <!-- Excluding application properties and log settings into package. -->
+    <profile>
+        <id>ExcludeSettings</id>
+        <activation>
+            <activeByDefault>false</activeByDefault>
+        </activation>
+        <properties>
+            <exclude-property>batch-application.properties</exclude-property>
+            <exclude-log>logback.xml</exclude-log>
+        </properties>
+    </profile>
+</profiles>
+----
+
+ここでは、``環境依存となる設定ファイルを含めるかどうか``を切替ている。
+この設定を活用して、環境配備の際に設定ファイルを別途配置することで環境差分を吸収することができる。
+また、これを応用して、試験環境と商用環境でJarに含める設定ファイルを変えることもできる。
+以下に、一例を示す。
+
+.環境ごとに設定ファイルを切替えるpom.xmlの記述例
+[source,xml]
+----
+<build>
+    <resources>
+        <resource>
+            <directory>src/main/resources</directory>
+        </resource>
+        <resource>
+            <directory>${project.root.basedir}/${project.config.resource.directory.rdbms}</directory>
+        </resource>
+    </resources>
+</build>
+
+<profiles>
+    <profile>
+        <id>postgresql9-local</id>
+        <activation>
+            <activeByDefault>true</activeByDefault>
+        </activation>
+        <dependencies>
+            <dependency>
+                <groupId>org.postgresql</groupId>
+                <artifactId>postgresql</artifactId>
+                <scope>runtime</scope>
+            </dependency>
+        </dependencies>
+        <properties>
+            <project.config.resource.directory.rdbms>config/rdbms/postgresql9/local</project.config.resource.directory.rdbms>
+        </properties>
+    </profile>
+    <profile>
+        <id>postgresql9-it</id>
+        <dependencies>
+            <dependency>
+                <groupId>org.postgresql</groupId>
+                <artifactId>postgresql</artifactId>
+                <scope>runtime</scope>
+            </dependency>
+        </dependencies>
+        <properties>
+            <project.config.resource.directory.rdbms>config/rdbms/postgresql9/it</project.config.resource.directory.rdbms>
+        </properties>
+    </profile>
+</profiles>
+----
+
+なお、MavenのProfileは以下の要領で、コマンド実行時に有効化することができる。 +
+必要に応じて、複数Profileを有効化することもできる。必要に応じて、有効活用して欲しい。
+
+.MavenのProfileを有効化する例
+[source,console]
+----
+$ mvn -P profile-1,profile-2
+----
+
+[[Ch03_CreateProject_BuildAndExec_BuildPerEnv_AppExecution]]
+==== アプリケーションの実行
+前段でビルドした結果を元に、ジョブを実行する例を示す。 +
+``[artifactId]``と``[version]``は<<Ch03_CreateProject_HowToCreate>>にて設定したものに、ユーザに応じて読み替えて欲しい。
+
+.コマンドプロンプト(Windows)
+[source,console]
+----
+C:\xxx>java -cp "target\[artifactId]-[version].jar;lib\*" ^
+org.springframework.batch.core.launch.support.CommandLineJobRunner ^
+META-INF/jobs/job01.xml job01
+----
+
+.Bash(Unix, Linux, ...)
+[source,console]
+----
+$ java -cp 'target/[artifactId]-[version].jar:lib/*' \
+org.springframework.batch.core.launch.support.CommandLineJobRunner \
+META-INF/jobs/job01.xml job01
+----
+
+[IMPORTANT]
+.javaコマンドが返却する終了コードをハンドリングする必要性
+====
+実際のシステムでは、
+ジョブスケジューラからジョブを発行する際にjavaコマンドを直接発行するのではなく、
+java起動用のシェルスクリプトを挟んで起動することが一般的である。 +
+
+これはjavaコマンド起動前の環境変数を設定するためや、javaコマンドの終了コードをハンドリングするためである。
+この、``javaコマンドの終了コードのハンドリング``は、以下を理由に常に行うことを推奨する。 +
+
+* javaコマンドの終了コードは正常:``0``、異常:``1``であるが、ジョブスケジューラはジョブの成功/失敗を終了コードの範囲で判断する。
+そのため、ジョブスケジューラの設定によっては、javaコマンドは異常終了したのにもかかわらずジョブスケジューラは正常終了したと判断してしまう。
+* OSやジョブスケジューラが扱うことができる終了コードは有限の範囲である。
+** OSやジョブスケジューラの仕様に応じて、ユーザにて使用する終了コードの範囲を定義することが重要である。
+** 一般的に、POSIX標準で策定されている0から255の間に収めることが多い。
+*** {batch5_shortname}では、正常:``0``、それ以外:``255``として終了コードを返却するよう設定している。
+
+以下に、終了コードのハンドリング例を示す。
+[source, bash]
+.終了コードのハンドリング例
+----
+#!/bin/bash
+
+# ..omitted.
+
+java -cp ...
+RETURN_CODE=$?
+if [ $RETURN_CODE = 1 ]; then
+   return 255
+else
+   return $RETURN_CODE
+fi
+----
+
+====

@@ -1,0 +1,515 @@
+include::_include_all.adoc[]
+
+[[Ch03_CreateTaskletJob]]
+= タスクレットモデルジョブの作成
+
+[[Ch03_CreateTaskletJob_Overview]]
+== Overview
+
+タスクレットモデルジョブの作成方法について説明する。
+タスクレットモデルのアーキテクチャについては、<<Ch02_SpringBatchArchitecture.adoc#Ch02_SpringBatchArch,{SB}のアーキテクチャ>>を参照のこと。
+
+[[Ch03_CreateTaskletJob_Overview_Components]]
+=== 構成要素
+
+タスクレットモデルジョブでは、複数の構成要素は登場しない。
+``org.springframework.batch.core.step.tasklet.Tasklet``を実装し、Bean定義で設定するのみである。
+また、発展的な実装手段としてチャンクモデルの構成要素である``ItemReader``や``ItemWriter``をコンポーネントとして使うことも可能である。
+
+[[Ch03_CreateTaskletJob_HowToUse]]
+== How to use
+
+ここでは、実際にタスクレットモデルジョブを実装する方法について、以下の順序で説明する。
+
+* <<Ch03_CreateTaskletJob_HowToUse_JobConfig>>
+* <<Ch03_CreateTaskletJob_HowToUse_Impl>>
+
+[[Ch03_CreateTaskletJob_HowToUse_JobConfig]]
+=== ジョブの設定
+
+Bean定義ファイルにて、タスクレットモデルジョブを定義する。
+以下に例を示す。
+
+[source,xml]
+.Bean定義ファイルの例(タスクレットモデル)
+----
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:batch="http://www.springframework.org/schema/batch"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+             http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+             http://www.springframework.org/schema/batch http://www.springframework.org/schema/batch/spring-batch.xsd">
+
+    <!-- (1) -->
+    <import resource="classpath:META-INF/spring/job-base-context.xml"/>
+
+    <!-- (2) -->
+    <context:component-scan
+          base-package="jp.co.ntt.fw.macchinetta.batch.functionaltest.app.common"/>
+
+    <!-- (3) -->
+    <batch:job id="simpleJob" job-repository="jobRepository"> <!-- (4) -->
+        <batch:step id="simpleJob.step01"> <!-- (5) -->
+            <batch:tasklet transaction-manager="jobTransactionManager"
+                           ref="simpleJobTasklet"/> <!-- (6) -->
+        </batch:step>
+    </batch:job>
+
+</beans>
+----
+
+[source,java]
+.Tasklet実装クラスの例
+----
+package jp.co.ntt.fw.macchinetta.batch.functionaltest.app.common;
+
+@Component // (3)
+public class SimpleJobTasklet implements Tasklet {
+  // omitted.
+}
+----
+
+[cols="10,90", options="header"]
+|===
+|項番
+|説明
+
+|(1)
+|{batch5_shortname}を利用する際に、常に必要なBean定義を読み込む設定をインポートする。
+
+|(2)
+|コンポーネントスキャン対象のベースパッケージを設定する。 +
+タスクレットモデルはアノテーションによるBean定義を基本とし、Tasklet実装クラスのBean定義はXML上では不要とする。
+
+|(3)
+|ジョブの設定。 +
+``id``属性は、1つのバッチアプリケーションに含まれる全ジョブの範囲内で一意とする必要がある。
+
+|(4)
+|``JobRepository``の設定。 +
+``job-repository``属性に設定する値は、特別な理由がない限り``jobRepository``固定とすること。 +
+これにより、すべてのジョブが1つの``JobRepository``で管理できる。
+``jobRepository``のBean定義は、(1)により解決する。
+
+|(5)
+|ステップの設定。 +
+``id``属性は、1つのバッチアプリケーションに含まれる全ジョブの範囲内で一意とする必要はないが、障害発生時に追跡しやすくなる等の様々なメリットがあるため一意とする。 +
+ 特別な理由がない限り、(3)で指定したid属性に[step+連番]を付加する形式とする。
+
+|(6)
+|タスクレットの設定。 +
+``transaction-manager``属性に設定する値は、特別な理由がない限り``jobTransactionManager``固定とすること。 +
+これにより、タスクレット全体の処理が1つのトランザクションで管理される。
+詳細については、<<Ch05_Transaction.adoc#Ch05_Transaction,トランザクション制御>>を参照のこと。 +
+``jobTransactionManager``のBean定義は、(1)により解決する。 +
+
+また、``ref``属性は、(2)により解決するTaskletの実装クラスのBeanIDを指定する。 +
+ここでは、Tasklet実装クラス名``SimpleJobTasklet``の先頭を小文字にした``simpleJobTasklet``となる。
+|===
+
+[TIP]
+.アノテーション利用時のBean名
+====
+``@Component``アノテーション利用時のBean名は、デフォルトでは
+``org.springframework.context.annotation.AnnotationBeanNameGenerator``
+を通じて生成される。命名ルールを確認したいときは、本クラスのJavadocを参照するとよい。
+====
+
+[[Ch03_CreateTaskletJob_HowToUse_Impl]]
+=== Taskletの実装
+
+まずはシンプルな実装で概要を理解し、次にチャンクモデルのコンポーネントを利用する実装へと進む。
+
+以下の順序で説明する。
+
+* <<Ch03_CreateTaskletJob_HowToUse_SimpleImpl>>
+* <<Ch03_CreateTaskletJob_HowToUse_InOutImpl>>
+
+[[Ch03_CreateTaskletJob_HowToUse_SimpleImpl]]
+=== シンプルなTaskletの実装
+
+ログを出力するのみのTasklet実装を通じ、最低限のポイントを説明する。
+
+[source,java]
+.シンプルなTasklet実装クラスの例
+----
+package jp.co.ntt.fw.macchinetta.batch.functionaltest.app.common;
+
+// omitted.
+
+@Component
+public class SimpleJobTasklet implements Tasklet { // (1)
+
+    private static final Logger logger =
+            LoggerFactory.getLogger(SimpleJobTasklet.class);
+
+    @Override
+    public RepeatStatus execute(StepContribution contribution,
+            ChunkContext chunkContext) throws Exception {  // (2)
+        logger.info("called tasklet."); // (3)
+        return RepeatStatus.FINISHED; // (4)
+    }
+}
+----
+
+[cols="10,90", options="header"]
+|===
+|項番
+|説明
+
+|(1)
+|``org.springframework.batch.core.step.tasklet.Tasklet``インターフェースを``implements``して実装する。
+
+|(2)
+|``Tasklet``インターフェースが定義する``execute``メソッドを実装する。
+引数の``StepContribution``, ``ChunkContext``は必要に応じて利用するが、ここでは説明を割愛する。
+
+|(3)
+|任意の処理を実装する。ここではINFOログを出力している。
+
+|(4)
+|Taskletの処理が完了したかどうかを返却する。 +
+常に``return RepeatStatus.FINISHED;``と明示する。
+
+|===
+
+[[Ch03_CreateTaskletJob_HowToUse_InOutImpl]]
+=== チャンクモデルのコンポーネントを利用するTasklet実装
+
+{SB} では、Tasklet実装の中でチャンクモデルの各種コンポーネントを利用することに言及していない。
+{batch5_shortname}では、以下のような状況に応じてこれを選択してよい。
+
+* 複数のリソースを組み合わせながら処理するため、チャンクモデルの形式に沿いにくい
+* チャンクモデルでは処理が複数箇所に実装することになるため、タスクレットモデルの方が全体像を把握しやすい
+* リカバリをシンプルにするため、チャンクモデルの中間コミットではなく、タスクレットモデルの一括コミットを使いたい
+
+また、チャンクモデルのコンポーネントを利用してTasklet実装するうえで処理の単位についても考慮してほしい。
+出力件数の単位としては以下の3パターンが考えられる。
+
+[cols="15,85", options="header"]
+.出力件数の単位と特徴
+|===
+|出力件数
+|特徴
+
+|1件
+|データを1件ずつ、入力、処理、出力しているため、処理のイメージがしやすい。 +
+大量データの場合はI/Oの多発により性能劣化を引き起こす可能性があるので留意が必要である。
+
+|全件
+|データを1件ずつ、入力、処理してメモリ上に貯めておき、最後に全件一括で出力する。 +
+少量データの場合はデータの整合性を担保するとともに性能向上を期待できる。
+ただし、大量データの場合はリソース(CPU、メモリ)に高負荷がかかる可能性があるので留意が必要である。
+
+|一定件数
+|データを1件ずつ、入力、処理してメモリ上に貯めておき、一定件数まできたところで出力する。 +
+大量データを一定のリソース(CPU、メモリ)で効率よく処理できることにより性能向上を期待できる。 +
+また、一定件数ごとに処理するため、トランザクション制御を実装することにより中間コミット方式にも移行できる。
+ただし、中間コミット方式とする場合、ジョブが異常終了した後のリカバリは処理済みデータと未処理データが混在する可能性があるので留意が必要である。
+
+|===
+
+以下に、チャンクモデルのコンポーネントである``ItemReader``や``ItemWriter``を利用するTasklet実装について説明する。
+
+この実装例は、1件単位に処理している例である。
+
+[source,java]
+.チャンクモデルのコンポーネントを利用するTasklet実装例1
+----
+@Component()
+@Scope("step") // (1)
+public class SalesPlanChunkTranTask implements Tasklet {
+
+    @Inject
+    @Named("detailCSVReader") // (2)
+    ItemStreamReader<SalesPlanDetail> itemReader; // (3)
+
+    @Inject
+    SalesPlanDetailRepository repository; // (4)
+
+    @Override
+    public RepeatStatus execute(StepContribution contribution,
+            ChunkContext chunkContext) throws Exception {
+
+        SalesPlanDetail item;
+
+        try {
+            itemReader.open(chunkContext.getStepContext().getStepExecution()
+                    .getExecutionContext()); // (5)
+
+            while ((item = itemReader.read()) != null) { // (6)
+
+                // do some processes.
+
+                repository.create(item); // (7)
+            }
+        } finally {
+            itemReader.close(); // (8)
+        }
+        return RepeatStatus.FINISHED;
+    }
+}
+
+----
+
+[source,xml]
+.Bean定義例1
+----
+<!-- omitted -->
+<import resource="classpath:META-INF/spring/job-base-context.xml"/>
+
+<context:component-scan
+    base-package="jp.co.ntt.fw.macchinetta.batch.functionaltest.app.plan" />
+<context:component-scan
+    base-package="jp.co.ntt.fw.macchinetta.batch.functionaltest.ch05.transaction.component" />
+
+<!-- (9) -->
+<mybatis:scan
+    base-package="jp.co.ntt.fw.macchinetta.batch.functionaltest.app.repository.plan"
+    factory-ref="jobSqlSessionFactory"/>
+
+<!-- (10) -->
+<bean id="detailCSVReader"
+      class="org.springframework.batch.item.file.FlatFileItemReader" scope="step"
+      p:resource="file:#{jobParameters['inputFile']}">
+    <property name="lineMapper">
+        <bean class="org.springframework.batch.item.file.mapping.DefaultLineMapper">
+            <property name="lineTokenizer">
+                <bean class="org.springframework.batch.item.file.transform.DelimitedLineTokenizer"
+                      p:names="branchId,year,month,customerId,amount"/>
+            </property>
+            <property name="fieldSetMapper">
+                <bean class="org.springframework.batch.item.file.mapping.BeanWrapperFieldSetMapper"
+                      p:targetType="jp.co.ntt.fw.macchinetta.batch.functionaltest.app.model.plan.SalesPlanDetail"/>
+            </property>
+        </bean>
+    </property>
+</bean>
+
+<!-- (11) -->
+<batch:job id="createSalesPlanChunkTranTask" job-repository="jobRepository">
+    <batch:step id="createSalesPlanChunkTranTask.step01">
+        <batch:tasklet transaction-manager="jobTransactionManager"
+                       ref="salesPlanChunkTranTask"/>
+    </batch:step>
+</batch:job>
+----
+
+[cols="10,90", options="header"]
+|===
+|項番
+|説明
+
+|(1)
+|本クラス内で利用するItemReaderのBeanスコープに合わせ、stepスコープとする。
+
+|(2)
+|入力リソース(この例ではフラットファイル)へのアクセスは``ItemReader``を通じて行う。 +
+ここでは、``detailCSVReader``というBean名を指定するが、わかりやすさのためなので任意とする。
+
+|(3)
+|``ItemReader``のサブインターフェースである、``ItemStreamReader``として型を定義する。 +
+これは、(5), (8)のリソースオープン/クローズを実装する必要があるためである。
+後ほど補足する。
+
+|(4)
+|出力リソース(この例ではデータベース)へのアクセスはMyBatisのMapperを通じて行う。 +
+ここでは、簡単のためMapperを直接利用している。常に``ItemWriter``を用いる必要はない。
+もちろん、``MyBatisBatchItemWriter``を用いてもよい。
+
+|(5)
+|入力リソースをオープンする。
+
+|(6)
+|入力リソース全件を逐次ループ処理する。 +
+``ItemReader#read``は、入力データがすべて読み取り末端に到達した場合、``null``を返却する。
+
+|(7)
+|データベースへ出力する。
+
+|(8)
+|リソースは必ずクローズすること。 +
+なお、例外処理は必要に応じて実装すること。
+ここで例外が発生した場合、タスクレット全体のトランザクションがロールバックされ、
+例外のスタックトレースを出力し、ジョブが異常終了する。
+
+|(9)
+|MyBatis-Springの設定。 +
+MyBatis-Springの設定の詳細は、<<Ch05_DBAccess.adoc#Ch05_DBAccess,データベースアクセス>>を参照のこと。
+
+|(10)
+|ファイルから入力するため、``FlatFileItemReader``のBean定義を追加する。詳細はここでは割愛する。
+
+|(11)
+|各種コンポーネントはアノテーションによって解決するため、 +
+<<Ch03_CreateTaskletJob_HowToUse_SimpleImpl>>の場合と同様となる。
+
+|===
+
+[IMPORTANT]
+.スコープの統一について
+====
+Tasklet実装クラスと、InjectするBeanのスコープは、同じスコープに統一すること。
+
+たとえば、``FlatFileItemReader``が引数から入力ファイルパスを受け取る場合にはBeanスコープを``step``にする必要がある。
+この時、Tasklet実装クラスのスコープも``step``にする必要がある。
+
+仮にTasklet実装クラスのスコープを``singleton``としたケースを説明する。
+この時、アプリケーション起動時の``ApplicationContext``生成時にTasklet実装クラスをインスタンス化した後、
+``FlatFileItemReader``のインスタンスを解決してInjectしようとする。
+しかし、``FlatFileItemReader``は``step``スコープでありstep実行時に生成するためまだ存在しない。
+結果、Tasklet実装クラスをインスタンス化できないと判断し``ApplicationContext``生成に失敗してしまう。
+====
+
+
+[IMPORTANT]
+.@Injectを付与するフィールドの型について
+====
+利用する実装クラスに応じて、以下のいずれかとする。
+
+* ItemReader/ItemWriter
+** 対象となるリソースへのオープン・クローズを実施する必要がない場合に利用する。
+* ItemSteamReader/ItemStreamWriter
+** 対象となるリソースへのオープン・クローズを実施する必要がある場合に利用する。
+
+必ずjavadocを確認してどちらを利用するか判断すること。以下に代表例を示す。
+
+FlatFileItemReader/Writerの場合::
+  ItemSteamReader/ItemStreamWriterにて扱う
+MyBatisCursorItemReaderの場合::
+  ItemStreamReaderにて扱う
+MyBatisBatchItemWriterの場合::
+  ItemWriterにて扱う
+====
+
+この実装例は、一定件数単位に処理するチャンクモデルを模倣した例である
+
+[source,java]
+.チャンクモデルのコンポーネントを利用するTasklet実装例2
+----
+@Component
+@Scope("step")
+public class SalesPerformanceTasklet implements Tasklet {
+
+
+    @Inject
+    ItemStreamReader<SalesPerformanceDetail> reader;
+
+    @Inject
+    ItemWriter<SalesPerformanceDetail> writer; // (1)
+
+    int chunkSize = 10; // (2)
+
+    @Override
+    public RepeatStatus execute(StepContribution contribution,
+            ChunkContext chunkContext) throws Exception {
+
+        try {
+            reader.open(chunkContext.getStepContext().getStepExecution()
+                    .getExecutionContext());
+
+            List<SalesPerformanceDetail> items = new ArrayList<>(chunkSize); // (2)
+            SalesPerformanceDetail item = null;
+            do {
+                // Pseudo operation of ItemReader
+                for (int i = 0; i < chunkSize; i++) { // (3)
+                    item = reader.read();
+                    if (item == null) {
+                        break;
+                    }
+                    // Pseudo operation of ItemProcessor
+                    // do some processes.
+
+                    items.add(item);
+                }
+
+                // Pseudo operation of ItemWriter
+                if (!items.isEmpty()) {
+                    writer.write(items); // (4)
+                    items.clear();
+                }
+            } while (item != null);
+        } finally {
+            try {
+                reader.close();
+            } catch (Exception e) {
+                // do nothing.
+            }
+        }
+
+        return RepeatStatus.FINISHED;
+    }
+}
+----
+
+[source,xml]
+.Bean定義例2
+----
+<!-- omitted -->
+<import resource="classpath:META-INF/spring/job-base-context.xml"/>
+
+<context:component-scan
+    base-package="jp.co.ntt.fw.macchinetta.batch.functionaltest.app.common,
+        jp.co.ntt.fw.macchinetta.batch.functionaltest.app.performance,
+        jp.co.ntt.fw.macchinetta.batch.functionaltest.ch06.exceptionhandling"/>
+<mybatis:scan
+    base-package="jp.co.ntt.fw.macchinetta.batch.functionaltest.app.repository.performance"
+    factory-ref="jobSqlSessionFactory"/>
+
+<bean id="detailCSVReader"
+      class="org.springframework.batch.item.file.FlatFileItemReader" scope="step"
+      p:resource="file:#{jobParameters['inputFile']}">
+    <property name="lineMapper">
+        <bean class="org.springframework.batch.item.file.mapping.DefaultLineMapper">
+            <property name="lineTokenizer">
+                <bean class="org.springframework.batch.item.file.transform.DelimitedLineTokenizer"
+                      p:names="branchId,year,month,customerId,amount"/>
+            </property>
+            <property name="fieldSetMapper">
+                <bean class="org.springframework.batch.item.file.mapping.BeanWrapperFieldSetMapper"
+                      p:targetType="jp.co.ntt.fw.macchinetta.batch.functionaltest.app.model.performance.SalesPerformanceDetail"/>
+            </property>
+        </bean>
+    </property>
+</bean>
+
+<!-- (1) -->
+<bean id="detailWriter"
+      class="org.mybatis.spring.batch.MyBatisBatchItemWriter"
+      p:statementId="jp.co.ntt.fw.macchinetta.batch.functionaltest.app.repository.performance.SalesPerformanceDetailRepository.create"
+      p:sqlSessionTemplate-ref="batchModeSqlSessionTemplate"/>
+
+
+<batch:job id="jobSalesPerfTasklet" job-repository="jobRepository">
+    <batch:step id="jobSalesPerfTasklet.step01">
+        <batch:tasklet ref="salesPerformanceTasklet"
+                       transaction-manager="jobTransactionManager"/>
+    </batch:step>
+</batch:job>
+----
+
+[cols="10,90", options="header"]
+|===
+|項番
+|説明
+
+|(1)
+|``ItemWriter``の実装として``MyBatisBatchItemWriter``を利用する。
+
+|(2)
+|``ItemWriter``は一定件数をまとめて出力する。 +
+ここでは10件ごとに処理し出力する。
+
+|(3)
+|チャンクモデルの動作にそって、 +
+read->process->read->process->...->writeとなるようにする。
+
+|(4)
+|``ItemWriter``を通じてまとめて出力する。
+|===
+
+``ItemReader``や``ItemWriter``の実装クラスを利用するかどうかは都度判断してほしいが、
+ファイルアクセスは``ItemReader``や``ItemWriter``の実装クラスを利用するとよいだろう。
+それ以外のデータベースアクセス等は無理に使う必要はない。性能向上のために使えばよい。

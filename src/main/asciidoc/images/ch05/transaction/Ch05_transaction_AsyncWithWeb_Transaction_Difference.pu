@@ -1,0 +1,69 @@
+@startuml
+
+hide footbox
+autonumber
+
+participant client
+participant WebAP
+participant Job
+database "web" as webDB
+database "admin" as adminDB
+database "job" as jobDB
+
+
+client -> WebAP : execute
+activate client
+activate WebAP
+group WebAP Transaction
+    WebAP -> webDB : beginTransaction
+    WebAP -> webDB : access (R/W)
+
+    WebAP -> Job : execute
+    activate Job #lightblue
+    group Spring Batch Transaction
+        Job -> adminDB : access (R/W)
+        Job -> jobDB : access (R/W)
+    end
+    Job --> WebAP : job_execution_id
+    deactivate Job
+
+    WebAP -> webDB : access (R/W)
+    WebAP -> webDB : commit
+end
+WebAP --> client : result
+deactivate WebAP
+deactivate client
+
+'Set styles such as format and color of each figure
+skinparam Note {
+  BackgroundColor #b1f8fa
+  BorderColor black
+}
+
+skinparam Class {
+  BorderColor black
+  ArrowColor black
+}
+
+skinparam Sequence {
+  BorderColor black
+  ActorBorderColor black
+  ArrowColor black
+  LifeLineBorderColor black
+  BoxLineColor black
+  ParticipantBorderColor black
+}
+
+skinparam componentStyle uml2
+
+skinparam Component {
+  BorderColor black
+  ArrowColor black
+}
+
+skinparam Interface {
+  BorderColor black
+  ArrowColor black
+}
+
+@enduml

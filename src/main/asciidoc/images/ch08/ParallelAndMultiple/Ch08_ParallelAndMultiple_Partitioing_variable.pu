@@ -1,0 +1,130 @@
+@startuml
+
+artifact "Master Step" as master
+database dbm [
+master data
+====
+branch_id : 0001
+....
+branch_id : 0002
+....
+branch_id : 0003
+....
+branch_id : 0004
+....
+branch_id : 0005
+....
+branch_id : 0006
+]
+
+database db0 [
+transaction data
+====
+]
+
+frame "Thread Size = 4 (Slave Step active)" {
+  artifact "Slave Step #4" as slave4
+  artifact "Slave Step #3" as slave3
+  artifact "Slave Step #2" as slave2
+  artifact "Slave Step #1" as slave1
+
+database db1 [
+transaction data
+====
+branch_id : 0001
+]
+
+database db2 [
+transaction data
+====
+branch_id : 0002
+]
+
+database db3 [
+transaction data
+====
+branch_id : 0003
+]
+
+database db4 [
+transaction data
+====
+branch_id : 0004
+]
+
+}
+
+cloud  "Slave step waiting" #gray {
+  artifact "Slave Step #6" as slave6 #lightgray
+  artifact "Slave Step #5" as slave5 #lightgray
+  database db5  #lightgray [
+  transaction data
+  ====
+  branch_id : 0005
+  ]
+  database db6  #lightgray [
+  transaction data
+  ====
+  branch_id : 0006
+  ]
+
+}
+
+master .up. dbm
+master .up. db0
+
+master -down-> slave1
+master -down-> slave2
+master -down-> slave3
+master -down-> slave4
+
+master ~down~ slave5 #white
+master ~down~ slave6 #white
+
+slave1 ~down~ db1
+slave2 ~down~ db2
+slave3 ~down~ db3
+slave4 ~down~ db4
+
+slave5 ~down~ db5
+slave6 ~down~ db6
+
+
+'Set styles such as format and color of each figure
+skinparam Note {
+  BackgroundColor #b1f8fa
+  BorderColor black
+}
+
+skinparam Class {
+  BorderColor black
+  ArrowColor black
+}
+
+skinparam Activity {
+  BorderColor black
+  ArrowColor black
+}
+
+skinparam Sequence {
+  BorderColor black
+  ActorBorderColor black
+  ArrowColor black
+  LifeLineBorderColor black
+  BoxLineColor black
+  ParticipantBorderColor black
+}
+
+skinparam componentStyle uml2
+
+skinparam Component {
+  BorderColor black
+  ArrowColor black
+}
+
+skinparam Interface {
+  BorderColor black
+  ArrowColor black
+}
+
+@enduml

@@ -1,0 +1,26 @@
+[[Ch04]]
+= ジョブの起動
+include::_include_all.adoc[]
+
+// 節から始まるドキュメントをリンクするため、更に一段階レベルを下げる
+:leveloffset: +1
+
+include::Ch04_SyncJob.adoc[]
+
+<<<
+
+include::Ch04_JobParameter.adoc[]
+
+<<<
+
+include::Ch04_AsyncJobWithDB.adoc[]
+
+<<<
+
+include::Ch04_AsyncJobWithWebContainer.adoc[]
+
+<<<
+
+include::Ch04_Listener.adoc[]
+
+:leveloffset: -1

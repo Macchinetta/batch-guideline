@@ -1,0 +1,12 @@
+include::_include_all.adoc[]
+
+[[Ch02]]
+= Macchinetta Batch Framework (2.x)のコンセプト
+
+. <<Ch02_GeneralBatchProcessing.adoc#Ch02_GeneralBatchProcess,一般的なバッチ処理>>
+
+. <<Ch02_MacchinettaBatchStack.adoc#Ch02_MacchinettaBatchStack,Macchinetta Batch Framework (2.x)のスタック>>
+
+. <<Ch02_SpringBatchArchitecture.adoc#Ch02_SpringBatchArch,{SB}のアーキテクチャ>>
+
+. <<Ch02_MacchinettaBatchArchitecture.adoc#Ch02_MacchinettaBatchArch,Macchinetta Batch Framework (2.x)のアーキテクチャ>>

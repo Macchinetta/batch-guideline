@@ -1,0 +1,58 @@
+@startuml
+
+autonumber
+hide footbox
+
+participant "Batch Process A" as batchA #lightblue
+database "Target File" as File
+participant "Batch Process B" as batchB #DarkSalmon
+
+activate File
+activate batchA  #lightblue
+
+batchA -> File : Try to get lock
+File -[#green]> batchA : <b><font color="green">Lock success</font></b>
+activate batchB  #DarkSalmon
+batchB -> File : Try to get lock
+batchA -> File : Write record
+File -[#red]> batchB : <b><font color="red">Lock failed</font></b>
+batchB ->] : Update failure processing
+batchA -> File : Release lock
+destroy batchB
+
+deactivate File
+deactivate batchA
+
+'Set styles such as format and color of each figure
+skinparam Note {
+  BackgroundColor #b1f8fa
+  BorderColor black
+}
+
+skinparam Class {
+  BorderColor black
+  ArrowColor black
+}
+
+skinparam Sequence {
+  BorderColor black
+  ActorBorderColor black
+  ArrowColor black
+  LifeLineBorderColor black
+  BoxLineColor black
+  ParticipantBorderColor black
+}
+
+skinparam componentStyle uml2
+
+skinparam Component {
+  BorderColor black
+  ArrowColor black
+}
+
+skinparam Interface {
+  BorderColor black
+  ArrowColor black
+}
+
+@enduml

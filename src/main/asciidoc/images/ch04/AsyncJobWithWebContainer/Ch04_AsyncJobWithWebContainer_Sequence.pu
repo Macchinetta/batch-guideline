@@ -1,0 +1,71 @@
+@startuml
+
+actor WebClient
+participant JobController <<User code>>
+participant JobOperator <<Spring Batch>>
+participant ThreadPoolTaskExecutor <<Spring Batch>>
+participant Job <<User code>>
+participant JobExplorer <<Spring Batch>>
+
+autonumber
+hide footbox
+
+== Submit job ==
+activate JobController
+activate ThreadPoolTaskExecutor
+WebClient -> JobController : POST
+JobController -> JobOperator : start
+activate JobOperator
+JobOperator ->> ThreadPoolTaskExecutor : execute
+JobController <- JobOperator : job execution id
+WebClient <- JobController : response
+deactivate JobOperator
+  group asynchronous
+    ThreadPoolTaskExecutor -> Job : launch job
+    activate Job
+    ThreadPoolTaskExecutor <- Job : RepeatStatus
+  end
+deactivate Job
+
+== Confirm job execution ==
+WebClient -> JobController : GET
+JobController -> JobExplorer : job executoin id
+activate JobExplorer
+JobExplorer -> JobController : job execution
+deactivate JobExplorer
+WebClient <- JobController : response
+
+'Set styles such as format and color of each figure
+skinparam Note {
+  BackgroundColor #b1f8fa
+  BorderColor black
+}
+
+skinparam Class {
+  BorderColor black
+  ArrowColor black
+}
+
+skinparam Sequence {
+  BorderColor black
+  ActorBorderColor black
+  ArrowColor black
+  LifeLineBorderColor black
+  BoxLineColor black
+  ParticipantBorderColor black
+  EntityBorderColor black
+}
+
+skinparam componentStyle uml2
+
+skinparam Component {
+  BorderColor black
+  ArrowColor black
+}
+
+skinparam Interface {
+  BorderColor black
+  ArrowColor black
+}
+
+@enduml

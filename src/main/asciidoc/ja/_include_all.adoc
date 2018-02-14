@@ -1,0 +1,29 @@
+// 各adocファイルに対し設定する項目を記述するためのadoc
+
+// Table, Exampleブロックのキャプションを無効にする
+:example-caption!:
+:table-caption!:
+:figure-caption!:
+
+// フッターのindexページへのリンク先をSingleとMultiページのHTMLで変更する
+:index_ref: "index.html"
+ifeval::["{docname}" == "single_index"]
+:index_ref: "#"
+endif::[]
+
+// ドキュメント全体で使用される名称等を定義する
+:SB: Spring Batch
+:SBI: Spring Batch Integration
+
+:server5_fullname: Macchinetta Server Framework (1.x)
+:server5_shortname: Macchinetta Server 1.x
+:server5_url: https://macchinetta.github.io/server-guideline/current/ja/
+:server5_guide: Macchinetta Server 1.x 開発ガイドライン
+
+:batch5_fullname: Macchinetta Batch Framework (2.x)
+:batch5_shortname: Macchinetta Batch 2.x
+:batch5_version: {revnumber-index}
+:batch5_guide: {batch5_shortname} 開発ガイドライン
+
+:terasoluna_batch5_fullname: TERASOLUNA Batch Framework for Java (5.x)
+:terasoluna_batch5_shortname: TERASOLUNA Batch 5.x

@@ -1,0 +1,6 @@
+= Image of Async Job with DB
+== Images
+
+ditaa::ch04/SyncJob/Ch04_syncJob_overview.txt[]
+
+plantuml::ch04/SyncJob/Ch04_syncjob_seq.pu[]

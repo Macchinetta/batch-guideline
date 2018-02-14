@@ -1,0 +1,6 @@
+= Image of CreateProject
+== Images
+
+plantuml::ch03/CreateProject/Ch03_CreateProject_BlankProjectDir.pu[]
+
+plantuml::ch03/CreateProject/Ch03_CreateProject_FilesRelation.pu[]

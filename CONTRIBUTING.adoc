@@ -1,0 +1,158 @@
+= How to contribute the Development Guideline
+
+This document describes how to contribute the Development Guideline updates.
+
+This Development Guideline is written by the Asciidoctor format(``.adoc``).
+We build to HTML and PDF files using the https://github.com/asciidoctor/asciidoctor-maven-plugin[Asciidoctor Maven Plugin].
+
+Contribution procedures are follows:
+
+== Create a new issue
+
+Please create a new issue from https://github.com/Macchinetta/batch-guideline/issues/new[here] for contributing(bug report, improvement or new content), and get an issue number(tracking id).
+
+[NOTE]
+.Supported language
+====
+English or Japanese.
+====
+
+* Please write the contribution overview into the title area.
+* Please write the contribution detail into the comment area.
+
+e.g.)
+
+[source, text]
+----
+## Description
+In section 1.2.1 Purpose of guidelines, there is a mistake in the below sentence.
+
+`"This guideline provides best practices to develop highly maintainable Web applications."`
+
+* https://macchinetta.github.io/batch-guideline/current/ja//Ch01_Introduction.html
+
+## Possible Solutions
+Modifying to `"This guideline provides best practices to develop highly maintainable Batch applications."`
+
+## Affects Version/s
+* 2.0.0.RELEASE
+
+## Fix Version/s
+(To be written later by project member)
+
+## Issue Links
+N/A
+
+## ChangeLog
+(To be written later by project member)
+----
+
+== Fork a repository
+
+Please fork the ``Macchinetta/batch-guideline`` into your account repository of GitHub.
+
+* Click a "Fork" button on GitHub web user interface.
+
+== Clone a repository
+
+Please clone a forked repository into your local machine.
+
+e.g.)
+
+[source, text]
+----
+$ git clone https://github.com/{your account}/v5-guideline.git
+----
+
+== Create a work branch
+
+Please create a work branch on the master branch into your local repository.
+
+[NOTE]
+.Recommended work branch name
+====
+issues/{issue number}_{short description}
+====
+
+e.g.)
+
+[source, text]
+----
+$ git checkout master
+$ git checkout -b issues/999_typo-in-Ch01_Introduction
+----
+
+== Modify the Development Guideline
+
+Please modify the development guideline for contributing.
+
+[NOTE]
+.Build to the HTML
+====
+If possible, please build to the HTML and PDF using the https://github.com/asciidoctor/asciidoctor-maven-plugin[Asciidoctor Maven Plugin] and check your modification on the web browser. (Optional)
+====
+
+== Commit a modification
+
+Please commit a modification.
+
+[NOTE]
+.Commit comment format
+====
+"{modification overview} #{issue number}"
+====
+
+[NOTE]
+.Supported language
+====
+English only.
+====
+
+e.g.)
+
+[source, text]
+----
+$ git commit -a -m "Fixes typos in Ch01_Introduction #999"
+----
+
+
+== Push a work branch
+
+Please push a work branch to the GitHub.
+
+e.g.)
+
+[source, text]
+----
+$ git push origin issues/999_typo-in-Ch01_Introduction
+----
+
+
+== Create a pull request
+
+Please create a pull request via GitHub web user interface.
+For details, please refer to the https://help.github.com/articles/creating-a-pull-request/[GitHub document-Creating a pull request].
+
+[NOTE]
+.Note: Supported language
+====
+English only.
+====
+
+* Please write the modification overview into the title area and add the #{issue number} at its end. (Default is commit comment or work branch name)
+* Please write the modification detail into the comment area. (If needed)
+* Please include the issue number(``#{issue number}`` format) to track a modification into the comment area.
+
+e.g.)
+
+[cols="30,70", options="header"]
+|===
+|Area
+|Content
+
+|Title
+|Fixes typos in Ch01_Introduction #999
+
+|Comment
+|Please review #999 .
+|===

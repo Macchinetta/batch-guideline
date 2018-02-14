@@ -1,0 +1,38 @@
+@startsalt
+{
+{T
+<application-root>
++ <&folder> src
+++ <&folder> main
++++ <&folder> java
+++++ <&folder> com // (1)
++++++ <&folder> example
+++++++ <&folder> batch
++++++++ <&folder> job01 // (2)
+++++++++ <&file> Employee.java
+++++++++ <&file> EmployeeProcessor.java
+++++++++ <&file> EmployeeRepository.java
++++ <&folder> resources
+++++ <&file> batch-application.properties // (3)
+++++ <&file> logback.xml // (4)
+++++ <&file> ValidationMessages.properties // (5)
+++++ <&folder> com
++++++ <&folder> example
+++++++ <&folder> batch
++++++++ <&folder> job01
+++++++++ <&file> EmployeeRepository.xml // (6)
+++++ <&folder> i18n
++++++ <&file> application-messages.properties // (7)
+++++ <&folder> META-INF
++++++ <&folder> jobs // (8)
+++++++ <&file> job01.xml
++++++ <&folder> spring // (9)
+++++++ <&file> async-batch-daemon.xml // (10)
+++++++ <&file> job-base-context.xml // (11)
+++++++ <&file> launch-context.xml // (12)
+++ <&folder> test
++++ <&folder> java
++++ <&folder> resources
+}
+}
+@endsalt

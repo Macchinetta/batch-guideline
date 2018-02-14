@@ -1,0 +1,608 @@
+include::_include_all.adoc[]
+
+[[Ch08_FlowControll]]
+= フロー制御
+
+[[Ch08_FlowControll_Overview]]
+== Overview
+
+1つの業務処理を実装する方法として、1つのジョブに集約して実装するのではなく、
+複数のジョブに分割し組み合わせることで実装することがある。
+このとき、ジョブ間の依存関係を定義したものをジョブネットと呼ぶ。
+
+ジョブネットを定義することのメリットを下記に挙げる。
+
+* 処理の進行状況が可視化しやすくなる
+* ジョブの部分再実行、実行保留、実行中止が可能になる
+* ジョブの並列実行が容易になる
+
+以上より、バッチ処理を設計する場合はジョブネットも併せてジョブ設計を行うことが一般的である。
+
+[IMPORTANT]
+.処理内容とジョブネットの適性
+====
+分割するまでもないシンプルな業務処理やオンライン処理と連携する処理に対して、ジョブネットは適さないことが多い。
+====
+
+本ガイドラインでは、ジョブネットでジョブ同士の流れを制御することをフロー制御と呼ぶ。
+また処理の流れにおける前のジョブを先行ジョブ、後のジョブを後続ジョブと呼び、
+先行ジョブと後続ジョブの依存関係を、先行後続関係と呼ぶ。
+
+フロー制御の概念図を以下に示す。
+
+.フロー制御の概念図
+image::Ch08_FlowControl_Overview.png[Flow Control Overview]
+
+上図のとおり、フロー制御はジョブスケジューラ、{batch5_shortname}のどちらでも実施可能である。
+しかし、以下の理由によりできる限りジョブスケジューラを活用することが望ましい。
+
+.{batch5_shortname}で実現した場合
+* 1ジョブの処理や状態が多岐に渡る傾向が強まり、ブラックボックス化しやすい。
+* ジョブスケジューラとジョブの境界があいまいになってしまう
+* ジョブスケジューラ上から異常時の状況がみえにくくなってしまう
+
+ただし、ジョブスケジューラに定義するジョブ数が多くなると、以下の様なデメリットが生じることも一般に知られている。
+
+* ジョブスケジューラによる以下のようなコストが累積し、システム全体の処理時間が伸びる
+** ジョブスケジューラ製品固有の通信、実行ノードの制御、など
+** ジョブごとのJavaプロセス起動に伴うオーバーヘッド
+* ジョブ登録数の限界
+
+このため、以下を方針とする。
+
+* 基本的にはジョブスケジューラによりフロー制御を行う。
+* ジョブ数が多いことによる弊害がある場合に限り、以下のとおり対処する。
+** {batch5_shortname}にてシーケンシャルな複数の処理を1ジョブにまとめる。
+*** シンプルな先行後続関係を1ジョブに集約するのみとする。
+*** ステップ終了コードの変更と、この終了コードに基づく後続ステップ起動の条件分岐は機能上利用可能だが、
+    ジョブの実行管理が複雑化するため、ジョブ終了時のプロセス終了コード決定に限り原則利用する。 +
+    どうしても条件分岐を使わないと問題を解消できない場合に限り使用を許容するが、
+    シンプルな先行後続関係を維持するよう配慮すること。
+
+[TIP]
+====
+ジョブの終了コードの決定について、詳細は<<Ch07_JobManagement.adoc#Ch07_JobManagement_HowToUse_ExitCode, "終了コードのカスタマイズ">>を参照。
+====
+
+また、以下に先行後続を実現する上で意識すべきポイントを示す。
+
+.ジョブスケジューラと{batch5_shortname}との違い
+
+.ジョブスケジューラによるフロー制御
+image::ch08/FlowControl/Ch08_FlowControl_Jobnet.png[Jobnet]
+
+.意識すべきポイント
+* ジョブスケジューラがシェル等を介してjavaプロセスを起動する。
+* 1ジョブが1javaプロセスとなる。
+** 処理全体では、4つのjavaプロセスが起動する。
+* ジョブスケジューラが各処理の起動順序を制御する。ぞれぞれのjavaプロセスは独立している。
+* 後続ジョブの起動判定として、先行ジョブのプロセス終了コードが用いられる。
+* ジョブ間のデータ受け渡しは、ファイルやデータベースなど外部リソースを使用する必要がある。
+
+.{batch5_shortname}によるフロー制御
+image::ch08/FlowControl/Ch08_FlowControl_StepExecution.png[FlowControl]
+
+.意識すべきポイント
+* ジョブスケジューラがシェル等を介してjavaプロセスを起動する。
+* 1ジョブが1javaプロセスとなる。
+** 処理全体では、1つのjavaプロセスしか使わない。
+* 1javaプロセス内で各ステップの起動順序を制御する。それぞれのステップは独立している。
+* 後続ステップの起動判定として、先行ステップの終了コードが用いられる。
+* ステップ間のデータはインメモリで受け渡しが可能である。
+
+以降、{batch5_shortname}によるフロー制御の実現方法について説明する。 +
+ジョブスケジューラでのフロー制御は製品仕様に強く依存するためここでは割愛する。
+
+[TIP]
+.フロー制御の応用例
+====
+複数ジョブの並列化・多重化は、一般的にジョブスケジューラとジョブネットによって実現することが多い。 +
+しかし、{batch5_shortname}ではフロー制御の機能を応用し、複数ジョブの並列化、多重化を実現する方法を説明している。
+詳細は、<<Ch08_ParallelAndMultiple.adoc#Ch08_ParallelAndMultiple, "並列処理と多重処理">>を参照。
+====
+
+本機能は、チャンクモデルとタスクレットモデルとで同じ使い方になる。
+
+[[Ch08_FlowControll_HowToUse]]
+== How to use
+Macchinetta Batch 2.xでのフロー制御方法を説明する。
+
+[[Ch08_FlowControll_HowToUse_SequencialFlow]]
+=== シーケンシャルフロー
+
+シーケンシャルフローとは先行ステップと後続ステップを直列に連結したフローである。 +
+何らかの業務処理がシーケンシャルフロー内のステップで異常終了した場合、後続ステップは実行されずにジョブが中断する。
+このとき、``JobRepository``によりジョブ実行IDに紐付けられる当該のステップとジョブのステータス・終了コードは
+``FAILED``として記録される。 +
+失敗原因の回復後にリスタートを実施することで、異常終了したステップから処理をやり直すことができる。
+
+[TIP]
+====
+ジョブのリスタート方法については<<Ch06_ReProcessing.adoc#Ch06_RerunRestart_HowToUse_Restart, "ジョブのリスタート">>を参照。
+====
+
+ここでは3つのステップからなるジョブのシーケンシャルフローを設定する。
+
+[source,xml]
+.Bean定義
+----
+<bean id="sequentialFlowTasklet"
+    class="jp.co.ntt.fw.macchinetta.batch.functionaltest.ch08.flowcontrol.SequentialFlowTasklet"
+        p:failExecutionStep="#{jobParameters['failExecutionStep']}" scope="step"/>
+
+<batch:step id="parentStep">
+    <batch:tasklet ref="sequentialFlowTasklet"
+                   transaction-manager="jobTransactionManager"/>
+</batch:step>
+
+<batch:job id="jobSequentialFlow" job-repository="jobRepository">
+    <batch:step id="jobSequentialFlow.step1"
+                next="jobSequentialFlow.step2" parent="parentStep"/> <!-- (1) -->
+    <batch:step id="jobSequentialFlow.step2"
+                next="jobSequentialFlow.step3" parent="parentStep"/> <!-- (1) -->
+    <batch:step id="jobSequentialFlow.step3" parent="parentStep"/>   <!-- (2) -->
+</batch:job>
+----
+
+[cols="10,90",options="header"]
+|===
+|項番
+|説明
+
+|(1)
+|``<batch:step>``で、このステップの正常終了後に起動する後続ステップを指定する。 +
+``next``属性に後続ステップの``id``を設定する。
+
+|(2)
+|フローの末端になるステップには、``next``属性は不要となる。
+|===
+
+これにより、 以下の順でステップが直列に起動する。 +
+``jobSequentialFlow.step1`` -> ``jobSequentialFlow.step2`` -> ``jobSequentialFlow.step3`` +
+
+[NOTE]
+.<batch:flow>を使った定義方法
+====
+前述の例では``<batch:job>``内に直接フローを定義した。
+``<batch:flow>``を利用して、フロー定義を外部に切り出すこともできる。
+以下に``<batch:flow>``を利用した場合の例を示す。
+
+[source,xml]
+----
+<batch:job id="jobSequentialOuterFlow" job-repository="jobRepository">
+    <batch:flow id="innerFlow" parent="outerFlow"/> <!-- (1) -->
+</batch:job>
+
+<!-- (2) -->
+<batch:flow id="outerFlow">
+    <batch:step id="jobSequentialOuterFlow.step1"
+                next="jobSequentialOuterFlow.step2"
+                parent="parentStep"/>
+    <batch:step id="jobSequentialOuterFlow.step2"
+                next="jobSequentialOuterFlow.step3"
+                parent="parentStep"/>
+    <batch:step id="jobSequentialOuterFlow.step3"
+                parent="parentStep"/>
+</batch:flow>
+----
+[cols="10,90",options="header"]
+|===
+|項番
+|説明
+
+|(1)
+|parent属性に(2)で定義したフローのidを設定する。
+
+|(2)
+|シーケンシャルフローを定義する。
+|===
+
+====
+
+[[Ch08_FlowControll_HowToUse_PassingDataToFutureSteps]]
+=== ステップ間のデータの受け渡し
+
+{SB}には、ステップ、ジョブそれぞれのスコープで利用できる実行コンテキストの``ExecutionContext``が用意されている。
+ステップ実行コンテキストを利用することでステップ内のコンポーネント間でデータを共有できる。
+このとき、ステップ実行コンテキストはステップ間で共有できないため、先行のステップ実行コンテキストは後続のステップ実行コンテキストからは参照できない。
+ジョブ実行コンテキストを利用すれば実現可能だが、すべてのステップから参照可能になるため、慎重に扱う必要がある。
+ステップ間の情報を引き継ぐ必要があるときは、以下の手順により対応できる。
+
+. 先行ステップの後処理で、ステップ実行コンテキストに格納した情報をジョブ実行コンテキストに移す。
+. 後続ステップがジョブ実行コンテキストから情報を取得する。
+
+最初の手順は、{SB}から提供されている``ExecutionContextPromotionListener``を利用することで、
+実装をせずとも、引き継ぎたい情報をリスナーに指定するだけ実現できる。
+
+[WARNING]
+.ExecutionContextを使用する上での注意点
+====
+データの受け渡しに使用する``ExecutionContext``は``JobRepository``によりRDBMSの
+``BATCH_JOB_EXECUTION_CONTEXT``、``BATCH_JOB_STEP_EXECUTION_CONTEXT``に
+シリアライズされた状態で保存されるため、以下3点に注意すること。
+
+. 受け渡しデータはシリアライズ可能な形式のオブジェクトであること。
+  * ``java.io.Serializable``を実装している必要がある。
+. 受け渡しデータは必要最小限に留めること。 +
+  ``ExecutionContext``は{SB}による実行制御情報の保存でも利用しており、
+  受け渡しデータが大きくなればそれだけシリアライズコストが増大する。 +
+. データ受け渡しに直接ジョブ実行コンテキストに保存させず、上述の``ExecutionContextPromotionListener``を使用すること。 +
+  ジョブ実行コンテキストはステップ実行コンテキストよりスコープが広いため、無用なシリアライズデータが蓄積しやすいため。
+
+また、実行コンテキストを経由せず、SingletonやJobスコープのBeanを共有することでも情報のやり取りは可能だが、
+この方法もサイズが大きすぎるとメモリリソースを圧迫する可能性があるので注意すること。
+====
+
+以下、タスクレットモデルとチャンクモデルについて、それぞれステップ間のデータ受け渡しについて説明する。
+
+[[Ch08_FlowControll_HowToUse_PassingDataToFutureSteps_Tasklet]]
+==== タスクレットモデルを用いたステップ間のデータ受け渡し
+受け渡しデータの保存・取得に、``ChunkContext``から``ExecutionContext``を取得し、ステップ間のデータ受け渡しを行う。
+
+[source,java]
+.データ受け渡し元タスクレットの実装例
+----
+// package, imports are omitted.
+
+@Component
+public class SavePromotionalTasklet implements Tasklet {
+
+    // omitted.
+
+    @Override
+    public RepeatStatus execute(StepContribution contribution,
+            ChunkContext chunkContext) throws Exception {
+
+        // (1)
+        chunkContext.getStepContext().getStepExecution().getExecutionContext()
+                .put("promotion", "value1");
+
+        // omitted.
+
+        return RepeatStatus.FINISHED;
+    }
+}
+----
+
+[source,java]
+.データ受け渡し先のタスクレット実装例
+----
+// package and imports are omitted.
+
+@Component
+public class ConfirmPromotionalTasklet implements Tasklet {
+
+    @Override
+    public RepeatStatus execute(StepContribution contribution,
+            ChunkContext chunkContext) {
+        // (2)
+        Object promotion = chunkContext.getStepContext().getJobExecutionContext()
+                .get("promotion");
+
+        // omitted.
+
+        return RepeatStatus.FINISHED;
+    }
+}
+----
+
+[source,xml]
+.ジョブBean定義の記述例
+----
+<!-- import,annotation,component-scan definitions are omitted -->
+
+<batch:job id="jobPromotionalFlow" job-repository="jobRepository">
+    <batch:step id="jobPromotionalFlow.step1" next="jobPromotionalFlow.step2">
+        <batch:tasklet ref="savePromotionalTasklet"
+                       transaction-manager="jobTransactionManager"/>
+        <batch:listeners>
+            <batch:listener>
+                <!-- (3) -->
+                <bean class="org.springframework.batch.core.listener.ExecutionContextPromotionListener"
+                      p:keys="promotion"
+                      p:strict="true"/>
+            </batch:listener>
+        </batch:listeners>
+    </batch:step>
+    <batch:step id="jobPromotionalFlow.step2">
+        <batch:tasklet ref="confirmPromotionalTasklet"
+                       transaction-manager="jobTransactionManager"/>
+    </batch:step>
+</batch:job>
+<!-- omitted -->
+----
+
+[cols="10,90",options="header"]
+.実装内容の説明
+|===
+|項番
+|説明
+
+|(1)
+|ステップ実行コンテキストの``ExecutionContext``に後続ステップに受け渡す値を設定する。
+ここでは一連のデータ受け渡しに必要なキーとして、``promotion``を指定している。
+
+|(2)
+|先行ステップの(1)で設定された受け渡しデータを``ExecutionContext``から、
+受け渡し元で指定されたキー``promotion``を用いて取得する。 +
+ここで使用している``ExecutionContext``は(1)のステップ実行コンテキストではなく、
+ジョブ実行コンテキストである点に注意する。
+
+|(3)
+|``ExecutionContextPromotionListener``を用い、
+ステップ実行コンテキストからジョブ実行コンテキストに受け渡しデータを移す。 +
+``keys``プロパティには(1)で指定した受け渡しキーを指定する。 +
+``strict=true``プロパティにより、ステップ実行コンテキストに存在しない場合は``IllegalArgumentException``がスローされる。
+``false``の場合は受け渡しデータがなくても処理が継続する。
+|===
+
+[NOTE]
+.ExecutionContextPromotionListenerとステップ終了コードについて
+====
+``ExecutionContextPromotionListener``はデータ受け渡し元のステップ終了コードが正常終了時(``COMPLETED``)の場合のみ、
+ステップ実行コンテキストからジョブ実行コンテキストへデータを移す。 +
+後続ステップが継続して実行される終了コードのカスタマイズを行う場合、
+``status``プロパティに終了コードを配列形式で指定すること。
+====
+
+[[Ch08_FlowControll_HowToUse_PassingDataToFutureSteps_Chunk]]
+==== チャンクモデルを用いたステップ間のデータ受け渡し
+``ItemProcessor``に``@AfterStep``、``@BeforeStep``アノテーションを付与したメソッドを使用する。
+データ受け渡しに使用するリスナーと、``ExecutionContext``の使用方法はタスクレットと同様である。
+
+[source,java]
+.データ受け渡し元ItemProcessorの実装例
+----
+// package and imports are omitted.
+
+@Component
+@Scope("step")
+public class PromotionSourceItemProcessor implements ItemProcessor<String, String> {
+
+    @Override
+    public String process(String item) {
+        // omitted.
+    }
+
+    @AfterStep
+    public ExitStatus afterStep(StepExecution stepExecution) {
+        // (1)
+        stepExecution.getExecutionContext().put("promotion", "value2");
+
+        return null;
+    }
+}
+----
+
+[source,java]
+.データ受け渡し先ItemProcessorの実装例
+----
+// package and imports are omitted.
+
+@Component
+@Scope("step")
+public class PromotionTargetItemProcessor implements ItemProcessor<String, String> {
+
+    @Override
+    public String process(String item) {
+        // omitted.
+    }
+
+    @BeforeStep
+    public void beforeStep(StepExecution stepExecution) {
+        // (2)
+        Object promotion = stepExecution.getJobExecution().getExecutionContext()
+                .get("promotion");
+        // omitted.
+    }
+}
+----
+
+[source,xml]
+.ジョブBean定義の記述例
+----
+<!-- import,annotation,component-scan definitions are omitted -->
+<batch:job id="jobChunkPromotionalFlow" job-repository="jobRepository">
+    <batch:step id="jobChunkPromotionalFlow.step1" parent="sourceStep"
+                next="jobChunkPromotionalFlow.step2">
+        <batch:listeners>
+            <batch:listener>
+                <!-- (3) -->
+                <bean class="org.springframework.batch.core.listener.ExecutionContextPromotionListener"
+                      p:keys="promotion"
+                      p:strict="true" />
+            </batch:listener>
+        </batch:listeners>
+    </batch:step>
+    <batch:step id="jobChunkPromotionalFlow.step2" parent="targetStep"/>
+</batch:job>
+
+<!-- step definitions are omitted. -->
+----
+
+[cols="10,90",options="header"]
+.実装内容の説明
+|===
+|項番
+|説明
+
+|(1)
+|ステップ実行コンテキストの``ExecutionContext``に後続ステップに受け渡す値を設定する。
+ここでは一連のデータ受け渡しに必要なキーとして、``promotion``を指定している。
+
+|(2)
+|先行ステップの(1)で設定された受け渡しデータを``ExecutionContext``から、
+受け渡し元で指定されたキー``promotion``を用いて取得する。 +
+ここで使用している``ExecutionContext``は(1)のステップ実行コンテキストではなく、
+ジョブ実行コンテキストである点に注意する。
+
+|(3)
+|``ExecutionContextPromotionListener``を用い、
+ステップ実行コンテキストからジョブ実行コンテキストに受け渡しデータを移す。 +
+プロパティの指定はタスクレットと同様である。
+|===
+
+[[Ch08_FlowControll_HowToExtend]]
+== How to extend
+
+ここでは後続ステップの条件分岐と、条件により後続ステップ実行前にジョブを停止させる停止条件について説明する。
+
+[WARNING]
+.ジョブ・ステップの終了コードとステータスの違い。
+====
+以降の説明では「ステータス」と「終了コード」という言葉が頻繁に登場する。 +
+これらの判別がつかない場合混乱を招く恐れがあるため、
+まず<<Ch07_JobManagement.adoc#Ch07_JobManagement_HowToUse_ExitCode,"終了コードのカスタマイズ">>を参照してほしい。
+====
+
+[[Ch08_FlowControll_HowToExtend_ConditionFlow]]
+=== 条件分岐
+
+条件分岐は先行ステップの実行結果となる終了コードを受けて、複数の後続ステップから1つを選択して継続実行させることを言う。 +
+いずれの後続ステップを実行させずにジョブを停止させる場合は後述の<<Ch08_FlowControll_HowToExtend_StopConfig,"停止条件">>を参照。
+
+[source,xml]
+.ジョブBean定義記述例
+----
+<batch:job id="jobConditionalFlow" job-repository="jobRepository">
+    <batch:step id="jobConditionalFlow.stepA" parent="conditionalFlow.parentStep">
+        <!-- (1) -->
+        <batch:next on="COMPLETED" to="jobConditionalFlow.stepB" />
+        <batch:next on="FAILED" to="jobConditionalFlow.stepC"/>
+    </batch:step>
+    <!-- (2) -->
+    <batch:step id="jobConditionalFlow.stepB" parent="conditionalFlow.parentStep"/>
+    <!-- (3) -->
+    <batch:step id="jobConditionalFlow.stepC" parent="conditionalFlow.parentStep"/>
+</batch:job>
+----
+
+[cols="10,90",options="header"]
+.実装内容の説明
+|===
+|項番
+|説明
+
+|(1)
+|シーケンシャルフローのように``<batch:step>``要素内に``next``属性を指定させず、
+``<batch:next>``を複数置くことで、``to``属性で指定される後続ステップに振り分けることができる。 +
+``on``には遷移条件となるステップの終了コードを指定する。
+
+|(2)
+|(1)のステップ終了コードが``COMPLETED``の場合のみに実行される後続ステップとなる。
+
+|(3)
+|(1)のステップ終了コードが``FAILED``の場合のみに実行される後続ステップとなる。 +
+この指定が行われることで先行ステップ処理失敗時にジョブが停止せず、回復処理などの後続ステップが実行される。
+
+|===
+
+[WARNING]
+.後続ステップによる回復処理の注意点
+====
+先行ステップの処理失敗(終了コードが``FAILED``)により後続ステップの回復処理が行われた場合、
+回復処理の成否を問わず先行ステップのステータスは``ABANDONED``となり、リスタート不能となる。
+
+後続ステップの回復処理が失敗した場合にジョブをリスタートすると、回復処理のみが再実行される。 +
+このため、先行ステップを含めて処理をやり直す場合は別のジョブ実行としてリランさせる必要がある。
+====
+
+[[Ch08_FlowControll_HowToExtend_StopConfig]]
+=== 停止条件
+
+先行ステップの終了コードに応じ、ジョブを停止させる方法を説明する。 +
+停止の手段として、以下の3つの要素を指定する方法がある。
+
+. ``end``
+. ``fail``
+. ``stop``
+
+これらの終了コードが先行ステップに該当する場合は後続ステップが実行されない。 +
+また、同一ステップ内にそれぞれ複数指定が可能である。
+
+[source,xml]
+.ジョブBean定義記述例
+----
+<batch:job id="jobStopFlow" job-repository="jobRepository">
+    <batch:step id="jobStopFlow.step1" parent="stopFlow.parentStep">
+        <!-- (1) -->
+        <batch:end on="END_WITH_NO_EXIT_CODE"/>
+        <batch:end on="END_WITH_EXIT_CODE" exit-code="COMPLETED_CUSTOM"/>
+        <!-- (2) -->
+        <batch:next on="*" to="jobStopFlow.step2"/>
+    </batch:step>
+    <batch:step id="jobStopFlow.step2" parent="stopFlow.parentStep">
+        <!-- (3) -->
+        <batch:fail on="FORCE_FAIL_WITH_NO_EXIT_CODE"/>
+        <batch:fail on="FORCE_FAIL_WITH_EXIT_CODE" exit-code="FAILED_CUSTOM"/>
+        <!-- (2) -->
+        <batch:next on="*" to="jobStopFlow.step3"/>
+    </batch:step>
+    <batch:step id="jobStopFlow.step3" parent="stopFlow.parentStep">
+        <!-- (4) -->
+        <batch:stop on="FORCE_STOP" restart="jobStopFlow.step4" exit-code=""/>
+        <!-- (2) -->
+        <batch:next on="*" to="jobStopFlow.step4"/>
+    </batch:step>
+    <batch:step id="jobStopFlow.step4" parent="stopFlow.parentStep"/>
+</batch:job>
+----
+
+[cols="10,90",options="header"]
+.ジョブの停止の設定内容説明
+|===
+|項番
+|説明
+
+|(1)
+|``<batch:end>``の``on``属性とステップ終了コードが一致した場合、ジョブは正常終了
+(ステータス：``COMPLETED``)として``JobRepository``に記録される。 +
+``exit-code``属性を付与した場合、ジョブの終了コードをデフォルトの``COMPLETED``からカスタマイズすることができる。
+
+|(2)
+|``<batch:next>``の``on``属性にワイルドカード(``*``)を指定することで、``end``、``fail``、
+``stop``いずれの終了コードにも該当しない場合に後続ジョブを継続させることができる。 +
+ここではステップ要素内の最後に記述しているが、終了コードの一致条件が先に評価されるため、
+要素の並び順はステップ要素内であれば任意である。
+
+|(3)
+|``<batch:fail>``を使用した場合、ジョブは異常終了(ステータス：``FAILED``)として``JobRepository``に記録される。 +
+``<batch:end>``と同様、``exit-code``属性を付与することで、ジョブの終了コードをデフォルトの``FAILED``からカスタマイズすることができる。
+
+|(4)
+|``<batch:stop>``を使用した場合、ステップの正常終了時にジョブは中断(ステータス：``STOPPED``)として``JobRepository``に記録される。 +
+``restart``属性はリスタート時に中断状態からジョブが再開されるステップを指定する。 +
+``<batch:end>``と同様、``exit-code``属性を付与することができるが、空白文字列を指定すること。(後述のコラムを参照)
+
+|===
+
+
+[IMPORTANT]
+.exit-code属性による終了コードのカスタマイズ時は漏れなくプロセス終了コードにマッピングさせること。
+====
+詳細は<<Ch07_JobManagement.adoc#Ch07_JobManagement_HowToUse_ExitCode,"終了コードのカスタマイズ">>を参照。
+====
+
+[WARNING]
+.<batch:stop>でexit-codeに空文字列を指定すること。
+====
+
+[source,xml]
+----
+<step id="step1" parent="s1">
+    <stop on="COMPLETED" restart="step2"/>
+</step>
+
+<step id="step2" parent="s2"/>
+----
+
+上記はstep1が正常終了した際ジョブは停止状態となり、再度リスタート実行時にstep2を実行させることを意図したフロー制御になっている。 +
+しかし、{SB}の不具合により、現在意図したとおりに動作しない。 +
+リスタート後にstep2が実行されることがなく、ジョブの終了コードは``NOOP``となり、ステータスが``COMPLETED``となる。
+
+これを回避するためには上述で示したように``exit-code``で""(空文字)を付与すること。
+
+不具合の詳細は
+https://jira.spring.io/browse/BATCH-2315[{SB}/BATCH-2315]
+を参照。
+====

@@ -1,0 +1,25 @@
+@startsalt
+{
+{T
+<&folder> asyncapp
++ <&folder> asyncbatch
+++ <&folder> src
++++ <&folder> main
+++++ <&folder> resources
++++++ <&folder> META-INF
+++++++ <&folder> spring
++++++++ <&file> launch-context.xml (1)
++++++++ <&file> job-base-context.xml (2)
+++++++ <&folder> jobs
++++++++ <&file> jobXxx.xml (3)
++ <&folder> asyncapp-web
+++ <&folder> src
++++ <&folder> main
+++++ <&folder> resources
++++++ <&folder> META-INF
+++++++ <&folder> spring
++++++++ <&file> spring-mvc-rest.xml (4)
++++++++ <&file> applicationContext.xml (5)
+}
+}
+@endsalt

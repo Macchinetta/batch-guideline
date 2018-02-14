@@ -1,0 +1,82 @@
+@startuml
+
+autonumber
+hide footbox
+
+participant "Spring Batch" as sb
+participant listenerC <<JobExecutionListener>>
+participant listenerD <<JobExecutionListener>>
+participant listenerA <<ItemProcessListener>>
+participant listenerB <<ItemProcessListener>>
+
+sb--> listenerC : beforeJob()
+activate listenerC
+deactivate listenerC
+sb --> listenerD : beforeJob()
+activate listenerD
+deactivate listenerD
+
+sb --> listenerA : beforeProcess()
+activate listenerA
+deactivate listenerA
+sb --> listenerB : beforeProcess()
+activate listenerB
+deactivate listenerB
+
+alt normal case
+  sb --> listenerB : afterProcess()
+  activate listenerB
+  deactivate listenerB
+  sb --> listenerA : afterProcess()
+  activate listenerA
+  deactivate listenerA
+else abnormal case
+  sb --> listenerB : onProcessError()
+  activate listenerB
+  deactivate listenerB
+  sb --> listenerA : onProcessError()
+  activate listenerA
+  deactivate listenerA
+end
+
+sb --> listenerD : afterJob()
+activate listenerD
+deactivate listenerD
+sb --> listenerC : afterJob()
+activate listenerC
+deactivate listenerC
+
+
+'Set styles such as format and color of each figure
+skinparam Note {
+  BackgroundColor #b1f8fa
+  BorderColor black
+}
+
+skinparam Class {
+  BorderColor black
+  ArrowColor black
+}
+
+skinparam Sequence {
+  BorderColor black
+  ActorBorderColor black
+  ArrowColor black
+  LifeLineBorderColor black
+  BoxLineColor black
+  ParticipantBorderColor black
+}
+
+skinparam componentStyle uml2
+
+skinparam Component {
+  BorderColor black
+  ArrowColor black
+}
+
+skinparam Interface {
+  BorderColor black
+  ArrowColor black
+}
+
+@enduml

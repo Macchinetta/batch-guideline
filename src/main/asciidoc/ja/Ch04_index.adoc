@@ -1,0 +1,14 @@
+include::_include_all.adoc[]
+
+[[Ch04]]
+= ジョブの起動
+
+. <<Ch04_SyncJob.adoc#Ch04_SyncJob,同期実行>>
+
+. <<Ch04_JobParameter.adoc#Ch04_JobParameter,ジョブの起動パラメータ>>
+
+. <<Ch04_AsyncJobWithDB.adoc#Ch04_AsyncJobWithDB,非同期実行(DBポーリング)>>
+
+. <<Ch04_AsyncJobWithWebContainer.adoc#Ch04_AsyncJobWithWeb,非同期実行(Webコンテナ)>>
+
+. <<Ch04_Listener.adoc#Ch04_Listener,リスナー>>

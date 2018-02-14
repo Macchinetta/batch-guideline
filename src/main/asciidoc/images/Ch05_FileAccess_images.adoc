@@ -1,0 +1,9 @@
+= Image of FileAccess
+== Images
+
+ditaa::ch05/FileAccess/Ch05_FileAccess_FileFormat_multi.txt[]
+plantuml::ch05/FileAccess/Ch05_FileAccess_FlatFileItemWriter_component_relationship_sequence.pu[]
+plantuml::ch05/FileAccess/Ch05_FileAccess_FlatFileItemReader_component_relationship_class.pu[]
+plantuml::ch05/FileAccess/Ch05_FileAccess_FlatFileItemReader_component_relationship_sequence.pu[]
+plantuml::ch05/FileAccess/Ch05_FileAccess_FlatFileItemWriter_component_relationship_class.pu[]
+plantuml::ch05/FileAccess/Ch05_FileAccess_Conversion_target_class_with_inheritance_relationship.pu[]

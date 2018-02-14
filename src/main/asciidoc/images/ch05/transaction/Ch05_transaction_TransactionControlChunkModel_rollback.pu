@@ -1,0 +1,72 @@
+@startuml
+
+hide footbox
+autonumber
+
+participant Step
+box "chunk model" #lightblue
+participant ItemReader
+participant ItemProcessor
+participant ItemWriter
+end box
+database "Resource" as db
+
+[->Step : execute()
+activate Step
+loop until exhausted read data
+    group Framework Transaction
+        group Create chunk (items)
+            note right of ItemReader: Repeat until chunk size is reached
+            Step -> ItemReader : read()
+            activate ItemReader
+            ItemReader --> Step : item
+            deactivate ItemReader
+            Step -> ItemProcessor : process(item)
+            activate ItemProcessor
+            ItemProcessor --> Step : item
+            deactivate ItemProcessor
+        end
+        Step -> ItemWriter : write(items)
+        activate ItemWriter
+        ItemWriter -X db : update
+        deactivate ItemWriter
+    else  <font color="red">An exception occurs</font>
+        Step [#red]-> db : <font color="red"><b>rollback</b></font>
+    end
+end
+Step-->[ : ExitStatus
+deactivate Step
+
+'Set styles such as format and color of each figure
+skinparam Note {
+  BackgroundColor #b7fab1
+  BorderColor black
+}
+
+skinparam Class {
+  BorderColor black
+  ArrowColor black
+}
+
+skinparam Sequence {
+  BorderColor black
+  ActorBorderColor black
+  ArrowColor black
+  LifeLineBorderColor black
+  BoxLineColor black
+  ParticipantBorderColor black
+}
+
+skinparam componentStyle uml2
+
+skinparam Component {
+  BorderColor black
+  ArrowColor black
+}
+
+skinparam Interface {
+  BorderColor black
+  ArrowColor black
+}
+
+@enduml

@@ -1,0 +1,12 @@
+= Image of Macchinetta Batch Stack
+== Images
+
+ditaa::ch02/MacchinettaBatchArchitecture/Ch02_MacchinettaBatchArchitecture_Stack.txt[]
+
+ditaa::ch02/MacchinettaBatchArchitecture/Ch02_MacchinettaBatchArchitecture_JobComponents.txt[]
+
+ditaa::ch02/MacchinettaBatchArchitecture/Ch02_MacchinettaBatchArchitecture_SynchronizedExec.txt[]
+
+ditaa::ch02/MacchinettaBatchArchitecture/Ch02_MacchinettaBatchArchitecture_ASynchronized_DBPolling.txt[]
+
+ditaa::ch02/MacchinettaBatchArchitecture/Ch02_MacchinettaBatchArchitecture_ASynchronized_WebContainer.txt[]

@@ -1,0 +1,16 @@
+[[Ch08]]
+= フロー制御と並列･多重処理
+include::_include_all.adoc[]
+
+// 節から始まるドキュメントをリンクするため、更に一段階レベルを下げる
+:leveloffset: +1
+
+include::Ch08_FlowControll.adoc[]
+
+<<<
+
+include::Ch08_ParallelAndMultiple.adoc[]
+
+<<<
+
+:leveloffset: -1

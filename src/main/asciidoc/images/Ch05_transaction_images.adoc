@@ -1,0 +1,20 @@
+= Image of Transaction
+== Images
+
+plantuml::ch05/transaction/Ch05_transaction_TransactionControlChunkModel_commit.pu[]
+
+plantuml::ch05/transaction/Ch05_transaction_TransactionControlChunkModel_rollback.pu[]
+
+plantuml::ch05/transaction/Ch05_transaction_TransactionControlTaskletModel_SingleTransaction_commit.pu[]
+
+plantuml::ch05/transaction/Ch05_transaction_TransactionControlTaskletModel_SingleTransaction_rollback.pu[]
+
+plantuml::ch05/transaction/Ch05_transaction_TransactionControlTaskletModel_ChunkTransaction_commit.pu[]
+
+plantuml::ch05/transaction/Ch05_transaction_TransactionControlTaskletModel_ChunkTransaction_rollback.pu[]
+
+plantuml::ch05/transaction/Ch05_transaction_AsyncWithDB_Transaction_Difference.pu[]
+
+plantuml::ch05/transaction/Ch05_transaction_AsyncWithWeb_Transaction_Difference.pu[]
+
+plantuml::ch05/transaction/Ch05_transaction_Best_Efforts_1PC.pu[]

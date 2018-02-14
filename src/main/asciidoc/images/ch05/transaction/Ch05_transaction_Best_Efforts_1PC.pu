@@ -1,0 +1,87 @@
+@startuml
+
+hide footbox
+
+actor User
+box "ChainedTransactionManager" #lightblue
+participant ChainedTransactionManager
+participant "Transaciton\nManager#1" as TM1
+participant "Transaciton\nManager#2" as TM2
+participant "Transaciton\nManager#3" as TM3
+end box
+database "DB1" as db1
+database "DB2" as db2
+database "MQ1" as mq1
+
+group chained begin transaction
+User -> ChainedTransactionManager : beginTransaction
+activate ChainedTransactionManager
+
+ChainedTransactionManager -> TM1 : beginTransaction
+activate TM1
+TM1 -> db1 : beginTransaction
+
+ChainedTransactionManager -> TM2 : beginTransaction
+activate TM2
+TM2 -> db2 : beginTransaction
+
+ChainedTransactionManager -> TM3 : beginTransaction
+activate TM3
+TM3 -> mq1 : beginTransaction
+end
+
+User -> db1 : access(R/w)
+User -> db2 : access(R/w)
+User -> mq1 : access(R/w)
+
+group chained commit
+User -> ChainedTransactionManager : commit
+ChainedTransactionManager -> TM3 : commit
+TM3 -> mq1 : commit
+
+ChainedTransactionManager -> TM2 : commit
+TM2 -> db2 : commit
+
+ChainedTransactionManager -> TM1 : commit
+TM1 -> db1 : commit
+end
+
+deactivate TM1
+deactivate TM2
+deactivate TM3
+
+deactivate ChainedTransactionManager
+
+'Set styles such as format and color of each figure
+skinparam Note {
+  BackgroundColor #b1f8fa
+  BorderColor black
+}
+
+skinparam Class {
+  BorderColor black
+  ArrowColor black
+}
+
+skinparam Sequence {
+  BorderColor black
+  ActorBorderColor black
+  ArrowColor black
+  LifeLineBorderColor black
+  BoxLineColor black
+  ParticipantBorderColor black
+}
+
+skinparam componentStyle uml2
+
+skinparam Component {
+  BorderColor black
+  ArrowColor black
+}
+
+skinparam Interface {
+  BorderColor black
+  ArrowColor black
+}
+
+@enduml

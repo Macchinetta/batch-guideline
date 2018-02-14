@@ -1,0 +1,72 @@
+@startuml
+
+actor User
+participant AsyncBatchDaemon <<TERASOLUNA Batch>>
+participant "Job's bean definitions" as JobBeanDefinition <<xml>>
+participant TaskScheduler <<Spring Batch>>
+participant JobRequestPollTask <<TERASOLUNA Batch>>
+participant ThreadPoolTaskExecutor <<Spring Batch>>
+participant Job <<User code>>
+database BATCH_JOB_REQUEST <<TERASOLUNA Batch>>
+
+autonumber
+hide footbox
+
+== Initial ==
+User -> AsyncBatchDaemon : launch
+activate AsyncBatchDaemon
+AsyncBatchDaemon -> JobBeanDefinition : read
+AsyncBatchDaemon -> TaskScheduler : launch
+activate TaskScheduler
+activate ThreadPoolTaskExecutor
+TaskScheduler ->> JobRequestPollTask : schedule
+activate JobRequestPollTask
+
+== Polling ==
+JobRequestPollTask -> BATCH_JOB_REQUEST : select
+loop Until reaching the number of records selected
+  JobRequestPollTask -> ThreadPoolTaskExecutor : exeute
+  group asynchronous
+    JobRequestPollTask -> BATCH_JOB_REQUEST : update status POLLED
+    ThreadPoolTaskExecutor -> Job : launch job
+    activate Job
+    Job --> ThreadPoolTaskExecutor : job execution id
+    deactivate Job
+    JobRequestPollTask -> BATCH_JOB_REQUEST : update status EXECUTED
+  end
+end
+
+'Set styles such as format and color of each figure
+skinparam Note {
+  BackgroundColor #b1f8fa
+  BorderColor black
+}
+
+skinparam Class {
+  BorderColor black
+  ArrowColor black
+}
+
+skinparam Sequence {
+  BorderColor black
+  ActorBorderColor black
+  ArrowColor black
+  LifeLineBorderColor black
+  BoxLineColor black
+  ParticipantBorderColor black
+  EntityBorderColor black
+}
+
+skinparam componentStyle uml2
+
+skinparam Component {
+  BorderColor black
+  ArrowColor black
+}
+
+skinparam Interface {
+  BorderColor black
+  ArrowColor black
+}
+
+@enduml

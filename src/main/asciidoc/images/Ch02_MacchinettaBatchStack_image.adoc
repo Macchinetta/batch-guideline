@@ -1,0 +1,6 @@
+= Image of Macchinetta Batch Stack
+== Images
+
+ditaa::ch02/MacchinettaBatchStack/Ch02_MacchinettaBatchStack_Stack.txt[]
+
+ditaa::ch02/MacchinettaBatchStack/Ch02_MacchinettaBatchStack_Stack_Detail.txt[]

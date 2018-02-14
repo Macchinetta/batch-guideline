@@ -1,0 +1,37 @@
+@startuml
+
+package "war" {
+    package "asyncapp-web" {
+
+      node "WebContext" {
+        artifact [spring-mvc-rest.xml (4)] as 4
+      }
+      node "WebRootContext" {
+        artifact [applicationContext.xml (5)] as 5
+      }
+    }
+    package "asyncbatch" {
+      artifact [launch-context.xml (1)] as 1
+      node "JobContext" {
+        artifact [job-base-context.xml (2)] as 2
+        artifact [jobXxx.xml (3)] as 3
+      }
+    }
+}
+
+JobContext <- WebContext : modular
+WebContext <- WebRootContext: modular
+3 -> 2 : import
+1 <- 4 : import
+
+'Set styles such as format and color of each figure
+skinparam componentStyle uml2
+
+skinparam Component {
+  BorderColor black
+  ArrowColor black
+  ArrowFontSize 18
+}
+
+
+@enduml

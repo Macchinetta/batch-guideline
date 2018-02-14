@@ -1,0 +1,358 @@
+include::_include_all.adoc[]
+
+[[Ch03_CreateChunkJob]]
+= チャンクモデルジョブの作成
+
+[[Ch03_CreateChunkJob_Overview]]
+== Overview
+
+チャンクモデルジョブの作成方法について説明する。
+チャンクモデルのアーキテクチャについては、<<Ch02_SpringBatchArchitecture.adoc#Ch02_SpringBatchArch,{SB}のアーキテクチャ>>を参照のこと。
+
+ここでは、チャンクモデルジョブの構成要素について説明する。
+
+[[Ch03_CreateChunkJob_Overview_Components]]
+=== 構成要素
+チャンクモデルジョブの構成要素を以下に示す。
+これらの構成要素をBean定義にて組み合わせることで1つのジョブを実現する。
+
+
+[cols="5,20,50,10,10", options="header"]
+.チャンクモデルジョブの構成要素
+|===
+|項番
+|名称
+|役割
+|設定必須
+|実装必須
+
+|1
+|ItemReader
+|様々なリソースからデータを取得するためのインターフェース。 +
+{SB}により、フラットファイルや +
+データベースを対象とした実装が提供されているため、ユーザにて作成する必要はない。
+^|icon:check[]
+^|icon:minus[]
+
+|2
+|ItemProcessor
+|入力から出力へデータを加工するためのインターフェース。 +
+ユーザは必要に応じてこのインターフェースを``implements``し、ビジネスロジックを実装する。
+^|icon:minus[]
+^|icon:minus[]
+
+|3
+|ItemWriter
+|様々なリソースへデータを出力するためのインターフェース。 +
+``ItemReader``と対になるインターフェースと考えてよい。 +
+{SB}により、フラットファイルや +
+データベースのための実装が提供されているため、ユーザにて作成する必要はない。
+^|icon:check[]
+^|icon:minus[]
+
+|===
+
+この表のポイントは以下である。
+
+* 入力リソースから出力リソースへ単純にデータを移し替えるだけであれば、設定のみで実現できる。
+* ``ItemProcessor``は、必要が生じた際にのみ実装すればよい。
+
+以降、これらの構成要素を用いたジョブの実装方法について説明する。
+
+[[Ch03_CreateChunkJob_HowToUse]]
+== How to use
+
+ここでは、実際にチャンクモデルジョブを実装する方法について、以下の順序で説明する。
+
+* <<Ch03_CreateChunkJob_HowToUse_JobConfig>>
+* <<Ch03_CreateChunkJob_HowToUse_Components>>
+
+[[Ch03_CreateChunkJob_HowToUse_JobConfig]]
+=== ジョブの設定
+
+Bean定義ファイルにて、チャンクモデルジョブを構成する要素の組み合わせ方を定義する。
+以下に例を示し、構成要素の繋がりを説明する。
+
+[source,xml]
+.Bean定義ファイルの例(チャンクモデル)
+----
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:batch="http://www.springframework.org/schema/batch"
+       xmlns:p="http://www.springframework.org/schema/p"
+       xmlns:mybatis="http://mybatis.org/schema/mybatis-spring"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+             http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+             http://www.springframework.org/schema/batch http://www.springframework.org/schema/batch/spring-batch.xsd
+             http://mybatis.org/schema/mybatis-spring http://mybatis.org/schema/mybatis-spring.xsd">
+
+    <!-- (1) -->
+    <import resource="classpath:META-INF/spring/job-base-context.xml"/>
+
+    <!-- (2) -->
+    <context:component-scan
+        base-package="jp.co.ntt.fw.macchinetta.batch.functionaltest.app.common" />
+
+    <!-- (3) -->
+    <mybatis:scan
+        base-package="jp.co.ntt.fw.macchinetta.batch.functionaltest.app.repository.mst"
+        factory-ref="jobSqlSessionFactory"/>
+
+    <!-- (4) -->
+    <bean id="reader"
+          class="org.mybatis.spring.batch.MyBatisCursorItemReader" scope="step"
+          p:queryId="jp.co.ntt.fw.macchinetta.batch.functionaltest.app.repository.mst.CustomerRepository.findAll"
+          p:sqlSessionFactory-ref="jobSqlSessionFactory"/>
+
+    <!-- (5) -->
+    <!-- Item Processor -->
+    <!-- Item Processor in order that based on the Bean defined by the annotations, not defined here -->
+
+    <!-- (6) -->
+    <bean id="writer"
+          class="org.springframework.batch.item.file.FlatFileItemWriter"
+          scope="step"
+          p:resource="file:#{jobParameters['outputFile']}">
+        <property name="lineAggregator">
+            <bean class="org.springframework.batch.item.file.transform.DelimitedLineAggregator">
+                <property name="fieldExtractor">
+                    <bean class="org.springframework.batch.item.file.transform.BeanWrapperFieldExtractor"
+                          p:names="customerId,customerName,customerAddress,customerTel,chargeBranchId"/>
+                </property>
+            </bean>
+        </property>
+    </bean>
+
+    <!-- (7) -->
+    <batch:job id="jobCustomerList01" job-repository="jobRepository"> <!-- (8) -->
+        <batch:step id="jobCustomerList01.step01"> <!-- (9) -->
+            <batch:tasklet transaction-manager="jobTransactionManager"> <!-- (10) -->
+                <batch:chunk reader="reader"
+                             processor="processor"
+                             writer="writer"
+                             commit-interval="10" /> <!-- (11) -->
+            </batch:tasklet>
+        </batch:step>
+    </batch:job>
+</beans>
+----
+
+[source,java]
+.ItemProcessor実装クラスの設定
+----
+@Component("processor") // (5)
+public class CustomerProcessor implements ItemProcessor<Customer, Customer> {
+  // omitted.
+}
+----
+
+[cols="10,90", options="header"]
+|===
+|項番
+|説明
+
+|(1)
+|{batch5_shortname}を利用する際に、常に必要なBean定義を読み込む設定をインポートする。
+
+|(2)
+|コンポーネントスキャン対象のベースパッケージを設定する。 +
+icon:warning[] コンポーネントスキャンを使用したアノテーションベースのBean定義を行わない場合、かつアノテーションを使用してBeanの依存性解決を行う場合は、``<context:annotation-config/>``タグの定義が必要となる。
+
+|(3)
+|MyBatis-Springの設定。 +
+MyBatis-Springの設定の詳細は、<<Ch05_DBAccess.adoc#Ch05_DBAccess,データベースアクセス>>を参照のこと。
+
+|(4)
+|ItemReaderの設定。 +
+ItemReaderの詳細は、
+<<Ch05_DBAccess.adoc#Ch05_DBAccess,データベースアクセス>>、
+<<Ch05_FileAccess.adoc#Ch05_FileAccess,ファイルアクセス>>
+を参照のこと。
+
+|(5)
+|ItemProcessorは、(2)によりアノテーションにて定義することができ、Bean定義ファイルで定義する必要がない。
+
+|(6)
+|ItemWriterの設定。 +
+ItemWriterの詳細は、
+<<Ch05_DBAccess.adoc#Ch05_DBAccess,データベースアクセス>>、
+<<Ch05_FileAccess.adoc#Ch05_FileAccess,ファイルアクセス>>
+を参照のこと。
+
+|(7)
+|ジョブの設定。 +
+``id``属性は、1つのバッチアプリケーションに含まれる全ジョブの範囲内で一意とする必要がある。
+
+|(8)
+|``JobRepository``の設定。 +
+``job-repository``属性に設定する値は、特別な理由がない限り``jobRepository``固定とすること。 +
+これにより、すべてのジョブが1つの``JobRepository``で管理できる。
+``jobRepository``のBean定義は、(1)により解決する。
+
+|(9)
+|ステップの設定。 +
+``id``属性は、1つのバッチアプリケーションに含まれる全ジョブの範囲内で一意とする必要はないが、障害発生時に追跡しやすくなる等の様々なメリットがあるため一意とする。 +
+特別な理由がない限り、(7)で指定したid属性に[step+連番]を付加する形式とする。
+
+|(10)
+|タスクレットの設定。 +
+``transaction-manager``属性に設定する値は、特別な理由がない限り``jobTransactionManager``固定とすること。 +
+これにより、(11)の``commit-interval``ごとにトランザクションが管理される。
+詳細については、<<Ch05_Transaction.adoc#Ch05_Transaction,トランザクション制御>>を参照のこと。 +
+``jobTransactionManager``のBean定義は、(1)により解決する。
+
+|(11)
+|チャンクモデルジョブの設定。 +
+``reader``、``writer``それぞれの属性に、前項までに定義した``ItemReader``、``ItemWriter``のBeanIDを指定する。 +
+``processor``属性に、ItemProcessorの実装クラスのBeanIDを指定する。 +
+``commit-interval``属性に1チャンクあたりの入力データ件数を設定する。
+|===
+
+[IMPORTANT]
+.commit-intervalのチューニング
+====
+``commit-interval``はチャンクモデルジョブにおける、性能上のチューニングポイントである。
+
+前述の例では10件としているが、利用できるマシンリソースやジョブの特性によって適切な件数は異なる。
+複数のリソースにアクセスしてデータを加工するジョブであれば10件から100件程度で処理スループットが頭打ちになることもある。
+一方、入出力リソースが1:1対応しておりデータを移し替える程度のジョブであれば5000件や10000件でも処理スループットが伸びることがある。
+
+ジョブ実装時の``commit-interval``は100件程度で仮置きしておき、
+その後に実施した性能測定の結果に応じてジョブごとにチューニングするとよい。
+====
+
+[[Ch03_CreateChunkJob_HowToUse_Components]]
+=== コンポーネントの実装
+
+ここでは主に、ItemProcessorを実装する方法について説明する。
+
+他のコンポーネントについては、以下を参照のこと。
+
+* ItemReader、ItemWriter
+** <<Ch05_DBAccess.adoc#Ch05_DBAccess,データベースアクセス>>、
+<<Ch05_FileAccess.adoc#Ch05_FileAccess,ファイルアクセス>>
+
+* Listener
+** <<Ch04_Listener.adoc#Ch04_Listener,リスナー>>
+
+
+[[Ch03_CreateChunkJob_HowToUse_Components_Processor]]
+==== ItemProcessorの実装
+
+ItemProcessorの実装方法を説明する。
+
+ItemProcessorは、以下のインターフェースが示すとおり、入力リソースから取得したデータ**1件**を元に、
+出力リソースに向けたデータ**1件**を作成する役目を担う。
+つまり、ItemProcessorはデータ**1件**に対するビジネスロジックを実装する箇所、と言える。
+
+[source,java]
+.ItemProcessorインターフェース
+----
+public interface ItemProcessor<I, O> {
+    O process(I item) throws Exception;
+}
+----
+
+なお、インターフェースが示す``I``と``O``は以下のとおり同じ型でも異なる型でもよい。
+同じ型であれば入力データを一部修正することを意味し、
+異なる型であれば入力データを元に出力データを生成することを意味する。
+
+[source,java]
+.ItemProcessor実装例(入出力が同じ型)
+----
+@Component
+public class AmountUpdateItemProcessor implements
+        ItemProcessor<SalesPlanDetail, SalesPlanDetail> {
+
+    @Override
+    public SalesPlanDetail process(SalesPlanDetail item) throws Exception {
+        item.setAmount(new BigDecimal("1000"));
+        return item;
+    }
+}
+----
+
+[source,java]
+.ItemProcessor実装例(入出力が異なる型)
+----
+@Component
+public class UpdateItemFromDBProcessor implements
+        ItemProcessor<SalesPerformanceDetail, SalesPlanDetail> {
+
+    @Inject
+    CustomerRepository customerRepository;
+
+    @Override
+    public SalesPlanDetail process(SalesPerformanceDetail readItem) throws Exception {
+        Customer customer = customerRepository.findOne(readItem.getCustomerId());
+
+        SalesPlanDetail writeItem = new SalesPlanDetail();
+        writeItem.setBranchId(customer.getChargeBranchId());
+        writeItem.setYear(readItem.getYear());
+        writeItem.setMonth(readItem.getMonth());
+        writeItem.setCustomerId(readItem.getCustomerId());
+        writeItem.setAmount(readItem.getAmount());
+        return writeItem;
+    }
+}
+
+----
+
+[IMPORTANT]
+.ItemProcessorからnullを返却することの意味
+====
+ItemProcessorからnullを返却することは、当該データを後続処理(Writer)に渡さないことを意味し、
+言い換えるとデータをフィルタすることになる。
+これは、入力データの妥当性検証を実施する上で有効活用できる。
+詳細については、<<Ch06_InputValidation.adoc#Ch06_InputValidation,入力チェック>>を参照のこと。
+====
+
+[IMPORTANT]
+.ItemProcessorの処理スループットをあげるには
+====
+前述した実装例のように、ItemProcessorの実装クラスではデータベースやファイルを始めとしたリソースにアクセスしなければならないことがある。
+ItemProcessorは入力データ1件ごとに実行されるため、I/Oが少しでも発生するとジョブ全体では大量のI/Oが発生することになる。
+そのため、極力I/Oを抑えることが処理スループットをあげる上で重要となる。
+
+1つの方法として、後述のListenerを活用することで事前に必要なデータをメモリ上に確保しておき、
+ItemProcessorにおける処理の大半を、CPU/メモリ間で完結するように実装する手段がある。
+ただし、1ジョブあたりのメモリを大量に消費することにも繋がるので、何でもメモリ上に確保すればよいわけではない。
+I/O回数やデータサイズを元に、メモリに格納するデータを検討すること。
+
+ifeval::["{docname}" != "single_index"]
+
+この点については、<<Ch05_index.adoc#Ch05,データの入出力>>でも紹介する。
+
+endif::[]
+
+ifeval::["{docname}" == "single_index"]
+
+この点については、<<Ch05,データの入出力>>でも紹介する。
+
+endif::[]
+====
+
+[NOTE]
+.複数のItemProcessorを同時に利用する
+====
+汎用的なItemProcessorを用意し、個々のジョブに適用したい場合は、
+{SB}が提供する``CompositeItemProcessor``を利用し連結することで実現できる。
+
+[source,xml]
+.CompositeItemProcessorによる複数ItemProcessorの連結
+----
+<bean id="processor"
+      class="org.springframework.batch.item.support.CompositeItemProcessor">
+    <property name="delegates">
+        <list>
+            <ref bean="commonItemProcessor"/>
+            <ref bean="businessLogicItemProcessor"/>
+        </list>
+    </property>
+</bean>
+----
+
+delegates属性に指定した順番に処理されることに留意すること。
+====

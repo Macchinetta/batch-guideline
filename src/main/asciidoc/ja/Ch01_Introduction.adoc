@@ -1,0 +1,200 @@
+include::_include_all.adoc[]
+
+[[Ch01_Intro]]
+= 導入
+
+[[Ch01_Intro_Goal]]
+== ガイドラインの目的
+
+本ガイドラインではSpring Framework、{SB}、MyBatis を中心としたフルスタックフレームワークを利用して、
+保守性の高いバッチアプリケーション開発をするためのベストプラクティスを提供する。
+
+本ガイドラインを読むことで、ソフトウェア開発(主にコーディング)が円滑に進むことを期待する。
+
+[[Ch01_Intro_TargetReaders]]
+== ガイドラインの対象読者
+
+本ガイドラインはソフトウェア開発経験のあるアーキテクトやプログラマ向けに書かれており、
+以下の知識があることを前提としている。
+
+* Spring FrameworkのDIやAOPに関する基礎的な知識がある
+* Javaを使用してアプリケーションを開発したことがある
+* SQLに関する知識がある
+* Mavenを使用したことがある
+
+これからJavaを勉強し始めるという人向けではない。
+
+Spring Frameworkに関して、本ドキュメントを読むための基礎知識があるかどうかを測るために
+{server5_url}/Appendix/SpringComprehensionCheck.html[Spring Framework理解度チェックテスト]
+を参照するとよい。
+この理解度テストが4割回答できない場合は、別途以下のような書籍で学習することを推奨する。
+
+* http://www.shoeisha.co.jp/book/detail/9784798142470[Spring徹底入門 (翔泳社) [日本語\] ]
+* http://gihyo.jp/book/2016/978-4-7741-8217-9[［改訂新版］Spring入門――Javaフレームワーク・より良い設計とアーキテクチャ [日本語\]]
+* http://www.apress.com/9781430261513[Pro Spring 4th Edition (Apress)]
+
+[[Ch01_Intro_Structure]]
+== ガイドラインの構成
+
+まず、重要なこととして、本ガイドラインは
+{server5_url}/index.html[Macchinetta Server Framework (1.x) Development Guideline]
+(以降、{server5_guide})のサブセットとして位置づけている。
+出来る限り{server5_guide}を活用し説明の重複を省くことで、ユーザの学習コスト低減を狙っている。
+よって随所に{server5_guide}への参照を示しているため、両方のガイドを活用しながら開発を進めていってほしい。
+
+ifeval::["{docname}" != "single_index"]
+
+<<Ch02_index.adoc#Ch02,{batch5_fullname}のコンセプト>>::
+  バッチ処理の基本的な考え方、{batch5_fullname}の基本的な考え方、{SB}の概要を説明する。
+
+<<Ch03_index.adoc#Ch03,アプリケーション開発の流れ>>::
+  {batch5_fullname}を利用してアプリケーション開発する上で必ず押さえておかなくてはならない知識や作法について説明する。
+
+<<Ch04_index.adoc#Ch04,ジョブの起動>>::
+  同期実行、非同期実行、起動パラメータといったジョブの起動方法について説明する。
+
+<<Ch05_index.adoc#Ch05,データの入出力>>::
+  データベースアクセス、ファイルアクセスといった、各種リソースへの入出力について説明する。
+
+<<Ch06_index.adoc#Ch06,異常系への対応>>::
+  入力チェックや例外ハンドリングといった異常系について説明する。
+
+<<Ch07_JobManagement.adoc#Ch07_JobManagement,ジョブの管理>>::
+  ジョブの実行管理の方法について説明する。
+
+<<Ch08_index.adoc#Ch08,フロー制御と並列･多重処理>>::
+  ジョブを並列処理/分散処理する方法について説明する。
+
+endif::[]
+
+ifeval::["{docname}" == "single_index"]
+
+<<Ch02,{batch5_fullname}のコンセプト>>::
+  バッチ処理の基本的な考え方、{batch5_fullname}の基本的な考え方、{SB}の概要を説明する。
+
+<<Ch03,アプリケーション開発の流れ>>::
+  {batch5_fullname}を利用してアプリケーション開発する上で必ず押さえておかなくてはならない知識や作法について説明する。
+
+<<Ch04,ジョブの起動>>::
+  同期実行、非同期実行、起動パラメータといったジョブの起動方法について説明する。
+
+<<Ch05,データの入出力>>::
+  データベースアクセス、ファイルアクセスといった、各種リソースへの入出力について説明する。
+
+<<Ch06,異常系への対応>>::
+  入力チェックや例外ハンドリングといった異常系について説明する。
+
+<<Ch07_JobManagement.adoc#Ch07_JobManagement,ジョブの管理>>::
+  ジョブの実行管理の方法について説明する。
+
+<<Ch08,フロー制御と並列･多重処理>>::
+  ジョブを並列処理/分散処理する方法について説明する。
+
+endif::[]
+
+[[Ch01_Intro_HowToReadGuide]]
+== ガイドラインの読み方
+
+ifeval::["{docname}" != "single_index"]
+
+以下のコンテンツは{batch5_fullname}を使用するすべての開発者が読むことを強く推奨する。
+
+* <<Ch02_index.adoc#Ch02,{batch5_fullname}のコンセプト>>
+* <<Ch03_index.adoc#Ch03,アプリケーション開発の流れ>>
+
+以下のコンテンツは通常必要となるため、基本的には読んでおくこと。
+開発対象に応じて、取捨選択するとよい。
+
+* <<Ch04_index.adoc#Ch04,ジョブの起動>>
+* <<Ch05_index.adoc#Ch05,データの入出力>>
+* <<Ch06_index.adoc#Ch06,異常系への対応>>
+* <<Ch07_JobManagement.adoc#Ch07_JobManagement,ジョブの管理>>
+
+以下のコンテンツは一歩進んだ実装をする際にはじめて参照すれば良い。
+
+* <<Ch08_index.adoc#Ch08,フロー制御と並列･多重処理>>
+
+endif::[]
+
+ifeval::["{docname}" == "single_index"]
+
+以下のコンテンツは{batch5_fullname}を使用するすべての開発者が読むことを強く推奨する。
+
+* <<Ch02,{batch5_fullname}のコンセプト>>
+* <<Ch03,アプリケーション開発の流れ>>
+
+以下のコンテンツは通常必要となるため、基本的には読んでおくこと。
+開発対象に応じて、取捨選択するとよい。
+
+* <<Ch04,ジョブの起動>>
+* <<Ch05,データの入出力>>
+* <<Ch06,異常系への対応>>
+* <<Ch07_JobManagement.adoc#Ch07_JobManagement,ジョブの管理>>
+
+以下のコンテンツは一歩進んだ実装をする際にはじめて参照すれば良い。
+
+* <<Ch08,フロー制御と並列･多重処理>>
+
+以下のコンテンツは{batch5_fullname}を使用して実際のアプリケーション開発を体験したい開発者が読むことを推奨する。
+はじめて{batch5_fullname}に触れる場合は、まずこのコンテンツから読み始め、他のコンテンツを参照しながら進めるとよい。
+
+* <<Ch09,チュートリアル>>
+
+endif::[]
+
+[[Ch01_Intro_HowToReadGuide_representation]]
+=== ガイドラインの表記
+本ガイドラインの表記について、留意事項を述べる。
+
+WindowsコマンドプロンプトとUnix系ターミナルについて::
+  WindowsとUnix系では表記の違いで動作しなくなる場合は併記する。
+  そうでない場合は、Unix系の表記で統一する。
+
+  プロンプト記号:::
+    Unix系の``$``にて表記する。
+
+[source,console]
+.プロンプト表記例
+----
+$ java -version
+----
+
+Bean定義のプロパティとコンストラクタについて::
+  本ガイドラインでは、``p``と``c``のネームスペースを用いた表記とする。
+  ネームスペースを用いることで、Bean定義の記述が簡潔になったり、コンストラクタ引数が明確になる効果がある。
+
+[source,xml]
+.ネームスペースを利用した記述
+----
+<bean class="org.springframework.batch.item.file.mapping.DefaultLineMapper">
+    <property name="lineTokenizer">
+        <bean class="org.terasoluna.batch.item.file.transform.FixedByteLengthLineTokenizer"
+              c:ranges="1-6, 7-10, 11-12, 13-22, 23-32"
+              c:charset="MS932"
+              p:names="branchId,year,month,customerId,amount"/>
+    </property>
+</bean>
+----
+
+参考までに、ネームスペースを利用しない記述を示す。
+[source,xml]
+.ネームスペースを利用しない記述
+----
+<bean class="org.springframework.batch.item.file.mapping.DefaultLineMapper">
+    <property name="lineTokenizer">
+        <bean class="org.terasoluna.batch.item.file.transform.FixedByteLengthLineTokenizer">
+            <constructor-arg index="0" value="1-6, 7-10, 11-12, 13-22, 23-32"/>
+            <constructor-arg index="1" value="MS932"/>
+            <property name="names" value="branchId,year,month,customerId,amount"/>
+    </property>
+</bean>
+----
+
+なお、ユーザに対してネームスペースを用いる記述を強要することはない。
+あくまで説明を簡潔にするための配慮であると受け止めてほしい。
+
+[[Ch01_Intro_TestedEnviroments]]
+== ガイドラインの動作検証環境
+
+本ガイドラインで説明している内容の動作検証環境については、
+「 https://github.com/Macchinetta/batch-functionaltest/wiki/Tested-Environment[テスト済み環境] 」を参照されたい。

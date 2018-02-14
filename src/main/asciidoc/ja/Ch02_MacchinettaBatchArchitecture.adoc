@@ -1,0 +1,260 @@
+include::_include_all.adoc[]
+
+[[Ch02_MacchinettaBatchArch]]
+= {batch5_fullname}のアーキテクチャ
+
+[[Ch02_MacchinettaBatchArch_Overview]]
+== 概要
+{batch5_fullname}のアーキテクチャ全体像を説明する。
+
+{batch5_fullname}では、<<Ch02_GeneralBatchProcessing.adoc#Ch02_GeneralBatchProcess,"一般的なバッチ処理システム">>で説明したとおり
+{terasoluna_batch5_fullname}を中心としたOSSの組み合わせを利用して実現する。
+
+{terasoluna_batch5_fullname}の階層アーキテクチャを含めた{batch5_fullname}の構成概略図を以下に示す。
+
+.{batch5_fullname}の構成概略図
+image::Ch02_MacchinettaBatchArchitecture_Stack.png[{batch5_fullname} Stack]
+
+.{SB}の階層アーキテクチャの説明
+アプリケーション::
+  開発者によって書かれたすべてのジョブ定義およびビジネスロジック。
+コア::
+  {terasoluna_batch5_fullname} が提供するバッチジョブを起動し、制御するために必要なコア・ランタイム・クラス。
+インフラストラクチャ::
+  {terasoluna_batch5_fullname} が提供する開発者およびコアフレームワーク自体が利用する一般的なItemReader/ItemProcessor/ItemWriterの実装。
+
+[[Ch02_MacchinettaBatchArch_JobComponents]]
+== ジョブの構成要素
+ジョブの構成要素を説明するため、ジョブの構成概略図を下記に示す。
+
+.ジョブの構成概略図
+image::Ch02_MacchinettaBatchArchitecture_JobComponents.png[Job Components]
+
+この節では、ジョブとステップについて構成すべき粒度の指針も含めて説明をする。
+
+[[Ch02_MacchinettaBatchArch_Overview_Job]]
+=== ジョブ
+ジョブとは、バッチ処理全体をカプセル化するエンティティであり、ステップを格納するためのコンテナである。 +
+1つのジョブは、1つ以上のステップで構成することができる。
+
+ジョブの定義は、XMLによるBean定義ファイルに記述する。
+ジョブ定義ファイルには複数のジョブを定義することができるが、ジョブの管理が煩雑になりやすくなる。
+
+従って、{batch5_fullname}では以下の指針とする。
+
+icon:tags[] 1ジョブ=1ジョブ定義ファイル
+
+[[Ch02_MacchinettaBatchArch_Overview_Step]]
+=== ステップ
+ステップとは、バッチ処理を制御するために必要な情報を定義したものである。
+ステップにはチャンクモデルとタスクレットモデルを定義することができる。
+
+チャンクモデル::
+  * ItemReader、ItemProcessor、およびItemWriterで構成される。
+タスクレットモデル::
+  * Taskletだけで構成される。
+
+<<Ch02_GeneralBatchProcessing.adoc#Ch02_GeneralBatchProcess_Considerations,"バッチ処理で考慮する原則と注意点">>にあるとおり、
+単一のバッチ処理では、可能な限り簡素化し、複雑な論理構造を避ける必要がある。
+
+従って、{batch5_fullname}では以下の指針とする。
+
+icon:tags[] 1ステップ=1バッチ処理=1ビジネスロジック
+
+[NOTE]
+.チャンクモデルでのビジネスロジック分割
+====
+1つのビジネスロジックが複雑で規模が大きくなる場合、ビジネスロジックを分割することがある。
+概略図を見るとわかるとおり、1つのステップには1つのItemProcessorしか設定できないため、ビジネスロジックの分割ができないように思える。
+しかし、CompositeItemProcssorという複数のItemProcessorをまとめるItemProcessorがあり、
+この実装を使うことでビジネスロジックを分割して実行することができる。
+====
+
+[[Ch02_MacchinettaBatchArch_StepImpl]]
+== ステップの実装方式
+
+[[Ch02_MacchinettaBatchArch_StepImpl_ChunkOriented]]
+=== チャンクモデル
+チャンクモデルの定義と使用目的を説明する。
+
+定義::
+  ItemReader、ItemProcessorおよびItemWriter実装とチャンク数をChunkOrientedTaskletに設定する。それぞれの役割を説明する。
+
+  * ChunkOrientedTasklet･･･ItemReader/ItemProcessorを呼び出し、チャンクを作成する。作成したチャンクをItemWriterへ渡す。
+  * ItemReader･･･入力データを読み込む。
+  * ItemProcessor･･･読み込んだデータを加工する。
+  * ItemWriter･･･加工されたデータをチャンク単位で出力する。
+::
+  チャンクモデルの概要は、 <<Ch02_SpringBatchArchitecture.adoc#Ch02_SpringBatchArch_Arch_BusinessLogic_Chunk,"チャンクモデル">> を参照。
+
+[source,xml]
+.チャンクモデルのジョブ設定例
+----
+<batch:job id="exampleJob">
+    <batch:step id="exampleStep">
+        <batch:tasklet>
+            <batch:chunk reader="reader"
+                         processor="processor"
+                         writer="writer"
+                         commit-interval="100" />
+        </batch:tasklet>
+    </batch:step>
+</batch:job>
+----
+
+使用目的::
+  一定件数のデータをまとめて処理を行うため、大量データを取り扱う場合に用いられる。
+
+[[Ch02_MacchinettaBatchArch_StepImpl_TaskletOriented]]
+=== タスクレットモデル
+タスクレットモデルの定義・使用目的を説明する。
+
+定義::
+  Tasklet実装だけを設定する。 +
+  タスクレットモデルの概要は、 <<Ch02_SpringBatchArchitecture.adoc#Ch02_SpringBatchArch_Arch_BusinessLogic_Tasklet,"タスクレットモデル">> を参照。
+
+[source,xml]
+.タスクレットモデルのジョブ設定例
+----
+<batch:job id="exampleJob">
+    <batch:step id="exampleStep">
+        <batch:tasklet ref="myTasklet">
+    </batch:step>
+</batch:job>
+----
+
+使用目的::
+  システムコマンドの実行など、入出力を伴わない処理を実行するために用いられる。 +
+  また、一括でデータをコミットしたい場合にも用いられる。
+
+
+[[Ch02_MacchinettaBatchArch_StepImpl_diffOfChunkAndTasklet]]
+=== チャンクモデルとタスクレットモデルの機能差
+チャンクモデルとタスクレットモデルの機能差について説明する。
+詳細については各機能の節を参照してもらい、ここでは概略のみにとどめる。
+
+[cols="20,40,40", options="header"]
+.機能差一覧
+|===
+|機能
+|チャンクモデル
+|タスクレットモデル
+
+|構成要素
+|ItemReader/ItemProcessor/ItemWriter/ChunkOrientedTaskletで構成される。
+|Taksletのみで構成される。
+
+|トランザクション
+|チャンク単位にトランザクションが発生する。
+|1トランザクションで処理する。
+
+|推奨する再処理方式
+|リラン、リスタートを利用できる。
+|リランのみ利用することを原則とする。
+
+|例外ハンドリング
+|リスナーを使うことでハンドリング処理が容易になっている。独自実装も可能である。
+|独自実装が必要である。
+
+|===
+
+
+[[Ch02_MacchinettaBatchArch_LaunchMethod]]
+== ジョブの起動方式
+ジョブの起動方式について説明する。ジョブの起動方式には以下のものがある。
+
+* <<Ch02_MacchinettaBatchArch_LaunchMethod_Sync>>
+* <<Ch02_MacchinettaBatchArch_LaunchMethod_Async>>
+
+それぞれの起動方式について説明する。
+
+[[Ch02_MacchinettaBatchArch_LaunchMethod_Sync]]
+=== 同期実行方式
+同期実行方式とは、ジョブを起動してからジョブが終了するまで起動元へ制御が戻らない実行方式である。
+
+ジョブスケジューラからジョブを起動する概略図を示す。
+
+.同期実行概略図
+image::Ch02_MacchinettaBatchArchitecture_SynchronizedExec.png[Synchronized Execution]
+
+. ジョブスケジューラからジョブを起動するためのシェルスクリプトを起動する。 +
+シェルスクリプトから終了コード(数値)が返却するまでジョブスケジューラは待機する。
+. シェルスクリプトからジョブを起動するために``CommandLineJobRunner``を起動する。 +
+``CommandLineJobRunner``から終了コード(数値)が返却するまでシェルスクリプトは待機する。
+. ``CommandLineJobRunner``はジョブを起動する。ジョブは処理終了後に終了コード(文字列)を``CommandLineJobRunner``へ返却する。 +
+``CommandLineJobRunner``は、ジョブから返却された終了コード(文字列)から終了コード(数値)に変換してシェルスクリプトへ返却する。
+
+
+[[Ch02_MacchinettaBatchArch_LaunchMethod_Async]]
+=== 非同期実行方式
+非同期実行方式とは、起動元とは別の実行基盤(別スレッドなど)でジョブを実行することで、ジョブ起動後すぐに起動元へ制御が戻る方式である。
+この方式の場合、ジョブの実行結果はジョブ起動とは別の手段で取得する必要がある。
+
+{batch5_fullname}では、以下に示す2とおりの方法について説明をする。
+
+* <<Ch02_MacchinettaBatchArch_LaunchMethod_Async_DB>>
+* <<Ch02_MacchinettaBatchArch_LaunchMethod_Async_Web>>
+
+[NOTE]
+.その他の非同期実行方式
+====
+MQなどのメッセージを利用して非同期実行を実現することもできるが、ジョブ実行のポイントは同じであるため、{batch5_fullname}では説明は割愛する。
+====
+
+[[Ch02_MacchinettaBatchArch_LaunchMethod_Async_DB]]
+==== 非同期実行方式(DBポーリング)
+<<Ch04_AsyncJobWithDB.adoc#Ch04_AsyncJobWithDB,"非同期実行(DBポーリング)">>とは、
+ジョブ実行の要求をデータベースに登録し、その要求をポーリングして、ジョブを実行する方式である。
+
+{batch5_fullname}で利用している{terasoluna_batch5_fullname}は、DBポーリング機能を提供している。提供しているDBポーリングによる起動の概略図を示す。
+
+.DBポーリング概略図
+image::Ch02_MacchinettaBatchArchitecture_ASynchronized_DBPolling.png[DB Polling]
+
+. ユーザはデータベースへジョブ要求を登録する。
+. DBポーリング機能は、定期的にジョブ要求の登録を監視していて、登録されたことを検知すると該当するジョブを実行する。
+** SimpleJobOperatorからジョブを起動し、ジョブ終了後に``JobExecutionId``を受け取る。
+** JobExecutionIdとは、ジョブ実行を一意に識別するIDであり、このIDを使ってJobRepositoryから実行結果を参照する。
+** ジョブの実行結果は、{SB}の仕組みによって、JobRepositoryへ登録される。
+** DBポーリング自体が非同期で実行されている。
+. DBポーリング機能は、SimpleJobOperatorから返却されたJobExecutionIdとスタータスを起動したジョブ要求に対して更新を行う。
+. ジョブの処理経過・結果は、JobExecutionIdを利用して別途参照を行う。
+
+[[Ch02_MacchinettaBatchArch_LaunchMethod_Async_Web]]
+==== 非同期実行方式(Webコンテナ)
+<<Ch04_AsyncJobWithWebContainer.adoc#Ch04_AsyncJobWithWeb,"非同期実行(Webコンテナ)">>とは、
+Webコンテナ上のWebアプリケーションへのリクエストを契機にジョブを非同期実行する方式である。
+Webアプリケーションは、ジョブの終了を待たずに起動後すぐにレスポンスを返却することができる。
+
+.Webコンテナ概略図
+image::Ch02_MacchinettaBatchArchitecture_ASynchronized_WebContainer.png[Web Container]
+
+. クライアントからWebアプリケーションへリクエストを送信する。
+. Webアプリケーションは、リクエストから要求されたジョブを非同期実行する。
+** SimpleJobOperatorからジョブを起動直後に``JobExecutionId``を受け取る。
+** ジョブの実行結果は、{SB}の仕組みによって、JobRepositoryへ登録される。
+. Webアプリケーションは、ジョブの終了を待たずにクライアントへレスポンスを返信する。
+. ジョブの処理経過・結果は、JobExecutionIdを利用して別途参照を行う。
+
+また、 {server5_url}/[{server5_fullname}]で構築されるWebアプリケーションと連携することも可能である。
+
+[[Ch02_MacchinettaBatchArch_DecisionPoints]]
+== 利用する際の検討ポイント
+{batch5_fullname}を利用する際の検討ポイントを示す。
+
+ジョブ起動方法::
+  <<Ch02_MacchinettaBatchArch_LaunchMethod_Sync>>:::
+    スケジュールどおりにジョブを起動したり、複数のジョブを組み合わせてバッチ処理行う場合に利用する。
+
+  <<Ch02_MacchinettaBatchArch_LaunchMethod_Async_DB>>:::
+    ディレード処理、処理時間が短いジョブの連続実行、大量ジョブの集約などに利用する。
+
+  <<Ch02_MacchinettaBatchArch_LaunchMethod_Async_Web>>:::
+    DBポーリングと同様だが、起動までの即時性が求められる場合にはこちらを利用する。
+
+実装方式::
+  <<Ch02_MacchinettaBatchArch_StepImpl_ChunkOriented>>:::
+    大量データを効率よく処理したい場合に利用する。
+
+  <<Ch02_MacchinettaBatchArch_StepImpl_TaskletOriented>>:::
+    シンプルな処理や、定型化しにくい処理、データを一括で処理したい場合に利用する。

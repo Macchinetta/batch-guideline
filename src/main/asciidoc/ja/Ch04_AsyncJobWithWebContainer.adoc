@@ -1,0 +1,1135 @@
+include::_include_all.adoc[]
+
+[[Ch04_AsyncJobWithWeb]]
+= 非同期実行(Webコンテナ)
+
+[[Ch04_AsyncJobWithWeb_Overview]]
+== Overview
+
+Webコンテナ内でジョブを非同期で実行するための方法について説明する。
+
+本機能は、チャンクモデルとタスクレットモデルとで同じ使い方になる。
+
+.Webコンテナによるジョブの非同期実行とは
+ジョブを含めたWebアプリケーションをWebコンテナにデプロイし、
+送信されたリクエストの情報を元にジョブを実行することを指す。 +
+ジョブの実行ごとに1つのスレッドを割り当てた上で並列に動作するため、
+他のジョブやリクエストに対する処理とは独立して実行できる。
+
+.提供機能
+{batch5_shortname}では、非同期実行(Webコンテナ)向けの実装は提供しない。 +
+本ガイドラインにて実現方法を提示するのみとする。 +
+これは、Webアプリケーションの起動契機はHTTP/SOAP/MQなど多様であるため、
+ユーザにて実装することが適切と判断したためである。
+
+.利用前提
+* アプリケーションの他にWebコンテナが必要となる。
+* ジョブの実装以外に必要となる、Webアプリケーション、クライアントは動作要件に合わせて別途実装する。
+* ジョブの実行状況および結果は``JobRepository``に委ねる。
+  また、Webコンテナ停止後にも``JobRepository``からジョブの実行状況および結果を参照可能とするため、
+  インメモリデータベースではなく、永続性が担保されているデータベースを使用する。
+
+.活用シーン
+<<Ch04_AsyncJobWithDB.adoc#Ch04_AsyncJobWithDB_Overview,"非同期実行(DBポーリング) - Overview">>と同様である。
+
+[TIP]
+.非同期実行(DBポーリング)との違い
+====
+アーキテクチャ上、非同期実行時の即時性と、要求管理テーブルの有無、の2点が異なる。 +
+<<Ch04_AsyncJobWithDB.adoc#Ch04_AsyncJobWithDB,"非同期実行(DBポーリング)">>は要求管理テーブルに登録された複数のジョブが一定の周期で非同期実行される。 +
+それに対し、本機能は要求管理テーブルを必要とせず代わりにWebコンテナ上で非同期実行を受け付ける。 +
+Webリクエスト送信により直ちに実行するため、起動までの即時性が求められるショートバッチに向いている。
+====
+
+[[Ch04_AsyncJobWithWeb_Arch]]
+== Architecture
+
+本方式による非同期ジョブはWebコンテナ上にデプロイされたアプリケーション(war)として動作するが、
+ジョブ自身はWebコンテナのリクエスト処理とは非同期(別スレッド)で動作する。
+
+.非同期実行(Webコンテナ)のシーケンス図
+image::Ch04_AsyncJobWithWebContainer_Sequence.png[sequence of async web]
+
+.ジョブの起動
+. Webクライアントは実行対象のジョブをWebコンテナに要求する。
+. ``JobController``は{SB}の``JobOperator``に対しジョブの実行開始を依頼する。
+. ``ThreadPoolTaskExecutor``によって非同期でジョブを実行する。
+. 実行された対象のジョブを一意に判別するためのジョブ実行ID(``job execution id``)を返却する。
+. ``JobController``はWebクライアントに対し、ジョブ実行IDを含むレスポンスを返却する。
+. 目的のジョブを実行する。
+** ジョブの結果は``JobRepository``に反映される。
+. ``Job``が実行結果を返却する。これはクライアントへ直接通知できない。
+
+.ジョブの実行結果確認
+[start=8]
+. Webクライアントはジョブ実行IDを``JobController``をWebコンテナに送信する。
+. ``JobController``はジョブ実行IDを用い``JobExplorer``にジョブの実行結果を問い合わせる。
+. ``JobExplorer``はジョブの実行結果を返却する。
+. ``JobController``はWebクライアントに対しレスポンスを返却する。
+** レスポンスにはジョブ実行IDを設定する。
+
+Webコンテナによるリクエスト受信後、ジョブ実行ID払い出しまでがリクエスト処理と同期するが、
+以降のジョブ実行はWebコンテナとは別のスレッドプールで非同期に行われる。 +
+これは再度リクエストで問い合わせを受けない限り、Webクライアント側では非同期ジョブの
+実行状態が検知できないことを意味する。
+
+このためWebクライアント側では1回のジョブ実行で、リクエストを「ジョブの起動」で1回、
+「結果の確認」が必要な場合は加えてもう1回、Webコンテナにリクエストを送信する必要がある。 +
+特に初回の「ジョブの起動」時に見え方が異なる異常検知については、
+後述の<<Ch04_AsyncJobWithWeb_Arch_OnError>>で説明する。
+
+[TIP]
+====
+``JobRepository``、``JobExplorer``を使用して直接RDBMSを参照し、ジョブの実行状態を確認することもできる。
+ジョブの実行状態・結果を参照する機能の詳細については、<<Ch07_JobManagement.adoc#Ch07_JobManagement,ジョブの管理>>を参照のこと。
+====
+
+[WARNING]
+.ジョブ実行ID(job execution id)の取り扱いについて
+====
+ジョブ実行IDは起動対象が同じジョブ、同じジョブパラメータであっても、ジョブ起動ごとに異なるシーケンス値が払い出される。 +
+リクエスト送信により受付が行われたジョブ実行IDは``JobRepository``により外部RDBMSで永続化される。 +
+しかし、Webクライアントの障害などによりこのIDが消失した場合、ジョブ実行状況の特定・追跡が困難となる。 +
+このため、Webクライアント側ではレスポンスとして返却されたジョブ実行IDをログに記録するなど、ジョブ実行IDの消失に備えておくこと。
+====
+
+[[Ch04_AsyncJobWithWeb_Arch_OnError]]
+=== ジョブ起動時における異常発生の検知について
+
+Webクライアントからジョブの起動リクエストを送信後、ジョブ実行ID払い出しを境にして異常検知の見え方が異なる。
+
+* ジョブ起動時のレスポンスにて異常がすぐ検知できるもの
+** 起動対象のジョブが存在しない。
+** ジョブパラメータの形式誤り。
+* ジョブ起動後、Webコンテナに対しジョブ実行状態・結果の問い合わせが必要となるもの
+** ジョブの実行ステータス
+** 非同期ジョブ実行で使用されるスレッドプールが枯渇したことによるジョブの起動失敗
+
+[NOTE]
+====
+「ジョブ起動時の異常」は Spring MVCコントローラ内で発生する例外として検知できる。
+ここでは説明を割愛するので、別途 {server5_guide}の
+{server5_url}/ArchitectureInDetail/WebServiceDetail/REST.html#resthowtouseexceptionhandling[例外のハンドリングの実装]を参照のこと。
+
+また、ジョブパラメータとして利用するリクエストの入力チェックは必要に応じて Spring MVC のコントローラ内で行うこと。 +
+具体的な実装方法については、{server5_guide}の
+{server5_url}/ArchitectureInDetail/WebApplicationDetail/Validation.html[入力チェック]を参照のこと。
+====
+
+[TIP]
+.スレッドプール枯渇によるジョブの起動失敗はジョブ起動時に捕捉できない
+====
+スレッドプール枯渇によるジョブの起動失敗は、``JobOperator``から例外があがってこないため、別途確認する必要がある。
+確認方法の1つは、ジョブの実行状態確認時に``JobExplorer``を用い、以下の条件に合致しているかどうかである。
+
+* ステータスが``FAILED``である
+* ``jobExecution.getExitStatus().getExitDescription()``にて、
+``org.springframework.core.task.TaskRejectedException``の例外スタックトレースが記録されている
+====
+
+[[Ch04_AsyncJobWithWeb_Arch_Components]]
+=== 非同期実行(Webコンテナ)のアプリケーション構成
+
+本機能は<<Ch04_AsyncJobWithDB.adoc#Ch04_AsyncJobWithDB,"非同期実行(DBポーリング)">>と同様、
+非同期実行特有の構成としてSpring プロファイルの``async``と``AutomaticJobRegistrar``を使用している。
+
+一方で、これら機能を非同期実行(Webコンテナ)使用する上で、いくつかの事前知識と設定が必要となる。
+<<Ch04_AsyncJobWithWeb_Arch_AppCtx,"ApplicationContextの構成">>を参照。 +
+具体的な``async``プロファイルと``AutomaticJobRegistrar``の設定方法については
+<<Ch04_AsyncJobWithWeb_HowToUse_Impl,"非同期実行(Webコンテナ)によるアプリケーションの実装方法について">>で後述する。
+
+[[Ch04_AsyncJobWithWeb_Arch_AppCtx]]
+==== ApplicationContextの構成
+
+上述のとおり、非同期実行(Webコンテナ)のアプリケーション構成として、複数のアプリケーションモジュールが含まれている。 +
+それぞれのアプリケーションコンテキストとBean定義についての種類、および関係性を把握しておく必要がある。
+
+.ApplicationContextの構成
+image::Ch04_AsyncJobWithWebContainer_Package.png[Package structure of async web]
+.Bean定義ファイルの構成
+image::Ch04_AsyncJobWithWebContainer_BeanDefinitions.png[BeanDefinitions structure of async web]
+
+非同期実行(Webコンテナ)における``ApplicationContext``では、
+バッチアプリケーションの``ApplicationContext``はWebのコンテキスト内に取り込まれる。 +
+個々のジョブコンテキストはこのWebコンテキストから``AutomaticJobRegistrar``によりモジュール化され、
+Webコンテキストの子コンテキストとして動作する。
+
+以下、それぞれのコンテキストを構成するBean定義ファイルについて説明する。
+
+[cols="10,90", options="header"]
+.Bean定義ファイル一覧
+|===
+|項番
+|説明
+
+|(1)
+|共通Bean定義ファイル。 +
+アプリケーション内では親コンテキストとなり、子コンテキストであるジョブ間で一意に共有される。
+
+|(2)
+|ジョブBean定義から必ずインポートされるBean定義ファイル。 +
+Spring プロファイルが非同期実行時に指定される``async``の場合は(1)の``launch-context.xml``を読み込まない。
+
+|(3)
+|ジョブごとに作成するBean定義ファイル。 +
+``AutomaticJobRegistrar``によりモジュラー化され、アプリケーション内ではそれぞれ独立した子コンテキストとして使用される。
+
+|(4)
+|``DispatcherServlet``から読み込まれる。 +
+ジョブBean定義のモジュラー化を行う``AutomaticJobRegistrar``や、ジョブの非同期・並列実行で使用されるスレッドプールである``taskExecutor``など、非同期実行特有のBeanを定義する。 +
+また、非同期実行では(1)の``launch-context.xml`` +
+を直接インポートし親コンテキストとして一意に共有化される。
+
+|(5)
+|``ContextLoaderListener``により、Webアプリケーション内で共有される親コンテキストとなる。
+
+|===
+
+[[Ch04_AsyncJobWithWeb_HowToUse]]
+== How to use
+
+ここでは、Webアプリケーション側の実装例として、{server5_fullname}を用いて説明する。 +
+あくまで説明のためであり、{server5_shortname}は非同期実行(Webコンテナ)の必須要件ではないことに留意してほしい。
+
+[[Ch04_AsyncJobWithWeb_HowToUse_Impl]]
+=== 非同期実行(Webコンテナ)によるアプリケーションの実装概要
+
+以下の構成を前提とし説明する。
+
+* Webアプリケーションプロジェクトとバッチアプリケーションプロジェクトは独立し、
+  webアプリケーションからバッチアプリケーションを参照する。
+** Webアプリケーションプロジェクトから生成するwarファイルは、
+  バッチアプリケーションプロジェクトから生成されるjarファイルを含むこととなる
+
+非同期実行の実装は<<Ch04_AsyncJobWithWeb_Arch>>に従い、Webアプリケーション内の
+Spring MVCコントローラが、``JobOperator``によりジョブを起動する。
+
+[TIP]
+.Web/バッチアプリケーションプロジェクトの分離について
+====
+アプリケーションビルドの最終成果物はWebアプリケーションのwarファイルであるが、
+開発プロジェクトはWeb/バッチアプリケーションで分離して実装を行うとよい。 +
+これはバッチアプリケーション単体で動作可能なライブラリとなるため、開発プロジェクト上の試験を
+容易にする他、作業境界とライブラリ依存関係を明確にする効果がある。
+====
+
+以降、Web/バッチの開発について、以下2つを利用する前提で説明する。
+
+* {batch5_shortname}によるバッチアプリケーションプロジェクト
+* {server5_shortname}によるWebアプリケーションプロジェクト
+
+バッチアプリケーションプロジェクトの作成および具体的なジョブの実装方法については、
+<<Ch03_CreateProject.adoc#Ch03_CreateProject_HowToCreate,"プロジェクトの作成">>、
+<<Ch03_CreateTaskletJob.adoc#Ch03_CreateTaskletJob,"タスクレットモデルジョブの作成">>、
+<<Ch03_CreateChunkJob.adoc#Ch03_CreateChunkJob, "チャンクモデルジョブの作成">>
+を参照のこと。
+ここでは、Webアプリケーションからバッチアプリケーションを起動することに終始する。
+
+ここでは Maven archetype:generate を用い、
+以下のバッチアプリケーションプロジェクトを作成しているものとして説明する。
+
+[cols="20,80", options="header"]
+.ジョブプロジェクト作成例
+|===
+|名称
+|値
+
+|groupId
+|jp.co.ntt.fw.macchinetta.batch.sample
+
+|artifactId
+|asyncbatch
+
+|version
+|1.0-SNAPSHOT
+
+|package
+|jp.co.ntt.fw.macchinetta.batch.sample
+
+|===
+
+また説明の都合上、ブランクプロジェクトに初めから登録されているジョブを使用する。
+
+[cols="20,80", options="header"]
+.説明に用いるジョブ
+|===
+|名称
+|説明
+
+|ジョブ名
+|job01
+
+|ジョブパラメータ
+|param1=value1
+
+|===
+
+[CAUTION]
+.非同期実行(Webコンテナ)ジョブ設計の注意点
+====
+非同期実行(Webコンテナ)の特性として個々のジョブは短時間で完了しWebコンテナ上でステートレスに
+動作するケースが適している。 +
+また複雑さを避ける上では、ジョブ定義を単一のステップのみで構成し、ステップの終了コードによるフローの分岐や
+並列処理・多重処理を定義しないことが望ましい。
+====
+
+ジョブ実装を含むjarファイルが作成可能な状態として、Webアプリケーションの作成を行う。
+
+.Webアプリケーションの実装
+{server5_shortname}が提供するブランクプロジェクトを用い、Webアプリケーションの実装方法を説明する。
+詳細は、{server5_guide}
+{server5_url}/ImplementationAtEachLayer/CreateWebApplicationProject.html[Webアプリケーション向け開発プロジェクトの作成]
+を参照。
+
+ここでは非同期実行アプリケーションプロジェクトと同様、以下の名称で作成したものとして説明する。
+
+[cols="20,80", options="header"]
+.Webコンテナプロジェクト作成例
+|===
+|名称
+|値
+
+|groupId
+|jp.co.ntt.fw.macchinetta.batch.sample
+
+|artifactId
+|asyncapp
+
+|version
+|1.0-SNAPSHOT
+
+|package
+|jp.co.ntt.fw.macchinetta.batch.sample
+
+|===
+
+[TIP]
+.groupIdの命名について
+====
+プロジェクトの命名は任意であるが、Maven マルチプロジェクトとしてバッチアプリケーションを
+Webアプリケーションの子モジュールとする場合、``groupId``は統一しておくと管理しやすい。 +
+ここでは両者の``groupId``を``jp.co.ntt.fw.macchinetta.batch.sample``としている。
+====
+
+[[Ch04_AsyncJobWithWeb_HowToUse_Config]]
+=== 各種設定
+
+.バッチアプリケーションをWebアプリケーションの一部に含める
+
+pom.xmlを編集し、バッチアプリケーションをWebアプリケーションの一部に含める。
+
+[CAUTION]
+====
+バッチアプリケーションを``jar`` としてNEXUSやMavenローカルリポジトリに登録し、
+Webアプリケーションとは別プロジェクトとする場合はこの手順は不要である。 +
+ただし、Mavenによりビルドされる対象が別プロジェクトとなり、バッチアプリケーションの修正を行ってもWebアプリケーションのビルド時に反映されないため注意すること。 +
+バッチアプリケーションの修正をWebアプリケーションに反映させるためには同リポジトリに登録する必要がある。
+====
+
+.ディレクトリ構成
+image::Ch04_AsyncJobWithWebContainer_DirectoryStructure.png[directory structure]
+
+[source,xml]
+.asyncapp/pom.xml
+----
+<project>
+  <!-- omitted -->
+  <modules>
+    <module>asyncapp-domain</module>
+    <module>asyncapp-env</module>
+    <module>asyncapp-initdb</module>
+    <module>asyncapp-web</module>
+    <module>asyncapp-selenium</module>
+    <module>asyncbatch</module> <!-- (1) -->
+  </modules>
+</project>
+----
+
+[source,xml]
+.asyncapp/asyncbatch/pom.xml
+----
+<project>
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>jp.co.ntt.fw.macchinetta.batch.sample</groupId> <!-- (2) -->
+  <artifactId>asyncbatch</artifactId>
+  <version>1.0-SNAPSHOT</version> <!-- (2) -->
+  <!-- (1) -->
+  <parent>
+    <groupId>jp.co.ntt.fw.macchinetta.batch.sample</groupId>
+    <artifactId>asyncapp</artifactId>
+    <version>1.0-SNAPSHOT</version>
+    <relativePath>../pom.xml</relativePath>
+  </parent>
+  <!-- omitted -->
+</project>
+----
+
+[cols="10,90", options="header"]
+.削除・追加内容
+|===
+
+|項番
+|説明
+
+|(1)
+|Webアプリケーションを親とし、バッチアプリケーションを子とするための設定を追記する。
+
+|(2)
+|子モジュール化にともない、不要となる記述を削除する。
+
+|===
+
+.依存ライブラリの追加
+
+バッチアプリケーションをWebアプリケーションの依存ライブラリとして追加する。
+
+[source,xml]
+.asyncapp/async-web/pom.xml
+----
+<project>
+  <!-- omitted -->
+  <dependencies>
+　　<!-- (1) -->
+    <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>asyncbatch</artifactId>
+        <version>${project.version}</version>
+    </dependency>
+    <!-- omitted -->
+  </dependencies>
+  <!-- omitted -->
+</project>
+----
+
+[cols="10,90", options="header"]
+.追加内容
+|===
+
+|項番
+|説明
+
+|(1)
+|バッチアプリケーションをWebアプリケーションの依存ライブラリとして追加する。
+
+|===
+
+[[Ch04_AsyncJobWithWeb_HowToUse_WebApp]]
+=== Webアプリケーションの実装
+
+ここではWebアプリケーションとして、以下{server5_guide}を参考に、RESTful Webサービスを作成する。
+
+{server5_url}/ArchitectureInDetail/WebServiceDetail/REST.html[RESTful Web Serviceで必要となるSpring MVCのコンポーネントを有効化するための設定]
+
+
+[[Ch04_AsyncJobWithWeb_HowToUse_WebApp_Config]]
+==== Webアプリケーションの設定
+
+まず、Webアプリケーションのブランクプロジェクトから、各種設定ファイルの追加・削除・編集を行う。
+
+[NOTE]
+====
+説明の都合上、バッチアプリケーションの実装形態としてRESTful Web Service を用いた実装を行っている。 +
+従来のWebアプリケーション(Servlet/JSP)やSOAPを使用した場合でも同様な手順となるので、適宜読み替えること。
+====
+
+.ブランクプロジェクトから追加・削除するBean定義ファイル
+image::Ch04_AsyncJobWithWebContainer_AppendBeanDefinitionsOnBlank.png[AppendBeanDefinitionsOnBlank]
+
+[cols="10,90", options="header"]
+.追加・削除するBean定義ファイル
+|===
+
+|項番
+|説明
+
+|(1)
+|spring-mvc.xmlは(2)を作成するため、不要となるので削除する。
+
+|(2)
+|RESTful Web Service用のspring-mvc-rest.xmlを作成する。必要となる定義の記述例を以下に示す。
+
+|===
+
+[source,xml]
+.asyncapp/asyncapp-web/src/main/resources/META-INF/spring/spring-mvc-rest.xml の記述例
+----
+<!-- omitted -->
+<!-- (1) -->
+<import resource="classpath:META-INF/spring/launch-context.xml"/>
+
+<bean id="jsonMessageConverter"
+      class="org.springframework.http.converter.json.MappingJackson2HttpMessageConverter"
+      p:objectMapper-ref="objectMapper"/>
+
+<bean id="objectMapper"
+      class="org.springframework.http.converter.json.Jackson2ObjectMapperFactoryBean">
+  <property name="dateFormat">
+      <bean class="com.fasterxml.jackson.databind.util.StdDateFormat"/>
+  </property>
+</bean>
+
+<mvc:annotation-driven>
+  <mvc:message-converters register-defaults="false">
+    <ref bean="jsonMessageConverter"/>
+  </mvc:message-converters>
+</mvc:annotation-driven>
+
+<mvc:default-servlet-handler/>
+
+<!-- (2) -->
+<context:component-scan base-package="jp.co.ntt.fw.macchinetta.batch.sample.app.api"/>
+
+<!-- (3) -->
+<bean class="org.springframework.batch.core.configuration.support.AutomaticJobRegistrar">
+    <property name="applicationContextFactories">
+        <bean class="org.springframework.batch.core.configuration.support.ClasspathXmlApplicationContextsFactoryBean">
+            <property name="resources">
+                <list>
+                  <value>classpath:/META-INF/jobs/**/*.xml</value>
+                </list>
+            </property>
+        </bean>
+    </property>
+    <property name="jobLoader">
+        <bean class="org.springframework.batch.core.configuration.support.DefaultJobLoader"
+              p:jobRegistry-ref="jobRegistry"/>
+    </property>
+</bean>
+
+<!-- (4) -->
+<task:executor id="taskExecutor" pool-size="3" queue-capacity="10"/>
+
+<!-- (5) -->
+<bean id="jobLauncher" class="org.springframework.batch.core.launch.support.SimpleJobLauncher"
+      p:jobRepository-ref="jobRepository"
+      p:taskExecutor-ref="taskExecutor"/>
+<!-- omitted -->
+----
+
+[source,xml]
+.asyncapp/asyncapp-web/src/main/webapp/WEB-INF/web.xml の記述例
+----
+<!-- omitted -->
+<servlet>
+    <servlet-name>restApiServlet</servlet-name>
+    <servlet-class>org.springframework.web.servlet.DispatcherServlet</servlet-class>
+    <init-param>
+        <param-name>contextConfigLocation</param-name>
+        <!-- (6) -->
+        <param-value>classpath*:META-INF/spring/spring-mvc-rest.xml</param-value>
+    </init-param>
+    <!-- (7) -->
+    <init-param>
+        <param-name>spring.profiles.active</param-name>
+        <param-value>async</param-value>
+    </init-param>
+    <load-on-startup>1</load-on-startup>
+</servlet>
+
+<servlet-mapping>
+    <servlet-name>restApiServlet</servlet-name>
+    <url-pattern>/api/v1/*</url-pattern>
+</servlet-mapping>
+<!-- omitted -->
+----
+
+[cols="10,90", options="header"]
+.RESTful Web Service の有効化例
+|===
+
+|項番
+|説明
+
+|(1)
+|バッチアプリケーション内にある``launch-context.xml``のimportし、必須となるBean定義を取り込む。
+
+|(2)
+|コントローラを動的にスキャンするためのパッケージを記述する。
+
+|(3)
+|個々のジョブBean定義ファイルをモジュラー化することにより子コンテキストとして動的ロードを行う``AutomaticJobRegistrar``のBean定義を記述する。
+
+|(4)
+|非同期で実行するジョブが用いる``TaskExecutor``を定義する。 +
+JobLauncherの``TaskExecutor``に``AsyncTaskExecutor``実装クラスを設定することで非同期実行が可能となる。
+``AsyncTaskExecutor``実装クラスの1つである``ThreadPoolTaskExecutor``を利用する。
+
+また、並列起動可能なスレッドの多重度を指定ことができる。 +
+この例では3スレッドがジョブの実行に割り当てられ、それを超えたリクエストは10までがキューイングされる。
+キューイングされたジョブは未開始の状態ではあるが、REST リクエストは成功とみなされる。 +
+さらにキューイングの上限を超えたジョブのリクエストは``org.springframework.core.task.TaskRejectedException``が発生し、
+ジョブの起動要求が拒否される。
+
+|(5)
+|(4)の``taskExecutor``を有効化するため、``launch-context.xml``で定義されている``jobLauncher``をオーバーライドする。
+
+|(6)
+|``DispatcherServlet``が読み込むBean定義として、 +
+上述で記載した``spring-mvc-rest.xml``を指定する。
+
+|(7)
+|Spring Framework のプロファイルとして、非同期バッチを表す``async``を明示する。
+
+|===
+
+
+[WARNING]
+.asyncプロファイルの指定をしなかった場合
+====
+この場合、Webアプリケーション横断で共有すればよい``launch-context.xml``に定義されたBeanが、ジョブごとに重複して生成される。 +
+重複した場合でも機能上動作するため誤りに気づきにくく、予期しないリソース枯渇や性能劣化が発生する恐れがある。
+必ず指定すること。
+====
+
+[CAUTION]
+.スレッドプールのサイジング
+====
+スレッドプールの上限が過剰である場合、膨大なジョブが並走することとなり、
+アプリケーション全体のスループットが劣化する恐れがある。
+サイジングを行ったうえで適正な上限値を定めること。 +
+非同期実行のスレッドプールとは別に、Webコンテナのリクエストスレッドや
+同一筐体内で動作している他のアプリケーションも含めて検討する必要がある。
+
+また、スレッドプール枯渇に伴う``TaskRejectException``発生の確認、および再実行は
+Webクライアントから別途リクエストを送信する必要がある。
+そのため、スレッドプール枯渇時、ジョブ起動を待機させる``queue-capacity``は必ず設定すること。
+====
+
+.RESTful Web Service API の定義
+
+REST APIで使用するリクエストの例として、
+ここでは「ジョブの起動」、「ジョブの状態確認」の2つを定義する。
+
+[cols="5,15,25,10,15,10,20", options="header"]
+.REST API 定義例
+|===
+
+|項番
+|API
+|パス
+|HTTPメソッド
+|要求/応答
+|電文形式
+|電文の説明
+
+
+.2+|(1)
+.2+|ジョブの起動
+.2+|/api/v1/job/_ジョブ名_
+.2+|POST
+|リクエスト
+|JSON
+|ジョブパラメータ
+
+|レスポンス
+|JSON
+|
+ジョブ実行ID +
+ジョブ名 +
+メッセージ
+
+.2+|(2)
+.2+|ジョブの実行状態確認
+.2+|/api/v1/job/_ジョブ実行ID_
+.2+|GET
+|リクエスト
+|N/A
+|N/A
+
+|レスポンス
+|JSON
+|
+ジョブ実行ID +
+ジョブ名 +
+ジョブ実行ステータス +
+ジョブ終了コード +
+ステップ実行ID +
+ステップ名 +
+ステップ終了コード
+
+|===
+
+[[Ch04_AsyncJobWithWeb_HowToUse_WebApp_JavaBeans]]
+==== コントローラで使用するJavaBeansの実装
+
+JSON電文としてRESTクライアントに返却される以下3クラスを作成する。
+
+* ジョブ起動操作 ```JobOperationResource```
+* ジョブの実行状態 ```JobExecutionResource```
+* ステップの実行状態 ``StepExecutionResource``
+
+これらクラスは``JobOperationResource``のジョブ実行ID(``job execution id``)を除きあくまで参考実装であり、フィールドの実装は任意である。
+
+[source,java]
+.ジョブ起動操作情報実装例
+----
+// asyncapp/asyncapp-web/src/main/java/jp/co/ntt/fw/macchinetta/batch/sample/app/api/jobinfo/JobOperationResource.java
+package jp.co.ntt.fw.macchinetta.batch.sample.app.api.jobinfo;
+
+public class JobOperationResource {
+
+    private String jobName = null;
+
+    private String jobParams = null;
+
+    private Long jobExecutionId = null;
+
+    private String errorMessage = null;
+
+    private Exception error = null;
+
+    // Getter and setter are omitted.
+}
+----
+
+
+[source,java]
+.ジョブ実行情報実装例
+----
+// asyncapp/asyncapp-web/src/main/java/jp/co/ntt/fw.macchinetta/batch/sample/app/api/jobinfo/JobExecutionResource.java
+package jp.co.ntt.fw.macchinetta.batch.sample.app.api.jobinfo;
+
+// omitted.
+
+public class JobExecutionResource {
+
+    private Long jobExecutionId = null;
+
+    private String jobName = null;
+
+    private Long stepExecutionId = null;
+
+    private String stepName = null;
+
+    private List<StepExecutionResource> stepExecutions = new ArrayList<>();
+
+    private String status = null;
+
+    private String exitStatus = null;
+
+    private String errorMessage;
+
+    private List<String> failureExceptions = new ArrayList<>();
+
+    // Getter and setter are omitted.
+}
+----
+
+[source,java]
+.ステップ実行情報実装例
+----
+// asyncapp/asyncapp-web/src/main/java/jp/co/ntt/fw/macchinetta/batch/sample/app/api/jobinfo/StepExecutionResource.java
+package jp.co.ntt.fw.macchinetta.batch.sample.app.api.jobinfo;
+
+public class StepExecutionResource {
+
+  private Long stepExecutionId = null;
+
+  private String stepName = null;
+
+  private String status = null;
+
+  private List<String> failureExceptions = new ArrayList<>();
+
+    // Getter and setter are omitted.
+}
+----
+
+[[Ch04_AsyncJobWithWeb_HowToUse_WebApp_Controller]]
+==== コントローラの実装
+
+``@RestController``を用い、RESTful Web Service のコントローラを実装する。 +
+ここでは簡単のため、``JobOperator``をコントローラにインジェクションし、ジョブの起動や実行状態の取得を行う。
+もちろん{server5_shortname}に従って、コントローラからServiceをはさんで``JobOperator``を起動してもよい。
+
+[TIP]
+.ジョブ起動時に渡されるジョブパラメータについて
+====
+起動時に``JobOperator#start()``の第二引数で渡されるジョブパラメータは``String``である。
+ジョブパラメータが複数ある場合、同期実行の``CommandLineJobRunner``とは異なり、カンマ区切りで渡す必要がある。
+具体的には以下の形式をとる。 +
+``{ジョブパラメータ1}={値1},{ジョブパラメータ2}={値2},...``
+
+これは、<<Ch04_AsyncJobWithDB.adoc#Ch04_AsyncJobWithDB,"非同期実行(DBポーリング)">>におけるジョブパラメータの指定方法と同様である。
+====
+
+[source,java]
+.コントローラ実装例
+----
+// asyncapp/asyncapp-web/src/main/java/jp/co/ntt/fw/macchinetta/batch/sample/app/api/JobController.java
+package jp.co.ntt.fw.macchinetta.batch.sample.app.api;
+
+// omitted.
+
+// (1)
+@RequestMapping("job")
+@RestController
+public class JobController {
+
+    // (2)
+    @Inject
+    JobOperator jobOperator;
+
+    // (2)
+    @Inject
+    JobExplorer jobExplorer;
+
+    @RequestMapping(value = "{jobName}", method = RequestMethod.POST)
+    public ResponseEntity<JobOperationResource> launch(@PathVariable("jobName") String jobName,
+            @RequestBody JobOperationResource requestResource) {
+
+        JobOperationResource responseResource = new JobOperationResource();
+        responseResource.setJobName(jobName);
+        try {
+            // (3)
+            Long jobExecutionId = jobOperator.start(jobName, requestResource.getJobParams());
+            responseResource.setJobExecutionId(jobExecutionId);
+            return ResponseEntity.ok().body(responseResource);
+        } catch (NoSuchJobException | JobInstanceAlreadyExistsException | JobParametersInvalidException e) {
+            responseResource.setError(e);
+            return ResponseEntity.badRequest().body(responseResource);
+        }
+    }
+
+    @RequestMapping(value = "{jobExecutionId}", method = RequestMethod.GET)
+    @ResponseStatus(HttpStatus.OK)
+    public JobExecutionResource getJob(@PathVariable("jobExecutionId") Long jobExecutionId) {
+
+        JobExecutionResource responseResource = new JobExecutionResource();
+        responseResource.setJobExecutionId(jobExecutionId);
+
+        // (4)
+        JobExecution jobExecution = jobExplorer.getJobExecution(jobExecutionId);
+
+        if (jobExecution == null) {
+            responseResource.setErrorMessage("Job execution not found.");
+        } else {
+            mappingExecutionInfo(jobExecution, responseResource);
+        }
+
+        return responseResource;
+    }
+
+    private void mappingExecutionInfo(JobExecution src, JobExecutionResource dest) {
+      dest.setJobName(src.getJobInstance().getJobName());
+      for (StepExecution se : src.getStepExecutions()) {
+          StepExecutionResource ser = new StepExecutionResource();
+          ser.setStepExecutionId(se.getId());
+          ser.setStepName(se.getStepName());
+          ser.setStatus(se.getStatus().toString());
+          for (Throwable th : se.getFailureExceptions()) {
+              ser.getFailureExceptions().add(th.toString());
+          }
+          dest.getStepExecutions().add(ser);
+      }
+      dest.setStatus(src.getStatus().toString());
+      dest.setExitStatus(src.getExitStatus().toString());
+    }
+}
+----
+
+
+[cols="10,90", options="header"]
+.コントローラの実装
+|====
+
+|項番
+|説明
+
+|(1)
+| ``@RestController``を指定する。
+さらに``@RequestMapping("job")``により、``web.xml``のサーブレットマッピングとあわせると、
+REST APIの基底パスは``_contextName_/api/v1/job/``となる。
+
+|(2)
+|``JobOperator``、``JobExplorer``のフィールドインジェクションを記述する。
+
+|(3)
+| ``JobOperator`` を使用して新規に非同期ジョブを起動する。 +
+返り値としてジョブ実行IDを受け取り、REST クライアントに返却する。
+
+|(4)
+|``JobExplorer`` を使用し、ジョブ実行IDを基にジョブの実行状態(``JobExecution``)を取得する。 +
+あらかじめ設計された電文フォーマットに変換した上でRESTクライアントに返却する。
+
+|====
+
+[[Ch04_AsyncJobWithWeb_HowToUse_WebApp_IntegrationConfig]]
+==== Web/バッチアプリケーションモジュール設定の統合
+
+バッチアプリケーションモジュール(``asyncbatch``)は単体で動作可能なアプリケーションとして動作する。
+そのため、バッチアプリケーションモジュール(``asyncbatch``)は、Webアプリケーションモジュール(``asyncapp-web``)との間で競合・重複する設定が存在する。
+これらは、必要に応じて統合する必要がある。
+
+. ログ設定ファイル``logback.xml``の統合 +
+Web/バッチ間でLogback定義ファイルが複数定義されている場合、正常に動作しない。 +
+``asyncbatch/src/main/resources/logback.xml``の記述内容は``asyncapp-env/src/main/resources/``の同ファイルに統合した上で削除する。
+. データソース、MyBatis設定ファイルは統合しない +
+データソース、MyBatis設定ファイルの定義はWeb/バッチ間では、以下関係によりアプリケーションコンテキストの定義が独立するため、統合しない。
+
+** バッチの``asyncbatch``モジュールはサーブレットに閉じたコンテキストとして定義される。
+** Webの``asyncapp-domain``、``asyncapp-env``モジュールはアプリケーション全体で使用されるコンテキストとして定義される。
+
+[CAUTION]
+.Webとバッチモジュールによるデータソース、MyBatis設定の相互参照
+====
+Webとバッチモジュールによるコンテキストのスコープが異なるため、
+特にWebモジュールからバッチのデータソース、MyBatis設定、Mapperインターフェースは参照できない。 +
+RDBMSスキーマ初期化もそれぞれ異なるモジュールの設定に応じて独立して行われるため、相互干渉により
+意図しない初期化が行われないよう配慮すること。
+====
+
+[IMPORTANT]
+.REST コントローラ特有のCSRF対策設定
+====
+Webブランクプロジェクトの初期設定では、RESTコントローラに対しリクエストを送信するとCSRFエラーとして
+ジョブの実行が拒否される。
+そのため、ここでは以下方法によりCSRF対策を無効化した前提で説明している。
+
+{server5_url}/ArchitectureInDetail/WebServiceDetail/REST.html#csrf[CSRF対策]
+
+ここで作成されるWebアプリケーションはインターネット上には公開されず、CSRFを攻撃手段として
+悪用しうる第三者からのRESTリクエスト送信が発生しない前提でCSRF対策を無効化している。
+実際のWebアプリケーションでは動作環境により要否が異なる点に注意すること。
+====
+
+[[Ch04_AsyncJobWithWeb_HowToUse_WebApp_Build]]
+==== ビルド
+
+Mavenコマンドでビルドし、warファイルを作成する。
+
+[source,console]
+----
+$ cd asyncapp
+$ ls
+asyncbatch/  asyncapp-web/  pom.xml
+$ mvn clean package
+[INFO] Scanning for projects...
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Build Order:
+[INFO]
+[INFO] Macchinetta Server Framework (1.x) Web Blank Multi Project (MyBatis3)
+[INFO] Macchinetta Batch Framework (2.x) Blank Project
+[INFO] asyncapp-web
+[INFO]
+[INFO] ------------------------------------------------------------------------
+[INFO] Building Macchinetta Server Framework (1.x) Web Blank Multi Project (MyBatis3) 1.0-SNAPSHOT
+[INFO] ------------------------------------------------------------------------
+
+(omitted)
+
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Summary:
+[INFO]
+[INFO] Macchinetta Server Framework (1.x) Web Blank Multi Project (MyBatis3) SUCCESS [  0.226 s]
+[INFO] Macchinetta Batch Framework (2.x) Blank Project SUCCESS [  6.481s]
+[INFO] asyncapp-web ....................................... SUCCESS [  5.400 s]
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time: 12.597 s
+[INFO] Finished at: 2017-02-10T22:32:43+09:00
+[INFO] Final Memory: 38M/250M
+[INFO] ------------------------------------------------------------------------
+$
+----
+
+[[Ch04_AsyncJobWithWeb_HowToUse_WebApp_Deploy]]
+==== デプロイ
+
+TomcatなどのWebコンテナを起動し、ビルドで生成された``war``ファイルをデプロイする。
+詳細な手順は割愛する。
+
+[[Ch04_AsyncJobWithWeb_HowToUse_Run]]
+=== REST Clientによるジョブの起動と実行結果確認
+
+ここではREST クライアントとしてcurlコマンドを使用し、非同期ジョブを起動する。
+
+[source,console]
+----
+$ curl -v \
+  -H "Accept: application/json" -H "Content-type: application/json" \
+  -d '{"jobParams": "param1=value1"}' \
+  http://localhost:8080/asyncapp-web/api/v1/job/job01
+* timeout on name lookup is not supported
+*   Trying 127.0.0.1...
+* TCP_NODELAY set
+* Connected to localhost (127.0.0.1) port 8088 (#0)
+> POST /asyncapp-web/api/v1/job/job01 HTTP/1.1
+> Host: localhost:8088
+> User-Agent: curl/7.51.0
+> Accept: application/json
+> Content-type: application/json
+> Content-Length: 30
+>
+* upload completely sent off: 30 out of 30 bytes
+< HTTP/1.1 200
+< X-Track: 0267db93977b4552880a4704cf3e4565
+< Content-Type: application/json;charset=UTF-8
+< Transfer-Encoding: chunked
+< Date: Fri, 10 Feb 2017 13:55:46 GMT
+<
+{"jobName":"job01","jobParams":null,"jobExecutionId":3,"error":null,"errorMessag
+e":null}* Curl_http_done: called premature == 0
+* Connection #0 to host localhost left intact
+$
+----
+
+上記より、ジョブ実行ID:``jobExecutionId = 3``として、ジョブが実行されていることが確認できる。 +
+続けてこのジョブ実行IDを使用し、ジョブの実行結果を取得する。
+
+[source,console]
+----
+$ curl -v http://localhost:8080/asyncapp-web/api/v1/job/3
+* timeout on name lookup is not supported
+*   Trying 127.0.0.1...
+* TCP_NODELAY set
+* Connected to localhost (127.0.0.1) port 8088 (#0)
+> GET /asyncapp-web/api/v1/job/3 HTTP/1.1
+> Host: localhost:8088
+> User-Agent: curl/7.51.0
+> Accept: */*
+>
+< HTTP/1.1 200
+< X-Track: 7d94bf4d383745efb20cbf37cb6a8e13
+< Content-Type: application/json;charset=UTF-8
+< Transfer-Encoding: chunked
+< Date: Fri, 10 Feb 2017 14:07:44 GMT
+<
+{"jobExecutionId":3,"jobName":"job01","stepExecutions":[{"stepExecutionId":5,"st
+epName":"job01.step01","status":"COMPLETED","failureExceptions":[]}],"status":"C
+OMPLETED","exitStatus":"exitCode=COMPLETED;exitDescription=","errorMessage":null
+}* Curl_http_done: called premature == 0
+* Connection #0 to host localhost left intact
+$
+----
+
+``exitCode=COMPLETED``であることより、ジョブが正常終了していることが確認できる。
+
+[TIP]
+.シェルスクリプトなどでcurlの実行結果を判定する場合
+====
+上記の例ではREST APIによる応答電文まで表示させている。
+curlコマンドでHTTPステータスのみを確認する場合は``curl -s URL -o /dev/null -w "%{http_code}\n"``とすることで、HTTPステータスが標準出力に表示される。 +
+ただし、ジョブ実行IDはレスポンスボディ部のJSONを解析する必要があるため、必要に応じてREST
+クライアントアプリケーションを作成すること。
+====
+
+[[Ch04_AsyncJobWithWeb_HowToExtend]]
+== How to extend
+
+[[Ch04_AsyncJobWithWeb_HowToExtend_StopAndRestart]]
+=== ジョブの停止とリスタート
+
+非同期ジョブの停止・リスタートは複数実行しているジョブの中から停止・リスタートする必要がある。
+また、同名のジョブが並走している場合に、問題が発生しているジョブのみを対象にする必要もある。
+よって、対象とするジョブ実行が特定でき、その状態が確認できる必要がある。 +
+ここではこの前提を満たす場合、非同期実行の停止・リスタートを行うための実装について説明する。
+
+以降、<<Ch04_AsyncJobWithWeb_HowToUse_WebApp_Controller>>の``JobController``に対して、
+ジョブの停止(stop)やリスタート(restart)を追加する方法について説明する。
+
+NOTE: ジョブの停止・リスタートは``JobOperator``を用いた実装をしなくても実施できる。 +
+詳細は<<Ch07_JobManagement.adoc#Ch07_JobManagement,ジョブの管理>>を参照し、目的に合う方式を検討すること。
+
+[source,java]
+.停止・リスタートの実装例
+----
+// asyncapp/asyncapp-web/src/main/java/jp/co/ntt/fw/macchinetta/batch/sample/app/api/JobController.java
+package jp.co.ntt.fw.macchinetta.batch.sample.app.api;
+
+// omitted.
+
+@RequestMapping("job")
+@RestController
+public class JobController {
+
+    // omitted.
+
+    @RequestMapping(value = "stop/{jobExecutionId}", method = RequestMethod.PUT)
+    @Deprecated
+    public ResponseEntity<JobOperationResource> stop(
+            @PathVariable("jobExecutionId") Long jobExecutionId) {
+
+      JobOperationResource responseResource = new JobOperationResource();
+      responseResource.setJobExecutionId(jobExecutionId);
+      boolean result = false;
+      try {
+          // (1)
+          result = jobOperator.stop(jobExecutionId);
+          if (!result) {
+              responseResource.setErrorMessage("stop failed.");
+              return ResponseEntity.badRequest().body(responseResource);
+          }
+          return ResponseEntity.ok().body(responseResource);
+      } catch (NoSuchJobExecutionException | JobExecutionNotRunningException e) {
+          responseResource.setError(e);
+          return ResponseEntity.badRequest().body(responseResource);
+      }
+    }
+
+    @RequestMapping(value = "restart/{jobExecutionId}",
+                    method = RequestMethod.PUT)
+    @Deprecated
+    public ResponseEntity<JobOperationResource> restart(
+            @PathVariable("jobExecutionId") Long jobExecutionId) {
+
+        JobOperationResource responseResource = new JobOperationResource();
+        responseResource.setJobExecutionId(jobExecutionId);
+        try {
+            // (2)
+            Long id = jobOperator.restart(jobExecutionId);
+            responseResource.setJobExecutionId(id);
+            return ResponseEntity.ok().body(responseResource);
+        } catch (JobInstanceAlreadyCompleteException |
+                  NoSuchJobExecutionException | NoSuchJobException |
+                  JobRestartException | JobParametersInvalidException e) {
+            responseResource.setErrorMessage(e.getMessage());
+            return ResponseEntity.badRequest().body(responseResource);
+        }
+    }
+
+    // omitted.
+}
+----
+
+[cols="10,90", options="header"]
+.コントローラによる停止・リスタート実装例
+|====
+
+|項番
+|説明
+
+|(1)
+| ``JobOperator#stop()``を呼び出すことにより、実行中のジョブに対し停止を指示する。
+
+|(2)
+|``JobOperator#restart()``を呼び出すことにより、異常終了・停止したステップから再実行させる。
+
+|====
+
+
+[[Ch04_AsyncJobWithWeb_HowToExtend_MultipleLaunch]]
+=== 複数起動
+
+ここでの複数起動とは、Webコンテナを複数起動し、それぞれがジョブ要求を待ち受けることを指す。
+
+非同期ジョブの実行管理は外部RDBMSによって行われるため、各アプリケーションの接続先となる
+外部RDBMSを共有することで、同一筐体あるいは別筐体にまたがって非同期ジョブ起動を待ち受けることができる。
+
+用途としては特定のジョブに対する負荷分散や冗長化などがあげられる。
+しかし、<<Ch04_AsyncJobWithWeb_HowToUse_WebApp>>
+で述べたように、Webコンテナを複数起動し並列性を高めるだけでこれらの効果が容易に得られるわけではない。
+効果を得るためには、一般的なWebアプリケーションと同様の対処が求められる場合がある。
+以下にその一例を示す。
+
+* Webアプリケーションの特性上、1リクエスト処理はステートレスに動作するが、
+  バッチの非同期実行はジョブの起動と結果の確認を合わせて設計しなければ、かえって障害耐性が低下する恐れもある。 +
+  たとえば、ジョブ起動用Webコンテナを冗長化した場合でもクライアント側の障害によりジョブ起動後にジョブ実行IDを
+  ロストすることでジョブの途中経過や結果の確認は困難となる。
+* 複数のWebコンテナにかかる負荷を分散させるために、クライアント側にリクエスト先を振り分ける機能を実装したり、
+  ロードバランサを導入したりする必要がある。
+
+このように、複数起動の適性は一概に定めることができない。
+そのため、目的と用途に応じてロードバランサの利用やWebクライアントによるリクエスト送信制御方式などを検討し、
+非同期実行アプリケーションの性能や耐障害性を落とさない設計が必要となる。

@@ -1,0 +1,20 @@
+@startuml
+
+participant FlatFileItemWriter
+participant LineAggregator
+participant FieldExtractor
+
+autonumber
+hide footbox
+
+activate FlatFileItemWriter
+FlatFileItemWriter -> LineAggregator : mapping bean to record
+activate LineAggregator
+LineAggregator -> FieldExtractor : extract bean property and convert to array
+activate FieldExtractor
+LineAggregator <-- FieldExtractor : Object[]
+deactivate FieldExtractor
+FlatFileItemWriter <-- LineAggregator : record
+deactivate LineAggregator
+deactivate FlatFileItemWriter
+@enduml

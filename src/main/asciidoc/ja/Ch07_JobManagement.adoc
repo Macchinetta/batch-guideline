@@ -1,0 +1,718 @@
+include::_include_all.adoc[]
+
+[[Ch07_JobManagement]]
+= ジョブの管理
+
+[[Ch07_JobManagement_Overview]]
+== Overview
+ジョブの実行を管理する方法について説明する。
+
+本機能は、チャンクモデルとタスクレットモデルとで同じ使い方になる。
+
+[[Ch07_JobManagement_Overview_JobExecutionManagement]]
+=== ジョブの実行管理とは
+ジョブの起動状態や実行結果を記録しバッチシステムを維持することを指す。
+特に、異常発生時の検知や次に行うべき行動(異常終了後のリラン・リスタート等)を判断するために、必要な情報を確保することが重要である。 +
+バッチアプリケーションの特性上、起動直後にその結果をユーザインターフェースで確認できることは稀である。
+よって、ジョブスケジューラ/RDBMS/アプリケーションログといった、ジョブの実行とは別に実行状態・結果の記録を行う仕組みが必要となる。
+
+[[Ch07_JobManagement_Overview_JobExecutionManagement_Function]]
+==== {SB} が提供する機能
+
+{SB}は、ジョブの実行管理向けに以下のインターフェースを提供している。
+
+[cols="40,60", options="header"]
+.ジョブの管理機能一覧
+|===
+|機能
+|対応するインターフェース
+
+|ジョブの実行状態・結果の記録
+|``org.springframework.batch.core.repository.JobRepository``
+
+|ジョブの終了コードとプロセス終了コードの変換
+|``org.springframework.batch.core.launch.support.ExitCodeMapper``
+
+|===
+
+{SB} はジョブの起動状態・実行結果の記録に``JobRepository``を使用する。
+{batch5_shortname}では、以下のすべてに該当する場合は永続化は任意としてよい。
+
+* 同期型ジョブ実行のみで{batch5_shortname}を使用する。
+* ジョブの停止・リスタートを含め、ジョブの実行管理はすべてジョブスケジューラに委ねる。
+** {SB}がもつ``JobRepository``を前提としたリスタートを利用しない。
+
+これらに該当する場合は``JobRepository``が使用するRDBMSの選択肢として、インメモリ・組み込み型データベースである``H2``を利用する。 +
+一方で非同期実行を利用する場合や、{SB}の停止・リスタートを活用する場合は、ジョブの実行状態・結果を永続化可能なRDBMSが必要となる。
+
+[IMPORTANT]
+.デフォルトのトランザクション分離レベル
+====
+{SB}が提供するxsdでは、``JobRepository``のトランザクション分離レベルは``SERIALIZABLE``をデフォルト値としている。
+しかし、この場合、同期/非同期にかかわらず複数のジョブを同時に実行した際に``JobRepository``の更新で例外が発生してしまう。
+そのため、{batch5_shortname}では、あらかじめ``JobRepository``のトランザクション分離レベルを``READ_COMMITTED``に設定している。
+====
+
+[NOTE]
+.インメモリJobRepositoryの選択肢
+====
+{SB} にはインメモリでジョブの実行管理を行う
+``org.springframework.batch.core.repository.support.MapJobRepositoryFactoryBean``
+が用意されているが、本ガイドラインでは使用しない。 +
+このクラスのJavadocにあるとおり、
+``This repository is only really intended for use in testing and rapid prototyping.``
+とテスト用であることが示されており、また、
+``Not suited for use in multi-threaded jobs with splits``
+と並列処理には不適切であると示されているためである。
+====
+
+ジョブスケジューラを使用したジョブの実行管理については各製品のマニュアルを参照のこと。 +
+本ガイドラインでは{batch5_shortname}内部で``JobRepository``を用いたジョブの状態を管理するうえで関連する、
+以下の項目について説明する。
+
+.Macchinetta Batch内部での状態管理に関する項目
+
+* <<Ch07_JobManagement_HowToUse_JobStatusManagement>>
+** 状態を永続化する方法
+** 状態を確認する方法
+** ジョブを手動停止する方法
+* <<Ch07_JobManagement_HowToUse_ExitCode>>
+* <<Ch07_JobManagement_HowToUse_DuplicateSafe>>
+* <<Ch07_JobManagement_HowToUse_Logging>>
+* <<Ch07_JobManagement_HowToUse_MessageManagement>>
+
+[[Ch07_JobManagement_HowToUse]]
+== How to use
+
+``JobRepository``は{SB}によりRDBMSへ自動的に新規登録・更新を行う。 +
+ジョブの状態・実行結果の確認を行う場合は、意図しない変更処理がバッチアプリケーションの内外から行われることのないよう、以下のいずれかの方法を選択する。
+
+* <<Ch07_JobManagement_HowToUse_JobStatusManagement,ジョブの状態管理>>に関するテーブルに対しクエリを発行する
+* ``org.springframework.batch.core.explore.JobExplorer``を使用する
+
+[[Ch07_JobManagement_HowToUse_JobStatusManagement]]
+=== ジョブの状態管理
+
+``JobRepository``を用いたジョブの状態管理方法を説明する。 +
+{SB}により、以下のEntityがRDBMSのテーブルに登録される。
+
+[cols="10,20,20,20,30", options="header"]
+.JobRepositoryで管理されるEntityクラスとテーブル名
+|===
+|項番
+|Entityクラス
+|テーブル名
+|生成単位
+|説明
+
+|(1)
+|``JobExecution``
+|``BATCH_JOB_EXECUTION``
+|1回のジョブ実行
+|ジョブの状態・実行結果を保持する。
+
+|(2)
+|``JobExecutionContext``
+|``BATCH_JOB_EXECUTION_CONTEXT``
+|1回のジョブ実行
+|ジョブ内部のコンテキストを保持する。
+
+|(3)
+|``JobExecutionParams``
+|``BATCH_JOB_EXECUTION_PARAMS``
+|1回のジョブ実行
+|起動時に与えられたジョブパラメータを保持する。
+
+|(4)
+|``StepExecution``
+|``BATCH_STEP_EXECUTION``
+|1回のステップ実行
+|ステップの状態・実行結果、コミット・ロールバック件数を保持する。
+
+|(5)
+|``StepExecutionContext``
+|``BATCH_STEP_EXECUTION_CONTEXT``
+|1回のステップ実行
+|ステップ内部のコンテキストを保持する。
+
+|(6)
+|``JobInstance``
+|``BATCH_JOB_INSTANCE``
+|ジョブ名とジョブパラメータの組み合わせ
+|ジョブ名、およびジョブパラメータをシリアライズした文字列を保持する。
+
+|===
+
+たとえば、1回のジョブ起動で3つのステップを実行した場合、以下の差が生じる
+
+* ``JobExecution``、``JobExecutionContext``、``JobExecutionParams``は1レコード登録される
+* ``StepExecution``、``StepExecutionContext``は3レコード登録される
+
+また、``JobInstance``は過去に起動した同名ジョブ・同一パラメータよる二重実行を抑止するために使用されるが、
+{batch5_shortname}ではこのチェックを行わない。詳細は<<Ch07_JobManagement_HowToUse_DuplicateSafe,二重起動防止>>を参照。
+
+[TIP]
+====
+``JobRepository``による各テーブルの構成は、
+<<Ch02_SpringBatchArchitecture.adoc#Ch02_SpringBatchArch, {SB}のアーキテクチャ>>にて説明している。
+====
+
+[IMPORTANT]
+.チャンク方式におけるStepExecutionの件数項目について
+====
+以下のように、不整合が発生しているように見えるが、仕様上妥当なケースがある。
+
+* ``StepExecution(BATCH_STEP_EXECUTIONテーブル)``のトランザクション発行回数が入力データ件数と一致しない場合がある。
+** トランザクション発行回数は``BATCH_STEP_EXECUTION``の``COMMIT_COUNT``と``ROLLBACK_COUNT``の総和を指す。 +
+   ただし、入力データ件数がチャンクサイズで割り切れる場合``COMMIT_COUNT``が+1となる。 +
+   これは入力データ件数分を読み込んだ後、終端を表すnullも入力データとカウントされて空処理されるためである。
+
+* ``BATCH_STEP_EXECUTION``と``BATCH_STEP_EXECUTION_CONTEXT``の処理件数が異なることがある。
+** ``BATCH_STEP_EXECUTION``テーブルの``READ_COUNT``、``WRITE_COUNT``はそれぞれ``ItemReader``、``ItemWriter``による読み込み・書き込みを行った件数が記録される。
+** ``BATCH_STEP_EXECUTION_CONTEXT``テーブルの``SHORT_CONTEXT``カラムはJSON形式で
+``ItemReader``による読み込み処理件数が記録される。しかし、必ずしも``BATCH_STEP_EXECUTION``による処理件数と一致しない。 +
+** これはチャンク方式による``BATCH_STEP_EXECUTION``テーブルが成功・失敗を問わず読み込み・書き込み件数を記録するのに対し、
+``BATCH_STEP_EXECUTION_CONTEXT``テーブルは処理途中で失敗した場合のリスタートで再開される位置として記録するためである。
+====
+
+[[Ch07_JobManagement_HowToUse_JobStatusManagement_Persistence]]
+==== 状態の永続化
+外部RDBMSを使用することで``JobRepository``によるジョブの実行管理情報を永続化させることができる。
+batch-application.propertiesの以下項目を外部RDBMS向けのデータソース、スキーマ設定となるよう修正する。
+
+[source,properties]
+.batch-application.properties
+----
+# (1)
+# Admin DataSource settings.
+admin.jdbc.driver=org.postgresql.Driver
+admin.jdbc.url=jdbc:postgresql://serverhost:5432/admin
+admin.jdbc.username=postgres
+admin.jdbc.password=postgres
+
+# (2)
+spring-batch.schema.script=classpath:org/springframework/batch/core/schema-postgresql.sql
+----
+
+[cols="20,80", options="header"]
+.設定内容の項目一覧(PostgreSQL)
+|===
+|項番
+|説明
+
+|(1)
+|接頭辞``admin``が付与されているプロパティの値として、接続する外部RDBMSの設定をそれぞれ記述する。
+
+|(2)
+|アプリケーション起動時に``JobRepository``としてスキーマの自動生成を行うスクリプトファイルを指定する。
+
+|===
+
+
+[IMPORTANT]
+.管理用/業務用データソースの補足
+====
+* データベースへの接続設定は、管理用と業務用データソースとして別々に定義する。 +
+{batch5_shortname}では別々に定義した上で、
+``JobRepository``は、プロパティ接頭辞に``admin``が付与された管理用データソースを使用するよう設定済みである。
+
+* 非同期実行(DBポーリング)を使用する場合は、ジョブ要求テーブルも同じ管理用データソース、スキーマ生成スクリプトを指定すること。 +
+詳細は<<Ch04_AsyncJobWithDB.adoc#Ch04_AsyncJobWithDB,非同期実行(DBポーリング)>>を参照。
+====
+
+
+[[Ch07_JobManagement_HowToUse_JobStatusManagement_Retrieve]]
+==== ジョブの状態・実行結果の確認
+``JobRepository``からジョブの実行状態を確認する方法について説明する。 +
+いずれの方法も、あらかじめ確認対象のジョブ実行IDが既知であること。
+
+[[Ch07_JobManagement_HowToUse_JobStatusManagement_Retrieve_Query]]
+===== クエリを直接発行する
+RDBMSコンソールを用い、``JobRepository``が永続化されたテーブルに対して直接クエリを発行する。
+
+[source,sql]
+.SQLサンプル
+----
+admin=# select JOB_EXECUTION_ID, START_TIME, END_TIME, STATUS, EXIT_CODE from BATCH_JOB_EXECUTION where JOB_EXECUTION_ID = 1;
+ job_execution_id |       start_time        |        end_time         |  status   | exit_code
+------------------+-------------------------+-------------------------+-----------+-----------
+                1 | 2017-02-14 17:57:38.486 | 2017-02-14 18:19:45.421 | COMPLETED | COMPLETED
+(1 row)
+admin=# select JOB_EXECUTION_ID, STEP_EXECUTION_ID, START_TIME, END_TIME, STATUS, EXIT_CODE from BATCH_STEP_EXECUTION where JOB_EXECUTION_ID = 1;
+ job_execution_id | step_execution_id |       start_time        |        end_time        |  status   | exit_code
+------------------+-------------------+-------------------------+------------------------+-----------+-----------
+                1 |                 1 | 2017-02-14 17:57:38.524 | 2017-02-14 18:19:45.41 | COMPLETED | COMPLETED
+(1 row)
+----
+
+[[Ch07_JobManagement_HowToUse_JobStatusManagement_Retrieve_JobExplorer]]
+===== ``JobExplorer``を利用する
+
+バッチアプリケーションと同じアプリケーションコンテキストを共有可能な環境下で、``JobExplorer``をインジェクションすることでジョブの実行状態を確認する。
+
+[source,java]
+.APIコールサンプル
+----
+// omitted.
+
+@Inject
+private JobExplorer jobExplorer;
+
+private void monitor(long jobExecutionId) {
+
+    // (1)
+    JobExecution jobExecution = jobExplorer.getJobExecution(jobExecutionId);
+
+    // (2)
+    String jobName = jobExecution.getJobInstance().getJobName();
+    Date jobStartTime = jobExecution.getStartTime();
+    Date jobEndTime = jobExecution.getEndTime();
+    BatchStatus jobBatchStatus = jobExecution.getStatus();
+    String jobExitCode = jobExecution.getExitStatus().getExitCode();
+
+    // omitted.
+
+    // (3)
+    for (StepExecution stepExecution : jobExecution.getStepExecutions()) {
+        String stepName = stepExecution.getStepName();
+        Date stepStartTime = stepExecution.getStartTime();
+        Date stepEndTime = stepExecution.getEndTime();
+        BatchStatus stepStatus = stepExecution.getStatus();
+        String stepExitCode = stepExecution.getExitStatus().getExitCode();
+
+        // omitted.
+    }
+}
+----
+
+[cols="20,80", options="header"]
+.設定内容の項目一覧(PostgreSQL)
+|===
+|項番
+|説明
+
+|(1)
+|インジェクションされた``JobExplorer``からジョブ実行IDを指定し``JobExecution``を取得する。
+
+|(2)
+|``JobExecution``によるジョブの実行結果を取得する。
+
+|(3)
+|``JobExecution``から、ジョブ内で実行されたステップのコレクションを取得し、個々の実行結果を取得する。
+
+|===
+
+[[Ch07_JobManagement_HowToUse_JobStatusManagement_JobStop]]
+==== ジョブの停止
+
+ジョブの停止とは``JobRepository``の実行中ステータスを停止中ステータスに更新し、ステップの境界や
+チャンク方式によるチャンクコミット時にジョブを停止させる機能である。 +
+リスタートと組み合わせることで、停止された位置からの処理を再開させることができる。
+
+[TIP]
+====
+リスタートの詳細は<<Ch06_ReProcessing.adoc#Ch06_RerunRestart_HowToUse_Restart,"ジョブのリスタート">>を参照。
+====
+
+[CAUTION]
+====
+「ジョブの停止」は仕掛かり中のジョブを直ちに中止する機能ではなく、``JobRepository``の実行中ステータスを停止中に更新する機能である。 +
+ジョブに対して即座に仕掛かり中スレッドに対して割り込みするといったような、何らかの停止処理を行うわけではない。
+
+このため、ジョブの停止は「チャンクの切れ目など、節目となる処理が完了した際に停止するよう予約する」ことともいえる。
+たとえば以下の状況下でジョブ停止を行っても、期待する動作とはならない。
+
+* 単一ステップで``Tasklet``により構成されたジョブ実行。
+* チャンク方式で、データ入力件数 < ``commit-interval``のとき。
+* 処理内で無限ループが発生している場合。
+====
+
+以下、ジョブの停止方法を説明する。
+
+* コマンドラインからの停止
+** 同期型ジョブ・非同期型ジョブのどちらでも利用できる
+** ``CommandLineJobRunner``の``-stop``を利用する
+
+[source,terminal]
+.起動時のジョブ名を指定する方法
+----
+$ java org.springframework.batch.core.launch.support.CommandLineJobRunner \
+    classpath:/META-INF/jobs/job01.xml job01 -stop
+----
+
+* ジョブ名指定によるジョブ停止は同名のジョブが並列で起動することが少ない同期バッチ実行時に適している。
+
+[source,terminal]
+.ジョブ実行ID(jobExecutionId)を指定する方法
+----
+$ java org.springframework.batch.core.launch.support.CommandLineJobRunner \
+    classpath:/META-INF/jobs/job01.xml 3 -stop
+----
+
+* ジョブ実行ID指定によるジョブ停止は同名のジョブが並列で起動することの多い非同期バッチ実行時に適している。
+
+[TIP]
+====
+* JobExecutionIdの確認方法は<<Ch07_JobManagement_HowToUse_JobStatusManagement_Retrieve>>を参照のこと。
+* ジョブ実行IDを元にジョブ停止を行う場合は``JobOpertion#stop()``を利用してもよい。 +
+``JobOperation#stop()``を用いたジョブの停止は
+<<Ch04_AsyncJobWithWebContainer.adoc#Ch04_AsyncJobWithWeb_HowToExtend_StopAndRestart,"非同期実行ジョブの停止とリスタート">>
+を参照のこと。
+====
+
+[[Ch07_JobManagement_HowToUse_ExitCode]]
+=== 終了コードのカスタマイズ
+同期実行によりジョブ終了時、javaプロセスの終了コードをジョブやステップの終了コードに合わせてカスタマイズできる。
+javaプロセスの終了コードをカスタマイズするのに必要な作業を以下に示す。
+
+. ステップの終了コードを変更する。
+. ステップの終了コードに合わせて、ジョブの終了コードを変更する。
+. ジョブの終了コードとjavaプロセスの終了コードをマッピングする。
+
+[NOTE]
+.終了コードの意味合いについて
+====
+本節では、終了コードは2つの意味合いで扱われており、それぞれの説明を以下に示す。
+
+* COMPLETED、FAILEDなどの文字列の終了コードは、ジョブやステップの終了コードである。
+* 0、255などの数値の終了コードは、Javaプロセスの終了コードである。
+====
+
+[[Ch07_JobManagement_HowToUse_ExitCode_StepExitCode]]
+==== ステップの終了コードの変更
+処理モデルごとにステップの終了コードを変更する方法を以下に示す。
+
+チャンクモデルにおけるステップの終了コードの変更::
+
+  ステップ終了時の処理としてStepExecutionListenerのafterStepメソッドを実装し、任意のステップの終了コードを返却する。
+
+[source,java]
+.StepExecutionListener実装例
+----
+@Component
+public class ExitStatusChangeListener implements StepExecutionListener {
+
+    @Override
+    public ExitStatus afterStep(StepExecution stepExecution) {
+
+        ExitStatus exitStatus = stepExecution.getExitStatus();
+        if (conditionalCheck(stepExecution)) {
+            // (1)
+            exitStatus = new ExitStatus("CUSTOM STEP FAILED");
+        }
+        return exitStatus;
+    }
+
+    private boolean conditionalCheck(StepExecution stepExecution) {
+        // omitted.
+    }
+}
+----
+
+[source,xml]
+.ジョブ定義
+----
+<batch:step id="exitstatusjob.step">
+    <batch:tasklet transaction-manager="transactionManager">
+        <batch:chunk reader="reader" writer="writer" commit-interval="10" />
+    </batch:tasklet>
+    <batch:listeners>
+        <batch:listener ref="exitStatusChangeListener"/>
+    </batch:listeners>
+</batch:step>
+----
+
+[cols="20,80", options="header"]
+.実装内容の一覧
+|===
+|項番
+|説明
+
+|(1)
+|ステップの実行結果に応じて独自の終了コードを設定する。
+
+|===
+
+タスクレットモデルにおけるステップの終了コードの変更::
+
+  Taskletのexecuteメソッドの引数であるStepContributionに任意のステップの終了コードを設定する。
+
+[source,java]
+.Tasklet実装例
+----
+@Override
+public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) throws Exception {
+
+    // omitted.
+    if (errorCount > 0) {
+        contribution.setExitStatus(new ExitStatus("STEP COMPLETED WITH SKIPS"));  // (1)
+    }
+    return RepeatStatus.FINISHED;
+}
+----
+
+[cols="20,80", options="header"]
+.実装内容の一覧
+|===
+|項番
+|説明
+
+|(1)
+|タスクレットの実行結果に応じて独自の終了コードを設定する。
+
+|===
+
+[[Ch07_JobManagement_HowToUse_ExitCode_JobExitCode]]
+==== ジョブの終了コードの変更
+ジョブ終了時の処理としてJobExecutionListenerのafterJobメソッドを実装し、最終的なジョブの終了コードを各ステップの終了コードによって設定する。
+
+[source,java]
+.JobExecutionListener実装例
+----
+@Component
+public class JobExitCodeChangeListener extends JobExecutionListenerSupport {
+
+    @Override
+    public void afterJob(JobExecution jobExecution) {
+        // (1)
+        for (StepExecution stepExecution : jobExecution.getStepExecutions()) {
+            if ("STEP COMPLETED WITH SKIPS".equals(stepExecution.getExitStatus().getExitCode())) {
+                jobExecution.setExitStatus(new ExitStatus("JOB COMPLETED WITH SKIPS"));
+                logger.info("Change status 'JOB COMPLETED WITH SKIPS'");
+                break;
+            }
+        }
+    }
+}
+----
+
+[source,xml]
+.ジョブ定義
+----
+<batch:job id="exitstatusjob" job-repository="jobRepository">
+    <batch:step id="exitstatusjob.step">
+        <!-- omitted -->
+    </batch:step>
+    <batch:listeners>
+        <batch:listener ref="jobExitCodeChangeListener"/>
+    </batch:listeners>
+</batch:job>
+----
+
+[cols="20,80", options="header"]
+.実装内容の一覧
+|===
+|項番
+|説明
+
+|(1)
+|ジョブの実行結果に応じて、最終的なジョブの終了コードを``JobExecution``に設定する。 +
+ここではステップから返却された終了コードのいずれかに``CUSTOM STEP FAILED``が含まれている場合、
+終了コード``CUSTOM FAILED``としている。
+
+|===
+
+[[Ch07_JobManagement_HowToUse_ExitCode_Mapping]]
+==== 終了コードのマッピング
+ジョブの終了コードとプロセスの終了コードをマッピング定義を行う。
+
+[source,xml]
+.launch-context.xml
+----
+<!-- exitCodeMapper -->
+<bean id="exitCodeMapper"
+      class="org.springframework.batch.core.launch.support.SimpleJvmExitCodeMapper">
+    <property name="mapping">
+        <util:map id="exitCodeMapper" key-type="java.lang.String"
+                  value-type="java.lang.Integer">
+            <!-- ExitStatus -->
+            <entry key="NOOP" value="0" />
+            <entry key="COMPLETED" value="0" />
+            <entry key="STOPPED" value="255" />
+            <entry key="FAILED" value="255" />
+            <entry key="UNKNOWN" value="255" />
+            <entry key="CUSTOM FAILED" value="100" /> <!-- Custom Exit Status -->
+        </util:map>
+    </property>
+</bean>
+----
+
+[WARNING]
+.プロセスの終了コードに1は厳禁
+====
+一般的にJavaプロセスはVMクラッシュやSIGKILLシグナル受信などによりプロセスが強制終了した際、
+終了コードとして1を返却することがある。
+正常・異常を問わずバッチアプリケーションの終了コードとは明確に区別すべきであるため、
+アプリケーション内ではプロセスの終了コードとして1を定義しないこと。
+====
+
+[TIP]
+.終了ステータスと終了コードの違いについて
+====
+``JobRepository``で管理されるジョブとステップの状態として、「ステータス(``STATUS``)」と「終了コード(``EXIT_CODE``)」があるが、以下の点で異なる。
+
+* ステータスは{SB}の内部制御で用いられ enum型の``BatchStatus``による具体値が定義されているためカスタマイズできない。
+* 終了コードはジョブのフロー制御やプロセス終了コードの変更で使用することができ、カスタマイズできる。
+====
+
+[[Ch07_JobManagement_HowToUse_DuplicateSafe]]
+=== 二重起動防止
+
+{SB}ではジョブを起動する際、``JobRepositry``から``JobInstance(BATCH_JOB_INSTANCEテーブル)``に対して
+以下の組み合わせが存在するか確認する。
+
+* 起動対象となるジョブ名
+* ジョブパラメータ
+
+{batch5_shortname}ではジョブ・ジョブパラメータの組み合わせが一致しても複数回起動可能としている。 +
+つまり、二重起動を許容する。
+詳細は、<<Ch04_JobParameter.adoc#Ch04_JobParameter,ジョブの起動パラメータ>>を参照のこと。
+
+二重起動を防止する場合は、ジョブスケジューラやアプリケーション内で実施する必要がある。 +
+詳細な手段については、ジョブスケジューラ製品や業務要件に強く依存するため割愛する。 +
+個々のジョブについて、二重起動を抑止する必要があるかについて、検討すること。
+
+[[Ch07_JobManagement_HowToUse_Logging]]
+=== ロギング
+ログの設定方法について説明する。
+
+ログの出力、設定、考慮事項は{server5_shortname}と共通点が多い。まずは、
+{server5_url}/ArchitectureInDetail/GeneralFuncDetail/Logging.html[ロギング]を参照のこと。
+
+ここでは、{batch5_shortname}特有の考慮点について説明する。
+
+[[Ch07_JobManagement_HowToUse_Logging_Clarification]]
+==== ログ出力元の明確化
+
+バッチ実行時のログは出力元のジョブやジョブ実行を明確に特定できるようにしておく必要がある。
+そのため、スレッド名、ジョブ名、実行ジョブIDを出力するとよい。
+特に非同期実行時は同名のジョブが異なるスレッドで並列に動作することになるため、
+ジョブ名のみの記録はログ出力元を特定しにくくなる恐れがある。
+
+それぞれの要素は、以下の要領で実現できる。
+
+スレッド名::
+  ``logback.xml``の出力パターンである``%thread``を指定する
+ジョブ名・実行ジョブID::
+  ``JobExecutionListener``を実装したコンポーネントを作成し、ジョブの開始・終了時に記録する
+
+[source,java]
+.JobExecutionListener実装例
+----
+// package and import omitted.
+
+@Component
+public class JobExecutionLoggingListener implements JobExecutionListener {
+    private static final Logger logger =
+            LoggerFactory.getLogger(JobExecutionLoggingListener.class);
+
+    @Override
+    public void beforeJob(JobExecution jobExecution) {
+        // (1)
+        logger.info("job started. [JobName:{}][jobExecutionId:{}]",
+            jobExecution.getJobInstance().getJobName(), jobExecution.getId());
+    }
+
+    @Override
+    public void afterJob(JobExecution jobExecution) {
+        // (2)
+        logger.info("job finished.[JobName:{}][jobExecutionId:{}][ExitStatus:{}]"
+                , jobExecution.getJobInstance().getJobName(),
+                , jobExecution.getId(), jobExecution.getExitStatus().getExitCode());
+    }
+
+}
+----
+
+[source,xml]
+.ジョブBean定義ファイル
+----
+<!-- omitted. -->
+<batch:job id="loggingJob" job-repository="jobRepository">
+    <batch:step id="loggingJob.step01">
+        <batch:tasklet transaction-manager="jobTransactionManager">
+            <!-- omitted. -->
+        </batch:tasklet>
+    </batch:step>
+    <batch:listeners>
+        <!-- (3) -->
+        <batch:listener ref="jobExecutionLoggingListener"/>
+    </batch:listeners>
+</batch:job>
+<!-- omitted. -->
+----
+
+[cols="40,60", options="header"]
+.ジョブ名、ジョブ実行IDのログ出力実装例
+|===
+|項番
+|説明
+
+|(1)
+|ジョブの開始前にジョブ名とジョブ実行IDをINFOログに出力している。
+
+|(2)
+|ジョブの終了時は(1)に加えて終了コードも出力している。
+
+|(3)
+|コンポーネントとして登録されている``JobExecutionLoggingListener``を特定ジョブのBean定義に関連づけている。
+
+|===
+
+[[Ch07_JobManagement_HowToUse_Logging_Monitoring]]
+==== ログ監視
+バッチアプリケーションは運用時のユーザインターフェースはログが主体となる。
+監視対象と発生時のアクションを明確に設計しておかないと、
+フィルタリングが困難となり、対処に必要なログが埋もれてしまう危険がある。
+このため、ログの監視対象としてキーワードとなるメッセージやコード体系をあらかじめ決めておくとよい。
+ログに出力するメッセージ管理については、後述の<<Ch07_JobManagement_HowToUse_MessageManagement,"メッセージ管理">>を参照。
+
+[[Ch07_JobManagement_HowToUse_Logging_OutputLocation]]
+==== ログ出力先
+バッチアプリケーションにおけるログの出力先について、どの単位でログを分散/集約するのかを設計するとよい。
+たとえばフラットファイルにログを出力する場合でも以下のように複数パターンが考えられる。
+
+* 1ジョブあたり1ファイルに出力する
+* 複数ジョブを1グループにまとめた単位で1ファイルに出力する
+* 1サーバあたり1ファイルに出力する
+* 複数サーバをまとめて1ファイルに出力する
+
+いずれも対象システムにおける、ジョブ総数/ログ総量/発生するI/Oレートなどによって、
+どの単位でまとめるのが最適かが分かれる。
+また、ログを確認する方法にも依存する。ジョブスケジューラ上から参照することが多いか、コンソールから参照することが多いか、
+といった活用方法によっても選択肢が変わると想定する。
+
+重要なことは、運用設計にてログ出力を十分検討し、試験にてログの有用性を確認することに尽きる。
+
+[[Ch07_JobManagement_HowToUse_MessageManagement]]
+=== メッセージ管理
+メッセージ管理について説明する。
+
+コード体系のばらつき防止や、監視対象のキーワードとしての抽出を設計しやすくするため、
+一定のルールに従ってメッセージを付与することが望ましい。
+
+なお、ログと同様、メッセージ管理についても基本的には{server5_shortname}と同様である。
+
+[IMPORTANT]
+.MessageSourceの活用について
+====
+プロパティファイルからメッセージを使用するには``MessageSource``を使用することができる。
+
+* 具体的な設定・実装例については
+  {server5_url}/ArchitectureInDetail/GeneralFuncDetail/Logging.html#id8[ログメッセージの一元管理]
+  を参照のこと。
+
+** ここではログ出力のサンプルとして Spring MVC のコントローラー のケースにそって例示されているが、
+   {SB}の任意のコンポーネントに読み換えてほしい。
+** ここでは``MessageSource``のインスタンスを独自に生成しているが、{batch5_shortname}ではその必要はない。
+   ``ApplicationContext``が生成された後でのみ、各コンポーネントにアクセスされるためである。
+   なお、{batch5_shortname}では以下のとおり設定済みである。
+
+[source,xml]
+.launch-context.xml
+----
+<bean id="messageSource"
+      class="org.springframework.context.support.ResourceBundleMessageSource"
+      p:basenames="i18n/application-messages" />
+----
+====

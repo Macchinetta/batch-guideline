@@ -1,0 +1,1268 @@
+include::_include_all.adoc[]
+
+[[Ch04_AsyncJobWithDB]]
+= 非同期実行(DBポーリング)
+
+[[Ch04_AsyncJobWithDB_Overview]]
+== Overview
+DBポーリングによるジョブ起動について説明をする。
+
+本機能は、チャンクモデルとタスクレットモデルとで同じ使い方になる。
+
+[[Ch04_AsyncJobWithDB_Overview_AboutAsync]]
+=== DBポーリングによるジョブの非同期実行とは
+非同期実行させたいジョブを登録する専用のテーブル(以降、ジョブ要求テーブル)を一定周期で監視し、登録された情報を元にジョブを非同期実行することをいう。 +
+{batch5_shortname}では、テーブルを監視しジョブを起動するモジュールを非同期バッチデーモンという名称で定義する。
+非同期バッチデーモンは1つのJavaプロセスとして稼働し、1ジョブごとにプロセス内のスレッドを割り当てて実行する。
+
+[[Ch04_AsyncJobWithDB_Overview_AboutAsync_Function]]
+==== {terasoluna_batch5_shortname}が提供する機能
+{terasoluna_batch5_shortname}は、以下の機能を**非同期実行(DBポーリング)**として提供する。
+
+[cols="40,60", options="header"]
+.非同期実行(DBポーリング)の機能一覧
+|===
+|機能
+|説明
+
+|非同期バッチデーモン機能
+|ジョブ要求テーブルポーリング機能を常駐実行させる機能
+
+|ジョブ要求テーブルポーリング機能
+|ジョブ要求テーブルに登録された情報にもとづいてジョブを非同期実行する機能。 +
+ジョブ要求テーブルのテーブル定義も合わせて提供する。
+
+|===
+
+[[Ch04_AsyncJobWithDB_Overview_AboutAsync_Function_Premise]]
+===== 利用前提
+ジョブ要求テーブルでは、ジョブ要求のみを管理する。要求されたジョブの実行状況および結果は、``JobRepository``に委ねる。
+これら2つを通じてジョブのステータスを管理することを前提としている。 +
+
+また、``JobRepository``にインメモリデータベースを使用すると、非同期バッチデーモン停止後に``JobRepository``がクリアされ、ジョブの実行状況および結果を参照できない。
+そのため、``JobRepository``には永続性が担保されているデータベースを使用することを前提とする。
+
+[WARNING]
+.インメモリデータベースの使用
+====
+``JobRepository``を参照せずにジョブ実行結果の成否を得る手段がある場合、インメモリデータベースで運用するケースも考えられる。 +
+インメモリデータベースで長期連続運用をする場合、メモリリソースを大量消費してジョブ実行に悪影響を及ぼす可能性がある。 +
+つまり、インメモリデータベースは、長期連続運用するには向かず、定期的に再起動する運用が望ましい。 +
+それでも長期連続運用で利用したい場合は、定期的に``JobRepository``からデータを削除するなどのメンテナンス作業が必須である。 +
+再起動する場合は、初期化を有効にしておけば再起動時に再作成されるため、メンテナンスは不要である。
+初期化については、<<Ch03_CreateProject.adoc#Ch03_CreateProject_Make_Setting_DB,データベース関連の設定>>参照。
+====
+
+[[Ch04_AsyncJobWithDB_Overview_AboutAsync_Scene]]
+==== 活用シーン
+非同期実行(DBポーリング)を活用するシーンを以下にいくつか示す。
+
+[cols="40,60", options="header"]
+.活用シーン一覧
+|===
+|活用シーン
+|説明
+
+|ディレード処理
+|オンライン処理と連携して、即時に完了する必要がなく、かつ、時間がかかる処理をジョブとして切り出したい場合。
+
+|処理時間が短いジョブの連続実行
+|1ジョブあたり数秒～数十秒の処理を連続実行する場合。 +
+非同期実行(DBポーリング)を活用することで、1ジョブごとにJavaプロセスの起動・終了によるリソースの圧迫を回避できる。
+また、起動・終了処理を割愛することに繋がるためジョブの実行時間を短縮することが可能となる。
+
+|大量にあるジョブの集約
+|処理時間が短いジョブの連続実行と同様である。
+
+|===
+
+[NOTE]
+.非同期実行(Webコンテナ)と使い分けるポイント
+====
+<<Ch04_AsyncJobWithDB.adoc#Ch04_AsyncJobWithWeb,"非同期実行(Webコンテナ)">>と使い分けるポイントを以下に示す。
+
+* バッチ処理にWebAPサーバを導入することにハードルがある
+* 可用性を担保する際に、データベースのみを考慮すればよい
+** その代わり、データベースにアクセスが集中するため、非同期実行(Webコンテナ)ほどスケールしない可能性がある
+====
+
+[NOTE]
+.{SBI}を採用しない理由
+====
+{SBI}を利用して同様の機能を実現することは可能である。 +
+しかし、{SBI}を使用すると非同期実行以外の要素も含めた技術要素の理解・取得が必要となる。 +
+それにより、本機能の理解/活用/カスタマイズが難しくなるのを避けるため、{SBI}の適用は見送っている。
+====
+
+[IMPORTANT]
+.非同期実行(DBポーリング)での注意点
+====
+1ジョブあたり数秒にも満たない超ショートバッチを大量に実行する場合、``JobRepository``も含めてデータベースへのアクセスが都度発生する。
+この点に起因する性能劣化もあり得るため、超ショートバッチの大量処理は、非同期実行(DBポーリング)には向いていない。
+本機能を利用する際はこの点を踏まえ、目標性能を満たせるか十分に検証をすること。
+====
+
+[[Ch04_AsyncJobWithDB_Arch]]
+== Architecture
+
+[[Ch04_AsyncJobWithDB_Arch_Sequence]]
+=== DBポーリングの処理シーケンス
+DBポーリングの処理シーケンスについて説明する。
+
+.DBポーリングのシーケンス図
+image::Ch04_AsyncJobWithDB_Sequence_db_polling.png[sequence of DB polling]
+
+. ``AsyncBatchDeamon``をshなどから起動する。
+. ``AsyncBatchDeamon``は、起動時にジョブを定義したBean定義ファイルをすべて読み込む。
+. ``AsyncBatchDeamon``は、一定間隔でポーリングするために``TaskScheduler``を起動する。
+* ``TaskScheduler``は、一定間隔で特定の処理を起動する。
+. ``TaskScheduler``は、``JobRequestPollTask``(ジョブ要求テーブルをポーリングする処理)を起動する。
+. ``JobRequestPollTask``は、ジョブ要求テーブルからポーリングステータスが未実行(INIT)のレコードを取得する。
+* 一定件数をまとめて取得する。デフォルトは3件。
+* 対象のレコードが存在しない場合は、一定間隔を空けて再度ポーリングを行う。デフォルトは5秒間隔。
+. ``JobRequestPollTask``は、レコードの情報にもとづいて、ジョブをスレッドに割り当てて実行する。
+. ``JobRequestPollTask``は、ジョブ要求テーブルのポーリングステータスをポーリング済み(POLLED)へ更新する。
+* ジョブの同時実行数に達している場合は、取得したレコードから起動できないレコードを破棄し、次回ポーリング処理時にレコードを再取得する。
+. スレッドに割り当てられたジョブは、``JobOperator``によりジョブを開始する。
+. 実行したジョブのジョブ実行ID(Job execution id)を取得する。
+. ``JobRequestPollTask``は、ジョブ実行時に取得したジョブ実行IDにもとづいて、ジョブ要求テーブルのポーリングステータスをジョブ実行済み(EXECUTED)に更新する。
+
+[NOTE]
+.処理シーケンスの補足
+====
+{SB}のリファレンスでは、``JobLauncher``に``AsyncTaskExecutor``を設定することで非同期実行が実現できることを示している。
+しかし、この方法を採用すると``AsyncTaskExecutor``がジョブ実行が出来ない状態を検知できない。
+これは、ジョブに割り当てられるスレッドがない時などに発生し、その結果以下の事象に繋がる可能性がある。
+
+* ジョブが実行できないにも関わらず、ジョブの起動をしようとし続け不要な処理をしてしまう
+* スレッドが空いたタイミングによっては、ポーリングした順番にジョブが起動せず、ジョブ要求テーブル上ランダムに起動するように見えてしまう
+
+この事象を回避するため前述の処理シーケンスとなっている。
+====
+
+[[Ch04_AsyncJobWithDB_Arch_RequireTable]]
+=== ポーリングするテーブルについて
+非同期実行(DBポーリング)でポーリングを行うテーブルについて説明する。
+
+以下データベースオブジェクトを必要とする。
+
+* ジョブ要求テーブル(必須)
+* ジョブシーケンス(データベース製品によっては必須)
+** データベースがカラムの自動採番に対応していない場合に必要となる。
+
+[[Ch04_AsyncJobWithDB_Arch_RequireTable_TableStructure]]
+==== ジョブ要求テーブルの構造
+以下に、{terasoluna_batch5_shortname}が対応しているデータベース製品のうち、PostgreSQLの場合を示す。
+その他のデータベースについては、{terasoluna_batch5_shortname}のjarに同梱されているDDLを参照してほしい。
+
+[IMPORTANT]
+.ジョブ要求テーブルへ格納する文字列について
+====
+メタデータテーブルと同様にジョブ要求テーブルのカラムは、明示的に文字データ型を文字数定義に設定するDDLを提供する。
+====
+
+[cols="20,20,20,40", options="header"]
+.batch_job_request (PostgreSQLの場合)
+|===
+|カラム名
+|データ型
+|制約
+|説明
+
+|job_seq_id
+|bigserial
+
+(別途シーケンスを定義する場合は、bigintとする)
+|NOT NULL +
+PRIMARY KEY
+|ポーリング時に実行するジョブの順序を決める番号。 +
+データベースの自動採番機能を利用。
+
+|job_name
+|varchar(100)
+|NOT NULL
+|実行するジョブ名。 +
+ジョブ実行時の必須パラメータ。
+
+|job_parameter
+|varchar(200)
+|-
+|実行するジョブに渡すパラメータ。
+
+単一パラメータの書式は同期実行と同じだが、複数パラメータを指定する場合は、同期型実行の空白区切りとは異なり、
+各パラメータをカンマ区切り(下記参照)にする必要がある。 +
+
+{パラメータ名}={パラメータ値},{パラメータ名}={パラメータ値}...
+
+|job_execution_id
+|bigint
+|-
+|ジョブ実行時に払い出されるID。 +
+このIDをキーにして``JobRepository``を参照する。
+
+|polling_status
+|varchar(10)
+|NOT NULL
+|ポーリング処理状況。 +
+INIT : 未実行 +
+POLLED: ポーリング済み +
+EXECUTED : ジョブ実行済み
+
+|create_date
+|TIMESTAMP
+|NOT NULL
+|ジョブ要求のレコードを登録した日時。
+
+|update_date
+|TIMESTAMP
+|-
+|ジョブ要求のレコードを更新した日時。
+
+|===
+
+DDLは以下のとおり。
+[source, sql]
+----
+CREATE TABLE IF NOT EXISTS batch_job_request (
+    job_seq_id bigserial PRIMARY KEY,
+    job_name varchar(100) NOT NULL,
+    job_parameter varchar(200),
+    job_execution_id bigint,
+    polling_status varchar(10) NOT NULL,
+    create_date timestamp NOT NULL,
+    update_date timestamp
+);
+----
+
+[[Ch04_AsyncJobWithDB_Arch_RequireTable_SequenceStructure]]
+==== ジョブ要求シーケンスの構造
+データベースがカラムの自動採番に対応していない場合は、シーケンスによる採番が必要になる。 +
+以下に、{terasoluna_batch5_shortname}が対応しているデータベース製品のうち、PostgreSQLの場合を示す。 +
+その他のデータベースについては、{terasoluna_batch5_shortname}のjarに同梱されているDDLを参照してほしい。
+
+DDLは以下のとおり。
+[source, sql]
+----
+CREATE SEQUENCE batch_job_request_seq MAXVALUE 9223372036854775807 NO CYCLE;
+----
+
+[WARNING]
+====
+カラムの自動採番に対応しているデータベースについては、{terasoluna_batch5_shortname}のjarに同梱されているDDLにジョブ要求シーケンスは定義されていない。
+シーケンスの最大値を変更したい場合などには``job_seq_id``のデータ型を自動採番の定義から数値型
+(PostgreSQL場合だと、``bigserial``から``bigint``)に変更した上で、
+ジョブ要求シーケンスを定義すると良い。
+====
+
+[[Ch04_AsyncJobWithDB_Arch_RequireTable_PollingStatus]]
+==== ポーリングステータス(polling_status)の遷移パターン
+ポーリングステータスの遷移パターンを下表に示す。
+
+[cols="20,20,60", options="header"]
+.ポーリングステータスの遷移パターン一覧
+|===
+|遷移元
+|遷移先
+|説明
+
+|INIT
+|INIT
+|同時実行数に達して、ジョブの実行を拒否された場合はステータスの変更はない。 +
+次回ポーリング時にポーリング対象のレコードとなる。
+
+|INIT
+|POLLED
+|ジョブの起動に成功した時に遷移する。 +
+ジョブを実行している時のステータス。
+
+|POLLED
+|EXECUTED
+|ジョブの実行が終了した時に遷移する。
+
+|===
+
+[[Ch04_AsyncJobWithDB_Arch_RequireTable_SQL]]
+==== ジョブ要求取得SQL
+ジョブの同時実行数分のジョブ要求を取得するため、ジョブ要求取得SQLでは取得する件数を制限している。 +
+ジョブ要求取得SQLは使用するデータベース製品およびバージョンによって異なる記述になる。
+そのため、{terasoluna_batch5_shortname}が提供しているSQLでは対応できない場合がある。 +
+その場合は<<Ch04_AsyncJobWithDB_HowToExtend_CustomTable>>を参考に、
+``BatchJobRequestMapper.xml``のSQLMapを再定義する必要がある。 +
+提供しているSQLについては、{terasoluna_batch5_shortname}のjarに同梱されている``BatchJobRequestMapper.xml``を参照のこと。
+
+[[Ch04_AsyncJobWithDB_Arch_JobLaunching]]
+=== ジョブの起動について
+ジョブの起動方法について説明をする。
+
+{terasoluna_batch5_shortname}のジョブ要求テーブルポーリング機能内部では、
+{SB}から提供されている``JobOperator``の``start``メソッドでジョブを起動する。
+
+{batch5_shortname}では、非同期実行(DBポーリング)で起動したジョブのリスタートは、
+コマンドラインからの実行をガイドしている。
+そのため、``JobOperator``には``start``以外にも``restart``などの起動メソッドがあるが、
+``start``メソッド以外は使用していない。
+
+.startメソッドの引数
+jobName::
+  ジョブ要求テーブルの``job_name``に登録した値を設定する。
+jobParametrers::
+  ジョブ要求テーブルの``job_parameters``に登録した値を設定する。
+
+[[Ch04_AsyncJobWithDB_Arch_OnError]]
+=== DBポーリング処理で異常が発生した場合について
+DBポーリング処理で異常が発生した場合について説明する。
+
+[[Ch04_AsyncJobWithDB_Arch_OnError_Failure]]
+==== データベース接続障害
+障害が発生した時点で行われていた処理別に振る舞いを説明する。
+
+ジョブ要求テーブルからのレコード取得時::
+  * ``JobRequestPollTask``はエラーとなるが、次回のポーリングにて``JobRequestPollTask``が再実行される。
+ポーリングステータスをINITからPOLLEDに変更する間::
+  * ``JobOperator``によるジョブ実行前に``JobRequestPollTask``はエラー終了する。ポーリングステータスは、INITのままになる。
+  * 接続障害回復後に行われるポーリング処理では、ジョブ要求テーブルに変更がないため実行対象となり、次回ポーリング時にジョブが実行される。
+ポーリングステータスをPOLLEDからEXECUTEDに変更する間::
+  * ``JobRequestPollTask``は、ジョブ実行IDをジョブ要求テーブルに更新することができずにエラー終了する。ポーリングステータスは、POLLEDのままになる。
+  * 接続障害回復後に行われるポーリング処理の対象外となり、障害時のジョブは実行されない。
+  * ジョブ要求テーブルからジョブ実行IDを知ることができないため、ジョブの最終状態をログや``JobRepository``から判断し、必要に応じてジョブの再実行など回復処理を行う。
+
+[WARNING]
+====
+``JobRequestPollTask``で例外が発生しても、即座に自動復旧しようとはしない。以下に理由を示す。
+
+. ``JobRequestPollTask``は、一定間隔で起動するため、これに委ねることで(即座ではないが)自動復旧できる。
+. 障害発生時に即座にリトライしても回復できるケースは稀であり、かえってリトライにより負荷を発生してしまう可能性がある。
+====
+
+[[Ch04_AsyncJobWithDB_Arch_OnError_Abend]]
+==== 非同期バッチデーモンのプロセス異常終了
+非同期バッチデーモンのプロセスが異常終了した場合は、実行中ジョブのトランザクションは暗黙的にロールバックされる。 +
+ポーリングステータスによる状態はデータベース接続障害と同じになる。
+
+[[Ch04_AsyncJobWithDB_Arch_Shutdown]]
+=== DBポーリング処理の停止について
+非同期バッチデーモン(``AsyncBatchDeamon``)は、ファイルの生成によって停止する。
+ファイルが生成されたことを確認後、ポーリング処理を空振りさせ、起動中ジョブの終了を可能な限り待ってから停止する。
+
+[[Ch04_AsyncJobWithDB_Arch_Components]]
+=== 非同期実行特有のアプリケーション構成となる点について
+非同期実行における特有の構成を説明する。
+
+[[Ch04_AsyncJobWithDB_Arch_Components_AppCtx]]
+==== ApplicationContextの構成
+非同期バッチデーモンは、非同期実行専用の``async-batch-daemon.xml``をApplicationContextとして読み込む。
+同期実行でも使用している``launch-context.xml``の他に次の構成を追加している。
+
+非同期実行設定::
+  ``JobRequestPollTask``などの非同期実行に必要なBeanを定義している。
+
+ジョブ登録設定::
+  非同期実行として実行するジョブは、``org.springframework.batch.core.configuration.support.AutomaticJobRegistrar``で登録を行う。
+  ``AutomaticJobRegistrar``を用いることで、ジョブ単位にコンテキストのモジュール化を行っている。
+  モジュール化することにより、ジョブ間で利用するBeanIDが重複していても問題にならないようにしている。
+
+[NOTE]
+.モジュール化とは
+====
+モジュール化とは、「共通定義-各ジョブ定義」の階層構造になっており、各ジョブで定義されたBeanは、ジョブ間で独立したコンテキストに属することである。
+各ジョブ定義で定義されていないBeanへの参照がある場合は、共通定義で定義されたBeanを参照することになる。
+====
+
+[[Ch04_AsyncJobWithDB_Arch_Config]]
+==== Bean定義の構成
+ジョブのBean定義は、同期実行のBean定義と同じ構成でよい。ただし、以下の注意点がある。
+
+* ``AutomaticJobRegistrar``でジョブを登録する際、ジョブのBeanIDは識別子となるため重複をしてはいけない。
+* ステップのBeanIDも重複しないことが望ましい。
+** 設計時に、BeanIDの命名規則を``{ジョブID}.{ステップID}``とすることで、ジョブIDのみ一意に設計すればよい。
+
+[NOTE]
+====
+ジョブのBean定義における``job-base-context.xml``のインポートは、同期実行と非同期実行で挙動が異なる。
+
+* 同期実行では、``job-base-context.xml``から更に``launch-context.xml``をインポートする。
+* 非同期実行では、``job-base-context.xml``から``launch-context.xml``をインポートしない。
+  その代わりに``AsyncBatchDeamon``がロードする``async-batch-daemon.xml``にて、
+  ``launch-context.xml``をインポートする。
+
+これは、{SB}を起動する際に必要な各種Beanは各ジョブごとにインスタンス化する必要はないことに起因する。
+{SB}の起動に必要な各種Beanは各ジョブの親となる共通定義(``async-batch-daemon.xml``)にて1つだけ生成すればよい。
+====
+
+[[Ch04_AsyncJobWithDB_HowToUse]]
+== How to use
+
+[[Ch04_AsyncJobWithDB_HowToUse_Config]]
+=== 各種設定
+
+[[Ch04_AsyncJobWithDB_HowToUse_Config_Polling]]
+==== ポーリング処理の設定
+非同期実行に必要な設定は、``batch-application.properties``で行う。
+
+[source,properties]
+.batch-application.properties
+----
+#(1)
+# Admin DataSource settings.
+admin.jdbc.driver=org.postgresql.Driver
+admin.jdbc.url=jdbc:postgresql://localhost:5432/postgres
+admin.jdbc.username=postgres
+admin.jdbc.password=postgres
+
+# TERASOLUNA AsyncBatchDaemon settings.
+# (2)
+async-batch-daemon.schema.script=classpath:org/terasoluna/batch/async/db/schema-postgresql.sql
+# (3)
+async-batch-daemon.job-concurrency-num=3
+# (4)
+async-batch-daemon.polling-interval=5000
+# (5)
+async-batch-daemon.polling-initial-delay=1000
+# (6)
+async-batch-daemon.polling-stop-file-path=/tmp/stop-async-batch-daemon
+----
+
+[cols="10,90", options="header"]
+.設定内容の項目一覧
+|===
+
+|項番
+|説明
+
+|(1)
+|ジョブ要求テーブルが格納されているデータベースへの接続設定。 +
+デフォルトでは``JobRepository``の設定を使用する。
+
+|(2)
+|ジョブ要求テーブルを定義するDDLのパス。 +
+非同期バッチデーモン起動時にジョブ要求テーブルがない場合は、自動生成される。 +
+これは主に試験用機能であり、``batch-application.properties``内の +
+``data-source.initialize.enabled``で実行可否を設定できる。 +
+詳細な定義は``async-batch-daemon.xml``内の``<jdbc:initialize-database>``を参照のこと。
+
+|(3)
+|ポーリング時に一括で取得する件数の設定。この設定値は同時並行数としても用いる。
+
+|(4)
+|ポーリング周期の設定。単位はミリ秒。
+
+|(5)
+|ポーリング初回起動遅延時間の設定。単位はミリ秒。
+
+|(6)
+|終了ファイルパスの設定。
+
+|===
+
+[NOTE]
+.環境変数による設定値の変更
+====
+``batch-application.properties``の設定値は、同名の環境変数を定義することで設定の変更が可能である。 +
+環境変数が設定された場合は、プロパティ値より優先して使用される。 +
+これは、以下のBean定義に起因する。
+
+[source,xml]
+.launch-context.xmlの設定箇所
+----
+<context:property-placeholder location="classpath:batch-application.properties"
+        system-properties-mode="OVERRIDE"
+        ignore-resource-not-found="false"
+        ignore-unresolvable="true"
+        order="1"/>
+----
+
+詳細については、{server5_guide}の
+{server5_url}/ArchitectureInDetail/GeneralFuncDetail/PropertyManagement.html#technical-details-label[プロパティファイル定義方法について]を参照。
+====
+
+
+[[Ch04_AsyncJobWithDB_HowToUse_Config_Job]]
+==== ジョブの設定
+非同期実行する対象のジョブは、``async-batch-daemon.xml``の``automaticJobRegistrar``に設定する。 +
+以下に初期設定を示す。
+
+[source,xml]
+.async-batch-daemon.xml
+----
+<bean id="automaticJobRegistrar"
+      class="org.springframework.batch.core.configuration.support.AutomaticJobRegistrar">
+    <property name="applicationContextFactories">
+        <bean class="org.springframework.batch.core.configuration.support.ClasspathXmlApplicationContextsFactoryBean">
+            <property name="resources">
+                <list>
+                    <value>classpath:/META-INF/jobs/**/*.xml</value>  <!-- (1) -->
+                </list>
+            </property>
+        </bean>
+    </property>
+    <property name="jobLoader">
+        <bean class="org.springframework.batch.core.configuration.support.DefaultJobLoader"
+              p:jobRegistry-ref="jobRegistry" />
+    </property>
+</bean>
+----
+
+[cols="10,90", options="header"]
+.設定内容の項目一覧
+|===
+
+|項番
+|説明
+
+|(1)
+|非同期実行するジョブBean定義のパス。
+
+|===
+
+[WARNING]
+.登録ジョブの絞込みについて
+====
+登録するジョブは、非同期実行することを前提に設計・実装されたジョブを指定すること。
+非同期で実行することを想定していないジョブを含めて指定すると、ジョブ登録時に意図しない参照により例外が発生することもあるので注意すること。
+
+[source,xml]
+.絞込の例
+----
+<bean id="automaticJobRegistrar"
+      class="org.springframework.batch.core.configuration.support.AutomaticJobRegistrar">
+    <property name="applicationContextFactories">
+        <bean class="org.springframework.batch.core.configuration.support.ClasspathXmlApplicationContextsFactoryBean">
+            <property name="resources">
+                <list>
+                    <!-- For the async directory and below -->
+                    <value>classpath:/META-INF/jobs/aysnc/**/*.xml</value>
+                    <!-- For a specific job -->
+                    <value>classpath:/META-INF/jobs/CASE100/SpecialJob.xml</value>
+                </list>
+            </property>
+        </bean>
+    </property>
+    <property name="jobLoader">
+        <bean class="org.springframework.batch.core.configuration.support.DefaultJobLoader"
+            p:jobRegistry-ref="jobRegistry" />
+    </property>
+</bean>
+----
+====
+
+[TIP]
+.ジョブパラメータの入力値検証
+====
+``JobPollingTask``は、ジョブ要求テーブルから取得したレコードについて妥当性検証をしない。 +
+よって、テーブルに登録する側にてジョブ名やジョブパラメータについて検証することが望ましい。 +
+ジョブ名が誤っていると、ジョブを起動するが見つからず、例外が発生してしまう。 +
+ジョブパラメータが誤っていると、ジョブは起動するが誤動作してしまう。 +
+ジョブパラメータに限っては、ジョブ起動後に検証を行うことができる。ジョブパラメータの検証については、
+<<Ch04_JobParameter.adoc#Ch04_JobParameter_HowToUse_ParamsValidation,"パラメータの妥当性検証">>を参照のこと。
+====
+
+[IMPORTANT]
+.ジョブ設計上の留意点
+====
+非同期実行(DBポーリング)の特性上、同一ジョブの並列実行が可能になっているので、並列実行した場合に同一ジョブが影響を与えないようにする必要がある。
+====
+
+[[Ch04_AsyncJobWithDB_HowToUse_Daemon]]
+=== 非同期処理の起動から終了まで
+非同期バッチデーモンの起動と終了、ジョブ要求テーブルへの登録方法について説明する。
+
+[[Ch04_AsyncJobWithDB_HowToUse_Daemon_Launch]]
+==== 非同期バッチデーモンの起動
+{terasoluna_batch5_shortname}が提供する、``AsyncBatchDaemon``を起動する。
+
+[source,console]
+.AsyncBatchDaemonの起動
+----
+# Start AsyncBatchDaemon
+$ java -cp dependency/* org.terasoluna.batch.async.db.AsyncBatchDaemon
+----
+
+この場合、``META-INF/spring/async-batch-daemon.xml``を読み込み各種Beanを生成する。
+
+また、別途カスタマイズした``async-batch-daemon.xml``を利用したい場合は第一引数に指定して``AsyncBatchDaemon``を起動することで実現できる。 +
+引数に指定するBean定義ファイルは、クラスパスからの相対パスで指定すること。 +
+なお、第二引数以降は無視される。
+
+[source,console]
+.カスタマイズしたMETA-INF/spring/customized-async-batch-daemon.xmlを利用する場合
+----
+# Start AsyncBatchDaemon
+$ java -cp dependency/* org.terasoluna.batch.async.db.AsyncBatchDaemon \
+    META-INF/spring/customized-async-batch-daemon.xml
+----
+
+``async-batch-daemon.xml``のカスタマイズは、ごく一部の設定を変更する場合は直接修正してよい。 +
+しかし、大幅な変更を加える場合や、後述する<<Ch04_AsyncJobWithDB_HowToExtend_MultiDaemon>>にて複数の設定を管理する場合は、
+別途ファイルを作成して管理するほうが扱いやすい。 +
+ユーザの状況に応じて選択すること。
+
+[NOTE]
+====
+dependency配下には、実行に必要なjar一式が格納されている前提とする。
+====
+
+[[Ch04_AsyncJobWithDB_HowToUse_Daemon_Request]]
+==== ジョブの要求
+INSERT文のSQLを発行することでジョブ要求テーブルに登録を行う。
+
+[source,sql]
+.PostgreSQLの場合
+----
+INSERT INTO batch_job_request(job_name,job_parameter,polling_status,create_date)
+VALUES ('JOB01', 'param1=dummy,param2=100', 'INIT', current_timestamp);
+----
+
+[[Ch04_AsyncJobWithDB_HowToUse_Daemon_Stop]]
+==== 非同期バッチデーモンの停止
+``batch-application.properties``に設定した終了ファイルを置く。
+
+[source,console]
+----
+$ touch /tmp/stop-async-batch-daemon
+----
+
+[IMPORTANT]
+.非同期バッチデーモン起動前に終了ファイルがある場合
+====
+非同期バッチデーモン起動前に終了ファイルがある場合、非同期バッチデーモンは即時終了する。
+非同期バッチデーモンは、終了ファイルがない状態で起動する必要がある。
+====
+
+[[Ch04_AsyncJobWithDB_HowToUse_RefStatus]]
+=== ジョブのステータス確認
+ジョブの状態管理は{SB}から提供される``JobRepository``で行い、ジョブ要求テーブルではジョブのステータスを管理しない。
+ジョブ要求テーブルでは``job_execution_id``のカラムをもち、このカラムに格納される値により個々の要求に対するジョブのステータスを確認できるようにしている。
+ここでは、SQLを直接発行してジョブのステータスを確認する簡単な例を示す。
+ジョブステータス確認の詳細は、<<Ch07_JobManagement.adoc#Ch07_JobManagement_HowToUse_JobStatusManagement_Retrieve,"状態の確認">>を参照のこと。
+
+[source,sql]
+.PostgreSQLの場合
+----
+SELECT job_execution_id FROM batch_job_request WHERE job_seq_id = 1;
+
+job_execution_id
+----------------
+              2
+(1 row)
+
+SELECT * FROM batch_job_execution WHERE job_execution_id = 2;
+
+job_execution_id | version | job_instance_id |       create_time       |       start_time        |        end_time         |  status   | exit_code | exit_message |
+ocation
+------------------+---------+-----------------+-------------------------+-------------------------+-------------------------+-----------+-----------+--------------+-
+--------
+              2 |       2 |               2 | 2017-02-06 20:54:02.263 | 2017-02-06 20:54:02.295 | 2017-02-06 20:54:02.428 | COMPLETED | COMPLETED |              |
+(1 row)
+----
+
+[[Ch04_AsyncJobWithDB_HowToUse_Recovery]]
+=== ジョブが異常終了した後のリカバリ
+異常終了したジョブのリカバリに関する基本事項は、<<Ch06_ReProcessing.adoc#Ch06_RerunRestart,"処理の再実行">>を参照のこと。ここでは、非同期実行特有の事項について説明をする。
+
+[[Ch04_AsyncJobWithDB_HowToUse_Recovery_Rerun]]
+==== リラン
+異常終了したジョブのリランは、ジョブ要求テーブルに別レコードとしてINSERTすることで行う。
+
+[[Ch04_AsyncJobWithDB_HowToUse_Recovery_Restart]]
+==== リスタート
+異常終了したジョブをリスタートする場合は、コマンドラインから同期実行ジョブとして実行する。
+コマンドラインからの実行する理由は、「意図したリスタート実行なのか意図しない重複実行であるかの判断が難しいため、運用で混乱をきたす可能性がある」ためである。 +
+リスタート方法は<<Ch06_ReProcessing.adoc#Ch06_RerunRestart_HowToUse_Restart,"ジョブのリスタート">>を参照のこと。
+
+[[Ch04_AsyncJobWithDB_HowToUse_Recovery_Stop]]
+==== 停止
+. 処理時間が想定を超えて停止していない場合は、コマンドラインからの停止を試みる。
+停止方法は<<Ch07_JobManagement.adoc#Ch07_JobManagement_HowToUse_JobStatusManagement_JobStop,"ジョブの停止">>を参照のこと。
+. コマンドラインからの停止も受け付けない場合は、<<Ch04_AsyncJobWithDB_HowToUse_Daemon_Stop>>により、非同期バッチデーモンを終了させる。
+. 非同期バッチデーモンも終了できない状態になっている場合は、非同期バッチデーモンのプロセスを強制終了させる。
+
+[IMPORTANT]
+====
+非同期バッチデーモンを終了させる場合は、他のジョブに影響がないように十分に注意して行う。
+====
+
+[[Ch04_AsyncJobWithDB_HowToUse_Env]]
+=== 環境配備について
+ジョブのビルドとデプロイは同期実行と同じである。ただし、<<Ch04_AsyncJobWithDB_HowToUse_Config_Job>>にもあるとおり非同期実行するジョブの絞込みをしておくことが重要である。
+
+[[Ch04_AsyncJobWithDB_HowToUse_CumulativeData]]
+=== 累積データの退避について
+非同期バッチデーモンを長期運用していると``JobRepository``とジョブ要求テーブルに膨大なデータが累積されていく。以下の理由によりこれらの累積データを退避させる必要がある。
+
+* 膨大なデータ量に対してデータを検索/更新する際の性能劣化
+* IDの採番用シーケンスが周回することによるIDの重複
+
+テーブルデータの退避やシーケンスのリセットについては、利用するデータベースのマニュアルを参照してほしい。
+
+以下に退避対象のテーブルおよびシーケンスの一覧を示す。
+
+[cols="50,50", options="header"]
+.退避対象一覧
+|===
+
+|テーブル/シーケンス
+|提供しているフレームワーク
+
+|batch_job_request
+.2+|{terasoluna_batch5_shortname}
+
+|batch_job_request_seq
+
+|batch_job_instance
+.9+|{SB}
+
+|batch_job_exeution
+
+|batch_job_exeution_params
+
+|batch_job_exeution_context
+
+|batch_step_exeution
+
+|batch_step_exeution_context
+
+|batch_job_seq
+
+|batch_job_execution_seq
+
+|batch_step_execution_seq
+
+|===
+
+[IMPORTANT]
+.自動採番カラムのシーケンス
+====
+自動採番のカラムに対して自動的にシーケンスが作成されている場合があるので、忘れずにそのシーケンスも退避対象に含める。
+====
+
+[IMPORTANT]
+.データベース固有の仕様について
+====
+Oracleではデータ型にCLOBを利用するなど、データベース固有のデータ型を使用している場合があるので注意をする。
+====
+
+[[Ch04_AsyncJobWithDB_HowToExtend]]
+== How to extend
+
+[[Ch04_AsyncJobWithDB_HowToExtend_CustomTable]]
+=== ジョブ要求テーブルのカスタマイズ
+ジョブ要求テーブルは、取得レコードの抽出条件を変更するためにカラム追加をしてカスタマイズすることができる。
+ただし、``JobRequestPollTask``からSQLを発行する際に渡せる項目は、
+``BatchJobRequest``の項目のみである。
+
+ジョブ要求テーブルのカスタマイズによる拡張手順は以下のとおり。
+
+. ジョブ要求テーブルのカスタマイズ
+. ``BatchJobRequestRepository``インターフェースの拡張インターフェースの作成
+. カスタマイズしたテーブルを使用したSQLMapの定義
+. ``async-batch-daemon.xml``のBean定義の修正
+
+カスタマイズ例として以下のようなものがある。
+
+* <<Ch04_AsyncJobWithDB_HowToExtend_CustomTable_Priority>>
+* <<Ch04_AsyncJobWithDB_HowToExtend_CustomTable_GroupID>>
+
+以降、この2つの例について、拡張手順を説明する。
+
+[[Ch04_AsyncJobWithDB_HowToExtend_CustomTable_Priority]]
+==== 優先度カラムによるジョブ実行順序の制御の例
+. ジョブ要求テーブルのカスタマイズ
+
+ジョブ要求テーブルに優先度カラム(priority)を追加する。
+
+[source,sql]
+.優先度カラムの追加 (PostgreSQLの場合)
+----
+CREATE TABLE IF NOT EXISTS batch_job_request (
+    job_seq_id bigserial PRIMARY KEY,
+    job_name varchar(100) NOT NULL,
+    job_parameter varchar(200),
+    priority int NOT NULL,
+    job_execution_id bigint,
+    polling_status varchar(10) NOT NULL,
+    create_date timestamp NOT NULL,
+    update_date timestamp
+);
+
+----
+
+[start=2]
+. ``BatchJobRequestRepository``インターフェースの拡張インターフェースの作成
+
+``BatchJobRequestRepository``インターフェースを拡張したインターフェースを作成する。
+
+[source,java]
+.拡張インターフェース
+----
+// (1)
+public interface CustomizedBatchJobRequestRepository extends BatchJobRequestRepository {
+    // (2)
+}
+----
+
+[cols="10,90", options="header"]
+.拡張ポイント
+|===
+
+|項番
+|説明
+
+|(1)
+|``BatchJobRequestRepository``を拡張する。
+
+
+|(2)
+|メソッドは追加しない。
+|===
+
+
+[start=3]
+. カスタマイズしたテーブルを使用したSQLMapの定義
+
+優先度を順序条件にしたSQLをSQLMapに定義する。
+
+[source,xml]
+.SQLMap定義(CustomizedBatchJobRequestRepository.xml)
+----
+<!-- (1) -->
+<mapper namespace="jp.co.ntt.fw.macchinetta.batch.extend.repository.CustomizedBatchJobRequestRepository">
+
+    <select id="find" resultType="org.terasoluna.batch.async.db.model.BatchJobRequest">
+        SELECT
+            job_seq_id AS jobSeqId,
+            job_name AS jobName,
+            job_parameter AS jobParameter,
+            job_execution_id AS jobExecutionId,
+            polling_status AS pollingStatus,
+            create_date AS createDate,
+            update_date AS updateDate
+        FROM
+            batch_job_request
+        WHERE
+            polling_status = 'INIT'
+        ORDER BY
+            priority ASC,   <!--(2) -->
+            job_seq_id ASC
+        LIMIT #{pollingRowLimit}
+    </select>
+
+    <!-- (3) -->
+    <update id="updateStatus">
+        UPDATE
+            batch_job_request
+        SET
+            polling_status = #{batchJobRequest.pollingStatus},
+            job_execution_id = #{batchJobRequest.jobExecutionId},
+            update_date = #{batchJobRequest.updateDate}
+        WHERE
+            job_seq_id = #{batchJobRequest.jobSeqId}
+        AND
+            polling_status = #{pollingStatus}
+    </update>
+
+</mapper>
+----
+
+[cols="10,90", options="header"]
+.拡張ポイント
+|===
+
+|項番
+|説明
+
+|(1)
+|``BatchJobRequestRepository``の拡張インターフェースをFQCNでnamespaceに設定する。
+
+
+|(2)
+|priorityをORDER句へ追加する。
+
+|(3)
+|更新SQLは変更しない。
+
+|===
+
+[start=4]
+. ``async-batch-daemon.xml``のBean定義の修正
+
+(2)で作成した拡張インターフェースを``batchJobRequestRepository``に設定する。
+
+[source,xml]
+.async-batch-daemon.xml
+----
+ <!--(1) -->
+<bean id="batchJobRequestRepository"
+      class="org.mybatis.spring.mapper.MapperFactoryBean"
+      p:mapperInterface="jp.co.ntt.fw.macchinetta.batch.extend.repository.CustomizedBatchJobRequestRepository"
+      p:sqlSessionFactory-ref="adminSqlSessionFactory" />
+----
+
+[cols="10,90", options="header"]
+.拡張ポイント
+|===
+
+|項番
+|説明
+
+|(1)
+|``BatchJobRequestRepository``の拡張インターフェースをFQCNで``mapperInterface``プロパティに設定する。
+
+|===
+
+[[Ch04_AsyncJobWithDB_HowToExtend_CustomTable_GroupID]]
+==== グループIDによる複数プロセスによる分散処理
+``AsyncBatchDaemon``起動時に環境変数でグループIDを指定して、対象のジョブを絞り込む。
+
+. ジョブ要求テーブルのカスタマイズ
+
+ジョブ要求テーブルにグループIDカラム(group_id)を追加する。
+
+[source,sql]
+.グループIDカラムの追加 (PostgreSQLの場合)
+----
+CREATE TABLE IF NOT EXISTS batch_job_request (
+    job_seq_id bigserial PRIMARY KEY,
+    job_name varchar(100) NOT NULL,
+    job_parameter varchar(200),
+    group_id varchar(10) NOT NULL,
+    job_execution_id bigint,
+    polling_status varchar(10) NOT NULL,
+    create_date timestamp NOT NULL,
+    update_date timestamp
+);
+
+----
+
+[start=2]
+. ``BatchJobRequestRepository``インターフェースの拡張インターフェース作成
+** <<Ch04_AsyncJobWithDB_HowToExtend_CustomTable_Priority>>と同じ
+
+[start=3]
+. カスタマイズしたテーブルを使用したSQLMapの定義
+
+グループIDを抽出条件にしたSQLをSQLMapに定義する。
+
+[source,xml]
+.SQLMap定義(CustomizedBatchJobRequestRepository.xml)
+----
+<!-- (1) -->
+<mapper namespace="jp.co.ntt.fw.macchinetta.batch.extend.repository.CustomizedBatchJobRequestRepository">
+
+    <select id="find" resultType="org.terasoluna.batch.async.db.model.BatchJobRequest">
+        SELECT
+            job_seq_id AS jobSeqId,
+            job_name AS jobName,
+            job_parameter AS jobParameter,
+            job_execution_id AS jobExecutionId,
+            polling_status AS pollingStatus,
+            create_date AS createDate,
+            update_date AS updateDate
+        FROM
+            batch_job_request
+        WHERE
+            polling_status = 'INIT'
+        AND
+            group_id = #{groupId}  <!--(2) -->
+        ORDER BY
+            job_seq_id ASC
+        LIMIT #{pollingRowLimit}
+    </select>
+
+    <!-- omitted -->
+</mapper>
+----
+
+[cols="10,90", options="header"]
+.拡張ポイント
+|===
+
+|項番
+|説明
+
+|(1)
+|``BatchJobRequestRepository``の拡張インターフェースをFQCNでnamespaceに設定する。
+
+
+|(2)
+|groupIdを検索条件に追加。
+|===
+
+[start=4]
+. ``async-batch-daemon.xml``のBean定義の修正
+
+(2)で作成した拡張インターフェースを``batchJobRequestRepository``に設定し、
+``jobRequestPollTask``に環境変数で与えられたグループIDをクエリパラメータとして設定する。
+
+
+[source,xml]
+.async-batch-daemon.xml
+----
+ <!--(1) -->
+<bean id="batchJobRequestRepository"
+      class="org.mybatis.spring.mapper.MapperFactoryBean"
+      p:mapperInterface="jp.co.ntt.fw.macchinetta.batch.extend.repository.CustomizedBatchJobRequestRepository"
+      p:sqlSessionFactory-ref="adminSqlSessionFactory" />
+
+    <bean id="jobRequestPollTask"
+          class="org.terasoluna.batch.async.db.JobRequestPollTask"
+          c:transactionManager-ref="adminTransactionManager"
+          c:jobOperator-ref="jobOperator"
+          c:batchJobRequestRepository-ref="batchJobRequestRepository"
+          c:daemonTaskExecutor-ref="daemonTaskExecutor"
+          c:automaticJobRegistrar-ref="automaticJobRegistrar"
+          p:optionalPollingQueryParams-ref="pollingQueryParam" /> <!-- (2) -->
+
+   <bean id="pollingQueryParam"
+         class="org.springframework.beans.factory.config.MapFactoryBean">
+        <property name="sourceMap">
+            <map>
+                <entry key="groupId" value="${GROUP_ID}"/>  <!-- (3) -->
+            </map>
+        </property>
+   </bean>
+----
+
+[cols="10,90", options="header"]
+.拡張ポイント
+|===
+
+|項番
+|説明
+
+|(1)
+|``BatchJobRequestRepository``の拡張インターフェースをFQCNで``mapperInterface``プロパティに設定する。
+
+|(2)
+|``JobRequestPollTask``の``optionalPollingQueryParams``プロパティに(3)で定義するMapを設定する。
+
+|(3)
+|環境変数で与えれらたグループID(GROUP_ID)をクエリパラメータのグループID(groupId)に設定する。
+
+|===
+
+[start=5]
+. 環境変数にグループIDを設定後、``AsyncBatchDaemon``を起動する。
+
+[source,console]
+.AsyncBatchDaemonの起動
+----
+# Set environment variables
+$ export GROUP_ID=G1
+
+# Start AsyncBatchDaemon
+$ java -cp dependency/* org.terasoluna.batch.async.db.AsyncBatchDaemon
+----
+
+[[Ch04_AsyncJobWithDB_HowToExtend_ClockCustomize]]
+=== タイムスタンプに用いるクロックのカスタマイズ
+タイムスタンプに用いるクロックは、デフォルト設定では``systemDefaultZone``から取得している。 +
+しかし、ある特定の時間帯はポーリングをキャンセルするといった、ジョブ要求の取得条件をシステム日時に依存した非同期バッチデーモンに拡張したい場合など、ある特定の日時を指定したり、使用するシステムと異なるタイムゾーンを使用して試験を実施したい場合がある。そのため非同期実行では、用途に合わせてカスタマイズしたクロックを設定できる機能を備えている。 +
+また、ジョブ要求テーブルからのリクエスト取得をカスタマイズしていないときのデフォルト設定において、クロックを変更したとき影響を受けるのはジョブ要求テーブルの``update_date``のみである。
+
+クロックのカスタマイズ手順は以下のとおり。
+
+. ``async-batch-daemon.xml``のコピーを作成
+. ファイル名を``customized-async-batch-daemon.xml``に変更
+. ``customized-async-batch-daemon.xml``のBean定義を修正
+. カスタマイズしたAsyncBatchDaemonを起動 +
+詳細は、<<Ch04_AsyncJobWithDB_HowToUse_Daemon_Launch>>を参照
+
+下記に日時を固定し、タイムゾーンを変更するための設定例を示す。
+
+[source,xml]
+.META-INF/spring/customized-async-batch-daemon.xml
+----
+<bean id="jobRequestPollTask"
+      class="org.terasoluna.batch.async.db.JobRequestPollTask"
+      c:transactionManager-ref="adminTransactionManager"
+      c:jobOperator-ref="jobOperator"
+      c:batchJobRequestRepository-ref="batchJobRequestRepository"
+      c:daemonTaskExecutor-ref="daemonTaskExecutor"
+      c:automaticJobRegistrar-ref="automaticJobRegistrar"
+      p:clock-ref="clock" />　<!-- (1) -->
+
+<!-- (2) -->
+<bean id="clock" class="java.time.Clock" factory-method="fixed"
+      c:fixedInstant="#{T(java.time.ZonedDateTime).parse('2016-12-31T16:00-08:00[America/Los_Angeles]').toInstant()}"
+      c:zone="#{T(java.time.ZoneId).of('PST', T(java.time.ZoneId).SHORT_IDS)}"/>
+----
+
+[cols="10,90", options="header"]
+.説明
+|===
+|項番
+|説明
+
+|(1)
+|``JobRequestPollTask``の``clock``プロパティに(2)で定義するBeanを設定する。
+
+|(2)
+|日時を2016年12月31日16時0分0秒に固定し、タイムゾーンをロサンゼルス時間とした``java.time.Clock``のBeanを定義する。 +
+ロサンゼルス時間のタイムゾーンIDは``PST``である。
+|===
+
+[[Ch04_AsyncJobWithDB_HowToExtend_MultiDaemon]]
+=== 複数起動
+以下の様な目的で、複数サーバ上で非同期バッチデーモンを起動させる場合がある。
+
+* 可用性向上
+** 非同期バッチジョブがいずれかのサーバで実行できればよく、ジョブが起動できないという状況をなくしたい場合
+* 性能向上
+** 複数サーバでバッチ処理の負荷を分散させたい場合
+* リソースの有効利用
+** サーバ性能に差がある場合に特定のジョブを最適なリソースのサーバに振り分ける場合
+*** <<Ch04_AsyncJobWithDB_HowToExtend_CustomTable>>で提示したグループIDによるジョブノードの分割に相当
+
+上記に示す観点のいずれかにもとづいて利用するのかを意識して運用設計を行うことが必要となる。
+
+.複数起動の概略図
+image::Ch04_AsyncJobWithDB_MultipleActivation.png[]
+
+[NOTE]
+.複数の非同期バッチデーモンが同一ジョブ要求レコードを取得した場合
+====
+``JobRequestPollTask``は、楽観ロックによる排他制御を行っているため、ポーリングステータスをINITからPOLLEDへ更新できた非同期バッチデーモンが取得したレコードのジョブを実行できる。
+排他された他の非同期バッチデーモンは、次のジョブ要求レコードを処理する。
+====
+
+[[Ch04_AsyncJobWithDB_Appendix]]
+== Appendix
+
+[[Ch04_AsyncJobWithDB_Appendix_Modular]]
+=== ジョブ定義のモジュール化について
+<<Ch04_AsyncJobWithDB_Arch_Components_AppCtx>>でも簡単に説明したが、``AutomaticJobRegistrar``を用いることで以下の事象を回避することができる。
+
+* 同じBeanID(BeanName)を使用すると、Beanが上書きされてしまい、ジョブが意図しない動作をする。
+** その結果、意図しないエラーが発生する可能性が高くなる。
+* エラーを回避するために、ジョブ全体でBeanすべてのIDが一意になるように命名しなければいけなくなる。
+** ジョブ数が増えてくると管理するのが困難になり、不必要なトラブルが発生する可能性が高くなる。
+
+``AutomaticJobRegistrar``を使用しない場合に起こる現象について説明をする。
+ここで説明する内容は上記の問題を引き起こすので、非同期実行では使用しないこと。
+
+[source,xml]
+.Job1.xml
+----
+<!-- Reader -->
+<!-- (1) -->
+<bean id="reader" class="org.mybatis.spring.batch.MyBatisCursorItemReader"
+      p:queryId="jp.co.ntt.fw.macchinetta.batch.job.repository.EmployeeRepositoy.findAll"
+      p:sqlSessionFactory-ref="jobSqlSessionFactory"/>
+
+<!-- Writer -->
+<!-- (2) -->
+<bean id="writer"
+      class="org.springframework.batch.item.file.FlatFileItemWriter" scope="step"
+      p:resource="file:#{jobParameters['basedir']}/input/employee.csv">
+  <property name="lineAggregator">
+    <bean class="org.springframework.batch.item.file.transform.DelimitedLineAggregator">
+      <property name="fieldExtractor">
+        <bean class="org.springframework.batch.item.file.transform.BeanWrapperFieldExtractor"
+              p:names="invoiceNo,salesDate,productId,customerId,quant,price"/>
+      </property>
+    </bean>
+  </property>
+</bean>
+
+
+<!-- Job -->
+<batch:job id="job1" job-repository="jobRepository">
+  <batch:step id="job1.step">
+    <batch:tasklet transaction-manager="transactionManager">
+      <batch:chunk reader="reader" writer="writer" commit-interval="100" />
+    </batch:tasklet>
+  </batch:step>
+</batch:job>
+----
+
+[source,xml]
+.Job2.xml
+----
+<!-- Reader -->
+<!-- (3) -->
+<bean id="reader"
+      class="org.springframework.batch.item.file.FlatFileItemReader" scope="step"
+      p:resource="file:#{jobParameters['basedir']}/input/invoice.csv">
+  <property name="lineMapper">
+    <bean class="org.springframework.batch.item.file.mapping.DefaultLineMapper">
+      <property name="lineTokenizer">
+        <bean class="org.springframework.batch.item.file.transform.DelimitedLineTokenizer"
+              p:names="invoiceNo,salesDate,productId,customerId,quant,price"/>
+      </property>
+      <property name="fieldSetMapper" ref="invoiceFieldSetMapper"/>
+    </bean>
+  </property>
+</bean>
+
+<!-- Writer -->
+<!-- (4) -->
+<bean id="writer" class="org.mybatis.spring.batch.MyBatisBatchItemWriter"
+      p:statementId="jp.co.ntt.fw.macchinetta.batch.job.repository.InvoiceRepository.create"
+      p:sqlSessionFactory-ref="jobSqlSessionFactory"/>
+
+<!-- Job -->
+<batch:job id="job2" job-repository="jobRepository">
+  <batch:step id="job2.step">
+    <batch:tasklet transaction-manager="transactionManager">
+      <batch:chunk reader="reader" writer="writer" commit-interval="100" />
+    </batch:tasklet>
+  </batch:step>
+</batch:job>
+----
+
+.async-batch-daemon.xml
+[source,xml]
+.BeanIdが上書きされる定義
+-----
+<bean id="automaticJobRegistrar"
+      class="org.springframework.batch.core.configuration.support.AutomaticJobRegistrar">
+    <property name="applicationContextFactories">
+        <bean class="org.springframework.batch.core.configuration.support.ClasspathXmlApplicationContextsFactoryBean">
+            <property name="resources">
+                <list>
+                    <value>classpath:/META-INF/jobs/other/async/*.xml</value>  <!-- (5) -->
+                </list>
+            </property>
+        </bean>
+    </property>
+    <property name="jobLoader">
+        <bean class="org.springframework.batch.core.configuration.support.DefaultJobLoader"
+              p:jobRegistry-ref="jobRegistry"/>
+    </property>
+</bean>
+
+<bean class="org.springframework.batch.core.configuration.support.JobRegistryBeanPostProcessor"
+    p:jobRegistry-ref="jobRegistry" />
+
+<import resource="classpath:/META-INF/jobs/async/*.xml" />   <!-- (6) -->
+-----
+
+[cols="10,90", options="header"]
+.設定のポイント一覧
+|===
+
+|項番
+|説明
+
+|(1)
+|Job1ではデータベースから読み込むItemReaderを``reader``というBeanIDで定義する。
+
+|(2)
+|Job1ではファイルへ書き込むItemWriterを``writer``というBeanIDで定義する。
+
+|(3)
+|Job2ではファイルから読み込むItemReaderを``reader``というBeanIDで定義する。
+
+|(4)
+|Job2ではデータベースへ書き込むItemWriterを``writer``というBeanIDで定義する。
+
+|(5)
+|``AutomaticJobRegistrar``は対象となるジョブ以外のジョブ定義を読む込むように設定する。
+
+|(6)
+|Springのimportを使用して、対象のJob定義を読み込むようにする。
+
+|===
+
+この場合、Job1.xml,Job2.xmlの順に読み込まれたとすると、Job1.xmlで定義されたいたreader,writerはJob2.xmlの定義で上書きされる。 +
+その結果、Job1を実行すると、Job2のreader,writerが使用されて期待した処理が行われなくなる。

@@ -1,0 +1,24 @@
+include::_include_index.adoc[]
+include::_include_all.adoc[]
+
+= {doctitle}
+
+. <<Ch01_index.adoc#Ch01,はじめに>>
+
+. <<Ch02_index.adoc#Ch02,Macchinetta Batch Framework (2.x)のコンセプト>>
+
+. <<Ch03_index.adoc#Ch03,アプリケーション開発の流れ>>
+
+. <<Ch04_index.adoc#Ch04,ジョブの起動>>
+
+. <<Ch05_index.adoc#Ch05,データの入出力>>
+
+. <<Ch06_index.adoc#Ch06,異常系への対応>>
+
+. <<Ch07_JobManagement.adoc#Ch07_JobManagement,ジョブの管理>>
+
+. <<Ch08_index.adoc#Ch08,フロー制御と並列･多重処理>>
+
+. <<Ch99_SummaryOfPoints.adoc#Ch99_SummaryOfPoints,利用時の注意点>>
+
+<<single_index.adoc#,Singleページ版>>

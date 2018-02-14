@@ -1,0 +1,5 @@
+= Image of Exception Handling
+== Images
+
+plantuml::ch06/ExceptionHandling/Ch06_ExceptionHandling_DiffTimingOpenResourceByChunkModel.pu[]
+plantuml::ch06/ExceptionHandling/Ch06_ExceptionHandling_DiffTimingOpenResourceByTaskletModel.pu[]

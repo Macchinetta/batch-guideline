@@ -1,0 +1,41 @@
+@startuml
+'Interface and class difinitions
+class FlatFileItemReader {
+  - bufferedReaderFactory
+  - lineMapper
+  + read() : T
+}
+interface BufferedReaderFactory {
+  + create(resource:Resource, encoding:String) : BufferedReader
+}
+class BufferedReader {
+  + readLine() : String
+}
+interface LineMapper {
+  + mapLine(line:String, lineNumber:int) : T
+}
+interface LineTokenizer {
+  + tokenize(line:String) : FieldSet
+}
+interface FieldSet {
+
+}
+interface FieldSetMapper {
+  + mapFieldSet(fieldSet:FieldSet) : T
+}
+
+'Component relationship
+ItemReader ()-- FlatFileItemReader
+FlatFileItemReader .r.> BufferedReaderFactory : <<use>>
+BufferedReaderFactory .r.> BufferedReader : <<create>>
+FlatFileItemReader ..> LineMapper : <<use>>
+LineMapper .r.> LineTokenizer : <<use>>
+LineTokenizer .r.> FieldSet : <<create>>
+LineMapper ..> FieldSetMapper : <<use>>
+FieldSetMapper ..> FieldSet : <<use>>
+
+'Adjusting the position
+BufferedReaderFactory -[hidden]d- LineMapper
+LineTokenizer -[hidden]d- FieldSetMapper
+LineTokenizer -[hidden]d- FieldSetMapper
+@enduml

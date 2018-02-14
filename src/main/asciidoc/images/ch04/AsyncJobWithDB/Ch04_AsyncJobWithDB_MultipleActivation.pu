@@ -1,0 +1,57 @@
+@startuml
+
+node "Batch Server#1" as node1 {
+  frame "AsyncBatchDeamon#1" as deamon1 {
+    artifact JOB01
+  }
+}
+
+node "Batch Server#2" as node2 {
+  frame "AsyncBatchDeamon#2" as deamon2 {
+    artifact JOB02
+  }
+}
+
+node "Database Server" as node3 {
+  database admin {
+    storage batch_job_request
+    storage JobRepository
+  }
+}
+
+deamon1 -down-> admin
+deamon2 -up-> admin
+
+'Set styles such as format and color of each figure
+skinparam Note {
+  BackgroundColor #b1f8fa
+  BorderColor black
+}
+
+skinparam Class {
+  BorderColor black
+  ArrowColor black
+}
+
+skinparam Sequence {
+  BorderColor black
+  ActorBorderColor black
+  ArrowColor black
+  LifeLineBorderColor black
+  BoxLineColor black
+  ParticipantBorderColor black
+}
+
+skinparam componentStyle uml2
+
+skinparam Component {
+  BorderColor black
+  ArrowColor black
+}
+
+skinparam Interface {
+  BorderColor black
+  ArrowColor black
+}
+
+@enduml
