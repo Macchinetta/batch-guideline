@@ -9,7 +9,16 @@ include::_include_all.adoc[]
 |更新箇所
 |変更内容
 
-|2018-XX-XX
+|2018-3-9
+|-
+|2.0.1 RELEASE 版公開
+
+|
+|<<Ch02_MacchinettaBatchStack.adoc#Ch02_MacchinettaBatchStack_Stack,{batch5_fullname}のスタック>>
+|CVE-2018-1199対応によるSpring Frameworkのバージョンアップデート
+
+
+|2017-12-22
 |-
 |2.0.0 RELEASE 版公開
 |===

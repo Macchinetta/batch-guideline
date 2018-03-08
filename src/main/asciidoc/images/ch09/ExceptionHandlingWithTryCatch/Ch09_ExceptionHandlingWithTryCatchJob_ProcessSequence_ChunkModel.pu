@@ -1,0 +1,102 @@
+@startuml
+
+hide footbox
+autonumber
+
+participant Step
+box "chunk model" #lightblue
+participant MyBatisCursorItemReader
+participant PointAddItemProcessor #Orange
+participant MyBatisBatchItemWriter
+end box
+participant SpringValidator
+participant ExitStatusChangeListener #Orange
+participant JobExitCodeChangeListener #Orange
+participant StepExecution
+database "member_info" as db
+
+[->Step : execute()
+activate Step
+Step -> MyBatisCursorItemReader : open()
+activate MyBatisCursorItemReader
+MyBatisCursorItemReader -> db : select
+activate db
+loop until exhausted read data
+    group Framework Transaction
+        group Create chunk (items)
+            note right of MyBatisCursorItemReader: Repeat until chunk size is reached
+            Step -> MyBatisCursorItemReader : read()
+            MyBatisCursorItemReader -> db : fetch
+            db --> MyBatisCursorItemReader : result
+            deactivate db
+            MyBatisCursorItemReader --> Step : item
+            deactivate MyBatisCursorItemReader
+            Step -> PointAddItemProcessor : process(item)
+            activate PointAddItemProcessor #Orange
+            PointAddItemProcessor -> SpringValidator : validate()
+            activate SpringValidator
+            SpringValidator -> SpringValidator : validate
+            activate SpringValidator
+            note right of SpringValidator: If value is not valid, throws ValidationException
+            deactivate SpringValidator
+            deactivate SpringValidator
+            PointAddItemProcessor -> PointAddItemProcessor : business logic
+            PointAddItemProcessor --> Step : item
+            deactivate PointAddItemProcessor
+        end
+        Step -> MyBatisBatchItemWriter : write(items)
+        activate MyBatisBatchItemWriter
+        MyBatisBatchItemWriter -> db : update
+        deactivate MyBatisBatchItemWriter
+        Step [#blue]-> db : <font color="blue"><b>commit</b></font>
+    end
+end
+Step -> ExitStatusChangeListener : afterStep()
+activate ExitStatusChangeListener #Orange
+ExitStatusChangeListener -> StepExecution : setExitStatus(ExitStatus)
+deactivate ExitStatusChangeListener
+note right of SpringValidator: If the current number of items read and the current number of items written are not match, this listener set ExitStatus
+activate StepExecution
+Step-->[ : ExitStatus
+deactivate Step
+[-> JobExitCodeChangeListener: afterJob()
+activate JobExitCodeChangeListener #Orange
+JobExitCodeChangeListener -> StepExecution : getExitStatus()
+StepExecution --> JobExitCodeChangeListener : exitStatus
+deactivate StepExecution
+JobExitCodeChangeListener -->[ : exitStatus
+deactivate JobExitCodeChangeListener
+
+'Set styles such as format and color of each figure
+skinparam Note {
+  BackgroundColor #b7fab1
+  BorderColor black
+}
+
+skinparam Class {
+  BorderColor black
+  ArrowColor black
+}
+
+skinparam Sequence {
+  BorderColor black
+  ActorBorderColor black
+  ArrowColor black
+  LifeLineBorderColor black
+  BoxLineColor black
+  ParticipantBorderColor black
+}
+
+skinparam componentStyle uml2
+
+skinparam Component {
+  BorderColor black
+  ArrowColor black
+}
+
+skinparam Interface {
+  BorderColor black
+  ArrowColor black
+}
+
+@enduml

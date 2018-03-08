@@ -1,0 +1,133 @@
+include::_include_all.adoc[]
+
+[[Ch09_TutorialApplication]]
+= 作成するアプリケーションの説明
+
+[[Ch09_Application_Overview]]
+== 背景
+とある量販店では会員に対してポイントカードを発行している。 +
+会員には「ゴールド会員」「一般会員」の会員種別が存在し、会員種別に応じたサービスを提供している。 +
+今回そのサービスの一環として、月内に商品を購入した会員のうち、 会員種別が「ゴールド会員」の場合は100ポイント、「一般会員」の場合は10ポイントを月末に加算することにした。
+
+[[Ch09_Application_ProcessingOverview]]
+== 処理概要
+会員種別に応じてポイント加算を行うアプリケーションを月次バッチ処理として{batch5_shortname}を使用して実装する。
+
+[[Ch09_Application_BusinessRequirements]]
+== 業務仕様
+業務仕様を以下に示す。
+
+* 「月内に商品を購入した会員」は商品購入フラグで示す
+** 商品購入フラグは、"0"の場合に初期状態、"1"の場合に処理対象を表す
+* 商品購入フラグが"1"(処理対象)の場合に、会員種別に応じてポイントを加算する
+** 会員種別が"G"(ゴールド会員)の場合は100ポイント、"N"(一般会員)の場合は10ポイントを加算する
+* 商品購入フラグはポイント加算後に、"0"(初期状態)に更新する
+* ポイントの上限値は1,000,000ポイントとする
+* ポイント加算後に1,000,000ポイントを超えた場合は、1,000,000ポイントに補正する
+
+[[Ch09_Application_ImplementationMethod]]
+== 学習コンテンツ
+
+簡単な業務仕様のアプリケーション(ジョブ)の作成を通して、ジョブに関する様々な機能や処理方式を学習する。 +
+なお、ジョブはタスクレットモデルとチャンクモデルをそれぞれ実装する。 +
+各ジョブで主に学習することとそのジョブで利用する機能や処理方式を以下に示す。
+
+[cols="5,30,65", options="header"]
+.チュートリアルで作成するジョブ
+|===
+|項番
+|ジョブ
+|学習内容
+
+|A
+|<<Ch09_DBAccessJob.adoc#Ch09_Impl_DBAccessJob,データベースアクセスでデータ入出力を行うジョブ>>
+|MyBatis用のItemReaderおよびItemWriterを利用したデータベースアクセスの手法を学ぶ。
+
+|B
+|<<Ch09_FileAccessJob.adoc#Ch09_Impl_FileAccessJob,ファイルアクセスでデータ入出力を行うジョブ>>
+|フラットファイルの入出力用のItemReaderおよびItemWriterを利用したファイルアクセスの手法を学ぶ。
+
+|C
+|<<Ch09_ValidationJob.adoc#Ch09_Impl_ValidationJob,入力データの妥当性検証を行うジョブ>>
+|Bean Validationを利用した入力チェックの手法を学ぶ。
+
+|D
+|<<Ch09_ExceptionHandlingWithListenerJob.adoc#Ch09_Impl_ExceptionHandlingWithListenerJob,ChunkListenerで例外ハンドリングを行うジョブ>>
+|リスナーとしてChunkListenerを利用した例外ハンドリングの手法を学ぶ。
+
+|E
+|<<Ch09_ExceptionHandlingWithTryCatchJob.adoc#Ch09_Impl_ExceptionHandlingWithTryCatchJob,try-catchで例外ハンドリングを行うジョブ>>
+|try-catchを利用した例外ハンドリングとスキップ、およびカスタマイズした終了コードを出力する手法を学ぶ。
+
+|F
+|<<Ch09_AsyncExecutionJob.adoc#Ch09_Impl_AsyncExecutionJob,非同期実行方式のジョブ>>
+|{batch5_shortname}が提供するDBポーリング機能を利用した非同期実行の手法を学ぶ。
+
+|===
+
+A～Fのジョブで利用している機能や処理方式と{batch5_guide}の説明の対応表を以下に示す。
+
+[cols="5,41,9,9,9,9,9,9", options="header"]
+.A～Fのジョブと{batch5_guide}の説明の対応表
+|===
+|項番
+|機能 |A |B |C |D |E |F
+
+|1
+|ジョブの起動 > 起動方式 > <<Ch04_SyncJob.adoc#Ch04_SyncJob,同期実行>> |[red]#Chunk# [blue]#Tasklet# |[red]#Chunk# [blue]#Tasklet# |[red]#Chunk# [blue]#Tasklet# |[red]#Chunk# [blue]#Tasklet# |[red]#Chunk# [blue]#Tasklet# |
+
+|2
+|ジョブの起動 > 起動方式 > <<Ch04_AsyncJobWithDB.adoc#Ch04_AsyncJobWithDB,非同期実行(DBポーリング)>> | | | | | |[red]#Chunk# [blue]#Tasklet#
+
+|3
+|ジョブの起動 > ジョブの起動パラメータ > <<Ch04_JobParameter.adoc#Ch04_JobParameter_HowToUse_CLIArgs,コマンドライン引数から与える>> | |[red]#Chunk# [blue]#Tasklet# | | | |
+
+|4
+|ジョブの起動 > <<Ch04_Listener.adoc#Ch04_Listener,リスナー>> | | | |[red]#Chunk# [blue]#Tasklet# |[red]#Chunk# [blue]#Tasklet# |
+
+|5
+|データの入出力 > トランザクション制御 > <<Ch05_Transaction.adoc#Ch05_Transaction_Arch_UnderSpringBatch,{SB}におけるトランザクション制御>> |[red]#Chunk# [blue]#Tasklet# | | | | |
+
+|6
+|データの入出力 > トランザクション制御 > 単一データソースの場合 > <<Ch05_Transaction.adoc#Ch05_Transaction_HowToUse_SingleDataSource_Tx,トランザクション制御の実施>> |[red]#Chunk# [blue]#Tasklet# | | | | |
+
+|7
+|データの入出力 > データベースアクセス > <<Ch05_DBAccess.adoc#Ch05_DBAccess_HowToUse_Input,入力>> |[red]#Chunk# [blue]#Tasklet# | | | | |
+
+|8
+|データの入出力 > データベースアクセス > <<Ch05_DBAccess.adoc#Ch05_DBAccess_HowToUse_Output,出力>> |[red]#Chunk# [blue]#Tasklet# | | | | |
+
+|9
+|データの入出力 > ファイルアクセス > 可変長レコード > <<Ch05_FileAccess.adoc#Ch05_FileAccess_HowToUse_FixedLength_Input,入力>> | |[red]#Chunk# [blue]#Tasklet# | | | |
+
+|10
+|データの入出力 > ファイルアクセス > 可変長レコード > <<Ch05_FileAccess.adoc#Ch05_FileAccess_HowToUse_FixedLength_Output,出力>> | |[red]#Chunk# [blue]#Tasklet# | | | |
+
+|11
+|異常系への対応 > <<Ch06_InputValidation.adoc#Ch06_InputValidation,入力チェック>> | | |[red]#Chunk# [blue]#Tasklet# | |[red]#Chunk# [blue]#Tasklet# |
+
+|12
+|異常系への対応 > 例外ハンドリング > ステップ単位の例外ハンドリング > <<Ch06_ExceptionHandling#Ch06_ExceptionHandling_HowToUse_StepExceptionHandling_ChunkListener,ChunkListenerインターフェースによる例外ハンドリング>> | | | |[red]#Chunk# [blue]#Tasklet# | |
+
+|13
+|異常系への対応 > 例外ハンドリング > ステップ単位の例外ハンドリング > <<Ch06_ExceptionHandling#Ch06_ExceptionHandling_HowToUse_StepExceptionHandling_Chunk,チャンクモデルにおける例外ハンドリング>> | | | | |[red]#Chunk# |
+
+|14
+|異常系への対応 > 例外ハンドリング > ステップ単位の例外ハンドリング > <<Ch06_ExceptionHandling#Ch06_ExceptionHandling_HowToUse_StepExceptionHandling_Tasklet,タスクレットモデルにおける例外ハンドリング>> | | | | |[blue]#Tasklet# |
+
+|15
+|異常系への対応 > 例外ハンドリング > 処理継続可否の決定 > <<Ch06_ExceptionHandling#Ch06_ExceptionHandling_Overview_Deal_Skip,スキップ>> | | | | |[red]#Chunk# [blue]#Tasklet# |
+
+|16
+|ジョブの管理 > ジョブの状態管理 > <<Ch07_JobManagement.adoc#Ch07_JobManagement_HowToUse_JobStatusManagement_Retrieve,ジョブの状態・実行結果の確認>> | | | | | |[red]#Chunk# [blue]#Tasklet#
+
+|17
+|ジョブの管理 > <<Ch07_JobManagement.adoc#Ch07_JobManagement_HowToUse_ExitCode,終了コードのカスタマイズ>> | | | | |[red]#Chunk# [blue]#Tasklet# |
+
+|18
+|ジョブの管理 > <<Ch07_JobManagement.adoc#Ch07_JobManagement_HowToUse_Logging,ロギング>> | | | |[red]#Chunk# [blue]#Tasklet# |[red]#Chunk# [blue]#Tasklet# |
+
+|19
+|ジョブの管理 > <<Ch07_JobManagement.adoc#Ch07_JobManagement_HowToUse_MessageManagement,メッセージ管理>> | | | |[red]#Chunk# [blue]#Tasklet# |[red]#Chunk# [blue]#Tasklet# |
+
+|===

@@ -1,0 +1,668 @@
+include::_include_all.adoc[]
+
+[[Ch09_Impl_ValidationJob]]
+= 入力データの妥当性検証を行うジョブ
+
+[[Ch09_Impl_ValidationJob_Prerequisite]]
+[NOTE]
+.前提
+====
+<<Ch09_Introduction.adoc#Ch09_Introduction_HowToProceed,チュートリアルの進め方>>で説明しているとおり、
+<<Ch09_DBAccessJob.adoc#Ch09_Impl_DBAccessJob,データベースアクセスでデータ入出力を行うジョブ>>、<<Ch09_FileAccessJob.adoc#Ch09_Impl_FileAccessJob,ファイルアクセスでデータ入出力を行うジョブ>>に対して、
+本ジョブの実装を追加していく形式とする。 +
+ただし、記述はデータベースアクセスするジョブに実装を追加した場合の説明としているため留意すること。
+====
+
+[[Ch09_Impl_ValidationJob_Overview]]
+== 概要
+入力データの妥当性検証(以降、入力チェックと呼ぶ)を行うジョブを作成する。
+
+なお、本節は{batch5_guide}を元に説明しているため、詳細については
+<<Ch06_InputValidation.adoc#Ch06_InputValidation,入力チェック>>を参照のこと。
+
+<<Ch09_TutorialApplication.adoc#Ch09_TutorialApplication,作成するアプリケーションの説明>>の
+背景、処理概要、業務仕様を以下に再掲する。
+
+[[Ch09_Impl_ValidationJob_Overview_Background]]
+=== 背景
+とある量販店では、会員に対してポイントカードを発行している。 +
+会員には「ゴールド会員」「一般会員」の会員種別が存在し、会員種別に応じたサービスを提供している。 +
+今回そのサービスの一環として、月内に商品を購入した会員のうち、
+会員種別が「ゴールド会員」の場合は100ポイント、「一般会員」の場合は10ポイントを月末に加算することにした。
+
+[[Ch09_Impl_ValidationJob_Overview_ProcessOverview]]
+=== 処理概要
+会員種別に応じてポイント加算を行うアプリケーションを
+月次バッチ処理として{batch5_shortname}を使用して実装する。 +
+入力データにポイントの上限値を超えるデータが存在するか妥当性検証を行う処理を追加実装する。
+
+[[Ch09_Impl_ValidationJob_Overview_BusinessSpecification]]
+=== 業務仕様
+業務仕様は以下のとおり。
+
+* 入力データのポイントが1,000,000ポイントを超過していないことをチェックする
+** チェックエラーとなる場合は、処理を異常終了する(例外ハンドリングは行わない)
+* 商品購入フラグが"1"(処理対象)の場合に、会員種別に応じてポイントを加算する
+** 会員種別が"G"(ゴールド会員)の場合は100ポイント、"N"(一般会員)の場合は10ポイント加算する
+* 商品購入フラグはポイント加算後に"0"(初期状態)に更新する
+* ポイントの上限値は1,000,000ポイントとする
+* ポイント加算後に1,000,000ポイントを超えた場合は、1,000,000ポイントに補正する
+
+[[Ch09_Impl_ValidationJob_Overview_TableSpecification]]
+=== テーブル仕様
+入出力リソースとなる会員情報テーブルの仕様は以下のとおり。 +
+<<Ch09_Impl_ValidationJob_Prerequisite>>のとおりデータベースアクセスするジョブの場合の説明となるため、ファイルアクセスするジョブの場合の
+入出力のリソース仕様は<<Ch09_FileAccessJob.adoc#Ch09_Impl_FileAccessJob_Overview_FileSpecification,ファイル仕様>>を参照する。
+
+[cols="3,15,10,4,12,8,45", options="header"]
+.会員情報テーブル(member_info)
+|===
+|No
+|属性名
+|カラム名
+|PK
+|データ型
+|桁数
+|説明
+
+|1
+|会員番号
+|id
+|icon:check[]
+|CHAR
+|8
+|会員を一意に示す8桁固定の番号を表す。
+
+|2
+|会員種別
+|type
+|-
+|CHAR
+|1
+|会員の種別を以下のとおり表す。 +
+"G"(ゴールド会員)、"N"(一般会員)
+
+|3
+|商品購入フラグ
+|status
+|-
+|CHAR
+|1
+|月内に商品を買ったかどうかを表す。 +
+商品購入で"1"(処理対象)、月次バッチ処理で"0"(初期状態)に更新される。
+
+|4
+|ポイント
+|point
+|-
+|INT
+|7
+|会員の保有するポイントを表す。 +
+初期値は0。
+
+|===
+
+[[Ch09_Impl_ValidationJob_Overview_JobOverview]]
+=== ジョブの概要
+ここで作成する入力チェックを行うジョブの概要を把握するために、
+処理フローおよび処理シーケンスを以下に示す。
+
+<<Ch09_Impl_ValidationJob_Prerequisite>>のとおりデータベースアクセスするジョブの場合の説明となるため、
+ファイルアクセスするジョブの場合の処理フローおよび処理シーケンスとは異なる部分があるため留意する。
+
+入力チェックは、単項目チェック、相関項目チェックに分類されるが、ここでは単項目チェックのみを扱う。 +
+単項目チェックは、Bean Validationを利用する。
+詳細は<<Ch06_InputValidation.adoc#Ch06_InputValidation_Overview_Category,入力チェックの分類>>を参照のこと。
+
+//^
+処理フロー概要::
+処理フローの概要を以下に示す。
+
+.入力データの妥当性検証を行うジョブの処理フロー
+image::ch09/Validation/Ch09_ValidationJob_ProcessFlow.png[ProcessFlow of Validation Job]
+
+//^
+チャンクモデルの場合の処理シーケンス::
+チャンクモデルの場合の処理シーケンスを説明する。 +
+本ジョブは異常系データを利用することを前提として説明しているため、
+このシーケンス図は入力チェックでエラー(異常終了)となった場合を示している。 +
+入力チェックが正常の場合、入力チェック以降の処理シーケンスはデータベースアクセスのシーケンス図
+(<<Ch09_DBAccessJob.adoc#Ch09_Impl_DBAccessJob_Overview_JobOverview,ジョブの概要>>を参照)と同じである。
+
+チャンクモデルの場合、入力チェックは``ItemProcessor``にデータが渡されたタイミングで行う。
+
+橙色のオブジェクトは今回実装するクラスを表す。
+
+.チャンクモデルのシーケンス図
+image::Ch09_ValidationJob_ProcessSequence_ChunkModel.png[ProcessSequence of Validation Job by ChunkModel]
+
+.シーケンス図の説明
+. ジョブからステップが実行される。
+. ステップは、リソースをオープンする。
+. ``MyBatisCursorItemReader``は、member_infoテーブルから会員情報をすべて取得(select文の発行)する。
+** 入力データがなくなるまで、以降の処理を繰り返す。
+** チャンク単位で、フレームワークトランザクションを開始する。
+** チャンクサイズに達するまで4から12までの処理を繰り返す。
+. ステップは、``MyBatisCursorItemReader``から入力データを1件取得する。
+. ``MyBatisCursorItemReader``は、member_infoテーブルから入力データを1件取得する。
+. member_infoテーブルは、``MyBatisCursorItemReader``に入力データを返却する。
+. ``MyBatisCursorItemReader``は、ステップに入力データを返却する。
+. ステップは、``PointAddItemProcessor``で入力データに対して処理を行う。
+. ``PointAddItemProcessor``は、``SpringValidator``に入力チェック処理を依頼する。
+. ``SpringValidator``は、入力チェックルールに基づき入力チェックを行い、チェックエラーの場合は例外(ValidationException)をスローする。
+. ``PointAddItemProcessor``は、入力データを読み込んでポイント加算処理を行う。
+. ``PointAddItemProcessor``は、ステップに処理結果を返却する。
+. ステップは、チャンクサイズ分のデータを``MyBatisBatchItemWriter``で出力する。
+. ``MyBatisBatchItemWriter``は、member_infoテーブルに対して会員情報の更新(update文の発行)を行う。
+
+** 4から14までの処理過程で**例外が発生**すると、以降の処理を行う。
+
+[start=15]
+. ステップはフレームワークトランザクションをロールバックする。
+. ステップはジョブに終了コード(ここでは異常終了:255)を返却する。
+
+//^
+タスクレットモデルの場合の処理シーケンス::
+タスクレットモデルの場合の処理シーケンスについて説明する。 +
+本ジョブは異常系データを利用することを前提として説明しているため、
+このシーケンス図は入力チェックでエラー(異常終了)となった場合を示している。 +
+入力チェックが正常の場合、入力チェック以降の処理シーケンスはデータベースアクセスのシーケンス図
+(<<Ch09_DBAccessJob.adoc#Ch09_Impl_DBAccessJob_Overview_JobOverview,ジョブの概要>>を参照)と同じである。
+
+タスクレットモデルの場合、入力チェックは``Tasklet#execute()``にて任意のタイミングで行う。 +
+ここでは、データを取得した直後に行っている。
+
+橙色のオブジェクトは今回実装するクラスを表す。
+
+.タスクレットモデルのシーケンス図
+image::Ch09_ValidationJob_ProcessSequence_TaskletModel.png[ProcessSequence of Validation Job by TaskletModel]
+
+.シーケンス図の説明
+. ジョブからステップが実行される。
+** ステップはフレームワークトランザクションを開始する。
+. ステップは``PointAddTasklet``を実行する。
+. ``PointAddTasklet``は、リソースをオープンする。
+. ``MyBatisCursorItemReader``は、member_infoテーブルから会員情報をすべて取得(select文の発行)する。
+** 入力データがなくなるまで5から13までの処理を繰り返す。
+** 一定件数に達するまで5から11までの処理を繰り返す。
+. ``PointAddTasklet``は、``MyBatisCursorItemReader``から入力データを1件取得する。
+. ``MyBatisCursorItemReader``は、member_infoテーブルから入力データを1件取得する。
+. member_infoテーブルは、``MyBatisCursorItemReader``に入力データを返却する。
+. ``MyBatisCursorItemReader``は、タスクレットに入力データを返却する。
+. ``PointAddTasklet``は、``SpringValidator``に入力チェック処理を依頼する。
+. ``SpringValidator``は、入力チェックルールに基づき入力チェックを行い、チェックエラーの場合は例外(ValidationException)をスローする。
+. ``PointAddTasklet``は、入力データを読み込んでポイント加算処理を行う。
+. ``PointAddTasklet``は、一定件数分のデータを``MyBatisBatchItemWriter``で出力する。
+. ``MyBatisBatchItemWriter``は、member_infoテーブルに対して会員情報の更新(update文の発行)を行う。
+
+** 2から13までの処理過程で**例外が発生**すると、以降の処理を行う。
+
+[start=14]
+. ``PointAddTasklet``はステップへ例外(ここではValidationException)をスローする。
+. ステップはフレームワークトランザクションをロールバックする。
+. ステップはジョブに終了コード(ここでは異常終了:255)を返却する。
+
+[NOTE]
+.入力チェック処理を実装するための設定
+====
+入力チェックにはHibernate Validatorを使用する。{batch5_shortname}では既に設定済みであるが、
+ライブラリの依存関係にHibernate Validatorの定義、およびBean定義が必要となる。
+
+[source, xml]
+.依存ライブラリの設定例(pom.xml)
+----
+<dependency>
+    <groupId>org.hibernate</groupId>
+    <artifactId>hibernate-validator</artifactId>
+</dependency>
+----
+
+[source, xml]
+.src/main/resources/META-INF/spring/launch-context.xml
+----
+<bean id="validator" class="org.springframework.batch.item.validator.SpringValidator"
+      p:validator-ref="beanValidator"/>
+
+<bean id="beanValidator"
+      class="org.springframework.validation.beanvalidation.LocalValidatorFactoryBean" />
+----
+====
+
+以降で、チャンクモデル、タスクレットモデルそれぞれの実装方法を説明する。
+
+* <<Ch09_Impl_ValidationJob_Chunk>>
+* <<Ch09_Impl_ValidationJob_Tasklet>>
+
+[[Ch09_Impl_ValidationJob_Chunk]]
+== チャンクモデルでの実装
+チャンクモデルで入力チェックを行うジョブの作成から実行までを以下の手順で実施する。
+
+. <<Ch09_Impl_ValidationJob_Chunk_ValidationRulesDefinition>>
+. <<Ch09_Impl_ValidationJob_Chunk_Coding>>
+. <<Ch09_Impl_ValidationJob_Chunk_Execution>>
+
+[[Ch09_Impl_ValidationJob_Chunk_ValidationRulesDefinition]]
+=== 入力チェックルールの定義
+入力チェックを行うために、DTOクラスのチェック対象のフィールドにBean Validationのアノテーションを付与する。 +
+入力チェック用のアノテーションについては、{server5_guide}のlink:{server5_url}/ArchitectureInDetail/WebApplicationDetail/Validation.html#validation-jsr303-doc[Bean Validationのチェックルール]
+およびlink:{server5_url}/ArchitectureInDetail/WebApplicationDetail/Validation.html#validation-validator-list[Hibernate Validatorのチェックルール]を参照のこと。
+
+チャンクモデル/タスクレットモデルで共通して利用するため、既に実施している場合は読み飛ばしてよい。
+
+ここでは、ポイントが1,000,000(上限値)を超過していないかチェックするためのチェックルールを定義する。
+
+[source, java]
+.com.example.batch.tutorial.common.dto.MemberInfoDTO
+----
+package com.example.batch.tutorial.common.dto;
+
+import javax.validation.constraints.Max;
+
+public class MemberInfoDto {
+    private String id;
+
+    private String type;
+
+    private String status;
+
+    @Max(1000000) // (1)
+    private int point;
+
+    // Getter and setter are omitted.
+}
+----
+
+[cols="10,90", options="header"]
+.説明
+|===
+|項番
+|説明
+
+|(1)
+|対象のフィールドが指定した数値以下であることを示す@Maxアノテーションを付与する。
+
+|===
+
+[[Ch09_Impl_ValidationJob_Chunk_Coding]]
+=== 入力チェック処理の実装
+ポイント加算処理を行うビジネスロジッククラスに入力チェック処理を実装する。
+
+既に実装してある``PointAddItemProcessor``クラスに入力チェック処理の実装を追加する。 +
+<<Ch09_Impl_ValidationJob_Prerequisite>>のとおりデータベースアクセスするジョブの場合の説明となるため、ファイルアクセスするジョブの場合の
+実装は以下の(1)～(3)のみ追加する。
+
+[source, java]
+.com.example.batch.tutorial.dbaccess.chunk.PointAddItemProcessor
+----
+// Package and the other import are omitted.
+
+import javax.inject.Inject;
+
+@Component
+public class PointAddItemProcessor implements ItemProcessor<MemberInfoDto, MemberInfoDto> {
+    // Definition of constans are omitted.
+
+    @Inject // (1)
+    Validator<MemberInfoDto> validator; // (2)
+
+    @Override
+    public MemberInfoDto process(MemberInfoDto item) throws Exception {
+        validator.validate(item); // (3)
+
+        // The other codes of bussiness logic are omitted.
+    }
+}
+----
+
+[cols="10,90", options="header"]
+.説明
+|===
+|項番
+|説明
+
+|(1)
+|``SpringValidator``のインスタンスをインジェクトする。
+
+|(2)
+|``org.springframework.batch.item.validator.Validator``の型引数には、
+``ItemReader``を通じて取得するDTOを設定する。
+
+|(3)
+|``ItemReader``を通じて取得するDTOを引数として``Validator#validate()``を実行する。 +
+本来、``validate()``を実行する際は入力チェックエラーをハンドリングするためにtry-catchを実装して例外を捕捉するが、
+try-catchを利用した例外ハンドリングは<<Ch09_ExceptionHandlingWithTryCatchJob.adoc#Ch09_ExceptionHandlingWithTryCatchJob, try-catchで例外ハンドリングを行うジョブ>>で説明するため、
+ここでは、例外ハンドリングは実装しない。
+
+|===
+
+[[Ch09_Impl_ValidationJob_Chunk_Execution]]
+=== ジョブの実行と結果の確認
+作成したジョブをSTS上で実行し、結果を確認する。
+
+[[Ch09_Impl_ValidationJob_Chunk_Execution_Run]]
+==== 実行構成からジョブを実行
+既に作成してある実行構成から、ジョブを実行する。
+
+ここでは、異常系データを利用してジョブを実行する。 +
+入力チェックを実装したジョブが扱うリソース(データベース or ファイル)によって
+入力データの切替方法が異なるため、以下のとおり実行すること。
+
+//^
+データベースアクセスでデータ入出力を行うジョブに対して入力チェックを実装した場合::
+データベースアクセスでデータ入出力を行うジョブの<<Ch09_DBAccessJob.adoc#Ch09_Impl_DBAccessJob_Chunk_Execution_Run,実行構成からジョブを実行>>
+で作成した実行構成を使ってジョブを実行する。
+
+異常系データを利用するために、``batch-application.proeprties``のDatabase Initializeで
+正常系データのスクリプトをコメントアウトし、異常系データのスクリプトのコメントアウトを解除する。
+
+[source, xml]
+.src/main/resources/batch-application.proeprties
+----
+# Database Initialize
+tutorial.create-table.script=file:sqls/create-member-info-table.sql
+#tutorial.insert-data.script=file:sqls/insert-member-info-data.sql
+tutorial.insert-data.script=file:sqls/insert-member-info-error-data.sql
+----
+
+//^
+ファイルアクセスでデータ入出力を行うジョブに対して入力チェックを実装した場合::
+ファイルアクセスでデータ入出力を行うジョブの<<Ch09_FileAccessJob.adoc#Ch09_Impl_FileAccessJob_Chunk_Execution_Run,実行構成からジョブを実行>>
+で作成した実行構成を使ってジョブを実行する。
+
+異常系データを利用するために、実行構成で設定する引数のうち、
+入力ファイル(inputFile)のパスを正常系データ(insert-member-info-data.csv)から異常系データ(insert-member-info-error-data.csv)に変更する。
+
+[[Ch09_Impl_ValidationJob_Chunk_Execution_Console]]
+==== コンソールログの確認
+Console Viewを開き、以下の内容のログが出力されていることを確認する。 +
+ここでは、処理が異常終了(FAILED)し、
+``org.springframework.batch.item.validator.ValidationException``が発生していることを確認する。
+
+[source, console]
+.コンソールログ出力例
+----
+[2017/08/28 10:53:21] [main] [o.s.b.c.s.AbstractStep] [ERROR] Encountered an error executing step jobPointAddChunk.step01 in job jobPointAddChunk
+org.springframework.batch.item.validator.ValidationException: Validation failed for com.example.batch.tutorial.common.dto.MemberInfoDto@1fde4f40:
+Field error in object 'item' on field 'point': rejected value [1000001]; codes [Max.item.point,Max.point,Max.int,Max]; arguments [org.springframework.context.support.DefaultMessageSourceResolvable: codes [item.point,point]; arguments []; default message [point],1000000]; default message [must be less than or equal to 1000000]
+	at org.springframework.batch.item.validator.SpringValidator.validate(SpringValidator.java:54)
+
+(.. omitted)
+
+Caused by: org.springframework.validation.BindException: org.springframework.validation.BeanPropertyBindingResult: 1 errors
+Field error in object 'item' on field 'point': rejected value [1000001]; codes [Max.item.point,Max.point,Max.int,Max]; arguments [org.springframework.context.support.DefaultMessageSourceResolvable: codes [item.point,point]; arguments []; default message [point],1000000]; default message [must be less than or equal to 1000000]
+	... 29 common frames omitted
+[2017/08/28 10:53:21] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=jobPointAddChunk]] completed with the following parameters: [{jsr_batch_run_id=408}] and the following status: [FAILED]
+[2017/08/28 10:53:21] [main] [o.s.c.s.ClassPathXmlApplicationContext] [INFO ] Closing org.springframework.context.support.ClassPathXmlApplicationContext@2145433b: startup date [Mon Aug 28 10:53:18 JST 2017]; root of context hierarchy
+----
+
+[[Ch09_Impl_ValidationJob_Chunk_Execution_Exitcode]]
+==== 終了コードの確認
+終了コードにより、異常終了したことを確認する。 +
+確認手順は<<Ch09_EnvironmentConstruction.adoc#Ch09_EnvironmentConstruction_OperationCheck_ExecJob_Run,ジョブの実行と結果の確認>>を参照。
+終了コード(exit value)が255(異常終了)となっていることを確認する。
+
+.終了コードの確認
+image::ch09/Validation/Ch09_ValidationJob_Confirm_ExitCode_ChunkModel.png[Confiｒm the Exit Code of ValidationJob for ChunkModel]
+
+[[Ch09_Impl_ValidationJob_Chunk_Execution_Output]]
+==== 出力リソースの確認
+入力チェックを実装したジョブによって出力リソース(データベース or ファイル)を確認する。
+
+チャンクモデルの場合、中間コミット方式をとっているため、エラー箇所直前のチャンクまで更新が確定していることを確認する。
+
+[[Ch09_Impl_ValidationJob_Chunk_Execution_Output_Table]]
+===== 会員情報テーブルの確認
+Data Source Explorerを使用して会員情報テーブルの確認を行う。 +
+更新前後の会員情報テーブルの内容を比較し、確認内容のとおりとなっていることを確認する。 +
+確認手順は<<Ch09_EnvironmentConstruction.adoc#Ch09_EnvironmentConstruction_OperationCheck_RefDB,Data Source Explorerを使用してデータベースを参照する>>を参照。
+
+確認内容::
+* 1から10番目のレコード(会員番号が"00000001"から"00000010"のレコード)について
+** statusカラム
+*** "0"(初期状態)のレコードが存在しないこと
+** pointカラム
+*** ポイント加算対象について、会員種別に応じたポイントが加算されていること
+**** typeカラムが"G"(ゴールド会員)の場合は100ポイント
+**** typeカラムが"N"(一般会員)の場合は10ポイント
+* 11から15番目のレコード(会員番号が"00000011"から"00000015"のレコード)について
+** 更新されていないこと
+
+更新前後の会員情報テーブルの内容を以下に示す。
+
+.更新前後の会員情報テーブルの内容
+image::ch09/Validation/Ch09_ValidationJob_Result_MemberInfoTable.png[Table of member_info]
+
+[[Ch09_Impl_ValidationJob_Chunk_Execution_Output_File]]
+===== 会員情報ファイルの確認
+会員情報ファイルの入出力内容を比較し、確認内容のとおりとなっていることを確認する。
+
+確認内容::
+* 出力ディレクトリに会員情報ファイルが出力されていること
+** 出力ファイル: files/output/output-member-info-data.csv
+* 出力されたレコードは、1から10番目のレコード(会員番号が"00000001"から"00000010"のレコード)のみであること
+* 出力されたレコードについて
+** statusカラム
+*** "0"(初期状態)のレコードが存在しないこと
+** pointカラム
+*** ポイント加算対象について、会員種別に応じたポイントが加算されていること
+**** typeカラムが"G"(ゴールド会員)の場合は100ポイント
+**** typeカラムが"N"(一般会員)の場合は10ポイント
+
+会員情報ファイルの入出力内容を以下に示す。 +
+ファイルのフィールドはid(会員番号)、type(会員種別)、status(商品購入フラグ)、point(ポイント)の順で出力される。
+
+.会員情報ファイルの入出力内容
+image::ch09/Validation/Ch09_ValidationJob_Result_MemberInfoFile.png[File of member_info]
+
+[[Ch09_Impl_ValidationJob_Tasklet]]
+== タスクレットモデルでの実装
+タスクレットモデルで入力チェックを行うジョブの作成から実行までを以下の手順で実施する。
+
+. <<Ch09_Impl_ValidationJob_Tasklet_ValidationRulesDefinition>>
+. <<Ch09_Impl_ValidationJob_Tasklet_Coding>>
+. <<Ch09_Impl_ValidationJob_Tasklet_Execution>>
+
+[[Ch09_Impl_ValidationJob_Tasklet_ValidationRulesDefinition]]
+=== 入力チェックルールの定義
+入力チェックを行うために、DTOクラスのチェック対象のフィールドにBean Validationのアノテーションを付与する。 +
+入力チェック用のアノテーションについては、{server5_guide}のlink:{server5_url}/ArchitectureInDetail/WebApplicationDetail/Validation.html#validation-jsr303-doc[Bean Validationのチェックルール]
+およびlink:{server5_url}/ArchitectureInDetail/WebApplicationDetail/Validation.html#validation-validator-list[Hibernate Validatorのチェックルール]を参照のこと。
+
+チャンクモデル/タスクレットモデルで共通して利用するため、既に実施している場合は読み飛ばしてよい。
+
+ここでは、ポイントが1,000,000(上限値)を超過していないかチェックするためのチェックルールを定義する。
+
+[source, java]
+.com.example.batch.tutorial.common.dto.MemberInfoDTO
+----
+package com.example.batch.tutorial.common.dto;
+
+import javax.validation.constraints.Max;
+
+public class MemberInfoDto {
+    private String id;
+
+    private String type;
+
+    private String status;
+
+    @Max(1000000) // (1)
+    private int point;
+
+    // Getter and setter are omitted.
+}
+----
+
+[cols="10,90", options="header"]
+.説明
+|===
+|項番
+|説明
+
+|(1)
+|対象のフィールドが指定した数値以下であることを示す@Maxアノテーションを付与する。
+
+|===
+
+[[Ch09_Impl_ValidationJob_Tasklet_Coding]]
+=== 入力チェック処理の実装
+ポイント加算処理を行うビジネスロジッククラスに入力チェック処理を実装する。
+
+既に実装してある``PointAddTasklet``クラスに入力チェック処理の実装を追加する。 +
+<<Ch09_Impl_ValidationJob_Prerequisite>>のとおりデータベースアクセスするジョブの場合の説明となるため、
+ファイルアクセスするジョブの場合の実装は以下の(1)～(3)のみ追加する。
+
+[source, java]
+.com.example.batch.tutorial.dbaccess.tasklet.PointAddTasklet
+----
+// Package and the other import are omitted.
+
+import javax.inject.Inject;
+
+@Component
+public class PointAddTasklet implements Tasklet {
+    // Definition of constans, ItemStreamReader and ItemWriter are omitted.
+
+    @Inject // (1)
+    Validator<MemberInfoDto> validator; // (2)
+
+    @Override
+    public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) throws Exception {
+        MemberInfoDto item = null;
+
+        List<MemberInfoDto> items = new ArrayList<>(CHUNK_SIZE);
+
+        try {
+            reader.open(chunkContext.getStepContext().getStepExecution().getExecutionContext());
+
+            while ((item = reader.read()) != null) {
+                validator.validate(item); // (3)
+
+                // The other codes of bussiness logic are omitted.
+            }
+
+            writer.write(items);
+        } finally {
+            reader.close();
+        }
+
+        return RepeatStatus.FINISHED;
+    }
+}
+----
+
+[cols="10,90", options="header"]
+.説明
+|===
+|項番
+|説明
+
+|(1)
+|``SpringValidator``のインスタンスをインジェクトする。
+
+|(2)
+|``org.springframework.batch.item.validator.Validator``の型引数には、
+``ItemReader``を通じて取得するDTOを設定する。
+
+|(3)
+|``ItemReader``を通じて取得するDTOを引数として``Validator#validate()``を実行する。 +
+本来、``validate()``を実行する際は入力チェックエラーをハンドリングするためにtry-catchを実装して例外を捕捉するが、
+try-catchを利用した例外ハンドリングは<<Ch09_ExceptionHandlingWithTryCatchJob.adoc#Ch09_ExceptionHandlingWithTryCatchJob, try-catchで例外ハンドリングを行うジョブ>>で説明するため、
+ここでは、例外ハンドリングは実装しない。
+
+|===
+
+[[Ch09_Impl_ValidationJob_Tasklet_Execution]]
+=== ジョブの実行と結果の確認
+作成したジョブをSTS上で実行し、結果を確認する。
+
+[[Ch09_Impl_ValidationJob_Tasklet_Execution_Run]]
+==== 実行構成からジョブを実行
+既に作成してある実行構成から、ジョブを実行する。
+
+ここでは、異常系データを利用してジョブを実行する。 +
+入力チェックを実装したジョブが扱うリソース(データベース or ファイル)によって
+入力データの切替方法が異なるため、以下のとおり実行すること。
+
+//^
+データベースアクセスでデータ入出力を行うジョブに対して入力チェックを実装した場合::
+データベースアクセスでデータ入出力を行うジョブの<<Ch09_DBAccessJob.adoc#Ch09_Impl_DBAccessJob_Chunk_Execution_Run,実行構成からジョブを実行>>
+で作成した実行構成を使ってジョブを実行する。
+
+異常系データを利用するために、``batch-application.proeprties``のDatabase Initializeで
+正常系データのスクリプトをコメントアウトし、異常系データのスクリプトのコメントアウトを解除する。
+
+[source, xml]
+.src/main/resources/batch-application.proeprties
+----
+# Database Initialize
+tutorial.create-table.script=file:sqls/create-member-info-table.sql
+#tutorial.insert-data.script=file:sqls/insert-member-info-data.sql
+tutorial.insert-data.script=file:sqls/insert-member-info-error-data.sql
+----
+
+//^
+ファイルアクセスでデータ入出力を行うジョブに対して入力チェックを実装した場合::
+ファイルアクセスでデータ入出力を行うジョブの<<Ch09_FileAccessJob.adoc#Ch09_Impl_FileAccessJob_Chunk_Execution_Run,実行構成からジョブを実行>>
+で作成した実行構成を使ってジョブを実行する。
+
+異常系データを利用するために、実行構成で設定する引数のうち、
+入力ファイル(inputFile)のパスを正常系データ(insert-member-info-data.csv)から異常系データ(insert-member-info-error-data.csv)に変更する。
+
+[[Ch09_Impl_ValidationJob_Tasklet_Execution_Console]]
+==== コンソールログの確認
+Console Viewを開き、以下の内容のログが出力されていることを確認する。 +
+ここでは、処理が異常終了(FAILED)し、
+``org.springframework.batch.item.validator.ValidationException``が発生していることを確認する。
+
+[source, console]
+.コンソールログ出力例
+----
+[2017/09/12 10:18:49] [main] [o.s.b.c.s.AbstractStep] [ERROR] Encountered an error executing step jobPointAddTasklet.step01 in job jobPointAddTasklet
+org.springframework.batch.item.validator.ValidationException: Validation failed for com.example.batch.tutorial.common.dto.MemberInfoDto@2c383e33:
+Field error in object 'item' on field 'point': rejected value [1000001]; codes [Max.item.point,Max.point,Max.int,Max]; arguments [org.springframework.context.support.DefaultMessageSourceResolvable: codes [item.point,point]; arguments []; default message [point],1000000]; default message [must be less than or equal to 1000000]
+	at org.springframework.batch.item.validator.SpringValidator.validate(SpringValidator.java:54)
+
+(.. omitted)
+
+Caused by: org.springframework.validation.BindException: org.springframework.validation.BeanPropertyBindingResult: 1 errors
+Field error in object 'item' on field 'point': rejected value [1000001]; codes [Max.item.point,Max.point,Max.int,Max]; arguments [org.springframework.context.support.DefaultMessageSourceResolvable: codes [item.point,point]; arguments []; default message [point],1000000]; default message [must be less than or equal to 1000000]
+	... 24 common frames omitted
+[2017/09/12 10:18:49] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=jobPointAddTasklet]] completed with the following parameters: [{jsr_batch_run_id=476}] and the following status: [FAILED]
+[2017/09/12 10:18:49] [main] [o.s.c.s.ClassPathXmlApplicationContext] [INFO ] Closing org.springframework.context.support.ClassPathXmlApplicationContext@735f7ae5: startup date [Tue Sep 12 10:18:47 JST 2017]; root of context hierarchy
+----
+
+[[Ch09_Impl_ValidationJob_Tasklet_Execution_Exitcode]]
+==== 終了コードの確認
+終了コードにより、異常終了したことを確認する。 +
+確認手順は<<Ch09_EnvironmentConstruction.adoc#Ch09_EnvironmentConstruction_OperationCheck_ExecJob_Run,ジョブの実行と結果の確認>>を参照。
+終了コード(exit value)が255(異常終了)となっていることを確認する。
+
+.終了コードの確認
+image::ch09/Validation/Ch09_ValidationJob_Confirm_ExitCode_TaskletModel.png[Confiｒm the Exit Code of ValidationJob for TaskletModel]
+
+[[Ch09_Impl_ValidationJob_Tasklet_Execution_Output]]
+==== 出力リソースの確認
+入力チェックを実装したジョブによって出力リソース(データベース or ファイル)を確認する。
+
+タスクレットモデルの場合、一括コミット方式をとっているため、エラーが発生した場合は一切更新されていないことを確認してほしい。
+
+[[Ch09_Impl_ValidationJob_Tasklet_Execution_Output_Table]]
+===== 会員情報テーブルの確認
+Data Source Explorerを使用して会員情報テーブルの確認を行う。 +
+更新前後の会員情報テーブルの内容を比較し、確認内容のとおりとなっていることを確認する。 +
+確認手順は<<Ch09_EnvironmentConstruction.adoc#Ch09_EnvironmentConstruction_OperationCheck_RefDB,Data Source Explorerを使用してデータベースを参照する>>を参照。
+
+確認内容::
+* すべてのレコードについて、データが更新されていないこと
+
+.初期状態の会員情報テーブルの内容
+image::ch09/Validation/Ch09_ValidationJob_Initial_MemberInfoTable.png[member_info table in the initial state]
+
+[[Ch09_Impl_ValidationJob_Tasklet_Execution_Output_File]]
+===== 会員情報ファイルの確認
+会員情報ファイルの入出力内容を比較し、確認内容のとおりとなっていることを確認する。
+
+確認内容::
+* 出力ディレクトリに会員情報ファイルが**空ファイル**で出力されていること
+** 出力ファイル: files/output/output-member-info-data.csv

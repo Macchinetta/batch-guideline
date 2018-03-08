@@ -1,0 +1,16 @@
+include::_include_all.adoc[]
+
+[[Ch09_Impl]]
+= バッチジョブの実装
+
+. <<Ch09_DBAccessJob.adoc#Ch09_Impl_DBAccessJob, データベースアクセスでデータ入出力を行うジョブ>>
+
+. <<Ch09_FileAccessJob.adoc#Ch09_Impl_FileAccessJob, ファイルアクセスでデータ入出力を行うジョブ>>
+
+. <<Ch09_ValidationJob.adoc#Ch09_Impl_ValidationJob, 入力データの妥当性検証を行うジョブ>>
+
+. <<Ch09_ExceptionHandlingWithListenerJob.adoc#Ch09_Impl_ExceptionHandlingWithListenerJob, ChunkListenerで例外ハンドリングを行うジョブ>>
+
+. <<Ch09_ExceptionHandlingWithTryCatchJob.adoc#Ch09_Impl_ExceptionHandlingWithTryCatchJob, try-catchで例外ハンドリングを行うジョブ>>
+
+. <<Ch09_AsyncExecutionJob.adoc#Ch09_Impl_AsyncExecutionJob, 非同期実行方式のジョブ>>

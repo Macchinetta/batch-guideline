@@ -1,0 +1,6 @@
+= Image of DBAccess
+== Images
+
+plantuml::ch09/DBAccess/Ch09_DBAccessJob_ProcessSequence_ChunkModel.pu[]
+
+plantuml::ch09/DBAccess/Ch09_DBAccessJob_ProcessSequence_TaskletModel.pu[]

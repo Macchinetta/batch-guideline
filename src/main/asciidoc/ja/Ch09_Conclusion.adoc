@@ -1,0 +1,22 @@
+include::_include_all.adoc[]
+
+[[Ch09_Conclusion]]
+= おわりに
+
+このチュートリアルでは、以下の内容を学習した。
+
+{batch5_shortname}による基本的なバッチジョブの実装方法
+
+* <<Ch09_DBAccessJob.adoc#Ch09_DBAccessJob, データベースアクセスでデータ入出力を行うジョブ>>
+
+* <<Ch09_FileAccessJob.adoc#Ch09_FileAccessJob, ファイルアクセスでデータ入出力を行うジョブ>>
+
+* <<Ch09_ValidationJob.adoc#Ch09_ValidationJob, 入力データの妥当性検証を行うジョブ>>
+
+* <<Ch09_ExceptionHandlingWithListenerJob.adoc#Ch09_ExceptionHandlingWithListenerJob, ChunkListenerで例外ハンドリングを行うジョブ>>
+
+* <<Ch09_ExceptionHandlingWithTryCatchJob.adoc#Ch09_ExceptionHandlingWithTryCatchJob, try-catchで例外ハンドリングを行うジョブ>>
+
+* <<Ch09_AsyncExecutionJob.adoc#Ch09_AsyncExecutionJob, 非同期実行方式のジョブ>>
+
+なお、{batch5_shortname}を利用し、バッチアプリケーションを開発する際は<<Ch99_SummaryOfPoints.adoc#Ch99_SummaryOfPoints_AboutThis,利用時の注意点>>に示す指針に沿って進めてほしい。

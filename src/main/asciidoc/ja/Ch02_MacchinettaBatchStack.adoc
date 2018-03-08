@@ -44,51 +44,51 @@ Spring IO platformの詳細については、{server5_fullname}の
 |Spring
 |org.springframework
 |spring-aop
-|4.3.11.RELEASE
-^|*
+|4.3.14.RELEASE
 |
+^|*2
 
 |Spring
 |org.springframework
 |spring-beans
-|4.3.11.RELEASE
-^|*
+|4.3.14.RELEASE
 |
+^|*2
 
 |Spring
 |org.springframework
 |spring-context
-|4.3.11.RELEASE
-^|*
+|4.3.14.RELEASE
 |
+^|*2
 
 |Spring
 |org.springframework
 |spring-expression
-|4.3.11.RELEASE
-^|*
+|4.3.14.RELEASE
 |
+^|*2
 
 |Spring
 |org.springframework
 |spring-core
-|4.3.11.RELEASE
-^|*
+|4.3.14.RELEASE
 |
+^|*2
 
 |Spring
 |org.springframework
 |spring-tx
-|4.3.11.RELEASE
-^|*
+|4.3.14.RELEASE
 |
+^|*2
 
 |Spring
 |org.springframework
 |spring-jdbc
-|4.3.11.RELEASE
-^|*
+|4.3.14.RELEASE
 |
+^|*2
 
 |{SB}
 |org.springframework.batch
@@ -254,7 +254,7 @@ Spring IO platformの詳細については、{server5_fullname}の
 |TERASOLUNA Batch
 |org.terasoluna.batch
 |terasoluna-batch
-|5.1.0.RELEASE
+|5.1.1.RELEASE
 |
 |
 
@@ -263,6 +263,7 @@ Spring IO platformの詳細については、{server5_fullname}の
 .Remarksについて
 ====
 . Spring IO platformでサポートしているライブラリが個別に依存しているライブラリ
+. 脆弱性対応のため、Spring IO platformのバージョンとは異なるバージョンを設定
 ====
 
 [WARNING]

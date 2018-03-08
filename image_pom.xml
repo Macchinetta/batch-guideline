@@ -4,14 +4,14 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>jp.co.ntt.fw.macchinetta.batch</groupId>
     <artifactId>macchinetta-batch-guideline-images</artifactId>
-    <version>2.0.0.RELEASE</version>
+    <version>2.0.1.RELEASE</version>
     <name>Guideline Image files</name>
     <description>Image files creation of Macchinetta Batch Framework (2.x) Development Guideline.</description>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.author>NTT Corporation.</project.author>
-        <project.date>2017-12-18</project.date>
+        <project.date>2018-3-9</project.date>
         <asciidoctor.maven.plugin.version>1.5.5</asciidoctor.maven.plugin.version>
         <asciidoctorj.version>1.5.6</asciidoctorj.version>
         <asciidoctorj.diagram.version>1.5.4.1</asciidoctorj.diagram.version>

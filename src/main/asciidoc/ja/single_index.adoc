@@ -24,6 +24,8 @@ include::Ch07_JobManagement.adoc[]
 
 include::_Ch08_single_index.adoc[]
 
+include::_Ch09_single_index.adoc[]
+
 include::Ch99_SummaryOfPoints.adoc[]
 
 :leveloffset: -1

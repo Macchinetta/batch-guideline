@@ -1,0 +1,1342 @@
+include::_include_all.adoc[]
+
+[[Ch09_Impl_DBAccessJob]]
+= データベースアクセスでデータ入出力を行うジョブ
+
+[[Ch09_Impl_DBAccessJob_Overview]]
+== 概要
+データベースアクセスを行うジョブを作成する。
+
+なお、本節は{batch5_guide}を元に説明しているため、
+詳細については<<Ch05_DBAccess.adoc#Ch05_DBAccess,データベースアクセス>>を参照のこと。
+
+<<Ch09_TutorialApplication.adoc#Ch09_TutorialApplication,作成するアプリケーションの説明>>の
+背景、処理概要、業務仕様を以下に再掲する。
+
+[[Ch09_Impl_DBAccessJob_Overview_Background]]
+=== 背景
+とある量販店では、会員に対してポイントカードを発行している。 +
+会員には「ゴールド会員」「一般会員」の会員種別が存在し、会員種別に応じたサービスを提供している。 +
+今回そのサービスの一環として、月内に商品を購入した会員のうち、
+会員種別が「ゴールド会員」の場合は100ポイント、「一般会員」の場合は10ポイントを月末に加算することにした。
+
+[[Ch09_Impl_DBAccessJob_Overview_ProcessOverview]]
+=== 処理概要
+会員種別に応じてポイント加算を行うアプリケーションを
+月次バッチ処理として{batch5_shortname}を使用して実装する。
+
+[[Ch09_Impl_DBAccessJob_Overview_BusinessSpecification]]
+=== 業務仕様
+業務仕様は以下のとおり。
+
+* 商品購入フラグが"1"(処理対象)の場合に、会員種別に応じてポイントを加算する
+** 会員種別が"G"(ゴールド会員)の場合は100ポイント、"N"(一般会員)の場合は10ポイント加算する
+* 商品購入フラグはポイント加算後に"0"(初期状態)に更新する
+* ポイントの上限値は1,000,000ポイントとする
+* ポイント加算後に1,000,000ポイントを超えた場合は、1,000,000ポイントに補正する
+
+[[Ch09_Impl_DBAccessJob_Overview_TableSpecification]]
+=== テーブル仕様
+入出力リソースとなる会員情報テーブルの仕様は以下のとおり。
+
+[cols="3,15,10,4,12,8,45", options="header"]
+.会員情報テーブル(member_info)
+|===
+|No
+|属性名
+|カラム名
+|PK
+|データ型
+|桁数
+|説明
+
+|1
+|会員番号
+|id
+|icon:check[]
+|CHAR
+|8
+|会員を一意に示す8桁固定の番号を表す。
+
+|2
+|会員種別
+|type
+|-
+|CHAR
+|1
+|会員の種別を以下のとおり表す。 +
+"G"(ゴールド会員)、"N"(一般会員)
+
+|3
+|商品購入フラグ
+|status
+|-
+|CHAR
+|1
+|月内に商品を買ったかどうかを表す。 +
+商品購入で"1"(処理対象)、月次バッチ処理で"0"(初期状態)に更新される。
+
+|4
+|ポイント
+|point
+|-
+|INT
+|7
+|会員の保有するポイントを表す。 +
+初期値は0。
+
+|===
+
+[NOTE]
+.テーブル仕様について
+====
+チュートリアルを実施するうえでの便宜を図り、
+実際の業務に即したテーブル設計は行っていないため留意すること。
+====
+
+[[Ch09_Impl_DBAccessJob_Overview_JobOverview]]
+=== ジョブの概要
+ここで作成するデータベースアクセスするジョブの概要を把握するために、
+処理フローおよび処理シーケンスを以下に示す。
+
+処理シーケンスではトランザクション制御の範囲について触れている。
+ジョブのトランザクション制御はSpring Batchがもつ仕組みを利用しており、これをフレームワークトランザクションと定義して説明する。
+トランザクション制御の詳細は<<Ch05_Transaction.adoc#Ch05_Transaction,トランザクション制御>>を参照のこと。
+
+//^
+処理フロー概要::
+処理フローの概要を以下に示す。
+
+.データベースアクセスジョブの処理フロー
+image::ch09/DBAccess/Ch09_DBAccessJob_ProcessFlow.png[ProcessFlow of DBAccess Job]
+
+//^
+チャンクモデルの場合の処理シーケンス::
+チャンクモデルの場合の処理シーケンスを説明する。
+
+橙色のオブジェクトは今回実装するクラスを表す。
+
+.チャンクモデルのシーケンス図
+image::Ch09_DBAccessJob_ProcessSequence_ChunkModel.png[ProcessSequence of DBAccess Job by ChunkModel]
+
+.シーケンス図の説明
+. ジョブからステップが実行される。
+. ステップは、リソースをオープンする。
+. ``MyBatisCursorItemReader``は、member_infoテーブルから会員情報をすべて取得(select文の発行)する。
+** 入力データがなくなるまで、以降の処理を繰り返す。
+** チャンク単位で、フレームワークトランザクションを開始する。
+** チャンクサイズに達するまで4から10までの処理を繰り返す。
+. ステップは、``MyBatisCursorItemReader``から入力データを1件取得する。
+. ``MyBatisCursorItemReader``は、member_infoテーブルから入力データを1件取得する。
+. member_infoテーブルは、``MyBatisCursorItemReader``に入力データを返却する。
+. ``MyBatisCursorItemReader``は、ステップに入力データを返却する。
+. ステップは、``PointAddItemProcessor``で入力データに対して処理を行う。
+. ``PointAddItemProcessor``は、入力データを読み込んでポイント加算処理を行う。
+. ``PointAddItemProcessor``は、ステップに処理結果を返却する。
+. ステップは、チャンクサイズ分のデータを``MyBatisBatchItemWriter``で出力する。
+. ``MyBatisBatchItemWriter``は、member_infoテーブルに対して会員情報の更新(update文の発行)を行う。
+. ステップはフレームワークトランザクションをコミットする。
+. ステップはジョブに終了コード(ここでは正常終了:0)を返却する。
+
+//^
+タスクレットモデルの場合の処理シーケンス::
+タスクレットモデルの場合の処理シーケンスについて説明する。
+
+このチュートリアルでは、タスクレットモデルでもチャンクモデルのように一定件数のデータをまとめて処理する方式としている。
+大量データを効率的に処理できるなどのメリットがある。詳細は<<Ch03_CreateTaskletJob.adoc#Ch03_CreateTaskletJob_HowToUse_InOutImpl,チャンクモデルのコンポーネントを利用するTasklet実装>>を参照のこと。
+
+橙色のオブジェクトは今回実装するクラスを表す。
+
+.タスクレットモデルのシーケンス図
+image::Ch09_DBAccessJob_ProcessSequence_TaskletModel.png[ProcessSequence of DBAccess Job by TaskletModel]
+
+.シーケンス図の説明
+. ジョブからステップが実行される。
+** ステップはフレームワークトランザクションを開始する。
+. ステップは``PointAddTasklet``を実行する。
+. ``PointAddTasklet``は、リソースをオープンする。
+. ``MyBatisCursorItemReader``は、member_infoテーブルから会員情報をすべて取得(select文の発行)する。
+** 入力データがなくなるまで5から9までの処理を繰り返す。
+** 一定件数に達するまで5から11までの処理を繰り返す。
+. ``PointAddTasklet``は、``MyBatisCursorItemReader``から入力データを1件取得する。
+. ``MyBatisCursorItemReader``は、member_infoテーブルから入力データを1件取得する。
+. member_infoテーブルは、``MyBatisCursorItemReader``に入力データを返却する。
+. ``MyBatisCursorItemReader``は、タスクレットに入力データを返却する。
+. ``PointAddTasklet``は、入力データを読み込んでポイント加算処理を行う。
+. ``PointAddTasklet``は、一定件数分のデータを``MyBatisBatchItemWriter``で出力する。
+. ``MyBatisBatchItemWriter``は、member_infoテーブルに対して会員情報の更新(update文の発行)を行う。
+. ``PointAddTasklet``はステップへ処理終了を返却する。
+. ステップはフレームワークトランザクションをコミットする。
+. ステップはジョブに終了コード(ここでは正常終了:0)を返却する。
+
+以降で、チャンクモデル、タスクレットモデルそれぞれの実装方法を説明する。
+
+* <<Ch09_Impl_DBAccessJob_Chunk>>
+* <<Ch09_Impl_DBAccessJob_Tasklet>>
+
+[[Ch09_Impl_DBAccessJob_Chunk]]
+== チャンクモデルでの実装
+チャンクモデルでデータベースアクセスするジョブの作成から実行までを以下の手順で実施する。
+
+. <<Ch09_Impl_DBAccessJob_Chunk_JobDefinition>>
+. <<Ch09_Impl_DBAccessJob_Chunk_Dto>>
+. <<Ch09_Impl_DBAccessJob_Chunk_MyBatis>>
+. <<Ch09_Impl_DBAccessJob_Chunk_Logic>>
+. <<Ch09_Impl_DBAccessJob_Chunk_Execution>>
+
+[[Ch09_Impl_DBAccessJob_Chunk_JobDefinition]]
+=== ジョブBean定義ファイルの作成
+Bean定義ファイルにて、チャンクモデルでデータベースアクセスを行うジョブを構成する要素の組み合わせ方を設定する。 +
+ここでは、Bean定義ファイルの枠および共通的な設定のみ記述し、以降の項で各構成要素の設定を行う。
+
+[source, xml]
+.src/main/resources/META-INF/jobs/dbaccess/jobPointAddChunk.xml
+----
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:batch="http://www.springframework.org/schema/batch"
+       xmlns:p="http://www.springframework.org/schema/p"
+       xmlns:mybatis="http://mybatis.org/schema/mybatis-spring"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+             http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+             http://www.springframework.org/schema/batch http://www.springframework.org/schema/batch/spring-batch.xsd
+             http://mybatis.org/schema/mybatis-spring http://mybatis.org/schema/mybatis-spring.xsd">
+
+    <!-- (1) -->
+    <import resource="classpath:META-INF/spring/job-base-context.xml"/>
+
+    <!-- (2) -->
+    <context:component-scan base-package="com.example.batch.tutorial.dbaccess.chunk"/>
+
+</beans>
+----
+
+[cols="10,90", options="header"]
+.説明
+|===
+|項番
+|説明
+
+|(1)
+|{batch5_shortname}を利用する際に、常に必要なBean定義を読み込む設定をインポートする。
+
+|(2)
+|コンポーネントスキャンの設定を行う。 +
+``base-package``属性に、使用するコンポーネント(ItemProcessorの実装クラスなど)が格納されているパッケージを指定する。
+|===
+
+[[Ch09_Impl_DBAccessJob_Chunk_Dto]]
+=== DTOの実装
+業務データを保持するためのクラスとしてDTOクラスを実装する。 +
+DTOクラスはテーブルごとに作成する。
+
+チャンクモデル/タスクレットモデルで共通して利用するため、既に作成している場合は読み飛ばしてよい。
+
+[source, java]
+.com.example.batch.tutorial.common.dto.MemberInfoDTO
+----
+package com.example.batch.tutorial.common.dto;
+
+public class MemberInfoDto {
+    private String id; // (1)
+
+    private String type; // (2)
+
+    private String status; // (3)
+
+    private int point; // (4)
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public void setType(String type) {
+        this.type = type;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public int getPoint() {
+        return point;
+    }
+
+    public void setPoint(int point) {
+        this.point = point;
+    }
+}
+----
+
+[cols="10,90", options="header"]
+.説明
+|===
+|項番
+|説明
+
+|(1)
+|会員番号に対応するフィールドとして``id``を定義する。
+
+|(2)
+|会員種別に対応するフィールドとして``type``を定義する。
+
+|(3)
+|商品購入フラグに対応するフィールドとして``status``を定義する。
+
+|(4)
+|ポイントに対応するフィールドとして``point``を定義する。
+
+|===
+
+[[Ch09_Impl_DBAccessJob_Chunk_MyBatis]]
+=== MyBatisによるデータベースアクセスの定義
+MyBatisを利用してデータベースアクセスするための実装・設定を行う。
+
+以下の作業を実施する。
+
+. <<Ch09_Impl_DBAccessJob_Chunk_MyBatis_Repository>>
+. <<Ch09_Impl_DBAccessJob_Chunk_MyBatis_MapperXML>>
+. <<Ch09_Impl_DBAccessJob_Chunk_MyBatis_Bean>>
+
+チャンクモデル/タスクレットモデルで共通して利用するため、既に作成している場合は読み飛ばしてよい。
+
+[[Ch09_Impl_DBAccessJob_Chunk_MyBatis_Repository]]
+==== Repositoryインターフェースの実装
+MapperXMLファイルに定義したSQLを呼び出すためのインターフェースを実装する。 +
+このインターフェースに対する実装クラスは、MyBatisが自動で生成するため、開発者はインターフェースのみ作成すればよい。
+
+[source, java]
+.com.example.batch.tutorial.common.repository.MemberInfoRepository
+----
+package com.example.batch.tutorial.common.repository;
+
+import com.example.batch.tutorial.common.dto.MemberInfoDto;
+import java.util.List;
+
+public interface MemberInfoRepository {
+  List<MemberInfoDto> findAll(); // (1)
+
+  int updatePointAndStatus(MemberInfoDto memberInfo); // (2)
+}
+----
+
+[cols="10,90", options="header"]
+.説明
+|===
+|項番
+|説明
+
+|(1)
+|MapperXMLファイルに定義するSQLのIDに対応するメソッドを定義する。 +
+ここでは、member_infoテーブルからすべてのレコードを取得するためのメソッドを定義する。
+
+|(2)
+|ここでは、member_infoテーブルのpointカラムとstatusカラムを更新するためのメソッドを定義する。
+
+|===
+
+[[Ch09_Impl_DBAccessJob_Chunk_MyBatis_MapperXML]]
+==== MapperXMLファイルの作成
+SQLとO/Rマッピングの設定を記載するMapperXMLファイルを作成する。 +
+MapperXMLファイルは、Repositoryインターフェースごとに作成する。
+
+MyBatisが定めたルールに則ったディレクトリに格納することで、自動的にMapperXMLファイルを読み込むことができる。
+MapperXMLファイルを自動的に読み込ませるために、Repositoryインターフェースのパッケージ階層と同じ階層のディレクトリにMapperXMLファイルを格納する。
+
+[source, xml]
+.src/main/resources/com/example/batch/tutorial/common/repository/MemberInfoRepository.xml
+----
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!-- (1) -->
+<mapper namespace="com.example.batch.tutorial.common.repository.MemberInfoRepository">
+
+    <!-- (2) -->
+    <select id="findAll" resultType="com.example.batch.tutorial.common.dto.MemberInfoDto">
+        SELECT
+            id,
+            type,
+            status,
+            point
+        FROM
+            member_info
+        ORDER BY
+            id ASC
+    </select>
+
+    <!-- (3) -->
+    <update id="updatePointAndStatus" parameterType="com.example.batch.tutorial.common.dto.MemberInfoDto">
+        UPDATE
+            member_info
+        SET
+            status = #{status},
+            point = #{point}
+        WHERE
+            id = #{id}
+    </update>
+</mapper>
+----
+
+[cols="10,90", options="header"]
+.説明
+|===
+|項番
+|説明
+
+|(1)
+|mapper要素のnamespace属性に、Repositoryインターフェースの完全修飾クラス名(FQCN)を指定する。
+
+|(2)
+|参照系のSQLの設定を行う。 +
+ここでは、member_infoテーブルからすべてのレコードを取得するSQLを設定する。
+
+|(3)
+|更新系のSQLの設定を行う。 +
+ここでは、member_infoテーブルの指定したidに一致するレコードについて、
+ステータスとポイントを更新するSQLを設定する。
+
+|===
+
+[[Ch09_Impl_DBAccessJob_Chunk_MyBatis_Bean]]
+==== ジョブBean定義ファイルの設定
+MyBatisによるデータベースアクセスするための設定として、ジョブBean定義ファイルに以下の(1)～(3)を追記する。
+
+[source, xml]
+.src/main/resources/META-INF/jobs/dbaccess/jobPointAddChunk.xml
+----
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:batch="http://www.springframework.org/schema/batch"
+       xmlns:p="http://www.springframework.org/schema/p"
+       xmlns:mybatis="http://mybatis.org/schema/mybatis-spring"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+             http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+             http://www.springframework.org/schema/batch http://www.springframework.org/schema/batch/spring-batch.xsd
+             http://mybatis.org/schema/mybatis-spring http://mybatis.org/schema/mybatis-spring.xsd">
+
+    <import resource="classpath:META-INF/spring/job-base-context.xml"/>
+
+    <context:component-scan base-package="com.example.batch.tutorial.dbaccess.chunk"/>
+
+    <!-- (1) -->
+    <mybatis:scan base-package="com.example.batch.tutorial.common.repository" factory-ref="jobSqlSessionFactory"/>
+
+    <!-- (2) -->
+    <bean id="reader"
+          class="org.mybatis.spring.batch.MyBatisCursorItemReader"
+          p:queryId="com.example.batch.tutorial.common.repository.MemberInfoRepository.findAll"
+          p:sqlSessionFactory-ref="jobSqlSessionFactory"/>
+
+    <!-- (3) -->
+    <bean id="writer" class="org.mybatis.spring.batch.MyBatisBatchItemWriter"
+          p:statementId="com.example.batch.tutorial.common.repository.MemberInfoRepository.updatePointAndStatus"
+          p:sqlSessionTemplate-ref="batchModeSqlSessionTemplate"/>
+
+</beans>
+----
+
+[cols="10,90", options="header"]
+.説明
+|===
+|項番
+|説明
+
+|(1)
+|Repositoryインターフェースをスキャンするための設定を行う。 +
+``base-package``属性に、Repositoryインターフェースが格納されている基底パッケージを指定する。
+
+|(2)
+|ItemReaderの設定を行う。 +
+``class``属性に、MyBatisが提供しているSpring連携ライブラリであるMyBatis-Springから提供されている``org.mybatis.spring.batch.MyBatisCursorItemReader``を指定する。
+データベースから大量データを取得する際は、この``MyBatisCursorItemReader``を使用する。
+詳細は<<Ch05_DBAccess.adoc#Ch05_DBAccess_HowToUse_Input,入力>>を参照のこと。 +
+``queryId``属性に、MapperXMLファイルに設定するSQLの``namespace``+``id``を指定する。
+
+|(3)
+|ItemWriterの設定を行う。 +
+``class``属性に、MyBatisが提供しているSpring連携ライブラリであるMyBatis-Springから提供されている``org.mybatis.spring.batch.MyBatisBatchItemWriter``を指定する。 +
+``statementId``属性に、MapperXMLファイルに設定するSQLの``namespace``+``id``を指定する。
+
+|===
+
+[NOTE]
+.ItemReader・ItemWriter以外のデータベースアクセス
+====
+ItemReader・ItemWriter以外でデータベースアクセスする方法として、Mapperインターフェースを利用する方法がある。
+Mapperインターフェースを利用するにあたっては、{batch5_shortname}として制約を設けているため、
+<<Ch05_DBAccess.adoc#Ch05_DBAccess_HowToUse_Input_MapperInterface,Mapperインターフェース(入力)>>、<<Ch05_DBAccess.adoc#Ch05_DBAccess_HowToUse_Output_MapperInterface,Mapperインターフェース(出力)>>を参照してほしい。
+ItemProcessorの実装例は、<<Ch05_DBAccess.adoc#Ch05_DBAccess_HowToUse_Input_MapperInterface_Chunk,チャンクモデルにおける利用方法>>(入力)、
+<<Ch05_DBAccess.adoc#Ch05_DBAccess_HowToUse_Output_MapperInterface_Chunk,チャンクモデルにおける利用方法>>(出力)を参照のこと。
+====
+
+[[Ch09_Impl_DBAccessJob_Chunk_Logic]]
+=== ロジックの実装
+ポイント加算処理を行うビジネスロジッククラスを実装する。
+
+以下の作業を実施する。
+
+. <<Ch09_Impl_DBAccessJob_Chunk_Logic_ItemProcessor>>
+. <<Ch09_Impl_DBAccessJob_Chunk_Logic_Bean>>
+
+[[Ch09_Impl_DBAccessJob_Chunk_Logic_ItemProcessor]]
+==== PointAddItemProcessorクラスの実装
+ItemProcessorインターフェースを実装したPointAddItemProcessorクラスを実装する。
+
+[source, java]
+.com.example.batch.tutorial.dbaccess.chunk.PointAddItemProcessor
+----
+package com.example.batch.tutorial.dbaccess.chunk;
+
+import org.springframework.batch.item.ItemProcessor;
+import org.springframework.stereotype.Component;
+import com.example.batch.tutorial.common.dto.MemberInfoDto;
+
+@Component // (1)
+public class PointAddItemProcessor implements ItemProcessor<MemberInfoDto, MemberInfoDto> { // (2)
+
+    private static final String TARGET_STATUS = "1"; // (3)
+
+    private static final String INITIAL_STATUS = "0"; // (4)
+
+    private static final String GOLD_MEMBER = "G"; // (5)
+
+    private static final String NORMAL_MEMBER = "N"; // (6)
+
+    private static final int MAX_POINT = 1000000; // (7)
+
+    @Override
+    public MemberInfoDto process(MemberInfoDto item) throws Exception { // (8) (9) (10)
+        if (TARGET_STATUS.equals(item.getStatus())) {
+            if (GOLD_MEMBER.equals(item.getType())) {
+                item.setPoint(item.getPoint() + 100);
+            } else if (NORMAL_MEMBER.equals(item.getType())) {
+                item.setPoint(item.getPoint() + 10);
+            }
+
+            if (item.getPoint() > MAX_POINT) {
+                item.setPoint(MAX_POINT);
+            }
+
+            item.setStatus(INITIAL_STATUS);
+        }
+
+        return item;
+    }
+}
+----
+
+[cols="10,90", options="header"]
+.説明
+|===
+|項番
+|説明
+
+|(1)
+|コンポーネントスキャンの対象とするため、``@Component``アノテーションを付与してBean定義を行う。
+
+|(2)
+|入出力で使用するオブジェクトの型をそれぞれ型引数に指定した``ItemProcessor``インターフェースを実装する。 +
+ここでは、入出力で使用するオブジェクトは共に<<Ch09_Impl_DBAccessJob_Chunk_Dto>>で作成した``MemberInfoDTO``を指定する。
+
+|(3)
+|定数として、ポイント加算対象とする商品購入フラグ:1を定義する。 +
+本来、このようなフィールド定数は定数クラスなどに定義し、ロジックに定義することはあまりない。
+このチュートリアルでは、便宜上、定数として定義していることを留意すること。(以降の定数も同様)
+
+|(4)
+|定数として、商品購入フラグの初期値:0を定義する。
+
+|(5)
+|定数として、会員種別:G(ゴールド会員)を定義する。
+
+|(6)
+|定数として、会員種別:N(一般会員)を定義する。
+
+|(7)
+|定数として、ポイントの上限値:1000000を定義する。
+
+|(8)
+|商品購入フラグおよび、会員種別に応じてポイント加算するビジネスロジックを実装する。
+
+|(9)
+|返り値の型は、このクラスで実装している``ItemProcessor``インターフェースの型引数で指定した
+出力オブジェクトの型である``MemberInfoDTO``とする。
+
+|(10)
+|引数として受け取る``item``の型は、
+このクラスで実装している``ItemProcessor``インターフェースの型引数で指定した入力オブジェクトの型である``MemberInfoDTO``とする。
+
+|===
+
+[[Ch09_Impl_DBAccessJob_Chunk_Logic_Bean]]
+==== ジョブBean定義ファイルの設定
+作成したビジネスロジックをジョブとして設定するため、ジョブBean定義ファイルに以下の(1)以降を追記する。
+
+[source, xml]
+.src/main/resources/META-INF/jobs/dbaccess/jobPointAddChunk.xml
+----
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:batch="http://www.springframework.org/schema/batch"
+       xmlns:p="http://www.springframework.org/schema/p"
+       xmlns:mybatis="http://mybatis.org/schema/mybatis-spring"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+             http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+             http://www.springframework.org/schema/batch http://www.springframework.org/schema/batch/spring-batch.xsd
+             http://mybatis.org/schema/mybatis-spring http://mybatis.org/schema/mybatis-spring.xsd">
+
+    <import resource="classpath:META-INF/spring/job-base-context.xml"/>
+
+    <context:component-scan base-package="com.example.batch.tutorial.dbaccess.chunk"/>
+
+    <mybatis:scan base-package="com.example.batch.tutorial.common.repository" factory-ref="jobSqlSessionFactory"/>
+
+    <bean id="reader"
+          class="org.mybatis.spring.batch.MyBatisCursorItemReader"
+          p:queryId="com.example.batch.tutorial.common.repository.MemberInfoRepository.findAll"
+          p:sqlSessionFactory-ref="jobSqlSessionFactory"/>
+
+    <bean id="writer" class="org.mybatis.spring.batch.MyBatisBatchItemWriter"
+          p:statementId="com.example.batch.tutorial.common.repository.MemberInfoRepository.updatePointAndStatus"
+          p:sqlSessionTemplate-ref="batchModeSqlSessionTemplate"/>
+
+    <!-- (1) -->
+    <batch:job id="jobPointAddChunk" job-repository="jobRepository">
+        <batch:step id="jobPointAddChunk.step01"> <!-- (2) -->
+            <batch:tasklet transaction-manager="jobTransactionManager">
+                <batch:chunk reader="reader"
+                             processor="pointAddItemProcessor"
+                             writer="writer" commit-interval="10"/> <!-- (3) -->
+            </batch:tasklet>
+        </batch:step>
+    </batch:job>
+</beans>
+----
+
+[cols="10,90", options="header"]
+.説明
+|===
+|項番
+|説明
+
+|(1)
+|ジョブの設定を行う。 +
+``id``属性は、1つのバッチアプリケーションに含まれる全ジョブの範囲内で一意とする必要がある。 +
+ここでは、チャンクモデルのジョブ名として``jobPointAddChunk``を指定する。
+
+|(2)
+|ステップの設定を行う。 +
+``id``属性は、1つのバッチアプリケーションに含まれる全ジョブの範囲内で一意とする必要はないが、障害発生時に追跡しやすくなる等の様々なメリットがあるため一意とする。 +
+特別な理由がない限り、(1)で指定したid属性に[step+連番]を付加する形式とする。 +
+ここでは、チャンクモデルのジョブのステップ名として``jobPointAddChunk.step01``を指定する。
+
+|(3)
+|チャンクモデルジョブの設定を行う。 +
+``reader``、``writer``それぞれの属性に、前項までに定義した``ItemReader``、``ItemWriter``のBeanIDを指定する。 +
+``processor``属性に、ItemProcessorの実装クラスのBeanIDである``pointAddItemProcessor``を指定する。 +
+``commit-interval``属性に、1チャンクあたりの入力データ件数を10件として設定する。
+
+|===
+
+[NOTE]
+.commit-intervalのチューニング
+====
+commit-intervalはチャンクモデルジョブにおける、性能上のチューニングポイントである。
+
+このチュートリアルでは10件としているが、利用できるマシンリソースやジョブの特性によって適切な件数は異なる。
+複数のリソースにアクセスしてデータを加工するジョブであれば10件から100件程度で処理スループットが頭打ちになることもある。
+一方、入出力リソースが1:1対応しておりデータを移し替える程度のジョブであれば5,000件や10,000件でも処理スループットが伸びることがある。
+
+ジョブ実装時のcommit-intervalは100件程度で仮置きしておき、 その後に実施した性能測定の結果に応じてジョブごとにチューニングするとよい。
+====
+
+[[Ch09_Impl_DBAccessJob_Chunk_Execution]]
+=== ジョブの実行と結果の確認
+作成したジョブをSTS上で実行し、結果を確認する。
+
+[[Ch09_Impl_DBAccessJob_Chunk_Execution_Run]]
+==== 実行構成からジョブを実行
+以下のとおり実行構成を作成し、ジョブを実行する。 +
+実行構成の作成手順は<<Ch09_EnvironmentConstruction.adoc#Ch09_EnvironmentConstruction_OperationCheck,プロジェクトの動作確認>>を参照。
+
+実行構成の設定値::
+* Name: 任意の名称(例: Run DBAccessJob for ChunkModel)
+* Mainタブ
+** Project: ``macchinetta-batch-tutorial``
+** Main class: ``org.springframework.batch.core.launch.support.CommandLineJobRunner``
+* Argumentsタブ
+** Program arguments: ``META-INF/jobs/dbaccess/jobPointAddChunk.xml jobPointAddChunk``
+
+[[Ch09_Impl_DBAccessJob_Chunk_Execution_Console]]
+==== コンソールログの確認
+Consoleに以下の内容のログが出力されていることを確認する。
+
+[source, console]
+.コンソールログ出力例
+----
+[2017/09/12 13:32:32] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=jobPointAddChunk]] completed with the following parameters: [{jsr_batch_run_id=484}] and the following status: [COMPLETED]
+[2017/09/12 13:32:32] [main] [o.s.c.s.ClassPathXmlApplicationContext] [INFO ] Closing org.springframework.context.support.ClassPathXmlApplicationContext@735f7ae5: startup date [Tue Sep 12 13:32:29 JST 2017]; root of context hierarchy
+----
+
+[[Ch09_Impl_DBAccessJob_Chunk_Execution_Exitcode]]
+==== 終了コードの確認
+終了コードにより、正常終了したことを確認する。 +
+確認手順は<<Ch09_EnvironmentConstruction.adoc#Ch09_EnvironmentConstruction_OperationCheck_ExecJob_Run,ジョブの実行と結果の確認>>を参照。
+終了コード(exit value)が0(正常終了)となっていることを確認する。
+
+.終了コードの確認
+image::ch09/DBAccess/Ch09_DBAccessJob_Confirm_ExitCode_ChunkModel.png[Confiｒm the Exit Code of DBAccessJob for ChunkModel]
+
+[[Ch09_Impl_DBAccessJob_Chunk_Execution_Table]]
+==== 会員情報テーブルの確認
+更新前後の会員情報テーブルの内容を比較し、確認内容のとおりとなっていることを確認する。 +
+確認手順は<<Ch09_EnvironmentConstruction.adoc#Ch09_EnvironmentConstruction_OperationCheck_RefDB,Data Source Explorerを使用してデータベースを参照する>>を参照。
+
+確認内容::
+* statusカラム
+** "0"(初期状態)のレコードが存在しないこと
+* pointカラム
+** ポイント加算対象について、会員種別に応じたポイントが加算されていること
+*** typeカラムが"G"(ゴールド会員)の場合は100ポイント
+*** typeカラムが"N"(一般会員)の場合は10ポイント
+** 1,000,000(上限値)を超えたレコードが存在しないこと
+
+更新前後の会員情報テーブルの内容は以下のとおり。
+
+.更新前後の会員情報テーブルの内容
+image::ch09/DBAccess/Ch09_DBAccessJob_Result_MemberInfoTable.png[Table of member_info]
+
+[[Ch09_Impl_DBAccessJob_Tasklet]]
+== タスクレットモデルでの実装
+タスクレットモデルでデータベースアクセスするジョブの作成から実行までを以下の手順で実施する。
+
+. <<Ch09_Impl_DBAccessJob_Tasklet_JobDefinition>>
+. <<Ch09_Impl_DBAccessJob_Tasklet_Dto>>
+. <<Ch09_Impl_DBAccessJob_Tasklet_MyBatis>>
+. <<Ch09_Impl_DBAccessJob_Tasklet_Logic>>
+. <<Ch09_Impl_DBAccessJob_Tasklet_Execution>>
+
+[[Ch09_Impl_DBAccessJob_Tasklet_JobDefinition]]
+=== ジョブBean定義ファイルの作成
+Bean定義ファイルにて、タスクレットモデルでデータベースアクセスを行うジョブを構成する要素の組み合わせ方を設定する。 +
+ここでは、Bean定義ファイルの枠および共通的な設定のみ記述し、以降の項で各構成要素の設定を行う。
+
+[source, xml]
+.src/main/resources/META-INF/jobs/dbaccess/jobPointAddtasklet.xml
+----
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:batch="http://www.springframework.org/schema/batch"
+       xmlns:p="http://www.springframework.org/schema/p"
+       xmlns:mybatis="http://mybatis.org/schema/mybatis-spring"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+             http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+             http://www.springframework.org/schema/batch http://www.springframework.org/schema/batch/spring-batch.xsd
+             http://mybatis.org/schema/mybatis-spring http://mybatis.org/schema/mybatis-spring.xsd">
+
+    <!-- (1) -->
+    <import resource="classpath:META-INF/spring/job-base-context.xml"/>
+
+    <!-- (2) -->
+    <context:component-scan base-package="com.example.batch.tutorial.dbaccess.tasklet"/>
+
+</beans>
+----
+
+[cols="10,90", options="header"]
+.説明
+|===
+|項番
+|説明
+
+|(1)
+|{batch5_shortname}を利用する際に、常に必要なBean定義を読み込む設定をインポートする。
+
+|(2)
+|コンポーネントスキャンの設定を行う。 +
+``base-package``属性に、使用するコンポーネント(Taskletの実装クラスなど)が格納されているパッケージを指定する。
+|===
+
+[[Ch09_Impl_DBAccessJob_Tasklet_Dto]]
+=== DTOの実装
+業務データを保持するためのクラスとしてDTOクラスを作成する。 +
+DTOクラスはテーブルごとに作成する。
+
+チャンクモデル/タスクレットモデルで共通して利用するため、既に作成している場合は読み飛ばしてよい。
+
+[source, java]
+.com.example.batch.tutorial.common.dto.MemberInfoDTO
+----
+package com.example.batch.tutorial.common.dto;
+
+public class MemberInfoDto {
+    private String id; // (1)
+
+    private String type; // (2)
+
+    private String status; // (3)
+
+    private int point; // (4)
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public void setType(String type) {
+        this.type = type;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public int getPoint() {
+        return point;
+    }
+
+    public void setPoint(int point) {
+        this.point = point;
+    }
+}
+----
+
+[cols="10,90", options="header"]
+.説明
+|===
+|項番
+|説明
+
+|(1)
+|会員番号に対応するフィールドとして``id``を定義する。
+
+|(2)
+|会員種別に対応するフィールドとして``type``を定義する。
+
+|(3)
+|商品購入フラグに対応するフィールドとして``status``を定義する。
+
+|(4)
+|ポイントに対応するフィールドとして``point``を定義する。
+
+|===
+
+[[Ch09_Impl_DBAccessJob_Tasklet_MyBatis]]
+=== MyBatisによるデータベースアクセスの定義
+MyBatisを利用してデータベースアクセスするための実装・設定を行う。
+
+以下の作業を実施する。
+
+. <<Ch09_Impl_DBAccessJob_Tasklet_MyBatis_Repository>>
+. <<Ch09_Impl_DBAccessJob_Tasklet_MyBatis_MapperXML>>
+. <<Ch09_Impl_DBAccessJob_Tasklet_MyBatis_Bean>>
+
+チャンクモデル/タスクレットモデルで共通して利用するため、既に作成している場合は読み飛ばしてよい。
+
+[[Ch09_Impl_DBAccessJob_Tasklet_MyBatis_Repository]]
+==== Repositoryインターフェースの実装
+MapperXMLファイルに定義したSQLを呼び出すためのインターフェースを作成する。 +
+このインターフェースに対する実装クラスは、MyBatisが自動で生成するため、開発者はインターフェースのみ作成すればよい。
+
+[source, java]
+.com.example.batch.tutorial.common.repository.MemberInfoRepository
+----
+package com.example.batch.tutorial.common.repository;
+
+import com.example.batch.tutorial.common.dto.MemberInfoDto;
+import java.util.List;
+
+public interface MemberInfoRepository {
+    List<MemberInfoDto> findAll(); // (1)
+
+    int updatePointAndStatus(MemberInfoDto memberInfo); // (2)
+}
+----
+
+[cols="10,90", options="header"]
+.説明
+|===
+|項番
+|説明
+
+|(1)
+|MapperXMLファイルに定義するSQLのIDに対応するメソッドを定義する。 +
+ここでは、member_infoテーブルからすべてのレコードを取得するためのメソッドを定義する。
+
+|(2)
+|ここでは、member_infoテーブルのpointカラムとstatusカラムを更新するためのメソッドを定義する。
+
+|===
+
+[[Ch09_Impl_DBAccessJob_Tasklet_MyBatis_MapperXML]]
+==== MapperXMLファイルの作成
+SQLとO/Rマッピングの設定を記載するMapperXMLファイルを作成する。 +
+MapperXMLファイルは、Repositoryインターフェースごとに作成する。
+
+MyBatisが定めたルールに則ったディレクトリに格納することで、自動的にMapperXMLファイルを読み込むことができる。
+MapperXMLファイルを自動的に読み込ませるために、Repositoryインターフェースのパッケージ階層と同じ階層のディレクトリにMapperXMLファイルを格納する。
+
+[source, xml]
+.src/main/resources/com/example/batch/tutorial/common/repository/MemberInfoRepository.xml
+----
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!-- (1) -->
+<mapper namespace="com.example.batch.tutorial.common.repository.MemberInfoRepository">
+
+    <!-- (2) -->
+    <select id="findAll" resultType="com.example.batch.tutorial.common.dto.MemberInfoDto">
+        SELECT
+            id,
+            type,
+            status,
+            point
+        FROM
+            member_info
+        ORDER BY
+            id ASC
+    </select>
+
+    <!-- (3) -->
+    <update id="updatePointAndStatus" parameterType="com.example.batch.tutorial.common.dto.MemberInfoDto">
+        UPDATE
+            member_info
+        SET
+            status = #{status},
+            point = #{point}
+        WHERE
+            id = #{id}
+    </update>
+</mapper>
+----
+
+[cols="10,90", options="header"]
+.説明
+|===
+|項番
+|説明
+
+|(1)
+|mapper要素のnamespace属性に、Repositoryインターフェースの完全修飾クラス名(FQCN)を指定する。
+
+|(2)
+|参照系のSQLの定義を行う。 +
+ここでは、member_infoテーブルからすべてのレコードを取得するSQLを設定する。
+
+|(3)
+|更新系のSQLの定義を行う。 +
+ここでは、member_infoテーブルの指定したidに一致するレコードについて、
+statusとpointを更新するSQLを設定する。
+
+|===
+
+[[Ch09_Impl_DBAccessJob_Tasklet_MyBatis_Bean]]
+==== ジョブBean定義ファイルの設定
+MyBatisによるデータベースアクセスするための設定として、ジョブBean定義ファイルに以下の(1)～(3)を追記する。
+
+[source, xml]
+.src/main/resources/META-INF/jobs/dbaccess/jobPointAddTasklet.xml
+----
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:batch="http://www.springframework.org/schema/batch"
+       xmlns:p="http://www.springframework.org/schema/p"
+       xmlns:mybatis="http://mybatis.org/schema/mybatis-spring"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+             http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+             http://www.springframework.org/schema/batch http://www.springframework.org/schema/batch/spring-batch.xsd
+             http://mybatis.org/schema/mybatis-spring http://mybatis.org/schema/mybatis-spring.xsd">
+
+    <import resource="classpath:META-INF/spring/job-base-context.xml"/>
+
+    <context:component-scan base-package="com.example.batch.tutorial.dbaccess.tasklet"/>
+
+    <!-- (1) -->
+    <mybatis:scan base-package="com.example.batch.tutorial.common.repository" factory-ref="jobSqlSessionFactory"/>
+
+    <!-- (2) -->
+    <bean id="reader"
+          class="org.mybatis.spring.batch.MyBatisCursorItemReader"
+          p:queryId="com.example.batch.tutorial.common.repository.MemberInfoRepository.findAll"
+          p:sqlSessionFactory-ref="jobSqlSessionFactory"/>
+
+    <!-- (3) -->
+    <bean id="writer" class="org.mybatis.spring.batch.MyBatisBatchItemWriter"
+          p:statementId="com.example.batch.tutorial.common.repository.MemberInfoRepository.updatePointAndStatus"
+          p:sqlSessionTemplate-ref="batchModeSqlSessionTemplate"/>
+
+</beans>
+----
+
+[cols="10,90", options="header"]
+.説明
+|===
+|項番
+|説明
+
+|(1)
+|Repositoryインターフェースをスキャンするための設定を行う。 +
+``base-package``属性に、Repositoryインターフェースが格納されている基底パッケージを指定する。
+
+|(2)
+|ItemReaderの設定を行う。 +
+``class``属性に、MyBatisが提供しているSpring連携ライブラリMyBatis-Springから提供されている``org.mybatis.spring.batch.MyBatisCursorItemReader``を指定する。 +
+``queryId``属性に、MapperXMLファイルに設定するSQLの``namespace``+``id``を指定する。
+
+|(3)
+|ItemWriterの設定を行う。 +
+``class``属性に、MyBatisが提供しているSpring連携ライブラリMyBatis-Springから提供されている``org.mybatis.spring.batch.MyBatisBatchItemWriter``を指定する。 +
+``statementId``属性に、MapperXMLファイルに設定するSQLの``namespace``+``id``を指定する。
+
+|===
+
+[NOTE]
+.チャンクモデルのコンポーネントを利用するTasklet実装
+====
+このチュートリアルでは、タスクレットモデルでデータベースアクセスするジョブの作成を容易に実現するために、
+チャンクモデルのコンポーネントであるItemReader・ItemWriterを利用している。
+
+Tasklet実装の中でチャンクモデルの各種コンポーネントを利用するかどうかは、
+<<Ch03_CreateTaskletJob#Ch03_CreateTaskletJob_HowToUse_InOutImpl,チャンクモデルのコンポーネントを利用するTasklet実装>>を参照して適宜判断してほしい。
+====
+
+[NOTE]
+.ItemReader・ItemWriter以外のデータベースアクセス
+====
+ItemReader・ItemWriter以外でデータベースアクセスする方法として、Mapperインターフェースを利用する方法がある。
+Mapperインターフェースを利用するにあたっては、{batch5_shortname}として制約を設けているため、
+<<Ch05_DBAccess.adoc#Ch05_DBAccess_HowToUse_Input_MapperInterface,Mapperインターフェース(入力)>>、<<Ch05_DBAccess.adoc#Ch05_DBAccess_HowToUse_Output_MapperInterface,Mapperインターフェース(出力)>>を参照してほしい。
+Taskletの実装例は、<<Ch05_DBAccess.adoc#Ch05_DBAccess_HowToUse_Input_MapperInterface_Tasklet,タスクレットモデルにおける利用方法>>(入力)、
+<<Ch05_DBAccess.adoc#Ch05_DBAccess_HowToUse_Output_MapperInterface_Tasklet,タスクレットモデルにおける利用方法>>(出力)を参照のこと。
+====
+
+[[Ch09_Impl_DBAccessJob_Tasklet_Logic]]
+=== ロジックの実装
+ポイント加算処理を行うビジネスロジッククラスを実装する。
+
+以下の作業を実施する。
+
+. <<Ch09_Impl_DBAccessJob_Tasklet_Logic_Tasklet>>
+. <<Ch09_Impl_DBAccessJob_Tasklet_Logic_Bean>>
+
+[[Ch09_Impl_DBAccessJob_Tasklet_Logic_Tasklet]]
+==== PointAddTaskletクラスの実装
+Taskletインターフェースを実装したPointAddTaskletクラスを実装する。
+
+[source, java]
+.com.example.batch.tutorial.dbaccess.tasklet.PointAddTasklet
+----
+package com.example.batch.tutorial.dbaccess.tasklet;
+
+import org.springframework.batch.core.StepContribution;
+import org.springframework.batch.core.scope.context.ChunkContext;
+import org.springframework.batch.core.step.tasklet.Tasklet;
+import org.springframework.batch.item.ItemStreamReader;
+import org.springframework.batch.item.ItemWriter;
+import org.springframework.batch.repeat.RepeatStatus;
+import org.springframework.stereotype.Component;
+import com.example.batch.tutorial.common.dto.MemberInfoDto;
+
+import javax.inject.Inject;
+import java.util.ArrayList;
+import java.util.List;
+
+@Component // (1)
+public class PointAddTasklet implements Tasklet {
+
+    private static final String TARGET_STATUS = "1"; // (2)
+
+    private static final String INITIAL_STATUS = "0"; // (3)
+
+    private static final String GOLD_MEMBER = "G"; // (4)
+
+    private static final String NORMAL_MEMBER = "N"; // (5)
+
+    private static final int MAX_POINT = 1000000; // (6)
+
+    private static final int CHUNK_SIZE = 10; // (7)
+
+    @Inject // (8)
+    ItemStreamReader<MemberInfoDto> reader; // (9)
+
+    @Inject // (8)
+    ItemWriter<MemberInfoDto> writer; // (10)
+
+    @Override
+    public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) throws Exception { // (11)
+        MemberInfoDto item = null;
+
+        List<MemberInfoDto> items = new ArrayList<>(CHUNK_SIZE); // (12)
+
+        try {
+            reader.open(chunkContext.getStepContext().getStepExecution().getExecutionContext()); // (13)
+
+            while ((item = reader.read()) != null) { // (14)
+
+                if (TARGET_STATUS.equals(item.getStatus())) {
+                    if (GOLD_MEMBER.equals(item.getType())) {
+                        item.setPoint(item.getPoint() + 100);
+                    } else if (NORMAL_MEMBER.equals(item.getType())) {
+                        item.setPoint(item.getPoint() + 10);
+                    }
+
+                    if (item.getPoint() > MAX_POINT) {
+                        item.setPoint(MAX_POINT);
+                    }
+
+                    item.setStatus(INITIAL_STATUS);
+                }
+
+                items.add(item);
+
+                if (items.size() == CHUNK_SIZE) { // (15)
+                    writer.write(items); // (16)
+                    items.clear();
+                }
+            }
+
+            writer.write(items); // (17)
+        } finally {
+            reader.close(); // (18)
+        }
+
+        return RepeatStatus.FINISHED; // (19)
+    }
+}
+----
+
+[cols="10,90", options="header"]
+.説明
+|===
+|項番
+|説明
+
+|(1)
+|コンポーネントスキャンの対象とするため、``@Component``アノテーションを付与してBean定義を行う。
+
+|(2)
+|定数として、ポイント加算対象とする商品購入フラグ:1を定義する。 +
+本来、このようなフィールド定数は定数クラスなどに定義し、ロジックに定義することはあまりない。
+このチュートリアルでは、便宜上、定数として定義していることを留意すること。(以降の定数も同様)
+
+|(3)
+|定数として、商品購入フラグの初期値:0を定義する。
+
+|(4)
+|定数として、会員種別:G(ゴールド会員)を定義する。
+
+|(5)
+|定数として、会員種別:N(一般会員)を定義する。
+
+|(6)
+|定数として、ポイントの上限値:1000000を定義する。
+
+|(7)
+|定数として、まとめて処理する単位(一定件数):10を定義する。
+
+|(8)
+|``@Inject``アノテーションを付与して、``ItemStreamReader/ItemWriter``の実装をインジェクションする。
+
+|(9)
+|データベースアクセスするために``ItemReader``のサブインターフェースである、``ItemStreamReader``として型を定義する。 +
+``ItemStreamReader``はリソースのオープン/クローズを実行する必要がある。
+
+|(10)
+|``ItemWriter``を定義する。 +
+``ItemStreamReader``とは異なり、リソースのオープン/クローズを実行する必要はない。
+
+|(11)
+|商品購入フラグおよび、会員種別に応じてポイント加算するビジネスロジックを実装する。
+
+|(12)
+|一定件数分の``item``を格納するためのリストを定義する。
+
+|(13)
+|入力リソースをオープンする。 +
+このタイミングでSQLが発行される。
+
+|(14)
+|入力リソース全件を逐次ループ処理する。 +
+``ItemReader#read``は、入力データがすべて読み取り末端に到達した場合、``null``を返却する。
+
+|(15)
+|リストに追加した``item``の数が一定件数に達したかどうかを判定する。 +
+一定件数に達した場合は、(16)でデータベースへ出力し、リストを``clear``する。
+
+|(16)
+|データベースへ出力する。 +
+このタイミングでコミットするわけではないため留意すること。
+
+|(17)
+|全体の処理件数/一定件数の余り分をデータベースへ出力する。
+
+|(18)
+|リソースをクローズする。 +
+なお、ここでは実装を簡易にするため例外処理を実装していない。例外処理は必要に応じて実装すること。 +
+ここで例外が発生した場合、タスクレット全体のトランザクションがロールバックされ、例外のスタックトレースを出力し、ジョブが異常終了する。
+
+|(19)
+|Taskletの処理が完了したかどうかを返却する。 +
+常に``return RepeatStatus.FINISHED;``と明示する。
+
+|===
+
+[[Ch09_Impl_DBAccessJob_Tasklet_Logic_Bean]]
+==== ジョブBean定義ファイルの設定
+作成したビジネスロジックをジョブとして設定するため、ジョブBean定義ファイルに以下の(1)以降を追記する。
+
+[source, xml]
+.src/main/resources/META-INF/jobs/dbaccess/jobPointAddTasklet.xml
+----
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:batch="http://www.springframework.org/schema/batch"
+       xmlns:p="http://www.springframework.org/schema/p"
+       xmlns:mybatis="http://mybatis.org/schema/mybatis-spring"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+             http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+             http://www.springframework.org/schema/batch http://www.springframework.org/schema/batch/spring-batch.xsd
+             http://mybatis.org/schema/mybatis-spring http://mybatis.org/schema/mybatis-spring.xsd">
+
+    <import resource="classpath:META-INF/spring/job-base-context.xml"/>
+
+    <context:component-scan base-package="com.example.batch.tutorial.dbaccess.tasklet"/>
+
+    <mybatis:scan base-package="com.example.batch.tutorial.common.repository" factory-ref="jobSqlSessionFactory"/>
+
+    <bean id="reader"
+          class="org.mybatis.spring.batch.MyBatisCursorItemReader"
+          p:queryId="com.example.batch.tutorial.common.repository.MemberInfoRepository.findAll"
+          p:sqlSessionFactory-ref="jobSqlSessionFactory"/>
+
+    <bean id="writer" class="org.mybatis.spring.batch.MyBatisBatchItemWriter"
+          p:statementId="com.example.batch.tutorial.common.repository.MemberInfoRepository.updatePointAndStatus"
+         p:sqlSessionTemplate-ref="batchModeSqlSessionTemplate"/>
+
+    <!-- (1) -->
+    <batch:job id="jobPointAddTasklet" job-repository="jobRepository">
+        <batch:step id="jobPointAddTasklet.step01"> <!-- (2) -->
+            <batch:tasklet transaction-manager="jobTransactionManager"
+                           ref="pointAddTasklet"/> <!-- (3) -->
+        </batch:step>
+    </batch:job>
+</beans>
+----
+
+[cols="10,90", options="header"]
+.説明
+|===
+|項番
+|説明
+
+|(1)
+|ジョブの設定を行う。 +
+``id``属性は、1つのバッチアプリケーションに含まれる全ジョブの範囲内で一意とする必要がある。 +
+ここでは、タスクレットモデルのジョブ名として``jobPointAddTasklet``を指定する。
+
+|(2)
+|ステップの設定を行う。 +
+``id``属性は、1つのバッチアプリケーションに含まれる全ジョブの範囲内で一意とする必要はないが、障害発生時に追跡しやすくなる等の様々なメリットがあるため一意とする。 +
+ 特別な理由がない限り、(1)で指定したid属性に[step+連番]を付加する形式とする。 +
+ここでは、タスクレットモデルのジョブのステップ名として``jobPointAddTasklet.step01``を指定する。
+
+|(3)
+|タスクレットの設定を行う。 +
+``ref``属性に、Taskletの実装クラスのBeanIDである``pointAddTasklet``を指定する。
+
+|===
+
+[[Ch09_Impl_DBAccessJob_Tasklet_Execution]]
+=== ジョブの実行と結果の確認
+作成したジョブをSTS上で実行し、結果を確認する。
+
+[[Ch09_Impl_DBAccessJob_Tasklet_Execution_Run]]
+==== 実行構成からジョブを実行
+以下のとおり実行構成を作成し、ジョブを実行する。 +
+実行構成の作成手順は<<Ch09_EnvironmentConstruction.adoc#Ch09_EnvironmentConstruction_OperationCheck,プロジェクトの動作確認>>を参照。
+
+実行構成の設定値::
+* Name: 任意の名称(例: Run DBAccessJob for TaskletModel)
+* Mainタブ
+** Project: ``macchinetta-batch-tutorial``
+** Main class: ``org.springframework.batch.core.launch.support.CommandLineJobRunner``
+* Argumentsタブ
+** Program arguments: ``META-INF/jobs/dbaccess/jobPointAddTasklet.xml jobPointAddTasklet``
+
+[[Ch09_Impl_DBAccessJob_Tasklet_Execution_Console]]
+==== コンソールログの確認
+Consoleに以下の内容のログが出力されていることを確認する。
+
+[source, console]
+.コンソールログ出力例
+----
+[2017/09/12 10:09:56] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=jobPointAddTasklet]] completed with the following parameters: [{jsr_batch_run_id=472}] and the following status: [COMPLETED]
+[2017/09/12 10:09:56] [main] [o.s.c.s.ClassPathXmlApplicationContext] [INFO ] Closing org.springframework.context.support.ClassPathXmlApplicationContext@735f7ae5: startup date [Tue Sep 12 10:09:54 JST 2017]; root of context hierarchy
+----
+
+[[Ch09_Impl_DBAccessJob_Tasklet_Execution_Exitcode]]
+==== 終了コードの確認
+終了コードにより、正常終了したことを確認する。 +
+確認手順は<<Ch09_EnvironmentConstruction.adoc#Ch09_EnvironmentConstruction_OperationCheck_ExecJob_Run,ジョブの実行と結果の確認>>を参照。
+終了コード(exit value)が0(正常終了)となっていることを確認する。
+
+.終了コードの確認
+image::ch09/DBAccess/Ch09_DBAccessJob_Confirm_ExitCode_TaskletModel.png[Confiｒm the Exit Code of DBAccessJob for TaskletModel]
+
+[[Ch09_Impl_DBAccessJob_Tasklet_Execution_Table]]
+==== 会員情報テーブルの確認
+更新前後の会員情報テーブルの内容を比較し、確認内容のとおりとなっていることを確認する。 +
+確認手順は<<Ch09_EnvironmentConstruction.adoc#Ch09_EnvironmentConstruction_OperationCheck_RefDB,Data Source Explorerを使用してデータベースを参照する>>を参照。
+
+確認内容::
+* statusカラム
+** "0"(初期状態)のレコードが存在しないこと
+* pointカラム
+** ポイント加算対象について、会員種別に応じたポイントが加算されていること
+*** typeカラムが"G"(ゴールド会員)の場合は100ポイント
+*** typeカラムが"N"(一般会員)の場合は10ポイント
+** 1,000,000(上限値)を超えたレコードが存在しないこと
+
+更新前後の会員情報テーブルの内容は以下のとおり。
+
+.更新前後の会員情報テーブルの内容
+image::ch09/DBAccess/Ch09_DBAccessJob_Result_MemberInfoTable.png[Table of member_info]

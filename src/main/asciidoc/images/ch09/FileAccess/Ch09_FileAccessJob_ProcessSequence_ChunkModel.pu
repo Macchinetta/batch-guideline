@@ -1,0 +1,88 @@
+@startuml
+
+hide footbox
+autonumber
+
+participant Step
+box "chunk model" #lightblue
+participant FlatFileItemReader
+participant PointAddItemProcessor #Orange
+participant FlatFileItemWriter
+end box
+participant "member_info\n(input)" as infile
+participant "member_info\n(output)" as outfile
+
+[->Step : execute()
+activate Step
+Step -> FlatFileItemReader : open()
+activate FlatFileItemReader
+FlatFileItemReader -> infile : open file
+activate infile
+Step -> FlatFileItemWriter : open()
+activate FlatFileItemWriter
+FlatFileItemWriter -> outfile : open file
+activate outfile
+loop until exhausted read data
+    group Framework Transaction
+        group Create chunk (items)
+            note right of FlatFileItemReader: Repeat until chunk size is reached
+            Step -> FlatFileItemReader : read()
+            FlatFileItemReader -> infile : read line
+            infile --> FlatFileItemReader : line
+            FlatFileItemReader --> Step : item
+            Step -> PointAddItemProcessor : process(item)
+            activate PointAddItemProcessor #Orange
+            PointAddItemProcessor -> PointAddItemProcessor : business logic
+            PointAddItemProcessor --> Step : item
+            deactivate PointAddItemProcessor
+        end
+        Step -> FlatFileItemWriter : write(items)
+        FlatFileItemWriter -> outfile : buffering
+        Step [#blue]-> FlatFileItemWriter : <font color="blue"><b>commit</b></font>
+        FlatFileItemWriter -> outfile : flush
+    end
+end
+Step -> FlatFileItemReader : close()
+FlatFileItemReader -> infile : close file
+deactivate FlatFileItemReader
+deactivate infile
+Step -> FlatFileItemWriter : close()
+FlatFileItemWriter -> outfile : close file
+deactivate FlatFileItemWriter
+deactivate outfile
+Step-->[ : ExitStatus
+deactivate Step
+
+'Set styles such as format and color of each figure
+skinparam Note {
+  BackgroundColor #b7fab1
+  BorderColor black
+}
+
+skinparam Class {
+  BorderColor black
+  ArrowColor black
+}
+
+skinparam Sequence {
+  BorderColor black
+  ActorBorderColor black
+  ArrowColor black
+  LifeLineBorderColor black
+  BoxLineColor black
+  ParticipantBorderColor black
+}
+
+skinparam componentStyle uml2
+
+skinparam Component {
+  BorderColor black
+  ArrowColor black
+}
+
+skinparam Interface {
+  BorderColor black
+  ArrowColor black
+}
+
+@enduml

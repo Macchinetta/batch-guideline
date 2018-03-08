@@ -1,0 +1,1128 @@
+include::_include_all.adoc[]
+
+[[Ch09_Impl_ExceptionHandlingWithTryCatchJob]]
+= try-catchで例外ハンドリングを行うジョブ
+
+[[Ch09_Impl_ExceptionHandlingWithTryCatchJob_Prerequisite]]
+[NOTE]
+.前提
+====
+<<Ch09_Introduction.adoc#Ch09_Introduction_HowToProceed,チュートリアルの進め方>>で説明しているとおり、
+<<Ch09_ValidationJob.adoc#Ch09_Impl_ValidationJob,入力データの妥当性検証を行うジョブ>>に対して、
+例外ハンドリングの実装を追加していく形式とする。なお、例外ハンドリング方式にはtry-catchやChunkListenerなど様々な方式がある。 +
+ただし、記述はデータベースアクセスするジョブに実装を追加した場合の説明としているため留意すること。
+====
+
+[[Ch09_Impl_ExceptionHandlingWithTryCatchJob_Overview]]
+== 概要
+try-catchで例外ハンドリングを行うジョブを作成する。
+
+なお、本節は{batch5_guide}を元に説明しているため、
+詳細については<<Ch06_ExceptionHandling.adoc#Ch06_ExceptionHandling_HowToUse_StepExceptionHandling_Chunk_ItemProcessor_TryCatchExample,ItemProcessor内でtry～catchする方法>>および
+<<Ch06_ExceptionHandling.adoc#Ch06_ExceptionHandling_HowToUse_StepExceptionHandling_Tasklet,タスクレットモデルにおける例外ハンドリング>>を参照のこと。
+
+[NOTE]
+.終了コードの意味合いについて
+====
+本節では、終了コードは2つの意味合いで扱われており、それぞれの説明を以下に示す。
+
+* COMPLETED、FAILEDなどの文字列の終了コードは、ジョブやステップの終了コードである。
+* 0、255などの数値の終了コードは、Javaプロセスの終了コードである。
+====
+
+<<Ch09_TutorialApplication.adoc#Ch09_TutorialApplication,作成するアプリケーションの説明>>の
+背景、処理概要、業務仕様を以下に再掲する。
+
+[[Ch09_Impl_ExceptionHandlingWithTryCatchJob_Overview_Background]]
+=== 背景
+とある量販店では、会員に対してポイントカードを発行している。 +
+会員には「ゴールド会員」「一般会員」の会員種別が存在し、会員種別に応じたサービスを提供している。 +
+今回そのサービスの一環として、月内に商品を購入した会員のうち、
+会員種別が「ゴールド会員」の場合は100ポイント、「一般会員」の場合は10ポイントを月末に加算することにした。
+
+[[Ch09_Impl_ExceptionHandlingWithTryCatchJob_Overview_ProcessOverview]]
+=== 処理概要
+会員種別に応じてポイント加算を行うアプリケーションを
+月次バッチ処理として{batch5_shortname}を使用して実装する。 +
+入力データにポイントの上限値を超えるデータが存在するか妥当性検証を行う処理を追加実装し、
+エラーの場合は警告メッセージを出力し、スキップして処理を継続する。その際にスキップしたことを示す終了コードを出力する。
+
+[[Ch09_Impl_ExceptionHandlingWithTryCatchJob_Overview_BusinessSpecification]]
+=== 業務仕様
+業務仕様は以下のとおり。
+
+* 入力データのポイントが1,000,000ポイントを超過していないことをチェックする
+** チェックエラーとなる場合は、警告メッセージをログに出力し、対象レコードはスキップして処理を継続する
+** スキップした場合は、スキップしたことを示すために終了コードを"200"(SKIPPED)に変換する
+* 商品購入フラグが"1"(処理対象)の場合に、会員種別に応じてポイントを加算する
+** 会員種別が"G"(ゴールド会員)の場合は100ポイント、"N"(一般会員)の場合は10ポイント加算する
+* 商品購入フラグはポイント加算後に"0"(初期状態)に更新する
+* ポイントの上限値は1,000,000ポイントとする
+* ポイント加算後に1,000,000ポイントを超えた場合は、1,000,000ポイントに補正する
+
+[[Ch09_Impl_ExceptionHandlingWithTryCatchJob_Overview_TableSpecification]]
+=== テーブル仕様
+入出力リソースとなる会員情報テーブルの仕様は以下のとおり。 +
+<<Ch09_Impl_ExceptionHandlingWithTryCatchJob_Prerequisite>>のとおりデータベースアクセスするジョブの場合の説明となるため、ファイルアクセスするジョブの場合の
+入出力のリソース仕様は<<Ch09_FileAccessJob.adoc#Ch09_Impl_FileAccessJob_Overview_FileSpecification,ファイル仕様>>を参照する。
+
+[cols="3,15,10,4,12,8,45", options="header"]
+.会員情報テーブル(member_info)
+|===
+|No
+|属性名
+|カラム名
+|PK
+|データ型
+|桁数
+|説明
+
+|1
+|会員番号
+|id
+|icon:check[]
+|CHAR
+|8
+|会員を一意に示す8桁固定の番号を表す。
+
+|2
+|会員種別
+|type
+|-
+|CHAR
+|1
+|会員の種別を以下のとおり表す。 +
+"G"(ゴールド会員)、"N"(一般会員)
+
+|3
+|商品購入フラグ
+|status
+|-
+|CHAR
+|1
+|月内に商品を買ったかどうかを表す。 +
+商品購入で"1"(処理対象)、月次バッチ処理で"0"(初期状態)に更新される。
+
+|4
+|ポイント
+|point
+|-
+|INT
+|7
+|会員の保有するポイントを表す。 +
+初期値は0。
+
+|===
+
+[[Ch09_Impl_ExceptionHandlingWithTryCatchJob_Overview_JobOverview]]
+=== ジョブの概要
+ここで作成する入力チェックを行うジョブの概要を把握するために、
+処理フローおよび処理シーケンスを以下に示す。
+
+<<Ch09_Impl_ExceptionHandlingWithTryCatchJob_Prerequisite>>のとおりデータベースアクセスするジョブの場合の説明となるため、
+ファイルアクセスするジョブの場合の処理フローおよび処理シーケンスとは異なる部分があるため留意する。
+
+//^
+処理フロー概要::
+処理フローの概要を以下に示す。
+
+.例外ハンドリングを行うジョブの処理フロー
+image::ch09/ExceptionHandlingWithTryCatch/Ch09_ExceptionHandlingWithTryCatchJob_ProcessFlow.png[ProcessFlow of ExceptionHandlingWithTryCatch Job]
+
+//^
+チャンクモデルの場合の処理シーケンス::
+チャンクモデルの場合の処理シーケンスを説明する。 +
+本ジョブは異常系データを利用することを前提として説明しているため、
+このシーケンス図は入力チェックでエラー(警告終了)となった場合を示している。
+
+橙色のオブジェクトは今回実装するクラスを表す。
+
+.チャンクモデルのシーケンス図
+image::Ch09_ExceptionHandlingWithTryCatchJob_ProcessSequence_ChunkModel.png[ProcessSequence of ExceptionHandlingWithTryCatch Job by ChunkModel]
+
+.シーケンス図の説明
+. ジョブからステップが実行される。
+. ステップは、リソースをオープンする。
+. ``MyBatisCursorItemReader``は、member_infoテーブルから会員情報をすべて取得(select文の発行)する。
+** 入力データがなくなるまで、以降の処理を繰り返す。
+** チャンク単位で、フレームワークトランザクションを開始する。
+** チャンクサイズに達するまで4から12までの処理を繰り返す。
+. ステップは、``MyBatisCursorItemReader``から入力データを1件取得する。
+. ``MyBatisCursorItemReader``は、member_infoテーブルから入力データを1件取得する。
+. member_infoテーブルは、``MyBatisCursorItemReader``に入力データを返却する。
+. ``MyBatisCursorItemReader``は、ステップに入力データを返却する。
+. ステップは、``PointAddItemProcessor``で入力データに対して処理を行う。
+. ``PointAddItemProcessor``は、``SpringValidator``に入力チェック処理を依頼する。
+. ``SpringValidator``は、入力チェックルールに基づき入力チェックを行い、チェックエラーの場合は例外(ValidationException)をスローする。
+. ``PointAddItemProcessor``は、入力データを読み込んでポイント加算処理を行う。例外(ValidationException)をキャッチした場合はnullを返却してエラーレコードをスキップする。
+. ``PointAddItemProcessor``は、ステップに処理結果を返却する。
+. ステップは、チャンクサイズ分のデータを``MyBatisBatchItemWriter``で出力する。
+. ``MyBatisBatchItemWriter``は、member_infoテーブルに対して会員情報の更新(update文の発行)を行う。
+. ステップはフレームワークトランザクションをコミットする。
+. ステップは``ExitStatusChangeListener``を実行する。
+. ``ExitStatusChangeListener``は、入力データと出力データの件数が異なる場合に``StepExecution``に独自の終了コードとして``SKIPPED``を設定する。
+. ステップはジョブに終了コード(ここでは正常終了:0)を返却する。
+. ジョブは``JobExitCodeChangeListener``を実行する。
+. ``JobExitCodeChangeListener``は``StepExecution``から終了コードを取得する。
+. ``StepExecution``は``JobExitCodeChangeListener``に終了コードを返却する。
+. ``JobExitCodeChangeListener``は最終的なジョブの終了コードとして、ジョブに``SKIPPED``(ここでは警告終了:200)を返却する。
+
+//^
+タスクレットモデルの場合の処理シーケンス::
+タスクレットモデルの場合の処理シーケンスについて説明する。 +
+本ジョブは異常系データを利用することを前提として説明しているため、
+このシーケンス図は入力チェックでエラー(警告終了)となった場合を示している。
+
+橙色のオブジェクトは今回実装するクラスを表す。
+
+.タスクレットモデルの処理シーケンス図
+image::Ch09_ExceptionHandlingWithTryCatchJob_ProcessSequence_TaskletModel.png[ProcessSequence of ExceptionHandlingWithTryCatch Job by TaskletModel]
+
+.シーケンス図の説明
+. ジョブからステップが実行される。
+** ステップはフレームワークトランザクションを開始する。
+. ステップは``PointAddTasklet``を実行する。
+. ``PointAddTasklet``は、リソースをオープンする。
+. ``MyBatisCursorItemReader``は、member_infoテーブルから会員情報をすべて取得(select文の発行)する。
+** 入力データがなくなるまで5から13までの処理を繰り返す。
+** 一定件数に達するまで5から11までの処理を繰り返す。
+. ``PointAddTasklet``は、``MyBatisCursorItemReader``から入力データを1件取得する。
+. ``MyBatisCursorItemReader``は、member_infoテーブルから入力データを1件取得する。
+. member_infoテーブルは、``MyBatisCursorItemReader``に入力データを返却する。
+. ``MyBatisCursorItemReader``は、タスクレットに入力データを返却する。
+. ``PointAddTasklet``は、``SpringValidator``に入力チェック処理を依頼する。
+. ``SpringValidator``は、入力チェックルールに基づき入力チェックを行い、チェックエラーの場合は例外(ValidationException)をスローする。
+. ``PointAddTasklet``は、入力データを読み込んでポイント加算処理を行う。例外(ValidationException)をキャッチした場合はcontinueで処理を継続してエラーレコードをスキップする。
+** スキップした場合、以降の処理はせず5から処理を行う。
+. ``PointAddTasklet``は、一定件数分のデータを``MyBatisBatchItemWriter``で出力する。
+. ``MyBatisBatchItemWriter``は、member_infoテーブルに対して会員情報の更新(update文の発行)を行う。
+. ``PointAddTasklet``は、``StepExecution``に独自の終了コードとして``SKIPPED``を設定する。
+. ``PointAddTasklet``はステップへ処理終了を返却する。
+. ステップはフレームワークトランザクションをコミットする。
+. ステップはジョブに終了コード(ここでは正常終了:0)を返却する。
+. ステップは``JobExitCodeChangeListener``を実行する。
+. ``JobExitCodeChangeListener``は``StepExecution``から終了コードを取得する。
+. ``StepExecution``は``JobExitCodeChangeListener``に終了コードを返却する。
+. ステップはジョブに終了コード(ここでは警告終了:200)を返却する。
+
+[NOTE]
+.処理モデルによるスキップ実装について
+====
+チャンクモデルとタスクレットモデルではスキップ処理の実装方法が異なる。
+
+チャンクモデル::
+ItemProcessor内でtry-catchを実装し、catchブロック内でnullを返却することでエラーデータをスキップする。
+ItemReader、ItemWriterでのスキップは<<Ch06_ExceptionHandling.adoc#Ch06_ExceptionHandling_HowToUse_ContinuationPropriety_Skip,スキップ>>を参照のこと。
+
+タスクレットモデル::
+ビジネスロジック内でtry-catchを実装し、catchブロック内でcontinueにより処理を継続することでエラーデータをスキップする。
+====
+
+以降で、チャンクモデル、タスクレットモデルそれぞれの実装方法を説明する。
+
+* <<Ch09_Impl_ExceptionHandlingWithTryCatchJob_Chunk>>
+* <<Ch09_Impl_ExceptionHandlingWithTryCatchJob_Tasklet>>
+
+[[Ch09_Impl_ExceptionHandlingWithTryCatchJob_Chunk]]
+== チャンクモデルでの実装
+チャンクモデルで入力チェックを行うジョブの作成から実行までを以下の手順で実施する。
+
+. <<Ch09_Impl_ExceptionHandlingWithTryCatchJob_Chunk_MessageDefinition>>
+. <<Ch09_Impl_ExceptionHandlingWithTryCatchJob_Chunk_ExitCode>>
+. <<Ch09_Impl_ExceptionHandlingWithTryCatchJob_Chunk_Coding>>
+. <<Ch09_Impl_ExceptionHandlingWithTryCatchJob_Chunk_Execution>>
+
+[[Ch09_Impl_ExceptionHandlingWithTryCatchJob_Chunk_MessageDefinition]]
+=== メッセージ定義の追加
+コード体系のばらつき防止や、監視対象のキーワードとしての抽出を設計しやすくするため、
+ログメッセージはメッセージ定義を使用し、ログ出力時に使用する。
+
+チャンクモデル/タスクレットモデルで共通して利用するため、既に作成している場合は読み飛ばしてよい。
+
+``application-messages.properties``および``launch-context.xml``を以下のとおり設定する。 +
+``launch-context.xml``は{batch5_shortname}では設定済みである。
+
+[source, xml]
+.src/main/resources/i18n/application-messages.properties
+----
+# (1)
+errors.maxInteger=The {0} exceeds {1}.
+----
+
+[source, xml]
+.src/main/resources/META-INF/spring/launch-context.xml
+----
+<!-- omitted -->
+
+<bean id="messageSource" class="org.springframework.context.support.ResourceBundleMessageSource"
+      p:basenames="i18n/application-messages" /> <!-- (2) -->
+
+<!-- omitted -->
+----
+
+[cols="10,90", options="header"]
+.説明
+|===
+|項番
+|説明
+
+|(1)
+|ポイント上限超過時に出力するメッセージを設定する。 +
+{0)に項目名、{1}に上限値を割り当てる。
+
+|(2)
+|プロパティファイルからメッセージを使用するために、``MessageSource``を設定する。 +
+``basenames``に、プロパティファイルの格納場所を指定する。
+
+|===
+
+[[Ch09_Impl_ExceptionHandlingWithTryCatchJob_Chunk_ExitCode]]
+=== 終了コードのカスタマイズ
+ジョブ終了時のjavaプロセスの終了コードをカスタマイズする。 +
+詳細は<<Ch07_JobManagement.adoc#Ch07_JobManagement_HowToUse_ExitCode,終了コードのカスタマイズ>>を参照のこと。
+
+以下の作業を実施する。
+
+. <<Ch09_Impl_ExceptionHandlingWithTryCatchJob_Chunk_ExitCode_StepExecutionListener>>
+. <<Ch09_Impl_ExceptionHandlingWithTryCatchJob_Chunk_ExitCode_JobExecutionListener>>
+. <<Ch09_Impl_ExceptionHandlingWithTryCatchJob_Chunk_ExitCode_Bean>>
+. <<Ch09_Impl_ExceptionHandlingWithTryCatchJob_Chunk_ExitCode_Context>>
+
+[[Ch09_Impl_ExceptionHandlingWithTryCatchJob_Chunk_ExitCode_StepExecutionListener]]
+==== StepExecutionListenerの実装
+``StepExecutionListener``インターフェースを利用してステップの終了コードを条件により変更する。 +
+ここでは、``StepExecutionListener``インターフェースの実装クラスとして、
+入力データと出力データの件数が異なる場合に終了コードを``SKIPPED``に変更する処理を実装する。
+
+なお、このクラスはタスクレットモデルでは作成する必要がない。
+タスクレットモデルではTaskletの実装クラス内で``StepExecution``クラスに独自の終了コードを設定することができるためである。
+
+[source, java]
+.com.example.batch.tutorial.common.listener.ExitStatusChangeListener
+----
+package com.example.batch.tutorial.common.listener;
+
+import org.springframework.batch.core.ExitStatus;
+import org.springframework.batch.core.StepExecution;
+import org.springframework.batch.core.StepExecutionListener;
+import org.springframework.stereotype.Component;
+
+@Component
+public class ExitStatusChangeListener implements StepExecutionListener {
+
+    @Override
+    public void beforeStep(StepExecution stepExecution) {
+        // do nothing.
+    }
+
+    @Override
+    public ExitStatus afterStep(StepExecution stepExecution) {
+        ExitStatus exitStatus = stepExecution.getExitStatus();
+        if (conditionalCheck(stepExecution)) {
+            exitStatus = new ExitStatus("SKIPPED"); // (1)
+        }
+        return exitStatus;
+    }
+
+    private boolean conditionalCheck(StepExecution stepExecution) {
+        return (stepExecution.getWriteCount() != stepExecution.getReadCount()); // (2)
+    }
+}
+----
+
+[cols="10,90", options="header"]
+.説明
+|===
+|項番
+|説明
+
+|(1)
+|ステップの実行結果に応じて独自の終了コードを設定する。 +
+ここでは、スキップした場合に終了コードとして``SKIPPED``を指定する。
+
+|(2)
+|スキップしたことを判定するため、入力データと出力データの件数の比較を行う。 +
+スキップした場合、入力データと出力データの件数が異なるため、件数の差を利用してスキップの判定を行っている。
+ここで件数に差があった場合に(1)が実行される。
+
+|===
+
+[[Ch09_Impl_ExceptionHandlingWithTryCatchJob_Chunk_ExitCode_JobExecutionListener]]
+==== JobExecutionListenerの実装
+``JobExecutionListener``インターフェースを利用してジョブの終了コードを条件により変更する。 +
+ここでは、``JobExecutionListener``インターフェースの実装クラスとして、
+最終的なジョブの終了コードを各ステップの終了コードに合わせて変更する処理を実装する。
+
+[source, java]
+.com.example.batch.tutorial.common.listener.JobExitCodeChangeListener
+----
+package com.example.batch.tutorial.common.listener;
+
+import org.springframework.batch.core.ExitStatus;
+import org.springframework.batch.core.JobExecution;
+import org.springframework.batch.core.JobExecutionListener;
+import org.springframework.batch.core.StepExecution;
+import org.springframework.stereotype.Component;
+
+import java.util.Collection;
+
+@Component
+public class JobExitCodeChangeListener implements JobExecutionListener {
+
+    @Override
+    public void beforeJob(JobExecution jobExecution) {
+        // do nothing.
+    }
+
+    @Override
+    public void afterJob(JobExecution jobExecution) {
+        Collection<StepExecution> stepExecutions = jobExecution.getStepExecutions();
+        for (StepExecution stepExecution : stepExecutions) { // (1)
+            if ("SKIPPED".equals(stepExecution.getExitStatus().getExitCode())) {
+                jobExecution.setExitStatus(new ExitStatus("SKIPPED"));
+                break;
+            }
+        }
+    }
+}
+----
+
+[cols="10,90", options="header"]
+.説明
+|===
+|項番
+|説明
+
+|(1)
+|ジョブの実行結果に応じて、最終的なジョブの終了コードを``JobExecution``に設定する。 +
+ここではステップから返却された終了コードのいずれかに``SKIPPED``が含まれている場合、
+終了コードを``SKIPPED``としている。
+
+|===
+
+[[Ch09_Impl_ExceptionHandlingWithTryCatchJob_Chunk_ExitCode_Bean]]
+==== ジョブBean定義ファイルの設定
+作成したリスナーを利用するためのジョブBean定義ファイルの設定を以下に示す。
+
+[source, xml]
+.src/main/resources/META-INF/jobs/dbaccess/jobPointAddChunk.xml
+----
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:batch="http://www.springframework.org/schema/batch"
+       xmlns:p="http://www.springframework.org/schema/p"
+       xmlns:mybatis="http://mybatis.org/schema/mybatis-spring"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+             http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+             http://www.springframework.org/schema/batch http://www.springframework.org/schema/batch/spring-batch.xsd
+             http://mybatis.org/schema/mybatis-spring http://mybatis.org/schema/mybatis-spring.xsd">
+
+    <!-- omitted -->
+
+    <context:component-scan base-package="com.example.batch.tutorial.dbaccess.chunk,
+            com.example.batch.tutorial.common.listener"/> <!-- (1) -->
+
+    <!-- omitted -->
+
+    <batch:job id="jobPointAddChunk" job-repository="jobRepository">
+        <batch:step id="jobPointAddChunk.step01">
+            <batch:tasklet transaction-manager="jobTransactionManager">
+                <batch:chunk reader="reader"
+                             processor="pointAddItemProcessor"
+                             writer="writer" commit-interval="10"/>
+            </batch:tasklet>
+            <batch:listeners>
+                <batch:listener ref="exitStatusChangeListener"/> <!-- (2) -->
+            </batch:listeners>
+        </batch:step>
+        <batch:listeners>
+            <batch:listener ref="jobExitCodeChangeListener"/> <!-- (3) -->
+        </batch:listeners>
+    </batch:job>
+
+</beans>
+----
+
+[cols="10,90", options="header"]
+.説明
+|===
+|項番
+|説明
+
+|(1)
+|コンポーネントスキャン対象とするベースパッケージの設定を行う。 +
+``base-package``属性に、``StepExecutionListener``および``JobExecutionListener``の実装クラスが格納されているパッケージを追加で指定する。
+
+|(2)
+|``StepExecutionListener``の実装クラスを設定する。
+なお、``StepExecutionListener``は``StepListener``の拡張インターフェースである。 +
+ここでは、``StepExecutionListener``の実装クラスのBeanIDである``exitStatusChangeListener``を指定する。
+
+|(3)
+|``JobExecutionListener``の実装クラスを設定する。 +
+ここでは、``JobExecutionListener``の実装クラスのBeanIDである``jobExitCodeChangeListener``を指定する。
+
+|===
+
+[WARNING]
+.ExitStatusChangeListenerとJobExitCodeChangeListenerの設定箇所の違いについて
+====
+``ExitStatusChangeListener``はステップの実行前後に処理を割り込める``StepListener``に属するため、``<batch:tasklet>``タグ内に``<batch:listeners>``.``<batch:listener>``タグによって設定する。 +
+``JobExitCodeChangeListener``はジョブの実行前後に処理を割り込める``JobListener``に属するため、``<batch:job>``タグ内に``<batch:listeners>``.``<batch:listener>``タグによって設定する。
+
+詳細は<<Ch04_Listener.adoc#Ch04_Listener_HowToUse_Configuration,リスナーの設定>>を参照のこと。
+====
+
+[[Ch09_Impl_ExceptionHandlingWithTryCatchJob_Chunk_ExitCode_Context]]
+==== 終了コードのマッピング定義
+終了コードのマッピングを追加で設定する。
+
+``launch-context.xml``に以下のとおり、独自の終了コードを追加する。
+
+[source, xml]
+.src/main/resources/META-INF/spring/launch-context.xml
+----
+<!-- omitted -->
+
+<bean id="exitCodeMapper" class="org.springframework.batch.core.launch.support.SimpleJvmExitCodeMapper">
+    <property name="mapping">
+        <util:map id="exitCodeMapper" key-type="java.lang.String"
+                  value-type="java.lang.Integer">
+            <!-- ExitStatus -->
+            <entry key="NOOP" value="0" />
+            <entry key="COMPLETED" value="0" />
+            <entry key="STOPPED" value="255" />
+            <entry key="FAILED" value="255" />
+            <entry key="UNKNOWN" value="255" />
+            <entry key="SKIPPED" value="200" /> <!-- (1) -->
+        </util:map>
+    </property>
+</bean>
+
+<!-- omitted -->
+----
+
+[cols="10,90", options="header"]
+.説明
+|===
+|項番
+|説明
+
+|(1)
+|独自の終了コードを追加する。 +
+マッピングするためのキーに``SKIPPED``、コード値として``200``を指定する。
+
+|===
+
+[[Ch09_Impl_ExceptionHandlingWithTryCatchJob_Chunk_Coding]]
+=== 例外ハンドリングの実装
+ポイント加算処理を行うビジネスロジッククラスにtry-catch処理を実装する。 +
+既に実装してある``PointAddItemProcessor``クラスにtry-catch処理の実装を追加する。
+
+<<Ch09_Impl_ExceptionHandlingWithTryCatchJob_Prerequisite>>のとおりデータベースアクセスするジョブの場合の説明となるため、
+ファイルアクセスするジョブの場合の実装は以下の(1)～(5)のみ追加する。
+
+[source, java]
+.com.example.batch.tutorial.dbaccess.chunk.PointAddItemProcessor
+----
+// Package and the other import are omitted.
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.batch.item.validator.ValidationException;
+import org.springframework.context.MessageSource;
+
+import java.util.Locale;
+
+@Component
+public class PointAddItemProcessor implements ItemProcessor<MemberInfoDto, MemberInfoDto> {
+    // Definition of constans are omitted.
+
+    private static final Logger logger = LoggerFactory.getLogger(PointAddItemProcessor.class); // (1)
+
+    @Inject
+    Validator<MemberInfoDto> validator;
+
+    @Inject
+    MessageSource messageSource; // (2)
+
+    @Override
+    public MemberInfoDto process(MemberInfoDto item) throws Exception {
+        try { // (3)
+            validator.validate(item);
+        } catch (ValidationException e) {
+            logger.warn(messageSource
+                    .getMessage("errors.maxInteger", new String[] { "point", "1000000" }, Locale.getDefault())); // (4)
+            return null; // (5)
+        }
+
+        // The other codes of bussiness logic are omitted.
+    }
+}
+----
+
+[cols="10,90", options="header"]
+.説明
+|===
+|項番
+|説明
+
+|(1)
+|ログを出力するために``LoggerFactory``のインスタンスを定義する。
+
+|(2)
+|``MessageSource``のインスタンスをインジェクトする。
+
+|(3)
+|例外ハンドリングを実装する。 +
+入力チェック処理をtry-catchで囲み、``ValidationException``をハンドリングする。
+
+|(4)
+|プロパティファイルからメッセージIDが``errors.maxInteger``のメッセージを取得し、ログに出力している。
+
+|(5)
+|エラーレコードをスキップするためにnullを返却する。
+
+|===
+
+[[Ch09_Impl_ExceptionHandlingWithTryCatchJob_Chunk_Execution]]
+=== ジョブの実行と結果の確認
+作成したジョブをSTS上で実行し、結果を確認する。
+
+[[Ch09_Impl_ExceptionHandlingWithTryCatchJob_Chunk_Execution_Run]]
+==== 実行構成からジョブを実行
+既に作成してある実行構成からジョブを実行し、結果を確認する。
+
+ここでは、異常系データを利用してジョブを実行する。 +
+例外ハンドリングを実装したジョブが扱うリソース(データベース or ファイル)によって、
+入力データの切替方法が異なるため、以下のとおり実行すること。
+
+//^
+データベースアクセスでデータ入出力を行うジョブに対して例外ハンドリングを実装した場合::
+データベースアクセスでデータ入出力を行うジョブの<<Ch09_DBAccessJob.adoc#Ch09_Impl_DBAccessJob_Chunk_Execution_Run,実行構成からジョブを実行>>
+で作成した実行構成を使ってジョブを実行する。
+
+異常系データを利用するために、``batch-application.proeprties``のDatabase Initializeで
+正常系データのスクリプトをコメントアウトし、異常系データのスクリプトのコメントアウトを解除する。
+
+[source, xml]
+.src/main/resources/batch-application.proeprties
+----
+# Database Initialize
+tutorial.create-table.script=file:sqls/create-member-info-table.sql
+#tutorial.insert-data.script=file:sqls/insert-member-info-data.sql
+tutorial.insert-data.script=file:sqls/insert-member-info-error-data.sql
+----
+
+//^
+ファイルアクセスでデータ入出力を行うジョブに対して例外ハンドリングを実装した場合::
+ファイルアクセスでデータ入出力を行うジョブの<<Ch09_FileAccessJob.adoc#Ch09_Impl_FileAccessJob_Chunk_Execution_Run,実行構成からジョブを実行>>
+で作成した実行構成を使ってジョブを実行する。
+
+異常系データを利用するために、実行構成で設定する引数のうち、
+入力ファイル(inputFile)のパスを正常系データ(insert-member-info-data.csv)から異常系データ(insert-member-info-error-data.csv)に変更する。
+
+[[Ch09_Impl_ExceptionHandlingWithTryCatchJob_Chunk_Execution_Console]]
+==== コンソールログの確認
+Console Viewを開き、以下の内容のログが出力されていることを確認する。
+
+* 例外が発生していないこと
+* WARNログとして次のメッセージを出力していること
+** 「The Point exceeds 1000000.」
+
+[source, console]
+.コンソールログ出力例
+----
+[2017/09/05 18:27:01] [main] [o.t.b.t.e.c.PointAddItemProcessor] [WARN ] The point exceeds 1000000.
+[2017/09/05 18:27:01] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=jobPointAddChunk]] completed with the following parameters: [{jsr_batch_run_id=450}] and the following status: [COMPLETED]
+[2017/09/05 18:27:01] [main] [o.s.c.s.ClassPathXmlApplicationContext] [INFO ] Closing org.springframework.context.support.ClassPathXmlApplicationContext@2145433b: startup date [Tue Sep 05 18:26:57 JST 2017]; root of context hierarchy
+----
+
+[[Ch09_Impl_ExceptionHandlingWithTryCatchJob_Chunk_Execution_Exitcode]]
+==== 終了コードの確認
+終了コードにより、警告終了したことを確認する。 +
+確認手順は<<Ch09_EnvironmentConstruction.adoc#Ch09_EnvironmentConstruction_OperationCheck_ExecJob_Run,ジョブの実行と結果の確認>>を参照。
+終了コード(exit value)が200(警告終了)となっていることを確認する。
+
+.終了コードの確認
+image::ch09/ExceptionHandlingWithTryCatch/Ch09_ExceptionHandlingWithTryCatchJob_Confirm_ExitCode_ChunkModel.png[Confirm the Exit Code of ExceptionHandlingWithTryCatchJob for ChunkModel]
+
+[[Ch09_Impl_ExceptionHandlingWithTryCatchJob_Chunk_Execution_Output]]
+==== 出力リソースの確認
+例外ハンドリングを実装したジョブによって出力リソース(データベース or ファイル)を確認する。
+
+スキップを実装しているため、エラーレコード以外の更新対象レコードについては
+正常に更新されていることを確認する。
+
+[[Ch09_Impl_ExceptionHandlingWithTryCatchJob_Chunk_Execution_Output_Table]]
+===== 会員情報テーブルの確認
+Data Source Explorerを使用して会員情報テーブルの確認を行う。 +
+更新前後の会員情報テーブルの内容を比較し、確認内容のとおりとなっていることを確認する。 +
+確認手順は<<Ch09_EnvironmentConstruction.adoc#Ch09_EnvironmentConstruction_OperationCheck_RefDB,Data Source Explorerを使用してデータベースを参照する>>を参照。
+
+確認内容::
+* エラーレコード(会員番号が"000000013")を除くすべてのレコードについて
+** statusカラム
+*** "0"(初期状態)のレコードが存在しないこと
+** pointカラム
+*** ポイント加算対象について、会員種別に応じたポイントが加算されていること
+**** typeカラムが"G"(ゴールド会員)の場合は100ポイント
+**** typeカラムが"N"(一般会員)の場合は10ポイント
+* エラーレコード(会員番号が"000000013")について
+** 更新されていないこと
+
+更新前後の会員情報テーブルの内容は以下のとおり。
+
+.更新前後の会員情報テーブルの内容
+image::ch09/ExceptionHandlingWithTryCatch/Ch09_ExceptionHandlingWithTryCatchJob_Result_MemberInfoTable.png[Table of member_info]
+
+[[Ch09_Impl_ExceptionHandlingWithTryCatchJob_Chunk_Execution_Output_File]]
+===== 会員情報ファイルの確認
+会員情報ファイルの入出力内容を比較し、確認内容のとおりとなっていることを確認する。
+
+確認内容::
+* 出力ディレクトリに会員情報ファイルが出力されていること
+** 出力ファイル: files/output/output-member-info-data.csv
+* エラーレコード(会員番号が"00000013")を除くすべてのレコードについて
+** statusカラム
+*** "0"(初期状態)のレコードが存在しないこと
+** pointカラム
+*** ポイント加算対象について、会員種別に応じたポイントが加算されていること
+**** typeカラムが"G"(ゴールド会員)の場合は100ポイント
+**** typeカラムが"N"(一般会員)の場合は10ポイント
+* エラーレコード(会員番号が"00000013")が出力されていないこと
+
+会員情報ファイルの入出力内容は以下のとおり。 +
+ファイルのフィールドはid(会員番号)、type(会員種別)、status(商品購入フラグ)、point(ポイント)の順で出力される。
+
+.会員情報ファイルの入出力内容
+image::ch09/ExceptionHandlingWithTryCatch/Ch09_ExceptionHandlingWithTryCatchJob_Result_MemberInfoFile.png[File of member_info]
+
+[[Ch09_Impl_ExceptionHandlingWithTryCatchJob_Tasklet]]
+== タスクレットモデルでの実装
+タスクレットモデルで入力チェックを行うジョブの作成から実行までを以下の手順で実施する。
+
+. <<Ch09_Impl_ExceptionHandlingWithTryCatchJob_Tasklet_MessageDefinition>>
+. <<Ch09_Impl_ExceptionHandlingWithTryCatchJob_Tasklet_ExitCode>>
+. <<Ch09_Impl_ExceptionHandlingWithTryCatchJob_Tasklet_Coding>>
+. <<Ch09_Impl_ExceptionHandlingWithTryCatchJob_Tasklet_Execution>>
+
+[[Ch09_Impl_ExceptionHandlingWithTryCatchJob_Tasklet_MessageDefinition]]
+=== メッセージ定義の追加
+コード体系のばらつき防止や、監視対象のキーワードとしての抽出を設計しやすくするため、
+ログメッセージはメッセージ定義を使用し、ログ出力時に使用する。
+
+チャンクモデル/タスクレットモデルで共通して利用するため、既に作成している場合は読み飛ばしてよい。
+
+``application-messages.properties``および``launch-context.xml``を以下のとおり設定する。 +
+``launch-context.xml``は{batch5_shortname}では設定済みである。
+
+[source, xml]
+.src/main/resources/i18n/application-messages.properties
+----
+# (1)
+errors.maxInteger=The {0} exceeds {1}.
+----
+
+[source, xml]
+.src/main/resources/META-INF/spring/launch-context.xml
+----
+<!-- omitted -->
+
+<bean id="messageSource" class="org.springframework.context.support.ResourceBundleMessageSource"
+      p:basenames="i18n/application-messages" /> <!-- (2) -->
+
+<!-- omitted -->
+----
+
+[cols="10,90", options="header"]
+.説明
+|===
+|項番
+|説明
+
+|(1)
+|ポイント上限超過時に出力するメッセージを設定する。 +
+{0)に項目名、{1}に上限値を割り当てる。
+
+|(2)
+|プロパティファイルからメッセージを使用するために、``MessageSource``を設定する。 +
+``basenames``に、プロパティファイルの格納場所を指定する。
+
+|===
+
+[[Ch09_Impl_ExceptionHandlingWithTryCatchJob_Tasklet_ExitCode]]
+=== 終了コードのカスタマイズ
+ジョブ終了時のjavaプロセスの終了コードをカスタマイズする。 +
+詳細は<<Ch07_JobManagement.adoc#Ch07_JobManagement_HowToUse_ExitCode,終了コードのカスタマイズ>>を参照のこと。
+
+以下の作業を実施する。
+
+. <<Ch09_Impl_ExceptionHandlingWithTryCatchJob_Tasklet_ExitCode_JobExecutionListener>>
+. <<Ch09_Impl_ExceptionHandlingWithTryCatchJob_Tasklet_ExitCode_Bean>>
+. <<Ch09_Impl_ExceptionHandlingWithTryCatchJob_Tasklet_ExitCode_Context>>
+
+[[Ch09_Impl_ExceptionHandlingWithTryCatchJob_Tasklet_ExitCode_JobExecutionListener]]
+==== JobExecutionListenerの実装
+``JobExecutionListener``インターフェースを利用してジョブの終了コードを条件により変更する。 +
+ここでは、``JobExecutionListener``インターフェースの実装クラスとして、
+最終的なジョブの終了コードを各ステップの終了コードに合わせて変更する処理を実装する。
+
+[source, java]
+.com.example.batch.tutorial.common.listener.JobExitCodeChangeListener
+----
+package com.example.batch.tutorial.common.listener;
+
+import org.springframework.batch.core.ExitStatus;
+import org.springframework.batch.core.JobExecution;
+import org.springframework.batch.core.JobExecutionListener;
+import org.springframework.batch.core.StepExecution;
+import org.springframework.stereotype.Component;
+
+import java.util.Collection;
+
+@Component
+public class JobExitCodeChangeListener implements JobExecutionListener {
+
+    @Override
+    public void beforeJob(JobExecution jobExecution) {
+        // do nothing.
+    }
+
+    @Override
+    public void afterJob(JobExecution jobExecution) {
+        Collection<StepExecution> stepExecutions = jobExecution.getStepExecutions();
+        for (StepExecution stepExecution : stepExecutions) { // (1)
+            if ("SKIPPED".equals(stepExecution.getExitStatus().getExitCode())) {
+                jobExecution.setExitStatus(new ExitStatus("SKIPPED"));
+                break;
+            }
+        }
+    }
+}
+----
+
+[cols="10,90", options="header"]
+.説明
+|===
+|項番
+|説明
+
+|(1)
+|ジョブの実行結果に応じて、最終的なジョブの終了コードを``JobExecution``に設定する。 +
+ここではステップから返却された終了コードのいずれかに``SKIPPED``が含まれている場合、
+終了コードを``SKIPPED``としている。
+
+|===
+
+[[Ch09_Impl_ExceptionHandlingWithTryCatchJob_Tasklet_ExitCode_Bean]]
+==== ジョブBean定義ファイルの設定
+作成したリスナーを利用するためのジョブBean定義ファイルの設定を以下に示す。
+
+[source, xml]
+.src/main/resources/META-INF/jobs/dbaccess/jobPointAddTasklet.xml
+----
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:batch="http://www.springframework.org/schema/batch"
+       xmlns:p="http://www.springframework.org/schema/p"
+       xmlns:mybatis="http://mybatis.org/schema/mybatis-spring"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+             http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+             http://www.springframework.org/schema/batch http://www.springframework.org/schema/batch/spring-batch.xsd
+             http://mybatis.org/schema/mybatis-spring http://mybatis.org/schema/mybatis-spring.xsd">
+
+    <!-- omitted -->
+
+    <context:component-scan base-package="com.example.batch.tutorial.dbaccess.tasklet,
+            com.example.batch.tutorial.common.listener"/> <!-- (1) -->
+
+    <!-- omitted -->
+
+    <batch:job id="jobPointAddTasklet" job-repository="jobRepository">
+        <batch:step id="jobPointAddTasklet.step01">
+            <batch:tasklet transaction-manager="jobTransactionManager"
+                           ref="pointAddTasklet"/>
+        </batch:step>
+        <batch:listeners>
+            <batch:listener ref="jobExitCodeChangeListener"/> <!-- (2) -->
+        </batch:listeners>
+    </batch:job>
+
+</beans>
+----
+
+[cols="10,90", options="header"]
+.説明
+|===
+|項番
+|説明
+
+|(1)
+|コンポーネントスキャン対象とするベースパッケージの設定を行う。 +
+``base-package``属性に、``StepExecutionListener``および``JobExecutionListener``の実装クラスが格納されているパッケージを追加で指定する。
+
+|(2)
+|``JobExecutionListener``の実装クラスを設定する。
+なお、``JobExecutionListener``は``JobListener``の拡張インターフェースである。 +
+ここでは、``JobExecutionListener``の実装クラスのBeanIDである``jobExitCodeChangeListener``を指定する。
+
+|===
+
+[[Ch09_Impl_ExceptionHandlingWithTryCatchJob_Tasklet_ExitCode_Context]]
+==== 終了コードのマッピング定義
+終了コードのマッピングを追加で設定する。
+
+チャンクモデル/タスクレットモデルで共通して利用するため、既に実施している場合は読み飛ばしてよい。
+
+``launch-context.xml``に以下のとおり、独自の終了コードを追加する。
+
+[source, xml]
+.src/main/resources/META-INF/spring/launch-context.xml
+----
+<!-- omitted -->
+
+<bean id="exitCodeMapper" class="org.springframework.batch.core.launch.support.SimpleJvmExitCodeMapper">
+    <property name="mapping">
+        <util:map id="exitCodeMapper" key-type="java.lang.String"
+                  value-type="java.lang.Integer">
+            <!-- ExitStatus -->
+            <entry key="NOOP" value="0" />
+            <entry key="COMPLETED" value="0" />
+            <entry key="STOPPED" value="255" />
+            <entry key="FAILED" value="255" />
+            <entry key="UNKNOWN" value="255" />
+            <entry key="SKIPPED" value="200" /> <!-- (1) -->
+        </util:map>
+    </property>
+</bean>
+
+<!-- omitted -->
+----
+
+[cols="10,90", options="header"]
+.説明
+|===
+|項番
+|説明
+
+|(1)
+|独自の終了コードを追加する。 +
+マッピングするためのキーに``SKIPPED``、コード値として``200``を指定する。
+
+|===
+
+[[Ch09_Impl_ExceptionHandlingWithTryCatchJob_Tasklet_Coding]]
+=== 例外ハンドリングの実装
+ポイント加算処理を行うビジネスロジッククラスにtry-catch処理を実装する。 +
+既に実装してある``PointAddItemProcessor``クラスにtry-catch処理の実装を追加する。
+
+<<Ch09_Impl_ExceptionHandlingWithTryCatchJob_Prerequisite>>のとおりデータベースアクセスするジョブの場合の説明となるため、
+ファイルアクセスするジョブの場合の実装は以下の(1)～(5)のみ追加する。
+
+[source, java]
+.com.example.batch.tutorial.dbaccess.tasklet.PointAddTasklet
+----
+// Package and the other import are omitted.
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.batch.core.ExitStatus;
+import org.springframework.batch.item.validator.ValidationException;
+import org.springframework.context.MessageSource;
+
+import java.util.Locale;
+
+@Component
+public class PointAddTasklet implements Tasklet {
+    // Definition of constans, ItemStreamReader and ItemWriter are omitted.
+
+    private static final Logger logger = LoggerFactory.getLogger(PointAddTasklet.class); // (1)
+
+    @Inject
+    Validator<MemberInfoDto> validator;
+
+    @Inject
+    MessageSource messageSource; // (2)
+
+    @Override
+    public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) throws Exception {
+        MemberInfoDto item = null;
+
+        List<MemberInfoDto> items = new ArrayList<>(CHUNK_SIZE);
+        int errorCount = 0; // (3)
+
+        try {
+            reader.open(chunkContext.getStepContext().getStepExecution().getExecutionContext());
+            while ((item = reader.read()) != null) {
+                try { // (4)
+                    validator.validate(item);
+                } catch (ValidationException e) {
+                    logger.warn(messageSource
+                            .getMessage("errors.maxInteger", new String[] { "point", "1000000" }, Locale.getDefault()));  // (5)
+                    errorCount++;
+                    continue; // (6)
+                }
+
+                // The other codes of bussiness logic are omitted.
+            }
+
+            writer.write(items);
+        } finally {
+            reader.close();
+        }
+        if (errorCount > 0) {
+            contribution.setExitStatus(new ExitStatus("SKIPPED")); // (7)
+        }
+        return RepeatStatus.FINISHED;
+    }
+}
+----
+
+[cols="10,90", options="header"]
+.説明
+|===
+|項番
+|説明
+
+|(1)
+|ログを出力するために``LoggerFactory``のインスタンスを定義する。
+
+|(2)
+|``MessageSource``のインスタンスをインジェクトする。
+
+|(3)
+|例外の発生を判定するためのカウンターを用意する。 +
+``ValidationException``をキャッチした際にインクリメントする。
+
+|(4)
+|例外ハンドリングを実装する。 +
+入力チェック処理をtry-catchで囲み、``ValidationException``をハンドリングする。
+
+|(5)
+|プロパティファイルからメッセージIDが``errors.maxInteger``のメッセージを取得し、ログに出力している。
+
+|(6)
+|エラーレコードをスキップするためにcontinueで処理を継続する。
+
+|(7)
+|独自の終了コードとして``SKIPPED``を設定する。
+
+|===
+
+[[Ch09_Impl_ExceptionHandlingWithTryCatchJob_Tasklet_Execution]]
+=== ジョブの実行と結果の確認
+作成したジョブをSTS上で実行し、結果を確認する。
+
+[[Ch09_Impl_ExceptionHandlingWithTryCatchJob_Tasklet_Execution_Run]]
+==== 実行構成からジョブを実行
+既に作成してある実行構成からジョブを実行し、結果を確認する。
+
+ここでは、異常系データを利用してジョブを実行する。 +
+例外ハンドリングを実装したジョブが扱うリソース(データベース or ファイル)によって、
+入力データの切替方法が異なるため、以下のとおり実行すること。
+
+//^
+データベースアクセスでデータ入出力を行うジョブに対して例外ハンドリングを実装した場合::
+データベースアクセスでデータ入出力を行うジョブの<<Ch09_DBAccessJob.adoc#Ch09_Impl_DBAccessJob_Chunk_Execution_Run,実行構成からジョブを実行>>
+で作成した実行構成を使ってジョブを実行する。
+
+異常系データを利用するために、``batch-application.proeprties``のDatabase Initializeで
+正常系データのスクリプトをコメントアウトし、異常系データのスクリプトのコメントアウトを解除する。
+
+[source, xml]
+.src/main/resources/batch-application.proeprties
+----
+# Database Initialize
+tutorial.create-table.script=file:sqls/create-member-info-table.sql
+#tutorial.insert-data.script=file:sqls/insert-member-info-data.sql
+tutorial.insert-data.script=file:sqls/insert-member-info-error-data.sql
+----
+
+//^
+ファイルアクセスでデータ入出力を行うジョブに対して例外ハンドリングを実装した場合::
+ファイルアクセスでデータ入出力を行うジョブの<<Ch09_FileAccessJob.adoc#Ch09_Impl_FileAccessJob_Chunk_Execution_Run,実行構成からジョブを実行>>
+で作成した実行構成を使ってジョブを実行する。
+
+異常系データを利用するために、実行構成で設定する引数のうち、
+入力ファイル(inputFile)のパスを正常系データ(insert-member-info-data.csv)から異常系データ(insert-member-info-error-data.csv)に変更する。
+
+[[Ch09_Impl_ExceptionHandlingWithTryCatchJob_Tasklet_Execution_Console]]
+==== コンソールログの確認
+Console Viewを開き、以下の内容のログが出力されていることを確認する。
+
+* 例外が発生していないこと
+* WARNログとして次のメッセージを出力していること
+** 「The Point exceeds 1000000.」
+
+[source, console]
+.コンソールログ出力例
+----
+[2017/09/11 15:36:29] [main] [o.t.b.t.e.t.PointAddTasklet] [WARN ] The point exceeds 1000000.
+[2017/09/11 15:36:29] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=jobPointAddTasklet]] completed with the following parameters: [{jsr_batch_run_id=468}] and the following status: [COMPLETED]
+[2017/09/11 15:36:29] [main] [o.s.c.s.ClassPathXmlApplicationContext] [INFO ] Closing org.springframework.context.support.ClassPathXmlApplicationContext@735f7ae5: startup date [Mon Sep 11 15:36:27 JST 2017]; root of context hierarchy
+----
+
+[[Ch09_Impl_ExceptionHandlingWithTryCatchJob_Tasklet_Execution_Exitcode]]
+==== 終了コードの確認
+終了コードにより、警告終了したことを確認する。 +
+確認手順は<<Ch09_EnvironmentConstruction.adoc#Ch09_EnvironmentConstruction_OperationCheck_ExecJob_Run,ジョブの実行と結果の確認>>を参照。
+終了コード(exit value)が200(警告終了)となっていることを確認する。
+
+.終了コードの確認
+image::ch09/ExceptionHandlingWithTryCatch/Ch09_ExceptionHandlingWithTryCatchJob_Confirm_ExitCode_TaskletModel.png[Confirm the Exit Code of ExceptionHandlingWithTryCatchJob for TaskletModel]
+
+[[Ch09_Impl_ExceptionHandlingWithTryCatchJob_Tasklet_Execution_Output]]
+==== 出力リソースの確認
+例外ハンドリングを実装したジョブによって出力リソース(データベース or ファイル)を確認する。
+
+スキップを実装しているため、エラーレコード以外の更新対象レコードについては
+正常に更新されていることを確認する。
+
+[[Ch09_Impl_ExceptionHandlingWithTryCatchJob_Tasklet_Execution_Output_Table]]
+===== 会員情報テーブルの確認
+Data Source Explorerを使用して会員情報テーブルの確認を行う。 +
+更新前後の会員情報テーブルの内容を比較し、確認内容のとおりとなっていることを確認する。 +
+確認手順は<<Ch09_EnvironmentConstruction.adoc#Ch09_EnvironmentConstruction_OperationCheck_RefDB,Data Source Explorerを使用してデータベースを参照する>>を参照。
+
+確認内容::
+* エラーレコード(会員番号が"000000013")を除くすべてのレコードについて
+** statusカラム
+*** "0"(初期状態)のレコードが存在しないこと
+** pointカラム
+*** ポイント加算対象について、会員種別に応じたポイントが加算されていること
+**** typeカラムが"G"(ゴールド会員)の場合は100ポイント
+**** typeカラムが"N"(一般会員)の場合は10ポイント
+* エラーレコード(会員番号が"000000013")について
+** 更新されていないこと
+
+更新前後の会員情報テーブルの内容は以下のとおり。
+
+.更新前後の会員情報テーブルの内容
+image::ch09/ExceptionHandlingWithTryCatch/Ch09_ExceptionHandlingWithTryCatchJob_Result_MemberInfoTable.png[Table of member_info]
+
+[[Ch09_Impl_ExceptionHandlingWithTryCatchJob_Tasklet_Execution_Output_File]]
+===== 会員情報ファイルの確認
+会員情報ファイルの入出力内容を比較し、確認内容のとおりとなっていることを確認する。
+
+確認内容::
+* 出力ディレクトリに会員情報ファイルが出力されていること
+** 出力ファイル: files/output/output-member-info-data.csv
+* エラーレコード(会員番号が"00000013")を除くすべてのレコードについて
+** statusカラム
+*** "0"(初期状態)のレコードが存在しないこと
+** pointカラム
+*** ポイント加算対象について、会員種別に応じたポイントが加算されていること
+**** typeカラムが"G"(ゴールド会員)の場合は100ポイント
+**** typeカラムが"N"(一般会員)の場合は10ポイント
+* エラーレコード(会員番号が"00000013")が出力されていないこと
+
+会員情報ファイルの入出力内容は以下のとおり。 +
+ファイルのフィールドはid(会員番号)、type(会員種別)、status(商品購入フラグ)、point(ポイント)の順で出力される。
+
+.会員情報ファイルの入出力内容
+image::ch09/ExceptionHandlingWithTryCatch/Ch09_ExceptionHandlingWithTryCatchJob_Result_MemberInfoFile.png[File of member_info]

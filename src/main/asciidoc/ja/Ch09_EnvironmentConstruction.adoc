@@ -1,0 +1,705 @@
+include::_include_all.adoc[]
+
+[[Ch09_EnvironmentConstruction]]
+= 環境構築
+
+以下の流れでチュートリアルを実施するための環境構築を行う。
+
+. <<Ch09_EnvironmentConstruction_BlankProject>>
+. <<Ch09_EnvironmentConstruction_Import>>
+. <<Ch09_EnvironmentConstruction_BlankProjectConstruction>>
+. <<Ch09_EnvironmentConstruction_Setting>>
+. <<Ch09_EnvironmentConstruction_InputDataPreparation>>
+. <<Ch09_EnvironmentConstruction_DataSourceExplorer>>
+. <<Ch09_EnvironmentConstruction_OperationCheck>>
+
+[[Ch09_EnvironmentConstruction_BlankProject]]
+== プロジェクトの作成
+
+まず、``Maven Archetype Plugin``の``mvn archetype:generate``を利用して、プロジェクトを作成する。 +
+ここでは、Windowsのコマンドプロンプトを使用してプロジェクトを作成する手順となっている。
+
+``mvn archetype:generate``を利用してプロジェクトを作成する方法の詳細については、<<Ch03_CreateProject.adoc#Ch03_CreateProject_HowToCreate,プロジェクトの作成>>を参照すること。
+
+[NOTE]
+.プロキシサーバの経由について
+====
+インターネット接続するためにプロキシサーバを経由する必要がある場合、STSのProxy設定と http://maven.apache.org/guides/mini/guide-proxies.html[MavenのProxy設定]をする。
+====
+
+プロジェクトを作成するディレクトリにて、以下のコマンドを実行する。
+
+.コマンドプロンプト(Windows)
+[source, console,subs="normal,attributes"]
+----
+C:\xxx>mvn archetype:generate ^
+  -DarchetypeGroupId=com.github.macchinetta.blank ^
+  -DarchetypeArtifactId=macchinetta-batch-archetype ^
+  -DarchetypeVersion={batch5_version}
+----
+
+その後、以下を対話式に設定する。
+
+[cols="30,70", options="header"]
+.プロジェクト作成時に設定する値
+|===
+|項目名
+|設定例
+
+|groupId
+|com.example.batch.
+
+|artifactId
+|macchinetta-batch-tutorial
+
+|version
+|1.0.0-SNAPSHOT
+
+|package
+|com.example.batch.tutorial
+|===
+
+以下のとおり、mvnコマンドに対して「BUILD SUCCESS」が表示されることを確認する。
+
+.実行例
+[source, console,subs="normal,attributes"]
+----
+C:\xxx>mvn archetype:generate -DarchetypeGroupId=com.github.macchinetta.blank -Darchetyp
+eArtifactId=macchinetta-batch-archetype -DarchetypeVersion={batch5_version}
+[INFO] Scanning for projects...
+[INFO]
+[INFO] ------------------------------------------------------------------------
+[INFO] Building Maven Stub Project (No POM) 1
+[INFO] ------------------------------------------------------------------------
+
+(.. omitted)
+
+Define value for property 'groupId': com.example.batch
+Define value for property 'artifactId': macchinetta-batch-tutorial
+Define value for property 'version' 1.0-SNAPSHOT: : 1.0.0-SNAPSHOT
+Define value for property 'package':  com.example.batch: : com.example.batch.tutorial
+Confirm properties configuration:
+groupId: com.example.batch
+artifactId: macchinetta-batch-tutorial
+version: 1.0.0-SNAPSHOT
+package: com.example.batch.tutorial
+ Y: : y
+[INFO] -------------------------------------------------------------------------
+---
+[INFO] Using following parameters for creating project from Archetype: macchinet
+ta-batch-archetype:{batch5_version}
+[INFO] -------------------------------------------------------------------------
+---
+[INFO] Parameter: groupId, Value: com.example.batch
+[INFO] Parameter: artifactId, Value: macchinetta-batch-tutorial
+[INFO] Parameter: version, Value: 1.0.0-SNAPSHOT
+[INFO] Parameter: package, Value: com.example.batch.tutorial
+[INFO] Parameter: packageInPathFormat, Value: com/example/batch/tutorial
+[INFO] Parameter: package, Value: com.example.batch.tutorial
+[INFO] Parameter: version, Value: 1.0.0-SNAPSHOT
+[INFO] Parameter: groupId, Value: com.example.batch
+[INFO] Parameter: artifactId, Value: macchinetta-batch-tutorial
+[INFO] Project created from Archetype in dir: C:\xxx\macchinetta-batch-tutorial
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time: 45.293 s
+[INFO] Finished at: 2017-08-22T09:03:01+09:00
+[INFO] Final Memory: 16M/197M
+[INFO] ------------------------------------------------------------------------
+----
+
+サンプルジョブを実行し、プロジェクトが正しく作成できたことを確認する。
+
+.サンプルジョブの実行(正しく作成できたことの確認)
+[[Ch09_EnvironmentConstruction_BlankProject_ExecSample]]
+[source, console]
+----
+C:\xxx>cd macchinetta-batch-tutorial
+C:\xxx>mvn clean dependency:copy-dependencies -DoutputDirectory=lib package
+C:\xxx>java -cp "lib/*;target/*" ^
+org.springframework.batch.core.launch.support.CommandLineJobRunner ^
+META-INF/jobs/job01.xml job01
+----
+
+以下のとおり、mvnコマンドに対して「BUILD SUCCESS」、javaコマンドに対して「COMPLETED」が表示されることを確認する。
+
+.出力例
+[source, console]
+----
+C:\xxx>cd macchinetta-batch-tutorial
+
+C:\xxx\macchinetta-batch-tutorial>mvn clean dependency:copy-dependencies -Doutput
+Directory=lib package
+[INFO] Scanning for projects...
+[INFO]
+[INFO] ------------------------------------------------------------------------
+[INFO] Building Maccinetta Batch Framework for Java (2.x) Blank Project 1.0.0-SN
+APSHOT
+[INFO] ------------------------------------------------------------------------
+
+(.. omitted)
+
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time: 9.462 s
+[INFO] Finished at: 2017-08-22T09:12:22+09:00
+[INFO] Final Memory: 26M/211M
+[INFO] ------------------------------------------------------------------------
+
+C:\xxx\macchinetta-batch-tutorial>java -cp "lib/*;target/*" org.springframework.b
+atch.core.launch.support.CommandLineJobRunner META-INF/jobs/job01.xml job01
+[2017/08/22 09:17:32] [main] [o.s.c.s.ClassPathXmlApplicationContext] [INFO ] Re
+freshing org.springframework.context.support.ClassPathXmlApplicationContext@6204
+3840: startup date [Tue Aug 22 09:17:32 JST 2017]; root of context hierarchy
+
+(.. ommited)
+
+[2017/08/22 09:17:35] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJ
+ob: [name=job01]] launched with the following parameters: [{jsr_batch_run_id=1}]
+
+[2017/08/22 09:17:35] [main] [o.s.b.c.j.SimpleStepHandler] [INFO ] Executing ste
+p: [job01.step01]
+[2017/08/22 09:17:35] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJ
+ob: [name=job01]] completed with the following parameters: [{jsr_batch_run_id=1}
+] and the following status: [COMPLETED]
+[2017/08/22 09:17:35] [main] [o.s.c.s.ClassPathXmlApplicationContext] [INFO ] Cl
+osing org.springframework.context.support.ClassPathXmlApplicationContext@6204384
+0: startup date [Tue Aug 22 09:17:32 JST 2017]; root of context hierarchy
+----
+
+[[Ch09_EnvironmentConstruction_Import]]
+== プロジェクトのインポート
+
+作成したプロジェクトをSTSへインポートする。 +
+STSのメニューから、[File] -> [Import] -> [Maven] -> [Existing Maven Projects] -> [Next]を選択し、archetypeで作成したプロジェクトを選択する。
+
+image::ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_Import_ImportMavenProjects.png[Import Existing Maven Projects]
+
+Root Directoryに``C:\xxx\macchinetta-batch-tutorial``を設定し、Projectsにcom.example.batchのpom.xmlが選択された状態で、 [Finish]を押下する。
+
+image::ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_Import_Import.png[Select Maven Projects]
+
+インポートが完了すると、Package Explorerに次のようなプロジェクトが表示される。
+
+image::ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_Import_PackageExplorer.png[Package Explorer]
+
+[NOTE]
+.インポート後にビルドエラーが発生する場合
+====
+インポート後にビルドエラーが発生する場合は、プロジェクト名を右クリックし、「Maven」->「Update Project...」をクリックし、 「OK」ボタンをクリックすることでエラーが解消されるケースがある。
+====
+
+[TIP]
+.パッケージの表示形式の設定
+====
+パッケージの表示形式は、デフォルトは「Flat」だが、「Hierarchical」にしたほうが見通しがよい。 +
+Package Explorerの「View Menu」 (右端の下矢印)をクリックし、「Package Presentation」->「Hierarchical」を選択する。
+====
+
+[[Ch09_EnvironmentConstruction_BlankProjectConstruction]]
+== プロジェクトの構成
+
+プロジェクトの構成については、<<Ch03_CreateProject.adoc#Ch03_CreateProject_ProjectStructure,プロジェクトの構成>>を参照すること。
+
+[[Ch09_EnvironmentConstruction_Setting]]
+== 設定ファイルの確認・編集
+
+[[Ch09_EnvironmentConstruction_Setting_Check]]
+=== 設定ファイルの確認
+
+作成したプロジェクトにはSpring BatchやMyBatisなどの設定のほとんどが既に設定済みである。 +
+作成したプロジェクトの設定ファイルについては<<Ch03_CreateProject.adoc#Ch03_CreateProject_ProjectStructure,プロジェクトの構成>>を参照のこと。
+
+[NOTE]
+.設定値のカスタマイズについて
+====
+チュートリアルを実施する場合にユーザの状況に応じてカスタマイズが必要な設定値について理解する必要はないが、チュートリアルを実施する前または後に一読するとよい。
+詳細については<<Ch03_CreateProject.adoc#Ch03_CreateProject_Make_Setting,アプリケーション全体の設定>>を参照のこと。
+====
+
+[[Ch09_EnvironmentConstruction_Setting_Edit]]
+=== 設定ファイルの編集
+
+チュートリアルを実施するため、H2 Databaseの設定を変更する。設定の変更点を以下に示す。
+
+* 手動でサーバを起動することなく複数のバッチアプリケーションのプロセスからデータベースへ接続可能とする。
+* バッチアプリケーションのプロセスの終了後でもデータを保持した状態のデータベースへ接続可能とする。
+
+なお、H2 Databaseの設定の詳細については http://www.h2database.com/html/features.html[H2の公式ドキュメントのFeatures] を参照すること。
+
+具体的な編集内容を以下に示す。
+
+batch-application.propertiesを開き、``admin.jdbc.url``及び``jdbc.url``を以下のように編集する。 +
+下記の例は分かりやすさのために編集対象行のみ記載し、上書きではなくコメントアウトをした上で新たに行を追加している。
+
+[source, txt]
+.src/main/resources/batch-application.properties
+----
+##  Application settings.
+
+# Admin DataSource settings.
+#admin.jdbc.url=jdbc:h2:mem:batch-admin;DB_CLOSE_DELAY=-1
+admin.jdbc.url=jdbc:h2:~/batch-admin;AUTO_SERVER=TRUE
+
+# Job DataSource settings.
+#jdbc.url=jdbc:h2:mem:batch;DB_CLOSE_DELAY=-1
+jdbc.url=jdbc:h2:~/batch-admin;AUTO_SERVER=TRUE
+----
+
+[NOTE]
+.admin.jdbc.urlとjdbc.urlにおいて同じdatabaseName(batch-admin)を指定している理由
+====
+チュートリアルを実施する際のJDBCドライバの接続設定では、``admin.jdbc.url``と``jdbc.url``において同じdatabaseNameを指定している。
+
+<<Ch03_CreateProject.adoc#Ch03_CreateProject_Make_Setting,アプリケーション全体の設定>>に記載してあるとおり、``admin.jdbc.url``はFW({SB}や{batch5_shortname})が利用するURLであり、``jdbc.url``はジョブ個別が利用するURLである。
+
+本来はFWとジョブ個別が使用するデータベースは分けるのが好ましい。 +
+しかし、チュートリアルではデータベースを切替る手間をなくし、より簡単にFWとチュートリアルで使用するテーブルを参照するため、このような設定にしている。
+====
+
+[[Ch09_EnvironmentConstruction_InputDataPreparation]]
+== 入力データの準備
+
+[[Ch09_EnvironmentConstruction_InputDataPreparation_DB]]
+=== データベースアクセスでデータ入出力を行うジョブの入力データ
+
+<<Ch09_DBAccessJob.adoc#Ch09_Impl_DBAccessJob,データベースアクセスでデータ入出力を行うジョブ>>で使用する入力データの準備を行う。 +
+なお、データベースアクセスでデータ入出力を行うジョブを作成しない場合は実施する必要はない。
+
+入力データの準備は以下の流れで行う。
+
+. <<Ch09_EnvironmentConstruction_InputDataPreparation_DB_SQL>>
+. <<Ch09_EnvironmentConstruction_InputDataPreparation_DB_Setting>>
+
+これらの設定を行うことにより、ジョブ実行時(ApplicationContext生成時)にスクリプトを実行し、データベースの初期化を行う。
+
+[[Ch09_EnvironmentConstruction_InputDataPreparation_DB_SQL]]
+==== テーブル作成・初期データ挿入スクリプト作成
+
+テーブル作成・初期データ挿入スクリプトの作成を行う。
+
+プロジェクトルートディレクトリに``sqls``ディレクトリを作成し、下記の3つのスクリプトを格納する。
+
+* テーブル作成スクリプト(``create-member-info-table.sql``)
+* 初期データ(正常)挿入スクリプト(``insert-member-info-data.sql``)
+* 初期データ(異常)挿入スクリプト(``insert-member-info-error-data.sql``)
+
+作成するファイルの内容を以下に示す。
+
+[source, sql]
+.sqls/create-member-info-table.sql
+----
+CREATE TABLE IF NOT EXISTS member_info (
+    id CHAR(8),
+    type CHAR(1),
+    status CHAR(1),
+    point INT,
+    PRIMARY KEY(id)
+);
+----
+
+[source, sql]
+.sqls/insert-member-info-data.sql
+----
+TRUNCATE TABLE member_info;
+INSERT INTO member_info (id, type, status, point) VALUES ('00000001', 'G', '1', 0);
+INSERT INTO member_info (id, type, status, point) VALUES ('00000002', 'N', '1', 0);
+INSERT INTO member_info (id, type, status, point) VALUES ('00000003', 'G', '0', 10);
+INSERT INTO member_info (id, type, status, point) VALUES ('00000004', 'N', '0', 10);
+INSERT INTO member_info (id, type, status, point) VALUES ('00000005', 'G', '1', 100);
+INSERT INTO member_info (id, type, status, point) VALUES ('00000006', 'N', '1', 100);
+INSERT INTO member_info (id, type, status, point) VALUES ('00000007', 'G', '0', 1000);
+INSERT INTO member_info (id, type, status, point) VALUES ('00000008', 'N', '0', 1000);
+INSERT INTO member_info (id, type, status, point) VALUES ('00000009', 'G', '1', 10000);
+INSERT INTO member_info (id, type, status, point) VALUES ('00000010', 'N', '1', 10000);
+INSERT INTO member_info (id, type, status, point) VALUES ('00000011', 'G', '0', 100000);
+INSERT INTO member_info (id, type, status, point) VALUES ('00000012', 'N', '0', 100000);
+INSERT INTO member_info (id, type, status, point) VALUES ('00000013', 'G', '1', 999901);
+INSERT INTO member_info (id, type, status, point) VALUES ('00000014', 'N', '1', 999991);
+INSERT INTO member_info (id, type, status, point) VALUES ('00000015', 'G', '0', 999900);
+INSERT INTO member_info (id, type, status, point) VALUES ('00000016', 'N', '0', 999990);
+INSERT INTO member_info (id, type, status, point) VALUES ('00000017', 'G', '1', 10);
+INSERT INTO member_info (id, type, status, point) VALUES ('00000018', 'N', '1', 10);
+INSERT INTO member_info (id, type, status, point) VALUES ('00000019', 'G', '0', 100);
+INSERT INTO member_info (id, type, status, point) VALUES ('00000020', 'N', '0', 100);
+INSERT INTO member_info (id, type, status, point) VALUES ('00000021', 'G', '1', 1000);
+INSERT INTO member_info (id, type, status, point) VALUES ('00000022', 'N', '1', 1000);
+INSERT INTO member_info (id, type, status, point) VALUES ('00000023', 'G', '0', 10000);
+INSERT INTO member_info (id, type, status, point) VALUES ('00000024', 'N', '0', 10000);
+INSERT INTO member_info (id, type, status, point) VALUES ('00000025', 'G', '1', 100000);
+INSERT INTO member_info (id, type, status, point) VALUES ('00000026', 'N', '1', 100000);
+INSERT INTO member_info (id, type, status, point) VALUES ('00000027', 'G', '0', 1000000);
+INSERT INTO member_info (id, type, status, point) VALUES ('00000028', 'N', '0', 1000000);
+INSERT INTO member_info (id, type, status, point) VALUES ('00000029', 'G', '1', 999899);
+INSERT INTO member_info (id, type, status, point) VALUES ('00000030', 'N', '1', 999989);
+COMMIT;
+----
+
+[source, sql]
+.sqls/insert-member-info-error-data.sql
+----
+TRUNCATE TABLE member_info;
+INSERT INTO member_info (id, type, status, point) VALUES ('00000001', 'G', '0', 0);
+INSERT INTO member_info (id, type, status, point) VALUES ('00000002', 'N', '0', 0);
+INSERT INTO member_info (id, type, status, point) VALUES ('00000003', 'G', '1', 10);
+INSERT INTO member_info (id, type, status, point) VALUES ('00000004', 'N', '1', 10);
+INSERT INTO member_info (id, type, status, point) VALUES ('00000005', 'G', '0', 100);
+INSERT INTO member_info (id, type, status, point) VALUES ('00000006', 'N', '0', 100);
+INSERT INTO member_info (id, type, status, point) VALUES ('00000007', 'G', '1', 1000);
+INSERT INTO member_info (id, type, status, point) VALUES ('00000008', 'N', '1', 1000);
+INSERT INTO member_info (id, type, status, point) VALUES ('00000009', 'G', '0', 10000);
+INSERT INTO member_info (id, type, status, point) VALUES ('00000010', 'N', '0', 10000);
+INSERT INTO member_info (id, type, status, point) VALUES ('00000011', 'G', '1', 100000);
+INSERT INTO member_info (id, type, status, point) VALUES ('00000012', 'N', '1', 100000);
+INSERT INTO member_info (id, type, status, point) VALUES ('00000013', 'G', '1', 1000001);
+INSERT INTO member_info (id, type, status, point) VALUES ('00000014', 'N', '1', 999991);
+INSERT INTO member_info (id, type, status, point) VALUES ('00000015', 'G', '1', 999901);
+COMMIT;
+----
+
+[[Ch09_EnvironmentConstruction_InputDataPreparation_DB_Setting]]
+==== ジョブ実行時にスクリプトを自動実行する設定の追加
+
+ジョブ実行時(ApplicationContext生成時)にスクリプトを実行し、データベースの初期化を行うため、``<jdbc:initialize-database>``タグの定義を追加する。 +
+
+以下の2つのファイルの編集を実施する。
+
+* batch-application.propertiesに実行対象スクリプトのパスの設定を追加する
+* launch-context.xmlに``<jdbc:initialize-database>``タグの定義を追加する
+
+具体的な設定内容を以下に示す。
+
+batch-application.propertiesを開き、末尾に以下の実行対象スクリプトのパスの設定を追加する。
+
+* tutorial.create-table.script(テーブル作成スクリプトのパス)
+* tutorial.insert-data.script(初期データ挿入スクリプトのパス) +
+
+初期データ挿入スクリプトのパスは、実行するスクリプトの切替を容易にするために正常データと異常データを同じプロパティ名で定義し、コメントアウトしている。
+
+[source, txt]
+.src/main/resources/batch-application.properties
+----
+# Database Initialize
+tutorial.create-table.script=file:sqls/create-member-info-table.sql
+tutorial.insert-data.script=file:sqls/insert-member-info-data.sql
+#tutorial.insert-data.script=file:sqls/insert-member-info-error-data.sql
+----
+
+launch-context.xmlを開き、``<beans>``タグ内に``<jdbc:initialize-database>``タグの定義を追加する。
+
+[source, xml]
+.src/main/resources/META-INF/spring/launch-context.xml
+----
+<!-- database initialize definition -->
+<jdbc:initialize-database data-source="jobDataSource" enabled="${data-source.initialize.enabled:false}" ignore-failures="ALL">
+    <jdbc:script location="${tutorial.create-table.script}" />
+    <jdbc:script location="${tutorial.insert-data.script}" />
+</jdbc:initialize-database>
+----
+
+[[Ch09_EnvironmentConstruction_InputDataPreparation_File]]
+=== ファイルアクセスでデータ入出力を行うジョブの入力データ
+
+<<Ch09_FileAccessJob.adoc#Ch09_Impl_FileAccessJob,ファイルアクセスでデータ入出力を行うジョブ>>で使用する入力データの準備を行う。 +
+なお、ファイルアクセスでデータ入出力を行うジョブを作成しない場合は実施する必要はない。
+
+入力データの準備は入出力ファイルを格納ディレクトリの作成及び入力ファイルの作成を行う。
+
+プロジェクトルートディレクトリに入出力ファイル格納用として以下の2ディレクトリを作成する。
+
+* ``files/input``
+* ``files/output``
+
+``files/input``配下に以下の2ファイルを作成する。
+
+* 正常データ入力ファイル(``input-member-info-data.csv``)
+* 異常データ入力ファイル(``input-member-info-error-data.csv``)
+
+作成した入力ファイル格納ディレクトリに以下の内容で入力ファイルを格納する。
+
+作成するファイルの内容を以下に示す。
+
+[source, text]
+.files/input/input-member-info-data.csv
+----
+00000001,G,1,0
+00000002,N,1,0
+00000003,G,0,10
+00000004,N,0,10
+00000005,G,1,100
+00000006,N,1,100
+00000007,G,0,1000
+00000008,N,0,1000
+00000009,G,1,10000
+00000010,N,1,10000
+00000011,G,0,100000
+00000012,N,0,100000
+00000013,G,1,999901
+00000014,N,1,999991
+00000015,G,0,999900
+00000016,N,0,999990
+00000017,G,1,10
+00000018,N,1,10
+00000019,G,0,100
+00000020,N,0,100
+00000021,G,1,1000
+00000022,N,1,1000
+00000023,G,0,10000
+00000024,N,0,10000
+00000025,G,1,100000
+00000026,N,1,100000
+00000027,G,0,1000000
+00000028,N,0,1000000
+00000029,G,1,999899
+00000030,N,1,999989
+----
+
+[source, text]
+.files/input/input-member-info-error-data.csv
+----
+00000001,G,0,0
+00000002,N,0,0
+00000003,G,1,10
+00000004,N,1,10
+00000005,G,0,100
+00000006,N,0,100
+00000007,G,1,1000
+00000008,N,1,1000
+00000009,G,0,10000
+00000010,N,0,10000
+00000011,G,1,100000
+00000012,N,1,100000
+00000013,G,1,1000001
+00000014,N,1,999991
+00000015,G,1,999901
+----
+
+[[Ch09_EnvironmentConstruction_DataSourceExplorer]]
+== STSからデータベースを参照する準備
+
+チュートリアルではデータベースを参照するためにData Source Explorerを使用するため、Data Source Explorerの設定を実施する。 +
+Data Source Explorerを使用することでSTS上でデータベースの参照やSQL実行が可能となる。
+
+チュートリアルで参照するデータベースの対象は以下のとおり。
+
+* JobRepositoryに永続化されているバッチアプリケーション実行結果や状態を管理するためのデータ
+* <<Ch09_DBAccessJob.adoc#Ch09_Impl_DBAccessJob,データベースアクセスでデータ入出力を行うジョブ>>が使用するデータ
+
+まず、Data Source Explorer Viewを表示する。 +
+STSのメニューから、[Window] -> [Show View] -> [Other...]を選択し、Data Management配下のData Source Explorerが選択された状態で、 [OK]を押下する。
+
+image::ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_DataSourceExplorer_ShowView.png[Show View]
+
+ワークベンチ上にData Source Explorer Viewが表示される。
+
+image::ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_DataSourceExplorer_DataSourceExplorerView.png[Data Source Explorer View]
+
+次に、データベースへ接続するためのConnection Profileを作成する。 +
+Data Source Explorer ViewのDatabase Connectionsを右クリックし、[New...]を押下し、Connection Profileを表示する。 +
+そして、Generic JDBCを選択し、Nameに``H2 Database``と入力した状態で、[Next]を押下する。 +
+(Nameに入力する値は任意である。)
+
+image::ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_DataSourceExplorer_NewConnectionProfileType.png[New Conenction Profile Type]
+
+初期状態ではDriverが設定されていないためH2 Databaseへ接続するためのDriverの追加を行う。 +
+Driversのドロップダウンの右にあるNew Driver Definitionボタンを押下し、Driverの定義ウィンドウを表示する。
+
+Name/Typeタブの、Available driver templatesにてGeneric JDBC Driverを選択する。
+
+image::ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_DataSourceExplorer_NewDriverDifinitionName.png[New Driver Difinition Name/Type]
+
+次に、JAR Listタブを開き、[Add Jar/Zip...]を押下し、H2 Databaseのjarファイルを選択し、[開く]を押下する。
+
+[NOTE]
+.H2 Databaseのjarが格納されている場所
+====
+H2 Databaseのjarは、プロジェクトのルートディレクトリの``lib``ディレクトリ配下に格納されている。 +
+これは、<<Ch09_EnvironmentConstruction_BlankProject_ExecSample,サンプルジョブの実行(正しく作成できたことの確認)>>の下記のコマンドの実行によって依存ライブラリが``lib``ディレクトリ配下にコピーされたからである。
+``lib``ディレクトリは以下にH2 Databaseのjarが格納されていない場合は下記のコマンドを実行すること。
+
+[source, console]
+----
+C:\xxx>mvn clean dependency:copy-dependencies -DoutputDirectory=lib package
+----
+====
+
+image::ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_DataSourceExplorer_NewDriverDifinitionJARList.png[New Driver Difinition JAR List]
+
+次に、Propertiesタブを開き下記の内容を設定し[OK]を押下し、Driverを追加する。
+
+Database Nameに設定する値は任意である。その他の設定値はbatch-application.propertiesに設定されている値と同じになる。
+
+[cols="30,70", options="header"]
+.Propertiesタブで設定する値
+|===
+|Property
+|Value
+
+|Connection URL
+|jdbc:h2:~/batch-admin;AUTO_SERVER=TRUE
+
+|Database Name
+|macchinetta-batch-tutorial
+
+|Driver Class
+|org.h2.Driver
+
+|User ID
+|sa
+|===
+
+image::ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_DataSourceExplorer_NewDriverDifinitionProperties.png[New Driver Difinition Properties]
+
+設定した内容でDriverが追加されていることを確認し、[Finish]を押下する。
+
+image::ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_DataSourceExplorer_NewConnectionProfileDetails.png[New Conenction Profile Details]
+
+Connection Profileの作成が完了すると、Data Source Explorer ViewにH2 DatabaseへのConnectionが表示される。
+
+image::ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_DataSourceExplorer_DataSourceExplorerAddedConnection.png[Data Source Explorer added Connection]
+
+以上でSTSからデータベースを参照する準備が完了した。 +
+Data Source Explorerの設定確認は<<Ch09_EnvironmentConstruction_OperationCheck>>にて実施する。
+
+[[Ch09_EnvironmentConstruction_OperationCheck]]
+== プロジェクトの動作確認
+
+プロジェクトの動作確認の手順を以下に示す。
+
+. <<Ch09_EnvironmentConstruction_OperationCheck_ExecJob>>
+. <<Ch09_EnvironmentConstruction_OperationCheck_RefDB>>
+
+[[Ch09_EnvironmentConstruction_OperationCheck_ExecJob]]
+=== STSでジョブを実行する
+
+STSでジョブを実行する手順を以下に示す。
+
+. <<Ch09_EnvironmentConstruction_OperationCheck_ExecJob_RunConf>>
+. <<Ch09_EnvironmentConstruction_OperationCheck_ExecJob_Run>>
+
+[NOTE]
+.ジョブの実行方法について
+====
+本来であればジョブはシェルスクリプトなどから実行するが、本チュートリアルでは説明のしやすさからSTSでジョブを実行する手順としている。
+====
+
+[[Ch09_EnvironmentConstruction_OperationCheck_ExecJob_RunConf]]
+==== Run Configuration(実行構成)の作成
+
+Run Configuration(実行構成)を作成する方法についてサンプルジョブの実行を例にして説明する。
+
+STSのメニューから、[Run] -> [Run Configurations...] -> タイプの一覧からJava Applicationを選択して右クリック -> [New]を選択しRun Configuration作成画面を表示し、以下の値を設定する。 +
+
+[cols="30,70", options="header"]
+.Run ConfigurationsのMainタブで設定する値
+|===
+|項目名
+|値
+
+|Name
+|Execute Job01 +
+(任意の値を設定する)
+
+|Project
+|macchinetta-batch-tutorial
+
+|Main class
+|org.springframework.batch.core.launch.support.CommandLineJobRunner
+|===
+
+image::ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_OperationCheck_ExecJob_RunConf_Main.png[Run Configurations Main tab]
+
+次にArgumentsタブを開き、以下の値を設定する。
+
+[cols="30,70", options="header"]
+.Run ConfigurationsのArgumentsタブで設定する値
+|===
+|項目名
+|値
+
+|Program arguments
+|META-INF/jobs/job01.xml job01
+|===
+
+image::ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_OperationCheck_ExecJob_RunConf_Arg.png[Run Configurations Arguments tab]
+
+設定が完了したら[Apply]を押下する。
+
+[NOTE]
+.Run Configurationの作成で設定する値について
+====
+Run Configurationに<<Ch09_EnvironmentConstruction_BlankProject_ExecSample,サンプルジョブの実行(正しく作成できたことの確認)>>のコマンドと同様のパラメータを設定する。 +
+ただし、クラスパスはMainタブのProjectへプロジェクトを設定するとSTSによって自動的に解決される。 +
+Run Configurationに設定するパラメータは、実行するジョブによってパラメータを変更してほしい。 +
+なお、ファイルアクセスするジョブの場合はinputFileやoutputFileのパラメータも必要になるため留意すること。
+====
+
+[[Ch09_EnvironmentConstruction_OperationCheck_ExecJob_Run]]
+==== ジョブの実行と結果の確認
+
+ジョブの実行及び結果の確認方法について説明する。 +
+ここで説明するジョブの実行結果の確認とはコンソールログの確認及びジョブ実行の終了コードの確認である。
+
+チュートリアルではジョブ実行の終了コードを確認するため、Debug Viewを使用する。Debug Viewの表示方法は後述する。
+
+[NOTE]
+.Debug Viewを表示する理由
+====
+STSでDebug Viewを表示しないとジョブの実行時の終了コードを確認することはできない。 +
+<<Ch09_ExceptionHandlingWithTryCatchJob.adoc#Ch09_ExceptionHandlingWithTryCatchJob, try-catchで例外ハンドリングを行うジョブ>>ではリスナーにてジョブの終了コードの変換するため、Debug Viewを表示して結果を確認する必要がある。
+====
+
+はじめにジョブを実行する方法について説明する。
+
+STSのメニューから、[Run] -> [Run Configurations...] -> タイプの一覧からJava Application配下にある<<Ch09_EnvironmentConstruction_OperationCheck_ExecJob_RunConf>>にて作成したExecute Job01を選択して[Run]を押下することでジョブが実行される。
+
+image::ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_OperationCheck_ExecJob_Run_Job01.png[Run Job01]
+
+ジョブの実行結果はコンソールログにて確認する。 +
+以下のように表示されていれば正常にジョブが実行されている。
+
+image::ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_OperationCheck_ExecJob_Run_Job01Console.png[Run Job01 console]
+
+次に、Debug Viewを表示させてジョブ実行の終了コードを確認する。
+
+STSのメニューから、[Window] -> [Show View] -> [Other...]を選択し、Debug配下のDebugが選択された状態で、 [OK]を押下する。
+
+image::ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_OperationCheck_ExecJob_Run_ShowView.png[Show View]
+
+ワークベンチ上にDebugが表示される。
+
+image::ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_OperationCheck_ExecJob_Run_DebugView.png[Debug View]
+
+``<terminated, exit value: 0>``という表示により、ジョブ実行の終了コードが``0``であることが確認できる。
+
+[TIP]
+.STSでジョブの実行が失敗する場合について
+====
+正しいソースコードにもかかわらずSTSでジョブの実行が失敗する場合、不完全なビルド状態を解消することによりジョブの実行が成功する可能性がある。手順を以下に示す。 +
+STSのメニューから、[project] -> [clean]を選択する。
+====
+
+[[Ch09_EnvironmentConstruction_OperationCheck_RefDB]]
+=== Data Source Explorerを使用してデータベースを参照する
+
+Data Source Explorer Viewを使用してデータベースを参照する方法について説明する。
+
+Data Source Explorerにてデータベース``BATCH-ADMIN``を下記の階層で開くとテーブルの一覧を確認することができる。
+
+image::ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_OperationCheck_RefDB_Tables.png[Show Tables]
+
+{SB}メタデータテーブル(詳細は<<Ch02_SpringBatchArchitecture.adoc#Ch02_SpringBatchArch_Arch_MetadataSchema,JobRepositoryのメタデータスキーマ>>を参照)及び、
+<<Ch09_EnvironmentConstruction_InputDataPreparation_DB,データベースアクセスでデータ入出力を行うジョブの入力データの準備>>を実施した場合には``MEMBER_INFO``テーブルが作成されていることが確認できる。
+
+次に、テーブルに格納されているレコードは以下の方法で参照することができる。
+
+参照したいテーブルを右クリック、[Data] -> [Edit]と選択することでテーブル形式でテーブルに格納されているレコードを参照することができる。 +
+以下は``BATCH_JOB_INSTANCE``テーブルを参照した例である。
+
+image::ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_OperationCheck_RefDB_BATCH_JOB_INSTANCE.png[Show BATCH_JOB_INSTANCE]
+
+``job01``という名前のジョブが実行されたことがわかる。
+
+以上でチュートリアルの環境構築は完了である。

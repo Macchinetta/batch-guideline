@@ -19,6 +19,8 @@ include::_include_all.adoc[]
 
 . <<Ch08_index.adoc#Ch08,フロー制御と並列･多重処理>>
 
+. <<Ch09_index.adoc#Ch09,チュートリアル>>
+
 . <<Ch99_SummaryOfPoints.adoc#Ch99_SummaryOfPoints,利用時の注意点>>
 
 <<single_index.adoc#,Singleページ版>>

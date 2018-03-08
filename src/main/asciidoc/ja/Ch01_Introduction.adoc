@@ -65,6 +65,9 @@ ifeval::["{docname}" != "single_index"]
 <<Ch08_index.adoc#Ch08,フロー制御と並列･多重処理>>::
   ジョブを並列処理/分散処理する方法について説明する。
 
+<<Ch09_index.adoc#Ch09,チュートリアル>>::
+  基本的なバッチアプリケーション開発をとおして、{batch5_fullname}によるバッチアプリケーション開発を体験する。
+
 endif::[]
 
 ifeval::["{docname}" == "single_index"]
@@ -90,6 +93,9 @@ ifeval::["{docname}" == "single_index"]
 <<Ch08,フロー制御と並列･多重処理>>::
   ジョブを並列処理/分散処理する方法について説明する。
 
+<<Ch09,チュートリアル>>::
+  基本的なバッチアプリケーション開発をとおして、{batch5_fullname}によるバッチアプリケーション開発を体験する。
+
 endif::[]
 
 [[Ch01_Intro_HowToReadGuide]]
@@ -113,6 +119,11 @@ ifeval::["{docname}" != "single_index"]
 以下のコンテンツは一歩進んだ実装をする際にはじめて参照すれば良い。
 
 * <<Ch08_index.adoc#Ch08,フロー制御と並列･多重処理>>
+
+以下のコンテンツは{batch5_fullname}を使用して実際のアプリケーション開発を体験したい開発者が読むことを推奨する。
+はじめて{batch5_fullname}に触れる場合は、まずこのコンテンツから読み始め、他のコンテンツを参照しながら進めるとよい。
+
+* <<Ch09_index.adoc#Ch09,チュートリアル>>
 
 endif::[]
 
@@ -186,6 +197,7 @@ Bean定義のプロパティとコンストラクタについて::
             <constructor-arg index="0" value="1-6, 7-10, 11-12, 13-22, 23-32"/>
             <constructor-arg index="1" value="MS932"/>
             <property name="names" value="branchId,year,month,customerId,amount"/>
+        </bean>
     </property>
 </bean>
 ----

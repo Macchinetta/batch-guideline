@@ -1,0 +1,6 @@
+= Image of ExceptionHandlingWithListener
+== Images
+
+plantuml::ch09/ExceptionHandlingWithListener/Ch09_ExceptionHandlingWithListenerJob_ProcessSequence_ChunkModel.pu[]
+
+plantuml::ch09/ExceptionHandlingWithListener/Ch09_ExceptionHandlingWithListenerJob_ProcessSequence_TaskletModel.pu[]

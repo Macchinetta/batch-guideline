@@ -1,0 +1,85 @@
+@startuml
+
+hide footbox
+autonumber
+
+participant Step
+box "tasklet model" #lightblue
+participant PointAddTasklet #Orange
+participant MyBatisCursorItemReader
+participant MyBatisBatchItemWriter
+end box
+participant SpringValidator
+database "member_info" as db
+
+[->Step : execute()
+activate Step
+group Framework Transaction
+    Step -> PointAddTasklet : execute()
+    activate PointAddTasklet #Orange
+    PointAddTasklet -> MyBatisCursorItemReader : open()
+    activate MyBatisCursorItemReader
+    MyBatisCursorItemReader -> db : select
+    activate db
+    loop until exhausted read data
+        group Repeat until chunk size is reached
+            PointAddTasklet -> MyBatisCursorItemReader : read()
+            MyBatisCursorItemReader -> db : fetch
+            db --> MyBatisCursorItemReader : result
+            deactivate db
+            MyBatisCursorItemReader --> PointAddTasklet : item
+            deactivate MyBatisCursorItemReader
+            PointAddTasklet -> SpringValidator : validate()
+            activate SpringValidator
+            SpringValidator -> SpringValidator : validate
+            activate SpringValidator
+            note right of SpringValidator: If value is not valid, throws ValidationException
+            deactivate SpringValidator
+            deactivate SpringValidator
+            PointAddTasklet -> PointAddTasklet : business logic
+        end
+        PointAddTasklet -> MyBatisBatchItemWriter : write(items)
+        activate  MyBatisBatchItemWriter
+        MyBatisBatchItemWriter -X db : update
+        deactivate MyBatisBatchItemWriter
+    end
+    PointAddTasklet -> Step : Exception
+    deactivate PointAddTasklet
+Step [#red]-> db : <font color="red"><b>rollback</b></font>
+end
+Step-->[ : ExitStatus
+deactivate Step
+
+'Set styles such as format and color of each figure
+skinparam Note {
+  BackgroundColor #b7fab1
+  BorderColor black
+}
+
+skinparam Class {
+  BorderColor black
+  ArrowColor black
+}
+
+skinparam Sequence {
+  BorderColor black
+  ActorBorderColor black
+  ArrowColor black
+  LifeLineBorderColor black
+  BoxLineColor black
+  ParticipantBorderColor black
+}
+
+skinparam componentStyle uml2
+
+skinparam Component {
+  BorderColor black
+  ArrowColor black
+}
+
+skinparam Interface {
+  BorderColor black
+  ArrowColor black
+}
+
+@enduml

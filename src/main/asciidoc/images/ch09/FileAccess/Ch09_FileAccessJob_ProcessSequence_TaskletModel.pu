@@ -1,0 +1,89 @@
+@startuml
+
+hide footbox
+autonumber
+
+participant Step
+box "tasklet model" #lightblue
+participant PointAddTasklet #Orange
+participant FlatFileItemReader
+participant FlatFileItemWriter
+end box
+participant "member_info\n(input)" as infile
+participant "member_info\n(output)" as outfile
+
+[->Step : execute()
+activate Step
+group Framework Transaction
+    Step -> PointAddTasklet : execute()
+    activate PointAddTasklet #Orange
+    PointAddTasklet -> FlatFileItemReader : open()
+    activate FlatFileItemReader
+    FlatFileItemReader -> infile : open file
+    activate infile
+    PointAddTasklet -> FlatFileItemWriter : open()
+    activate FlatFileItemWriter
+    FlatFileItemWriter -> outfile : open file
+    activate outfile
+    loop until exhausted read data
+        group Repeat until chunk size is reached
+            PointAddTasklet -> FlatFileItemReader : read()
+            FlatFileItemReader -> infile : read line
+            infile --> FlatFileItemReader : line
+            FlatFileItemReader --> PointAddTasklet : item
+            PointAddTasklet -> PointAddTasklet : business logic
+        end
+        PointAddTasklet -> FlatFileItemWriter : write(items)
+        FlatFileItemWriter -> outfile : buffering
+    end
+    PointAddTasklet -> FlatFileItemReader : close()
+    FlatFileItemReader -> infile : close file
+    deactivate FlatFileItemReader
+    deactivate infile
+    PointAddTasklet -> FlatFileItemWriter : close()
+    deactivate FlatFileItemWriter
+    PointAddTasklet -> Step : FINISHED
+    deactivate PointAddTasklet
+    Step [#blue]-> FlatFileItemWriter : <font color="blue"><b>commit</b></font>
+    activate FlatFileItemWriter
+    FlatFileItemWriter -> outfile : flush
+    FlatFileItemWriter -> outfile : close file
+    deactivate FlatFileItemWriter
+    deactivate outfile
+end
+Step-->[ : ExitStatus
+deactivate Step
+
+'Set styles such as format and color of each figure
+skinparam Note {
+  BackgroundColor #b1f8fa
+  BorderColor black
+}
+
+skinparam Class {
+  BorderColor black
+  ArrowColor black
+}
+
+skinparam Sequence {
+  BorderColor black
+  ActorBorderColor black
+  ArrowColor black
+  LifeLineBorderColor black
+  BoxLineColor black
+  ParticipantBorderColor black
+}
+
+skinparam componentStyle uml2
+
+skinparam Component {
+  BorderColor black
+  ArrowColor black
+}
+
+skinparam Interface {
+  BorderColor black
+  ArrowColor black
+}
+
+@enduml

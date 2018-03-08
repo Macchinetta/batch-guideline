@@ -1,0 +1,35 @@
+[[Ch09_Impl_single_index]]
+= バッチジョブの実装
+include::_include_all.adoc[]
+
+:leveloffset: +1
+
+//データベースアクセスでデータ入出力を行うジョブ
+include::Ch09_DBAccessJob.adoc[]
+
+<<<
+
+//ファイルアクセスでデータ入出力を行うジョブ
+include::Ch09_FileAccessJob.adoc[]
+
+<<<
+
+//入力データの妥当性検証を行うジョブ
+include::Ch09_ValidationJob.adoc[]
+
+<<<
+
+//ChunkListenerで例外ハンドリングを行うジョブ
+include::Ch09_ExceptionHandlingWithListenerJob.adoc[]
+
+<<<
+
+//try-catchで例外ハンドリングを行うジョブ
+include::Ch09_ExceptionHandlingWithTryCatchJob.adoc[]
+
+<<<
+
+//非同期実行方式のジョブ
+include::Ch09_AsyncExecutionJob.adoc[]
+
+:leveloffset: -1

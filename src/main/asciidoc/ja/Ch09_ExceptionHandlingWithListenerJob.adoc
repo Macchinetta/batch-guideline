@@ -1,0 +1,805 @@
+include::_include_all.adoc[]
+
+[[Ch09_Impl_ExceptionHandlingWithListenerJob]]
+= ChunkListenerで例外ハンドリングを行うジョブ
+
+[[Ch09_Impl_ExceptionHandlingWithListenerJob_Prerequisite]]
+[NOTE]
+.前提
+====
+<<Ch09_Introduction.adoc#Ch09_Introduction_HowToProceed,チュートリアルの進め方>>で説明しているとおり、
+<<Ch09_ValidationJob.adoc#Ch09_Impl_ValidationJob,入力データの妥当性検証を行うジョブ>>に対して、
+例外ハンドリングの実装を追加していく形式とする。なお、例外ハンドリング方式にはtry-catchやChunkListenerなど様々な方式がある。 +
+ただし、記述はデータベースアクセスするジョブに実装を追加した場合の説明としているため留意すること。
+====
+
+[[Ch09_Impl_ExceptionHandlingWithListenerJob_Overview]]
+== 概要
+ChunkListenerで例外ハンドリングを行うジョブを作成する。
+
+なお、本節は{batch5_guide}を元に説明しているため、
+詳細については<<Ch06_ExceptionHandling.adoc#Ch06_ExceptionHandling_HowToUse_StepExceptionHandling_ChunkListener,ChunkListenerインターフェースによる例外ハンドリング>>を参照のこと。
+
+[NOTE]
+.リスナーの用途について
+====
+ここでは、リスナーによりステップの実行後に例外発生の有無をチェックすることで例外ハンドリングを実現するが、
+リスナーの用途は例外ハンドリングに限定されてはいないため、
+詳細については<<Ch04_Listener.adoc#Ch04_Listener,リスナー>>を参照のこと。
+====
+
+<<Ch09_TutorialApplication.adoc#Ch09_TutorialApplication,作成するアプリケーションの説明>>の
+背景、処理概要、業務仕様を以下に再掲する。
+
+[[Ch09_Impl_ExceptionHandlingWithListenerJob_Overview_Background]]
+=== 背景
+とある量販店では、会員に対してポイントカードを発行している。 +
+会員には「ゴールド会員」「一般会員」の会員種別が存在し、会員種別に応じたサービスを提供している。 +
+今回そのサービスの一環として、月内に商品を購入した会員のうち、
+会員種別が「ゴールド会員」の場合は100ポイント、「一般会員」の場合は10ポイントを月末に加算することにした。
+
+[[Ch09_Impl_ExceptionHandlingWithListenerJob_Overview_ProcessOverview]]
+=== 処理概要
+会員種別に応じてポイント加算を行うアプリケーションを
+月次バッチ処理として{batch5_shortname}を使用して実装する。 +
+入力データにポイントの上限値を超えるデータが存在するか妥当性検証を行う処理を追加実装し、
+エラーの場合ログを出力し、異常終了させる。
+
+[[Ch09_Impl_ExceptionHandlingWithListenerJob_Overview_BusinessSpecification]]
+=== 業務仕様
+業務仕様は以下のとおり。
+
+* 入力データのポイントが1,000,000ポイントを超過していないことをチェックする
+** チェックエラーとなる場合は、エラーメッセージをログに出力して処理を異常終了する
+** エラーメッセージはリスナーによる後処理で実現する
+** メッセージ内容は「The Point exceeds 1000000.」(ポイントが1,000,000を超えています)とする
+* 商品購入フラグが"1"(処理対象)の場合に、会員種別に応じてポイントを加算する
+** 会員種別が"G"(ゴールド会員)の場合は100ポイント、"N"(一般会員)の場合は10ポイント加算する
+* 商品購入フラグはポイント加算後に"0"(初期状態)に更新する
+* ポイントの上限値は1,000,000ポイントとする
+* ポイント加算後に1,000,000ポイントを超えた場合は、1,000,000ポイントに補正する
+
+[[Ch09_Impl_ExceptionHandlingWithListenerJob_Overview_TableSpecification]]
+=== テーブル仕様
+入出力リソースとなる会員情報テーブルの仕様は以下のとおり。 +
+<<Ch09_Impl_ExceptionHandlingWithListenerJob_Prerequisite>>のとおりデータベースアクセスするジョブの場合の説明となるため、ファイルアクセスするジョブの場合の
+入出力のリソース仕様は<<Ch09_FileAccessJob.adoc#Ch09_Impl_FileAccessJob_Overview_FileSpecification,ファイル仕様>>を参照する。
+
+[cols="3,15,10,4,12,8,45", options="header"]
+.会員情報テーブル(member_info)
+|===
+|No
+|属性名
+|カラム名
+|PK
+|データ型
+|桁数
+|説明
+
+|1
+|会員番号
+|id
+| icon:check[]
+|CHAR
+|8
+|会員を一意に示す8桁固定の番号を表す。
+
+|2
+|会員種別
+|type
+|-
+|CHAR
+|1
+|会員の種別を以下のとおり表す。 +
+"G"(ゴールド会員)、"N"(一般会員)
+
+|3
+|商品購入フラグ
+|status
+|-
+|CHAR
+|1
+|月内に商品を買ったかどうかを表す。 +
+商品購入で"1"(処理対象)、月次バッチ処理で"0"(初期状態)に更新される。
+
+|4
+|ポイント
+|point
+|-
+|INT
+|7
+|会員の保有するポイントを表す。 +
+初期値は0。
+
+|===
+
+[[Ch09_Impl_ExceptionHandlingWithListenerJob_Overview_JobOverview]]
+=== ジョブの概要
+ここで作成する入力チェックを行うジョブの概要を把握するために、
+処理フローおよび処理シーケンスを以下に示す。
+
+<<Ch09_Impl_ExceptionHandlingWithListenerJob_Prerequisite>>のとおりデータベースアクセスするジョブの場合の説明となるため、
+ファイルアクセスするジョブの場合の処理フローおよび処理シーケンスとは異なる部分があるため留意する。
+
+//^
+処理フロー概要::
+処理フローの概要を以下に示す。
+
+.例外ハンドリングを行うジョブの処理フロー
+image::ch09/ExceptionHandlingWithListener/Ch09_ExceptionHandlingWithListenerJob_ProcessFlow.png[ProcessFlow of ExceptionHandlingWithListener Job]
+
+//^
+チャンクモデルの場合の処理シーケンス::
+チャンクモデルの場合の処理シーケンスを説明する。
+
+チャンクモデルの場合の処理シーケンスを説明する。 +
+本ジョブは異常系データを利用することを前提として説明しているため、
+このシーケンス図は入力チェックでエラー(異常終了)となった場合を示している。 +
+入力チェックが正常の場合、入力チェック以降の処理シーケンスはデータベースアクセスのシーケンス図
+(<<Ch09_DBAccessJob.adoc#Ch09_Impl_DBAccessJob_Overview_JobOverview,ジョブの概要>>を参照)と同じである。
+
+橙色のオブジェクトは今回実装するクラスを表す。
+
+.チャンクモデルのシーケンス図
+image::Ch09_ExceptionHandlingWithListenerJob_ProcessSequence_ChunkModel.png[ProcessSequence of ExceptionHandlingWithListener Job by ChunkModel]
+
+.シーケンス図の説明
+. ジョブからステップが実行される。
+. ステップは、リソースをオープンする。
+. ``MyBatisCursorItemReader``は、member_infoテーブルから会員情報をすべて取得(select文の発行)する。
+** 入力データがなくなるまで、以降の処理を繰り返す。
+** チャンク単位で、フレームワークトランザクションを開始する。
+** チャンクサイズに達するまで4から12までの処理を繰り返す。
+. ステップは、``MyBatisCursorItemReader``から入力データを1件取得する。
+. ``MyBatisCursorItemReader``は、member_infoテーブルから入力データを1件取得する。
+. member_infoテーブルは、``MyBatisCursorItemReader``に入力データを返却する。
+. ``MyBatisCursorItemReader``は、ステップに入力データを返却する。
+. ステップは、``PointAddItemProcessor``で入力データに対して処理を行う。
+. ``PointAddItemProcessor``は、``SpringValidator``に入力チェック処理を依頼する。
+. ``SpringValidator``は、入力チェックルールに基づき入力チェックを行い、チェックエラーの場合は例外(ValidationException)をスローする。
+. ``PointAddItemProcessor``は、入力データを読み込んでポイント加算処理を行う。
+. ``PointAddItemProcessor``は、ステップに処理結果を返却する。
+. ステップは、チャンクサイズ分のデータを``MyBatisBatchItemWriter``で出力する。
+. ``MyBatisBatchItemWriter``は、member_infoテーブルに対して会員情報の更新(update文の発行)を行う。
+
+** 4から14までの処理過程で**例外が発生**すると、以降の処理を行う。
+
+[start=15]
+. ステップはフレームワークトランザクションをロールバックする。
+. ステップは``ChunkErrorLoggingListener``を実行する。
+. ``ChunkErrorLoggingListener``はERRORログ出力処理を行う。
+. ステップはジョブに終了コード(ここでは異常終了:255)を返却する。
+
+//^
+タスクレットモデルの場合の処理シーケンス::
+タスクレットモデルの場合の処理シーケンスについて説明する。 +
+本ジョブは異常系データを利用することを前提として説明しているため、
+このシーケンス図は入力チェックでエラー(異常終了)となった場合を示している。 +
+入力チェックが正常の場合、入力チェック以降の処理シーケンスはデータベースアクセスのシーケンス図
+(<<Ch09_DBAccessJob.adoc#Ch09_Impl_DBAccessJob_Overview_JobOverview,ジョブの概要>>を参照)と同じである。
+
+橙色のオブジェクトは今回実装するクラスを表す。
+
+.タスクレットモデルのシーケンス図
+image::Ch09_ExceptionHandlingWithListenerJob_ProcessSequence_TaskletModel.png[ProcessSequence of ExceptionHandlingWithListener Job by TaskletModel]
+
+.シーケンス図の説明
+. ジョブからステップが実行される。
+** ステップはフレームワークトランザクションを開始する。
+. ステップは``PointAddTasklet``を実行する。
+. ``PointAddTasklet``は、リソースをオープンする。
+. ``MyBatisCursorItemReader``は、member_infoテーブルから会員情報をすべて取得(select文の発行)する。
+** 入力データがなくなるまで5から13までの処理を繰り返す。
+** 一定件数に達するまで5から11までの処理を繰り返す。
+. ``PointAddTasklet``は、``MyBatisCursorItemReader``から入力データを1件取得する。
+. ``MyBatisCursorItemReader``は、member_infoテーブルから入力データを1件取得する。
+. member_infoテーブルは、``MyBatisCursorItemReader``に入力データを返却する。
+. ``MyBatisCursorItemReader``は、タスクレットに入力データを返却する。
+. ``PointAddTasklet``は、``SpringValidator``に入力チェック処理を依頼する。
+. ``SpringValidator``は、入力チェックルールに基づき入力チェックを行い、チェックエラーの場合は例外(ValidationException)をスローする。
+. ``PointAddTasklet``は、入力データを読み込んでポイント加算処理を行う。
+. ``PointAddTasklet``は、一定件数分のデータを``MyBatisBatchItemWriter``で出力する。
+. ``MyBatisBatchItemWriter``は、member_infoテーブルに対して会員情報の更新(update文の発行)を行う。
+
+** 2から13までの処理過程で**例外が発生**すると、以降の処理を行う。
+
+[start=14]
+. ``PointAddTasklet``はステップへ例外(ここではValidationException)をスローする。
+. ステップはフレームワークトランザクションをロールバックする。
+. ステップは``ChunkErrorLoggingListener``を実行する。
+. ``ChunkErrorLoggingListener``はERRORログ出力処理を行う。
+. ステップはジョブに終了コード(ここでは異常終了:255)を返却する。
+
+
+以降で、チャンクモデル、タスクレットモデルそれぞれの実装方法を説明する。
+
+* <<Ch09_Impl_ExceptionHandlingWithListenerJob_Chunk>>
+* <<Ch09_Impl_ExceptionHandlingWithListenerJob_Tasklet>>
+
+[[Ch09_Impl_ExceptionHandlingWithListenerJob_Chunk]]
+== チャンクモデルでの実装
+チャンクモデルで入力チェックを行うジョブの作成から実行までを以下の手順で実施する。
+
+. <<Ch09_Impl_ExceptionHandlingWithListenerJob_Chunk_MessageDefinition>>
+. <<Ch09_Impl_ExceptionHandlingWithListenerJob_Chunk_Coding>>
+. <<Ch09_Impl_ExceptionHandlingWithListenerJob_Chunk_Execution>>
+
+[[Ch09_Impl_ExceptionHandlingWithListenerJob_Chunk_MessageDefinition]]
+=== メッセージ定義の追加
+コード体系のばらつき防止や、監視対象のキーワードとしての抽出を設計しやすくするため、
+ログメッセージはメッセージ定義を使用し、ログ出力時に使用する。
+
+チャンクモデル/タスクレットモデルで共通して利用するため、既に作成している場合は読み飛ばしてよい。
+
+``application-messages.properties``および``launch-context.xml``を以下のとおり設定する。 +
+``launch-context.xml``は{batch5_shortname}では設定済みである。
+
+[source, xml]
+.src/main/resources/i18n/application-messages.properties
+----
+# (1)
+errors.maxInteger=The {0} exceeds {1}.
+----
+
+[source, xml]
+.src/main/resources/META-INF/spring/launch-context.xml
+----
+<!-- omitted -->
+
+<bean id="messageSource" class="org.springframework.context.support.ResourceBundleMessageSource"
+      p:basenames="i18n/application-messages" /> <!-- (2) -->
+
+<!-- omitted -->
+----
+
+[cols="10,90", options="header"]
+.説明
+|===
+|項番
+|説明
+
+|(1)
+|ポイント上限超過時に出力するメッセージを設定する。 +
+{0)に項目名、{1}に上限値を割り当てる。
+
+|(2)
+|プロパティファイルからメッセージを使用するために、``MessageSource``を設定する。 +
+``basenames``に、プロパティファイルの格納場所を指定する。
+
+|===
+
+[[Ch09_Impl_ExceptionHandlingWithListenerJob_Chunk_Coding]]
+=== 例外ハンドリングの実装
+例外ハンドリング処理を実装する。
+
+以下の作業を実施する。
+
+. <<Ch09_Impl_ExceptionHandlingWithListenerJob_Chunk_Coding_Listener>>
+. <<Ch09_Impl_ExceptionHandlingWithListenerJob_Chunk_Coding_Bean>>
+
+[[Ch09_Impl_ExceptionHandlingWithListenerJob_Chunk_Coding_Listener]]
+==== ChunkErrorLoggingListenerクラスの実装
+ChunkListenerインターフェースを利用して例外ハンドリングする。 +
+ここでは、ChunkListenerインターフェースの実装クラスとして、例外発生時にERRORログを出力する処理を実装する。
+
+[source, java]
+.com.example.batch.tutorial.common.listener.ChunkErrorLoggingListener
+----
+package com.example.batch.tutorial.common.listener;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.batch.core.ChunkListener;
+import org.springframework.batch.core.scope.context.ChunkContext;
+import org.springframework.batch.item.validator.ValidationException;
+import org.springframework.context.MessageSource;
+import org.springframework.stereotype.Component;
+
+import javax.inject.Inject;
+import java.util.Locale;
+
+@Component
+public class ChunkErrorLoggingListener implements ChunkListener {
+    private static final Logger logger = LoggerFactory.getLogger(ChunkErrorLoggingListener.class);
+
+    @Inject
+    MessageSource messageSource; // (1)
+
+    @Override
+    public void beforeChunk(ChunkContext chunkContext) {
+        // do nothing.
+    }
+
+    @Override
+    public void afterChunk(ChunkContext chunkContext) {
+        // do nothing.
+    }
+
+    @Override
+    public void afterChunkError(ChunkContext chunkContext) {
+        Exception e = (Exception) chunkContext.getAttribute(ChunkListener.ROLLBACK_EXCEPTION_KEY); // (2)
+        if (e instanceof ValidationException) {
+            logger.error(messageSource
+                    .getMessage("errors.maxInteger", new String[] { "Point", "1000000" }, Locale.getDefault())); // (3)
+        }
+    }
+}
+----
+
+[cols="10,90", options="header"]
+.説明
+|===
+|項番
+|説明
+
+|(1)
+|``ResourceBundleMessageSource``のインスタンスをインジェクトする。
+
+|(2)
+|``ROLLBACK_EXCEPTION_KEY``に設定された値をキーにして発生した例外を取得する。
+
+|(3)
+|プロパティファイルからメッセージIDが``errors.maxInteger``のメッセージを取得し、ログに出力する。
+
+|===
+
+[[Ch09_Impl_ExceptionHandlingWithListenerJob_Chunk_Coding_Bean]]
+==== ジョブBean定義ファイルの設定
+例外ハンドリングをChunkListenerで行うためのジョブBean定義ファイルの設定を以下に示す。
+
+[source, xml]
+.src/main/resources/META-INF/jobs/dbaccess/jobPointAddChunk.xml
+----
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:batch="http://www.springframework.org/schema/batch"
+       xmlns:p="http://www.springframework.org/schema/p"
+       xmlns:mybatis="http://mybatis.org/schema/mybatis-spring"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+             http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+             http://www.springframework.org/schema/batch http://www.springframework.org/schema/batch/spring-batch.xsd
+             http://mybatis.org/schema/mybatis-spring http://mybatis.org/schema/mybatis-spring.xsd">
+
+    <!-- omitted -->
+
+    <context:component-scan base-package="com.example.batch.tutorial.dbaccess.chunk,
+            com.example.batch.tutorial.common.listener"/> <!-- (1) -->
+
+    <!-- omitted -->
+
+    <batch:job id="jobPointAddChunk" job-repository="jobRepository">
+        <batch:step id="jobPointAddChunk.step01">
+            <batch:tasklet transaction-manager="jobTransactionManager">
+                <batch:chunk reader="reader"
+                             processor="pointAddItemProcessor"
+                             writer="writer" commit-interval="10"/>
+                <batch:listeners>
+                    <batch:listener ref="chunkErrorLoggingListener"/> <!--(2)-->
+                </batch:listeners>
+            </batch:tasklet>
+        </batch:step>
+    </batch:job>
+
+</beans>
+----
+
+[cols="10,90", options="header"]
+.説明
+|===
+|項番
+|説明
+
+|(1)
+|コンポーネントスキャン対象とするベースパッケージの設定を行う。 +
+``base-package``属性に、``ChunkListener``の実装クラスが格納されているパッケージを追加で指定する。
+
+|(2)
+|``StepListener``の実装クラスを設定する。
+なお、``ChunkListener``は``StepListener``の拡張インターフェースである。 +
+ここでは、ChunkListenerの実装クラスのBeanIDである``chunkErrorLoggingListener``を指定する。
+
+|===
+
+[[Ch09_Impl_ExceptionHandlingWithListenerJob_Chunk_Execution]]
+=== ジョブの実行と結果の確認
+作成したジョブをSTS上で実行し、結果を確認する。
+
+[[Ch09_Impl_ExceptionHandlingWithListenerJob_Chunk_Execution_Run]]
+==== 実行構成からジョブを実行
+既に作成してある実行構成から、ジョブを実行する。
+
+ここでは、異常系データを利用してジョブを実行する。 +
+入力チェックを実装したジョブが扱うリソース(データベース or ファイル)によって、
+入力データの切替方法が異なるため、以下のとおり実行すること。
+
+//^
+データベースアクセスでデータ入出力を行うジョブに対して入力チェックを実装した場合::
+データベースアクセスでデータ入出力を行うジョブの<<Ch09_DBAccessJob.adoc#Ch09_Impl_DBAccessJob_Chunk_Execution_Run,実行構成からジョブを実行>>
+で作成した実行構成を使ってジョブを実行する。
+
+異常系データを利用するために、``batch-application.proeprties``のDatabase Initializeで
+正常系データのスクリプトをコメントアウトし、異常系データのスクリプトのコメントアウトを解除する。
+
+[source, xml]
+.src/main/resources/batch-application.proeprties
+----
+# Database Initialize
+tutorial.create-table.script=file:sqls/create-member-info-table.sql
+#tutorial.insert-data.script=file:sqls/insert-member-info-data.sql
+tutorial.insert-data.script=file:sqls/insert-member-info-error-data.sql
+----
+
+//^
+ファイルアクセスでデータ入出力を行うジョブに対して入力チェックを実装した場合::
+ファイルアクセスでデータ入出力を行うジョブの<<Ch09_FileAccessJob.adoc#Ch09_Impl_FileAccessJob_Chunk_Execution_Run,実行構成からジョブを実行>>
+で作成した実行構成を使ってジョブを実行する。
+
+異常系データを利用するために、実行構成で設定する引数のうち、
+入力ファイル(inputFile)のパスを正常系データ(insert-member-info-data.csv)から異常系データ(insert-member-info-error-data.csv)に変更する。
+
+[[Ch09_Impl_ExceptionHandlingWithListenerJob_Chunk_Execution_Console]]
+==== コンソールログの確認
+Console Viewを開き、以下の内容のログが出力されていることを確認する。
+
+* 処理が異常終了(FAILED)していること
+* ``org.springframework.batch.item.validator.ValidationException``が発生していること
+* ``com.example.batch.tutorial.common.listener.ChunkErrorLoggingListener``が次のERRORログとして次のメッセージを出力していること
+** 「The Point exceeds 1000000.」
+
+[source, console]
+.コンソールログ出力例
+----
+[2017/09/12 11:13:52] [main] [o.t.b.t.c.l.ChunkErrorLoggingListener] [ERROR] The Point exceeds 1000000.
+[2017/09/12 11:13:52] [main] [o.s.b.c.s.AbstractStep] [ERROR] Encountered an error executing step jobPointAddChunk.step01 in job jobPointAddChunk
+org.springframework.batch.item.validator.ValidationException: Validation failed for com.example.batch.tutorial.common.dto.MemberInfoDto@6c8a68c1:
+Field error in object 'item' on field 'point': rejected value [1000001]; codes [Max.item.point,Max.point,Max.int,Max]; arguments [org.springframework.context.support.DefaultMessageSourceResolvable: codes [item.point,point]; arguments []; default message [point],1000000]; default message [must be less than or equal to 1000000]
+	at org.springframework.batch.item.validator.SpringValidator.validate(SpringValidator.java:54)
+
+(.. omitted)
+
+[2017/09/12 11:13:52] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=jobPointAddChunk]] completed with the following parameters: [{jsr_batch_run_id=480}] and the following status: [FAILED]
+[2017/09/12 11:13:52] [main] [o.s.c.s.ClassPathXmlApplicationContext] [INFO ] Closing org.springframework.context.support.ClassPathXmlApplicationContext@735f7ae5: startup date [Tue Sep 12 11:13:50 JST 2017]; root of context hierarchy
+----
+
+[[Ch09_Impl_ExceptionHandlingWithListenerJob_Chunk_Execution_Exitcode]]
+==== 終了コードの確認
+終了コードにより、異常終了したことを確認する。 +
+確認手順は<<Ch09_EnvironmentConstruction.adoc#Ch09_EnvironmentConstruction_OperationCheck_ExecJob_Run,ジョブの実行と結果の確認>>を参照。
+終了コード(exit value)が255(異常終了)となっていることを確認する。
+
+.終了コードの確認
+image::ch09/ExceptionHandlingWithListener/Ch09_ExceptionHandlingWithListenerJob_ExitCode_ChunkModel.png[Confirm the Exit Code of ExceptionHandlingWithListenerJob for ChunkModel]
+
+[[Ch09_Impl_ExceptionHandlingWithListenerJob_Chunk_Execution_Output]]
+==== 出力リソースの確認
+入力チェックを実装したジョブによって出力リソース(データベース or ファイル)を確認する。
+
+チャンクモデルの場合、中間コミット方式をとっているため、エラー箇所直前のチャンクまで更新が確定していることを確認する。
+
+[[Ch09_Impl_ExceptionHandlingWithListenerJob_Chunk_Execution_Output_Table]]
+===== 会員情報テーブルの確認
+Data Source Explorerを使用して会員情報テーブルの確認を行う。 +
+更新前後の会員情報テーブルの内容を比較し、確認内容のとおりとなっていることを確認する。 +
+確認手順は<<Ch09_EnvironmentConstruction.adoc#Ch09_EnvironmentConstruction_OperationCheck_RefDB,Data Source Explorerを使用してデータベースを参照する>>を参照。
+
+確認内容::
+* 1から10番目のレコード(会員番号が"00000001"から"00000010"のレコード)について
+** statusカラム
+*** "0"(初期状態)のレコードが存在しないこと
+** pointカラム
+*** ポイント加算対象について、会員種別に応じたポイントが加算されていること
+**** typeカラムが"G"(ゴールド会員)の場合は100ポイント
+**** typeカラムが"N"(一般会員)の場合は10ポイント
+* 11から15番目のレコード(会員番号が"00000011"から"00000015"のレコード)について
+** 更新されていないこと
+
+更新前後の会員情報テーブルの内容は以下のとおり。
+
+.更新前後の会員情報テーブルの内容
+image::ch09/ExceptionHandlingWithListener/Ch09_ExceptionHandlingWithListenerJob_Result_MemberInfoTable.png[Table of member_info]
+
+[[Ch09_Impl_ExceptionHandlingWithListenerJob_Chunk_Execution_Output_File]]
+===== 会員情報ファイルの確認
+会員情報ファイルの入出力内容を比較し、確認内容のとおりとなっていることを確認する。
+
+確認内容::
+* 出力ディレクトリに会員情報ファイルが出力されていること
+** 出力ファイル: files/output/output-member-info-data.csv
+* 出力されたレコードは、1から10番目のレコード(会員番号が"00000001"から"00000010"のレコード)のみであること
+* 出力されたレコードについて
+** statusカラム
+*** "0"(初期状態)のレコードが存在しないこと
+** pointカラム
+*** ポイント加算対象について、会員種別に応じたポイントが加算されていること
+**** typeカラムが"G"(ゴールド会員)の場合は100ポイント
+**** typeカラムが"N"(一般会員)の場合は10ポイント
+
+会員情報ファイルの入出力内容は以下のとおり。 +
+ファイルのフィールドはid(会員番号)、type(会員種別)、status(商品購入フラグ)、point(ポイント)の順で出力される。
+
+.会員情報ファイルの入出力内容
+image::ch09/ExceptionHandlingWithListener/Ch09_ExceptionHandlingWithListenerJob_Result_MemberInfoFile.png[File of member_info]
+
+[[Ch09_Impl_ExceptionHandlingWithListenerJob_Tasklet]]
+== タスクレットモデルでの実装
+タスクレットモデルで入力チェックを行うジョブの作成から実行までを以下の手順で実施する。
+
+. <<Ch09_Impl_ExceptionHandlingWithListenerJob_Tasklet_MessageDefinition>>
+. <<Ch09_Impl_ExceptionHandlingWithListenerJob_Tasklet_Coding>>
+. <<Ch09_Impl_ExceptionHandlingWithListenerJob_Tasklet_Execution>>
+
+[[Ch09_Impl_ExceptionHandlingWithListenerJob_Tasklet_MessageDefinition]]
+=== メッセージ定義の追加
+コード体系のばらつき防止や、監視対象のキーワードとしての抽出を設計しやすくするため、
+ログメッセージはメッセージ定義を使用し、ログ出力時に使用する。
+
+チャンクモデル/タスクレットモデルで共通して利用するため、既に作成している場合は読み飛ばしてよい。
+
+``application-messages.properties``および``launch-context.xml``を以下のとおり設定する。 +
+``launch-context.xml``は{batch5_shortname}では設定済みである。
+
+[source, xml]
+.src/main/resources/i18n/application-messages.properties
+----
+# (1)
+errors.maxInteger=The {0} exceeds {1}.
+----
+
+[source, xml]
+.src/main/resources/META-INF/spring/launch-context.xml
+----
+<!-- omitted -->
+
+<bean id="messageSource" class="org.springframework.context.support.ResourceBundleMessageSource"
+      p:basenames="i18n/application-messages" /> <!-- (2) -->
+
+<!-- omitted -->
+----
+
+[cols="10,90", options="header"]
+.説明
+|===
+|項番
+|説明
+
+|(1)
+|ポイント上限超過時に出力するメッセージを設定する。 +
+{0)に項目名、{1}に上限値を割り当てる。
+
+|(2)
+|プロパティファイルからメッセージを使用するために、``MessageSource``を設定する。 +
+``basenames``に、プロパティファイルの格納場所を指定する。
+
+|===
+
+[[Ch09_Impl_ExceptionHandlingWithListenerJob_Tasklet_Coding]]
+=== 例外ハンドリングの実装
+例外ハンドリング処理を実装する。
+
+以下の作業を実施する。
+
+. <<Ch09_Impl_ExceptionHandlingWithListenerJob_Tasklet_Coding_Listener>>
+. <<Ch09_Impl_ExceptionHandlingWithListenerJob_Tasklet_Coding_Bean>>
+
+[[Ch09_Impl_ExceptionHandlingWithListenerJob_Tasklet_Coding_Listener]]
+==== ChunkErrorLoggingListenerクラスの実装
+ChunkListenerインターフェースを利用して例外ハンドリングする。 +
+ここでは、ChunkListenerインターフェースの実装クラスとして、例外発生時にERRORログを出力する処理を実装する。
+
+[source, java]
+.com.example.batch.tutorial.common.listener.ChunkErrorLoggingListener
+----
+package com.example.batch.tutorial.common.listener;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.batch.core.ChunkListener;
+import org.springframework.batch.core.scope.context.ChunkContext;
+import org.springframework.batch.item.validator.ValidationException;
+import org.springframework.context.MessageSource;
+import org.springframework.stereotype.Component;
+
+import javax.inject.Inject;
+import java.util.Locale;
+
+@Component
+public class ChunkErrorLoggingListener implements ChunkListener {
+    private static final Logger logger = LoggerFactory.getLogger(ChunkErrorLoggingListener.class);
+
+    @Inject
+    MessageSource messageSource; // (1)
+
+    @Override
+    public void beforeChunk(ChunkContext chunkContext) {
+        // do nothing.
+    }
+
+    @Override
+    public void afterChunk(ChunkContext chunkContext) {
+        // do nothing.
+    }
+
+    @Override
+    public void afterChunkError(ChunkContext chunkContext) {
+        Exception e = (Exception) chunkContext.getAttribute(ChunkListener.ROLLBACK_EXCEPTION_KEY); // (2)
+        if (e instanceof ValidationException) {
+            logger.error(messageSource
+                    .getMessage("errors.maxInteger", new String[] { "Point", "1000000" }, Locale.getDefault())); // (3)
+        }
+    }
+}
+----
+
+[cols="10,90", options="header"]
+.説明
+|===
+|項番
+|説明
+
+|(1)
+|``ResourceBundleMessageSource``のインスタンスをインジェクトする。
+
+|(2)
+|``ROLLBACK_EXCEPTION_KEY``に設定された値をキーにして発生した例外を取得する。
+
+|(3)
+|プロパティファイルからメッセージIDが``errors.maxInteger``のメッセージを取得し、ログに出力する。
+
+|===
+
+[[Ch09_Impl_ExceptionHandlingWithListenerJob_Tasklet_Coding_Bean]]
+==== ジョブBean定義ファイルの設定
+例外ハンドリングをChunkListenerで行うためのジョブBean定義ファイルの設定を以下に示す。
+
+[source, xml]
+.src/main/resources/META-INF/jobs/dbaccess/jobPointAddTasklet.xml
+----
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:batch="http://www.springframework.org/schema/batch"
+       xmlns:p="http://www.springframework.org/schema/p"
+       xmlns:mybatis="http://mybatis.org/schema/mybatis-spring"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+             http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+             http://www.springframework.org/schema/batch http://www.springframework.org/schema/batch/spring-batch.xsd
+             http://mybatis.org/schema/mybatis-spring http://mybatis.org/schema/mybatis-spring.xsd">
+
+    <!-- omitted -->
+
+    <context:component-scan base-package="com.example.batch.tutorial.dbaccess.tasklet,
+            com.example.batch.tutorial.common.listener"/> <!-- (1) -->
+
+    <!-- omitted -->
+
+    <batch:job id="jobPointAddTasklet" job-repository="jobRepository">
+        <batch:step id="jobPointAddTasklet.step01">
+            <batch:tasklet transaction-manager="jobTransactionManager"
+                           ref="pointAddTasklet">
+                <batch:listeners>
+                    <batch:listener ref="chunkErrorLoggingListener"/> <!-- (2) -->
+                </batch:listeners>
+            </batch:tasklet>
+        </batch:step>
+    </batch:job>
+
+</beans>
+----
+
+[cols="10,90", options="header"]
+.説明
+|===
+|項番
+|説明
+
+|(1)
+|コンポーネントスキャン対象とするベースパッケージの設定を行う。 +
+``base-package``属性に、``ChunkListener``の実装クラスが格納されているパッケージを追加で指定する。
+
+|(2)
+|``StepListener``の実装クラスを設定する。
+なお、``ChunkListener``は``StepListener``の拡張インターフェースである。 +
+ここでは、ChunkListenerの実装クラスのBeanIDである``chunkErrorLoggingListener``を指定する。
+
+|===
+
+[[Ch09_Impl_ExceptionHandlingWithListenerJob_Tasklet_Execution]]
+=== ジョブの実行と結果の確認
+作成したジョブをSTS上で実行し、結果を確認する。
+
+[[Ch09_Impl_ExceptionHandlingWithListenerJob_Tasklet_Execution_Run]]
+==== 実行構成からジョブを実行
+既に作成してある実行構成から、ジョブを実行する。
+
+ここでは、異常系データを利用してジョブを実行する。 +
+入力チェックを実装したジョブが扱うリソース(データベース or ファイル)によって
+入力データの切替方法が異なるため、以下のとおり実行すること。
+
+//^
+データベースアクセスでデータ入出力を行うジョブに対して入力チェックを実装した場合::
+データベースアクセスでデータ入出力を行うジョブの<<Ch09_DBAccessJob.adoc#Ch09_Impl_DBAccessJob_Chunk_Execution_Run,実行構成からジョブを実行>>
+で作成した実行構成を使ってジョブを実行する。
+
+異常系データを利用するために、``batch-application.proeprties``のDatabase Initializeで
+正常系データのスクリプトをコメントアウトし、異常系データのスクリプトのコメントアウトを解除する。
+
+[source, xml]
+.src/main/resources/batch-application.proeprties
+----
+# Database Initialize
+tutorial.create-table.script=file:sqls/create-member-info-table.sql
+#tutorial.insert-data.script=file:sqls/insert-member-info-data.sql
+tutorial.insert-data.script=file:sqls/insert-member-info-error-data.sql
+----
+
+//^
+ファイルアクセスでデータ入出力を行うジョブに対して入力チェックを実装した場合::
+ファイルアクセスでデータ入出力を行うジョブの<<Ch09_FileAccessJob.adoc#Ch09_Impl_FileAccessJob_Chunk_Execution_Run,実行構成からジョブを実行>>
+で作成した実行構成を使ってジョブを実行する。
+
+異常系データを利用するために、実行構成で設定する引数のうち、
+入力ファイル(inputFile)のパスを正常系データ(insert-member-info-data.csv)から異常系データ(insert-member-info-error-data.csv)に変更する。
+
+[[Ch09_Impl_ExceptionHandlingWithListenerJob_Tasklet_Execution_Console]]
+==== コンソールログの確認
+Console Viewを開き、以下の内容のログが出力されていることを確認する。
+
+* 処理が異常終了(FAILED)していること
+* ``org.springframework.batch.item.validator.ValidationException``が発生していること
+* ``com.example.batch.tutorial.common.listener.ChunkErrorLoggingListener``が次のERRORログとして次のメッセージを出力していること
+** 「The Point exceeds 1000000.」
+
+[source, console]
+.コンソールログ出力例
+----
+[2017/09/12 10:22:22] [main] [o.t.b.t.c.l.ChunkErrorLoggingListener] [ERROR] The Point exceeds 1000000.
+[2017/09/12 10:22:22] [main] [o.s.b.c.s.AbstractStep] [ERROR] Encountered an error executing step jobPointAddTasklet.step01 in job jobPointAddTasklet
+org.springframework.batch.item.validator.ValidationException: Validation failed for com.example.batch.tutorial.common.dto.MemberInfoDto@6e4ea0bd:
+Field error in object 'item' on field 'point': rejected value [1000001]; codes [Max.item.point,Max.point,Max.int,Max]; arguments [org.springframework.context.support.DefaultMessageSourceResolvable: codes [item.point,point]; arguments []; default message [point],1000000]; default message [must be less than or equal to 1000000]
+	at org.springframework.batch.item.validator.SpringValidator.validate(SpringValidator.java:54)
+
+(.. omitted)
+
+[2017/09/12 10:22:22] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=jobPointAddTasklet]] completed with the following parameters: [{jsr_batch_run_id=478}] and the following status: [FAILED]
+[2017/09/12 10:22:22] [main] [o.s.c.s.ClassPathXmlApplicationContext] [INFO ] Closing org.springframework.context.support.ClassPathXmlApplicationContext@735f7ae5: startup date [Tue Sep 12 10:22:20 JST 2017]; root of context hierarchy
+----
+
+[[Ch09_Impl_ExceptionHandlingWithListenerJob_Tasklet_Execution_Exitcode]]
+==== 終了コードの確認
+終了コードにより、異常終了したことを確認する。 +
+確認手順は<<Ch09_EnvironmentConstruction.adoc#Ch09_EnvironmentConstruction_OperationCheck_ExecJob_Run,ジョブの実行と結果の確認>>を参照。
+終了コード(exit value)が255(異常終了)となっていることを確認する。
+
+.終了コードの確認
+image::ch09/ExceptionHandlingWithListener/Ch09_ExceptionHandlingWithListenerJob_ExitCode_TaskletModel.png[Confirm the Exit Code of ExceptionHandlingWithListenerJob for TaskletModel]
+
+[[Ch09_Impl_ExceptionHandlingWithListenerJob_Tasklet_Execution_Output]]
+==== 出力リソースの確認
+入力チェックを実装したジョブによって出力リソース(データベース or ファイル)を確認する。
+
+タスクレットモデルの場合、一括コミット方式をとっているため、エラーが発生した場合は一切更新されていないことを確認してほしい。
+
+[[Ch09_Impl_ExceptionHandlingWithListenerJob_Tasklet_Execution_Output_Table]]
+===== 会員情報テーブルの確認
+Data Source Explorerを使用して会員情報テーブルの確認を行う。 +
+更新前後の会員情報テーブルの内容を比較し、確認内容のとおりとなっていることを確認する。 +
+確認手順は<<Ch09_EnvironmentConstruction.adoc#Ch09_EnvironmentConstruction_OperationCheck_RefDB,Data Source Explorerを使用してデータベースを参照する>>を参照。
+
+確認内容::
+* すべてのレコードについて、データが更新されていないこと
+
+初期状態の会員情報テーブルの内容を以下に示す。
+
+.初期状態の会員情報テーブルの内容
+image::ch09/ExceptionHandlingWithListener/Ch09_ExceptionHandlingWithListenerJob_Initial_MemberInfoTable.png[member_info table in the initial state]
+
+[[Ch09_Impl_ExceptionHandlingWithListenerJob_Tasklet_Execution_Output_File]]
+===== 会員情報ファイルの確認
+会員情報ファイルの入出力内容を比較し、確認内容のとおりとなっていることを確認する。
+
+確認内容::
+* 出力ディレクトリに会員情報ファイルが**空ファイル**で出力されていること
+** 出力ファイル: files/output/output-member-info-data.csv

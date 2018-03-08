@@ -1,0 +1,6 @@
+= Image of ExceptionHandlingWithTryCatch
+== Images
+
+plantuml::ch09/ExceptionHandlingWithTryCatch/Ch09_ExceptionHandlingWithTryCatchJob_ProcessSequence_ChunkModel.pu[]
+
+plantuml::ch09/ExceptionHandlingWithTryCatch/Ch09_ExceptionHandlingWithTryCatchJob_ProcessSequence_TaskletModel.pu[]
