@@ -1,0 +1,1990 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<!--[if IE]><meta http-equiv="X-UA-Compatible" content="IE=edge"><![endif]-->
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Asciidoctor 1.5.6.1">
+<title>try-catchで例外ハンドリングを行うジョブ</title>
+<link rel="stylesheet" href="./theme/css/readthedocs.css">
+<link rel="stylesheet" href="./theme/css/font-awesome.min.css">
+<link rel="stylesheet" href="./theme/css/coderay-asciidoctor.css">
+<link rel="stylesheet" href="./theme/css/header-footer.css">
+<title>Macchinetta Batch Framework (2.x) Development Guideline</title>
+
+<div class="common-bg">
+  <div class="information">
+    Macchinetta Batch Framework (2.x) Development Guideline - version 2.0.1.RELEASE, 2018-3-9
+  </div>
+  <div class="index">
+      <a href="index.html">&gt; INDEX</a>
+  </div>
+</div>
+
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-113850349-5"></script>
+<script>
+ window.dataLayer = window.dataLayer || [];
+ function gtag(){dataLayer.push(arguments);}
+ gtag('js', new Date());
+
+ gtag('config', 'UA-113850349-5');
+</script>
+</head>
+<body id="Ch09_Impl_ExceptionHandlingWithTryCatchJob" class="book toc2 toc-left">
+<div id="header">
+<h1>try-catchで例外ハンドリングを行うジョブ</h1>
+<div id="toc" class="toc2">
+<div id="toctitle">Table of Contents</div>
+<ul class="sectlevel1">
+<li><a href="#Ch09_Impl_ExceptionHandlingWithTryCatchJob_Overview">概要</a>
+<ul class="sectlevel2">
+<li><a href="#Ch09_Impl_ExceptionHandlingWithTryCatchJob_Overview_Background">背景</a></li>
+<li><a href="#Ch09_Impl_ExceptionHandlingWithTryCatchJob_Overview_ProcessOverview">処理概要</a></li>
+<li><a href="#Ch09_Impl_ExceptionHandlingWithTryCatchJob_Overview_BusinessSpecification">業務仕様</a></li>
+<li><a href="#Ch09_Impl_ExceptionHandlingWithTryCatchJob_Overview_TableSpecification">テーブル仕様</a></li>
+<li><a href="#Ch09_Impl_ExceptionHandlingWithTryCatchJob_Overview_JobOverview">ジョブの概要</a></li>
+</ul>
+</li>
+<li><a href="#Ch09_Impl_ExceptionHandlingWithTryCatchJob_Chunk">チャンクモデルでの実装</a>
+<ul class="sectlevel2">
+<li><a href="#Ch09_Impl_ExceptionHandlingWithTryCatchJob_Chunk_MessageDefinition">メッセージ定義の追加</a></li>
+<li><a href="#Ch09_Impl_ExceptionHandlingWithTryCatchJob_Chunk_ExitCode">終了コードのカスタマイズ</a>
+<ul class="sectlevel3">
+<li><a href="#Ch09_Impl_ExceptionHandlingWithTryCatchJob_Chunk_ExitCode_StepExecutionListener">StepExecutionListenerの実装</a></li>
+<li><a href="#Ch09_Impl_ExceptionHandlingWithTryCatchJob_Chunk_ExitCode_JobExecutionListener">JobExecutionListenerの実装</a></li>
+<li><a href="#Ch09_Impl_ExceptionHandlingWithTryCatchJob_Chunk_ExitCode_Bean">ジョブBean定義ファイルの設定</a></li>
+<li><a href="#Ch09_Impl_ExceptionHandlingWithTryCatchJob_Chunk_ExitCode_Context">終了コードのマッピング定義</a></li>
+</ul>
+</li>
+<li><a href="#Ch09_Impl_ExceptionHandlingWithTryCatchJob_Chunk_Coding">例外ハンドリングの実装</a></li>
+<li><a href="#Ch09_Impl_ExceptionHandlingWithTryCatchJob_Chunk_Execution">ジョブの実行と結果の確認</a>
+<ul class="sectlevel3">
+<li><a href="#Ch09_Impl_ExceptionHandlingWithTryCatchJob_Chunk_Execution_Run">実行構成からジョブを実行</a></li>
+<li><a href="#Ch09_Impl_ExceptionHandlingWithTryCatchJob_Chunk_Execution_Console">コンソールログの確認</a></li>
+<li><a href="#Ch09_Impl_ExceptionHandlingWithTryCatchJob_Chunk_Execution_Exitcode">終了コードの確認</a></li>
+<li><a href="#Ch09_Impl_ExceptionHandlingWithTryCatchJob_Chunk_Execution_Output">出力リソースの確認</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="#Ch09_Impl_ExceptionHandlingWithTryCatchJob_Tasklet">タスクレットモデルでの実装</a>
+<ul class="sectlevel2">
+<li><a href="#Ch09_Impl_ExceptionHandlingWithTryCatchJob_Tasklet_MessageDefinition">メッセージ定義の追加</a></li>
+<li><a href="#Ch09_Impl_ExceptionHandlingWithTryCatchJob_Tasklet_ExitCode">終了コードのカスタマイズ</a>
+<ul class="sectlevel3">
+<li><a href="#Ch09_Impl_ExceptionHandlingWithTryCatchJob_Tasklet_ExitCode_JobExecutionListener">JobExecutionListenerの実装</a></li>
+<li><a href="#Ch09_Impl_ExceptionHandlingWithTryCatchJob_Tasklet_ExitCode_Bean">ジョブBean定義ファイルの設定</a></li>
+<li><a href="#Ch09_Impl_ExceptionHandlingWithTryCatchJob_Tasklet_ExitCode_Context">終了コードのマッピング定義</a></li>
+</ul>
+</li>
+<li><a href="#Ch09_Impl_ExceptionHandlingWithTryCatchJob_Tasklet_Coding">例外ハンドリングの実装</a></li>
+<li><a href="#Ch09_Impl_ExceptionHandlingWithTryCatchJob_Tasklet_Execution">ジョブの実行と結果の確認</a>
+<ul class="sectlevel3">
+<li><a href="#Ch09_Impl_ExceptionHandlingWithTryCatchJob_Tasklet_Execution_Run">実行構成からジョブを実行</a></li>
+<li><a href="#Ch09_Impl_ExceptionHandlingWithTryCatchJob_Tasklet_Execution_Console">コンソールログの確認</a></li>
+<li><a href="#Ch09_Impl_ExceptionHandlingWithTryCatchJob_Tasklet_Execution_Exitcode">終了コードの確認</a></li>
+<li><a href="#Ch09_Impl_ExceptionHandlingWithTryCatchJob_Tasklet_Execution_Output">出力リソースの確認</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div id="content">
+<div id="preamble">
+<div class="sectionbody">
+<div id="Ch09_Impl_ExceptionHandlingWithTryCatchJob_Prerequisite" class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+<div class="title">前提</div>
+<div class="paragraph">
+<p><a href="Ch09_Introduction.html#Ch09_Introduction_HowToProceed">チュートリアルの進め方</a>で説明しているとおり、
+<a href="Ch09_ValidationJob.html#Ch09_Impl_ValidationJob">入力データの妥当性検証を行うジョブ</a>に対して、
+例外ハンドリングの実装を追加していく形式とする。なお、例外ハンドリング方式にはtry-catchやChunkListenerなど様々な方式がある。<br>
+ただし、記述はデータベースアクセスするジョブに実装を追加した場合の説明としているため留意すること。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="Ch09_Impl_ExceptionHandlingWithTryCatchJob_Overview"><a class="anchor" href="#Ch09_Impl_ExceptionHandlingWithTryCatchJob_Overview"></a>概要</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>try-catchで例外ハンドリングを行うジョブを作成する。</p>
+</div>
+<div class="paragraph">
+<p>なお、本節はMacchinetta Batch 2.x 開発ガイドラインを元に説明しているため、
+詳細については<a href="Ch06_ExceptionHandling.html#Ch06_ExceptionHandling_HowToUse_StepExceptionHandling_Chunk_ItemProcessor_TryCatchExample">ItemProcessor内でtry～catchする方法</a>および
+<a href="Ch06_ExceptionHandling.html#Ch06_ExceptionHandling_HowToUse_StepExceptionHandling_Tasklet">タスクレットモデルにおける例外ハンドリング</a>を参照のこと。</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+<div class="title">終了コードの意味合いについて</div>
+<div class="paragraph">
+<p>本節では、終了コードは2つの意味合いで扱われており、それぞれの説明を以下に示す。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>COMPLETED、FAILEDなどの文字列の終了コードは、ジョブやステップの終了コードである。</p>
+</li>
+<li>
+<p>0、255などの数値の終了コードは、Javaプロセスの終了コードである。</p>
+</li>
+</ul>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p><a href="Ch09_TutorialApplication.html#Ch09_TutorialApplication">作成するアプリケーションの説明</a>の
+背景、処理概要、業務仕様を以下に再掲する。</p>
+</div>
+<div class="sect2">
+<h3 id="Ch09_Impl_ExceptionHandlingWithTryCatchJob_Overview_Background"><a class="anchor" href="#Ch09_Impl_ExceptionHandlingWithTryCatchJob_Overview_Background"></a>背景</h3>
+<div class="paragraph">
+<p>とある量販店では、会員に対してポイントカードを発行している。<br>
+会員には「ゴールド会員」「一般会員」の会員種別が存在し、会員種別に応じたサービスを提供している。<br>
+今回そのサービスの一環として、月内に商品を購入した会員のうち、
+会員種別が「ゴールド会員」の場合は100ポイント、「一般会員」の場合は10ポイントを月末に加算することにした。</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="Ch09_Impl_ExceptionHandlingWithTryCatchJob_Overview_ProcessOverview"><a class="anchor" href="#Ch09_Impl_ExceptionHandlingWithTryCatchJob_Overview_ProcessOverview"></a>処理概要</h3>
+<div class="paragraph">
+<p>会員種別に応じてポイント加算を行うアプリケーションを
+月次バッチ処理としてMacchinetta Batch 2.xを使用して実装する。<br>
+入力データにポイントの上限値を超えるデータが存在するか妥当性検証を行う処理を追加実装し、
+エラーの場合は警告メッセージを出力し、スキップして処理を継続する。その際にスキップしたことを示す終了コードを出力する。</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="Ch09_Impl_ExceptionHandlingWithTryCatchJob_Overview_BusinessSpecification"><a class="anchor" href="#Ch09_Impl_ExceptionHandlingWithTryCatchJob_Overview_BusinessSpecification"></a>業務仕様</h3>
+<div class="paragraph">
+<p>業務仕様は以下のとおり。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>入力データのポイントが1,000,000ポイントを超過していないことをチェックする</p>
+<div class="ulist">
+<ul>
+<li>
+<p>チェックエラーとなる場合は、警告メッセージをログに出力し、対象レコードはスキップして処理を継続する</p>
+</li>
+<li>
+<p>スキップした場合は、スキップしたことを示すために終了コードを"200"(SKIPPED)に変換する</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>商品購入フラグが"1"(処理対象)の場合に、会員種別に応じてポイントを加算する</p>
+<div class="ulist">
+<ul>
+<li>
+<p>会員種別が"G"(ゴールド会員)の場合は100ポイント、"N"(一般会員)の場合は10ポイント加算する</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>商品購入フラグはポイント加算後に"0"(初期状態)に更新する</p>
+</li>
+<li>
+<p>ポイントの上限値は1,000,000ポイントとする</p>
+</li>
+<li>
+<p>ポイント加算後に1,000,000ポイントを超えた場合は、1,000,000ポイントに補正する</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect2">
+<h3 id="Ch09_Impl_ExceptionHandlingWithTryCatchJob_Overview_TableSpecification"><a class="anchor" href="#Ch09_Impl_ExceptionHandlingWithTryCatchJob_Overview_TableSpecification"></a>テーブル仕様</h3>
+<div class="paragraph">
+<p>入出力リソースとなる会員情報テーブルの仕様は以下のとおり。<br>
+<a href="#Ch09_Impl_ExceptionHandlingWithTryCatchJob_Prerequisite">前提</a>のとおりデータベースアクセスするジョブの場合の説明となるため、ファイルアクセスするジョブの場合の
+入出力のリソース仕様は<a href="Ch09_FileAccessJob.html#Ch09_Impl_FileAccessJob_Overview_FileSpecification">ファイル仕様</a>を参照する。</p>
+</div>
+<table class="tableblock frame-all grid-all spread">
+<caption class="title">会員情報テーブル(member_info)</caption>
+<colgroup>
+<col style="width: 3.0927%;">
+<col style="width: 15.4639%;">
+<col style="width: 10.3092%;">
+<col style="width: 4.1237%;">
+<col style="width: 12.3711%;">
+<col style="width: 8.2474%;">
+<col style="width: 46.392%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">No</th>
+<th class="tableblock halign-left valign-top">属性名</th>
+<th class="tableblock halign-left valign-top">カラム名</th>
+<th class="tableblock halign-left valign-top">PK</th>
+<th class="tableblock halign-left valign-top">データ型</th>
+<th class="tableblock halign-left valign-top">桁数</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">会員番号</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">id</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><span class="icon"><i class="fa fa-check"></i></span></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">CHAR</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">8</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">会員を一意に示す8桁固定の番号を表す。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">2</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">会員種別</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">type</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">CHAR</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">会員の種別を以下のとおり表す。<br>
+"G"(ゴールド会員)、"N"(一般会員)</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">3</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">商品購入フラグ</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">status</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">CHAR</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">月内に商品を買ったかどうかを表す。<br>
+商品購入で"1"(処理対象)、月次バッチ処理で"0"(初期状態)に更新される。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">4</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ポイント</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">point</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">INT</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">7</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">会員の保有するポイントを表す。<br>
+初期値は0。</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect2">
+<h3 id="Ch09_Impl_ExceptionHandlingWithTryCatchJob_Overview_JobOverview"><a class="anchor" href="#Ch09_Impl_ExceptionHandlingWithTryCatchJob_Overview_JobOverview"></a>ジョブの概要</h3>
+<div class="paragraph">
+<p>ここで作成する入力チェックを行うジョブの概要を把握するために、
+処理フローおよび処理シーケンスを以下に示す。</p>
+</div>
+<div class="paragraph">
+<p><a href="#Ch09_Impl_ExceptionHandlingWithTryCatchJob_Prerequisite">前提</a>のとおりデータベースアクセスするジョブの場合の説明となるため、
+ファイルアクセスするジョブの場合の処理フローおよび処理シーケンスとは異なる部分があるため留意する。</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">処理フロー概要</dt>
+<dd>
+<p>処理フローの概要を以下に示す。</p>
+</dd>
+</dl>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/ch09/ExceptionHandlingWithTryCatch/Ch09_ExceptionHandlingWithTryCatchJob_ProcessFlow.png" alt="ProcessFlow of ExceptionHandlingWithTryCatch Job">
+</div>
+<div class="title">例外ハンドリングを行うジョブの処理フロー</div>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">チャンクモデルの場合の処理シーケンス</dt>
+<dd>
+<p>チャンクモデルの場合の処理シーケンスを説明する。<br>
+本ジョブは異常系データを利用することを前提として説明しているため、
+このシーケンス図は入力チェックでエラー(警告終了)となった場合を示している。</p>
+</dd>
+</dl>
+</div>
+<div class="paragraph">
+<p>橙色のオブジェクトは今回実装するクラスを表す。</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/Ch09_ExceptionHandlingWithTryCatchJob_ProcessSequence_ChunkModel.png" alt="ProcessSequence of ExceptionHandlingWithTryCatch Job by ChunkModel">
+</div>
+<div class="title">チャンクモデルのシーケンス図</div>
+</div>
+<div class="olist arabic">
+<div class="title">シーケンス図の説明</div>
+<ol class="arabic">
+<li>
+<p>ジョブからステップが実行される。</p>
+</li>
+<li>
+<p>ステップは、リソースをオープンする。</p>
+</li>
+<li>
+<p><code>MyBatisCursorItemReader</code>は、member_infoテーブルから会員情報をすべて取得(select文の発行)する。</p>
+<div class="ulist">
+<ul>
+<li>
+<p>入力データがなくなるまで、以降の処理を繰り返す。</p>
+</li>
+<li>
+<p>チャンク単位で、フレームワークトランザクションを開始する。</p>
+</li>
+<li>
+<p>チャンクサイズに達するまで4から12までの処理を繰り返す。</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>ステップは、<code>MyBatisCursorItemReader</code>から入力データを1件取得する。</p>
+</li>
+<li>
+<p><code>MyBatisCursorItemReader</code>は、member_infoテーブルから入力データを1件取得する。</p>
+</li>
+<li>
+<p>member_infoテーブルは、<code>MyBatisCursorItemReader</code>に入力データを返却する。</p>
+</li>
+<li>
+<p><code>MyBatisCursorItemReader</code>は、ステップに入力データを返却する。</p>
+</li>
+<li>
+<p>ステップは、<code>PointAddItemProcessor</code>で入力データに対して処理を行う。</p>
+</li>
+<li>
+<p><code>PointAddItemProcessor</code>は、<code>SpringValidator</code>に入力チェック処理を依頼する。</p>
+</li>
+<li>
+<p><code>SpringValidator</code>は、入力チェックルールに基づき入力チェックを行い、チェックエラーの場合は例外(ValidationException)をスローする。</p>
+</li>
+<li>
+<p><code>PointAddItemProcessor</code>は、入力データを読み込んでポイント加算処理を行う。例外(ValidationException)をキャッチした場合はnullを返却してエラーレコードをスキップする。</p>
+</li>
+<li>
+<p><code>PointAddItemProcessor</code>は、ステップに処理結果を返却する。</p>
+</li>
+<li>
+<p>ステップは、チャンクサイズ分のデータを<code>MyBatisBatchItemWriter</code>で出力する。</p>
+</li>
+<li>
+<p><code>MyBatisBatchItemWriter</code>は、member_infoテーブルに対して会員情報の更新(update文の発行)を行う。</p>
+</li>
+<li>
+<p>ステップはフレームワークトランザクションをコミットする。</p>
+</li>
+<li>
+<p>ステップは<code>ExitStatusChangeListener</code>を実行する。</p>
+</li>
+<li>
+<p><code>ExitStatusChangeListener</code>は、入力データと出力データの件数が異なる場合に<code>StepExecution</code>に独自の終了コードとして<code>SKIPPED</code>を設定する。</p>
+</li>
+<li>
+<p>ステップはジョブに終了コード(ここでは正常終了:0)を返却する。</p>
+</li>
+<li>
+<p>ジョブは<code>JobExitCodeChangeListener</code>を実行する。</p>
+</li>
+<li>
+<p><code>JobExitCodeChangeListener</code>は<code>StepExecution</code>から終了コードを取得する。</p>
+</li>
+<li>
+<p><code>StepExecution</code>は<code>JobExitCodeChangeListener</code>に終了コードを返却する。</p>
+</li>
+<li>
+<p><code>JobExitCodeChangeListener</code>は最終的なジョブの終了コードとして、ジョブに<code>SKIPPED</code>(ここでは警告終了:200)を返却する。</p>
+</li>
+</ol>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">タスクレットモデルの場合の処理シーケンス</dt>
+<dd>
+<p>タスクレットモデルの場合の処理シーケンスについて説明する。<br>
+本ジョブは異常系データを利用することを前提として説明しているため、
+このシーケンス図は入力チェックでエラー(警告終了)となった場合を示している。</p>
+</dd>
+</dl>
+</div>
+<div class="paragraph">
+<p>橙色のオブジェクトは今回実装するクラスを表す。</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/Ch09_ExceptionHandlingWithTryCatchJob_ProcessSequence_TaskletModel.png" alt="ProcessSequence of ExceptionHandlingWithTryCatch Job by TaskletModel">
+</div>
+<div class="title">タスクレットモデルの処理シーケンス図</div>
+</div>
+<div class="olist arabic">
+<div class="title">シーケンス図の説明</div>
+<ol class="arabic">
+<li>
+<p>ジョブからステップが実行される。</p>
+<div class="ulist">
+<ul>
+<li>
+<p>ステップはフレームワークトランザクションを開始する。</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>ステップは<code>PointAddTasklet</code>を実行する。</p>
+</li>
+<li>
+<p><code>PointAddTasklet</code>は、リソースをオープンする。</p>
+</li>
+<li>
+<p><code>MyBatisCursorItemReader</code>は、member_infoテーブルから会員情報をすべて取得(select文の発行)する。</p>
+<div class="ulist">
+<ul>
+<li>
+<p>入力データがなくなるまで5から13までの処理を繰り返す。</p>
+</li>
+<li>
+<p>一定件数に達するまで5から11までの処理を繰り返す。</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p><code>PointAddTasklet</code>は、<code>MyBatisCursorItemReader</code>から入力データを1件取得する。</p>
+</li>
+<li>
+<p><code>MyBatisCursorItemReader</code>は、member_infoテーブルから入力データを1件取得する。</p>
+</li>
+<li>
+<p>member_infoテーブルは、<code>MyBatisCursorItemReader</code>に入力データを返却する。</p>
+</li>
+<li>
+<p><code>MyBatisCursorItemReader</code>は、タスクレットに入力データを返却する。</p>
+</li>
+<li>
+<p><code>PointAddTasklet</code>は、<code>SpringValidator</code>に入力チェック処理を依頼する。</p>
+</li>
+<li>
+<p><code>SpringValidator</code>は、入力チェックルールに基づき入力チェックを行い、チェックエラーの場合は例外(ValidationException)をスローする。</p>
+</li>
+<li>
+<p><code>PointAddTasklet</code>は、入力データを読み込んでポイント加算処理を行う。例外(ValidationException)をキャッチした場合はcontinueで処理を継続してエラーレコードをスキップする。</p>
+<div class="ulist">
+<ul>
+<li>
+<p>スキップした場合、以降の処理はせず5から処理を行う。</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p><code>PointAddTasklet</code>は、一定件数分のデータを<code>MyBatisBatchItemWriter</code>で出力する。</p>
+</li>
+<li>
+<p><code>MyBatisBatchItemWriter</code>は、member_infoテーブルに対して会員情報の更新(update文の発行)を行う。</p>
+</li>
+<li>
+<p><code>PointAddTasklet</code>は、<code>StepExecution</code>に独自の終了コードとして<code>SKIPPED</code>を設定する。</p>
+</li>
+<li>
+<p><code>PointAddTasklet</code>はステップへ処理終了を返却する。</p>
+</li>
+<li>
+<p>ステップはフレームワークトランザクションをコミットする。</p>
+</li>
+<li>
+<p>ステップはジョブに終了コード(ここでは正常終了:0)を返却する。</p>
+</li>
+<li>
+<p>ステップは<code>JobExitCodeChangeListener</code>を実行する。</p>
+</li>
+<li>
+<p><code>JobExitCodeChangeListener</code>は<code>StepExecution</code>から終了コードを取得する。</p>
+</li>
+<li>
+<p><code>StepExecution</code>は<code>JobExitCodeChangeListener</code>に終了コードを返却する。</p>
+</li>
+<li>
+<p>ステップはジョブに終了コード(ここでは警告終了:200)を返却する。</p>
+</li>
+</ol>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+<div class="title">処理モデルによるスキップ実装について</div>
+<div class="paragraph">
+<p>チャンクモデルとタスクレットモデルではスキップ処理の実装方法が異なる。</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">チャンクモデル</dt>
+<dd>
+<p>ItemProcessor内でtry-catchを実装し、catchブロック内でnullを返却することでエラーデータをスキップする。
+ItemReader、ItemWriterでのスキップは<a href="Ch06_ExceptionHandling.html#Ch06_ExceptionHandling_HowToUse_ContinuationPropriety_Skip">スキップ</a>を参照のこと。</p>
+</dd>
+<dt class="hdlist1">タスクレットモデル</dt>
+<dd>
+<p>ビジネスロジック内でtry-catchを実装し、catchブロック内でcontinueにより処理を継続することでエラーデータをスキップする。</p>
+</dd>
+</dl>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>以降で、チャンクモデル、タスクレットモデルそれぞれの実装方法を説明する。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="#Ch09_Impl_ExceptionHandlingWithTryCatchJob_Chunk">チャンクモデルでの実装</a></p>
+</li>
+<li>
+<p><a href="#Ch09_Impl_ExceptionHandlingWithTryCatchJob_Tasklet">タスクレットモデルでの実装</a></p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="Ch09_Impl_ExceptionHandlingWithTryCatchJob_Chunk"><a class="anchor" href="#Ch09_Impl_ExceptionHandlingWithTryCatchJob_Chunk"></a>チャンクモデルでの実装</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>チャンクモデルで入力チェックを行うジョブの作成から実行までを以下の手順で実施する。</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p><a href="#Ch09_Impl_ExceptionHandlingWithTryCatchJob_Chunk_MessageDefinition">メッセージ定義の追加</a></p>
+</li>
+<li>
+<p><a href="#Ch09_Impl_ExceptionHandlingWithTryCatchJob_Chunk_ExitCode">終了コードのカスタマイズ</a></p>
+</li>
+<li>
+<p><a href="#Ch09_Impl_ExceptionHandlingWithTryCatchJob_Chunk_Coding">例外ハンドリングの実装</a></p>
+</li>
+<li>
+<p><a href="#Ch09_Impl_ExceptionHandlingWithTryCatchJob_Chunk_Execution">ジョブの実行と結果の確認</a></p>
+</li>
+</ol>
+</div>
+<div class="sect2">
+<h3 id="Ch09_Impl_ExceptionHandlingWithTryCatchJob_Chunk_MessageDefinition"><a class="anchor" href="#Ch09_Impl_ExceptionHandlingWithTryCatchJob_Chunk_MessageDefinition"></a>メッセージ定義の追加</h3>
+<div class="paragraph">
+<p>コード体系のばらつき防止や、監視対象のキーワードとしての抽出を設計しやすくするため、
+ログメッセージはメッセージ定義を使用し、ログ出力時に使用する。</p>
+</div>
+<div class="paragraph">
+<p>チャンクモデル/タスクレットモデルで共通して利用するため、既に作成している場合は読み飛ばしてよい。</p>
+</div>
+<div class="paragraph">
+<p><code>application-messages.properties</code>および<code>launch-context.xml</code>を以下のとおり設定する。<br>
+<code>launch-context.xml</code>はMacchinetta Batch 2.xでは設定済みである。</p>
+</div>
+<div class="listingblock">
+<div class="title">src/main/resources/i18n/application-messages.properties</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"># (1)
+errors.maxInteger=The {0} exceeds {1}.</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">src/main/resources/META-INF/spring/launch-context.xml</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"><span class="comment">&lt;!-- omitted --&gt;</span>
+
+<span class="tag">&lt;bean</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">messageSource</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">org.springframework.context.support.ResourceBundleMessageSource</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">p:basenames</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">i18n/application-messages</span><span class="delimiter">&quot;</span></span> <span class="tag">/&gt;</span> <span class="comment">&lt;!-- (2) --&gt;</span>
+
+<span class="comment">&lt;!-- omitted --&gt;</span></code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all spread">
+<caption class="title">説明</caption>
+<colgroup>
+<col style="width: 10%;">
+<col style="width: 90%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ポイント上限超過時に出力するメッセージを設定する。<br>
+{0)に項目名、{1}に上限値を割り当てる。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(2)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">プロパティファイルからメッセージを使用するために、<code>MessageSource</code>を設定する。<br>
+<code>basenames</code>に、プロパティファイルの格納場所を指定する。</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect2">
+<h3 id="Ch09_Impl_ExceptionHandlingWithTryCatchJob_Chunk_ExitCode"><a class="anchor" href="#Ch09_Impl_ExceptionHandlingWithTryCatchJob_Chunk_ExitCode"></a>終了コードのカスタマイズ</h3>
+<div class="paragraph">
+<p>ジョブ終了時のjavaプロセスの終了コードをカスタマイズする。<br>
+詳細は<a href="Ch07_JobManagement.html#Ch07_JobManagement_HowToUse_ExitCode">終了コードのカスタマイズ</a>を参照のこと。</p>
+</div>
+<div class="paragraph">
+<p>以下の作業を実施する。</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p><a href="#Ch09_Impl_ExceptionHandlingWithTryCatchJob_Chunk_ExitCode_StepExecutionListener">StepExecutionListenerの実装</a></p>
+</li>
+<li>
+<p><a href="#Ch09_Impl_ExceptionHandlingWithTryCatchJob_Chunk_ExitCode_JobExecutionListener">JobExecutionListenerの実装</a></p>
+</li>
+<li>
+<p><a href="#Ch09_Impl_ExceptionHandlingWithTryCatchJob_Chunk_ExitCode_Bean">ジョブBean定義ファイルの設定</a></p>
+</li>
+<li>
+<p><a href="#Ch09_Impl_ExceptionHandlingWithTryCatchJob_Chunk_ExitCode_Context">終了コードのマッピング定義</a></p>
+</li>
+</ol>
+</div>
+<div class="sect3">
+<h4 id="Ch09_Impl_ExceptionHandlingWithTryCatchJob_Chunk_ExitCode_StepExecutionListener"><a class="anchor" href="#Ch09_Impl_ExceptionHandlingWithTryCatchJob_Chunk_ExitCode_StepExecutionListener"></a>StepExecutionListenerの実装</h4>
+<div class="paragraph">
+<p><code>StepExecutionListener</code>インターフェースを利用してステップの終了コードを条件により変更する。<br>
+ここでは、<code>StepExecutionListener</code>インターフェースの実装クラスとして、
+入力データと出力データの件数が異なる場合に終了コードを<code>SKIPPED</code>に変更する処理を実装する。</p>
+</div>
+<div class="paragraph">
+<p>なお、このクラスはタスクレットモデルでは作成する必要がない。
+タスクレットモデルではTaskletの実装クラス内で<code>StepExecution</code>クラスに独自の終了コードを設定することができるためである。</p>
+</div>
+<div class="listingblock">
+<div class="title">com.example.batch.tutorial.common.listener.ExitStatusChangeListener</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="java"><span class="keyword">package</span> <span class="namespace">com.example.batch.tutorial.common.listener</span>;
+
+<span class="keyword">import</span> <span class="include">org.springframework.batch.core.ExitStatus</span>;
+<span class="keyword">import</span> <span class="include">org.springframework.batch.core.StepExecution</span>;
+<span class="keyword">import</span> <span class="include">org.springframework.batch.core.StepExecutionListener</span>;
+<span class="keyword">import</span> <span class="include">org.springframework.stereotype.Component</span>;
+
+<span class="annotation">@Component</span>
+<span class="directive">public</span> <span class="type">class</span> <span class="class">ExitStatusChangeListener</span> <span class="directive">implements</span> StepExecutionListener {
+
+    <span class="annotation">@Override</span>
+    <span class="directive">public</span> <span class="type">void</span> beforeStep(StepExecution stepExecution) {
+        <span class="comment">// do nothing.</span>
+    }
+
+    <span class="annotation">@Override</span>
+    <span class="directive">public</span> ExitStatus afterStep(StepExecution stepExecution) {
+        ExitStatus exitStatus = stepExecution.getExitStatus();
+        <span class="keyword">if</span> (conditionalCheck(stepExecution)) {
+            exitStatus = <span class="keyword">new</span> ExitStatus(<span class="string"><span class="delimiter">&quot;</span><span class="content">SKIPPED</span><span class="delimiter">&quot;</span></span>); <span class="comment">// (1)</span>
+        }
+        <span class="keyword">return</span> exitStatus;
+    }
+
+    <span class="directive">private</span> <span class="type">boolean</span> conditionalCheck(StepExecution stepExecution) {
+        <span class="keyword">return</span> (stepExecution.getWriteCount() != stepExecution.getReadCount()); <span class="comment">// (2)</span>
+    }
+}</code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all spread">
+<caption class="title">説明</caption>
+<colgroup>
+<col style="width: 10%;">
+<col style="width: 90%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ステップの実行結果に応じて独自の終了コードを設定する。<br>
+ここでは、スキップした場合に終了コードとして<code>SKIPPED</code>を指定する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(2)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">スキップしたことを判定するため、入力データと出力データの件数の比較を行う。<br>
+スキップした場合、入力データと出力データの件数が異なるため、件数の差を利用してスキップの判定を行っている。
+ここで件数に差があった場合に(1)が実行される。</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect3">
+<h4 id="Ch09_Impl_ExceptionHandlingWithTryCatchJob_Chunk_ExitCode_JobExecutionListener"><a class="anchor" href="#Ch09_Impl_ExceptionHandlingWithTryCatchJob_Chunk_ExitCode_JobExecutionListener"></a>JobExecutionListenerの実装</h4>
+<div class="paragraph">
+<p><code>JobExecutionListener</code>インターフェースを利用してジョブの終了コードを条件により変更する。<br>
+ここでは、<code>JobExecutionListener</code>インターフェースの実装クラスとして、
+最終的なジョブの終了コードを各ステップの終了コードに合わせて変更する処理を実装する。</p>
+</div>
+<div class="listingblock">
+<div class="title">com.example.batch.tutorial.common.listener.JobExitCodeChangeListener</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="java"><span class="keyword">package</span> <span class="namespace">com.example.batch.tutorial.common.listener</span>;
+
+<span class="keyword">import</span> <span class="include">org.springframework.batch.core.ExitStatus</span>;
+<span class="keyword">import</span> <span class="include">org.springframework.batch.core.JobExecution</span>;
+<span class="keyword">import</span> <span class="include">org.springframework.batch.core.JobExecutionListener</span>;
+<span class="keyword">import</span> <span class="include">org.springframework.batch.core.StepExecution</span>;
+<span class="keyword">import</span> <span class="include">org.springframework.stereotype.Component</span>;
+
+<span class="keyword">import</span> <span class="include">java.util.Collection</span>;
+
+<span class="annotation">@Component</span>
+<span class="directive">public</span> <span class="type">class</span> <span class="class">JobExitCodeChangeListener</span> <span class="directive">implements</span> JobExecutionListener {
+
+    <span class="annotation">@Override</span>
+    <span class="directive">public</span> <span class="type">void</span> beforeJob(JobExecution jobExecution) {
+        <span class="comment">// do nothing.</span>
+    }
+
+    <span class="annotation">@Override</span>
+    <span class="directive">public</span> <span class="type">void</span> afterJob(JobExecution jobExecution) {
+        <span class="predefined-type">Collection</span>&lt;StepExecution&gt; stepExecutions = jobExecution.getStepExecutions();
+        <span class="keyword">for</span> (StepExecution stepExecution : stepExecutions) { <span class="comment">// (1)</span>
+            <span class="keyword">if</span> (<span class="string"><span class="delimiter">&quot;</span><span class="content">SKIPPED</span><span class="delimiter">&quot;</span></span>.equals(stepExecution.getExitStatus().getExitCode())) {
+                jobExecution.setExitStatus(<span class="keyword">new</span> ExitStatus(<span class="string"><span class="delimiter">&quot;</span><span class="content">SKIPPED</span><span class="delimiter">&quot;</span></span>));
+                <span class="keyword">break</span>;
+            }
+        }
+    }
+}</code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all spread">
+<caption class="title">説明</caption>
+<colgroup>
+<col style="width: 10%;">
+<col style="width: 90%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ジョブの実行結果に応じて、最終的なジョブの終了コードを<code>JobExecution</code>に設定する。<br>
+ここではステップから返却された終了コードのいずれかに<code>SKIPPED</code>が含まれている場合、
+終了コードを<code>SKIPPED</code>としている。</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect3">
+<h4 id="Ch09_Impl_ExceptionHandlingWithTryCatchJob_Chunk_ExitCode_Bean"><a class="anchor" href="#Ch09_Impl_ExceptionHandlingWithTryCatchJob_Chunk_ExitCode_Bean"></a>ジョブBean定義ファイルの設定</h4>
+<div class="paragraph">
+<p>作成したリスナーを利用するためのジョブBean定義ファイルの設定を以下に示す。</p>
+</div>
+<div class="listingblock">
+<div class="title">src/main/resources/META-INF/jobs/dbaccess/jobPointAddChunk.xml</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"><span class="preprocessor">&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;</span>
+<span class="tag">&lt;beans</span> <span class="attribute-name">xmlns</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">http://www.springframework.org/schema/beans</span><span class="delimiter">&quot;</span></span>
+       <span class="attribute-name">xmlns:xsi</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">http://www.w3.org/2001/XMLSchema-instance</span><span class="delimiter">&quot;</span></span>
+       <span class="attribute-name">xmlns:context</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">http://www.springframework.org/schema/context</span><span class="delimiter">&quot;</span></span>
+       <span class="attribute-name">xmlns:batch</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">http://www.springframework.org/schema/batch</span><span class="delimiter">&quot;</span></span>
+       <span class="attribute-name">xmlns:p</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">http://www.springframework.org/schema/p</span><span class="delimiter">&quot;</span></span>
+       <span class="attribute-name">xmlns:mybatis</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">http://mybatis.org/schema/mybatis-spring</span><span class="delimiter">&quot;</span></span>
+       <span class="attribute-name">xsi:schemaLocation</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd</span>
+             <span class="content">http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd</span>
+             <span class="content">http://www.springframework.org/schema/batch http://www.springframework.org/schema/batch/spring-batch.xsd</span>
+             <span class="content">http://mybatis.org/schema/mybatis-spring http://mybatis.org/schema/mybatis-spring.xsd</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+
+    <span class="comment">&lt;!-- omitted --&gt;</span>
+
+    <span class="tag">&lt;context:component-scan</span> <span class="attribute-name">base-package</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">com.example.batch.tutorial.dbaccess.chunk,</span>
+            <span class="content">com.example.batch.tutorial.common.listener</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span> <span class="comment">&lt;!-- (1) --&gt;</span>
+
+    <span class="comment">&lt;!-- omitted --&gt;</span>
+
+    <span class="tag">&lt;batch:job</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobPointAddChunk</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">job-repository</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobRepository</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+        <span class="tag">&lt;batch:step</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobPointAddChunk.step01</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+            <span class="tag">&lt;batch:tasklet</span> <span class="attribute-name">transaction-manager</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobTransactionManager</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+                <span class="tag">&lt;batch:chunk</span> <span class="attribute-name">reader</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">reader</span><span class="delimiter">&quot;</span></span>
+                             <span class="attribute-name">processor</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">pointAddItemProcessor</span><span class="delimiter">&quot;</span></span>
+                             <span class="attribute-name">writer</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">writer</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">commit-interval</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">10</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+            <span class="tag">&lt;/batch:tasklet&gt;</span>
+            <span class="tag">&lt;batch:listeners&gt;</span>
+                <span class="tag">&lt;batch:listener</span> <span class="attribute-name">ref</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">exitStatusChangeListener</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span> <span class="comment">&lt;!-- (2) --&gt;</span>
+            <span class="tag">&lt;/batch:listeners&gt;</span>
+        <span class="tag">&lt;/batch:step&gt;</span>
+        <span class="tag">&lt;batch:listeners&gt;</span>
+            <span class="tag">&lt;batch:listener</span> <span class="attribute-name">ref</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobExitCodeChangeListener</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span> <span class="comment">&lt;!-- (3) --&gt;</span>
+        <span class="tag">&lt;/batch:listeners&gt;</span>
+    <span class="tag">&lt;/batch:job&gt;</span>
+
+<span class="tag">&lt;/beans&gt;</span></code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all spread">
+<caption class="title">説明</caption>
+<colgroup>
+<col style="width: 10%;">
+<col style="width: 90%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">コンポーネントスキャン対象とするベースパッケージの設定を行う。<br>
+<code>base-package</code>属性に、<code>StepExecutionListener</code>および<code>JobExecutionListener</code>の実装クラスが格納されているパッケージを追加で指定する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(2)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>StepExecutionListener</code>の実装クラスを設定する。
+なお、<code>StepExecutionListener</code>は<code>StepListener</code>の拡張インターフェースである。<br>
+ここでは、<code>StepExecutionListener</code>の実装クラスのBeanIDである<code>exitStatusChangeListener</code>を指定する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(3)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>JobExecutionListener</code>の実装クラスを設定する。<br>
+ここでは、<code>JobExecutionListener</code>の実装クラスのBeanIDである<code>jobExitCodeChangeListener</code>を指定する。</p></td>
+</tr>
+</tbody>
+</table>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-warning" title="Warning"></i>
+</td>
+<td class="content">
+<div class="title">ExitStatusChangeListenerとJobExitCodeChangeListenerの設定箇所の違いについて</div>
+<div class="paragraph">
+<p><code>ExitStatusChangeListener</code>はステップの実行前後に処理を割り込める<code>StepListener</code>に属するため、<code>&lt;batch:tasklet&gt;</code>タグ内に<code>&lt;batch:listeners&gt;</code>.<code>&lt;batch:listener&gt;</code>タグによって設定する。<br>
+<code>JobExitCodeChangeListener</code>はジョブの実行前後に処理を割り込める<code>JobListener</code>に属するため、<code>&lt;batch:job&gt;</code>タグ内に<code>&lt;batch:listeners&gt;</code>.<code>&lt;batch:listener&gt;</code>タグによって設定する。</p>
+</div>
+<div class="paragraph">
+<p>詳細は<a href="Ch04_Listener.html#Ch04_Listener_HowToUse_Configuration">リスナーの設定</a>を参照のこと。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect3">
+<h4 id="Ch09_Impl_ExceptionHandlingWithTryCatchJob_Chunk_ExitCode_Context"><a class="anchor" href="#Ch09_Impl_ExceptionHandlingWithTryCatchJob_Chunk_ExitCode_Context"></a>終了コードのマッピング定義</h4>
+<div class="paragraph">
+<p>終了コードのマッピングを追加で設定する。</p>
+</div>
+<div class="paragraph">
+<p><code>launch-context.xml</code>に以下のとおり、独自の終了コードを追加する。</p>
+</div>
+<div class="listingblock">
+<div class="title">src/main/resources/META-INF/spring/launch-context.xml</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"><span class="comment">&lt;!-- omitted --&gt;</span>
+
+<span class="tag">&lt;bean</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">exitCodeMapper</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">org.springframework.batch.core.launch.support.SimpleJvmExitCodeMapper</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+    <span class="tag">&lt;property</span> <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">mapping</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+        <span class="tag">&lt;util:map</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">exitCodeMapper</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">key-type</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">java.lang.String</span><span class="delimiter">&quot;</span></span>
+                  <span class="attribute-name">value-type</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">java.lang.Integer</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+            <span class="comment">&lt;!-- ExitStatus --&gt;</span>
+            <span class="tag">&lt;entry</span> <span class="attribute-name">key</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">NOOP</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">value</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">0</span><span class="delimiter">&quot;</span></span> <span class="tag">/&gt;</span>
+            <span class="tag">&lt;entry</span> <span class="attribute-name">key</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">COMPLETED</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">value</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">0</span><span class="delimiter">&quot;</span></span> <span class="tag">/&gt;</span>
+            <span class="tag">&lt;entry</span> <span class="attribute-name">key</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">STOPPED</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">value</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">255</span><span class="delimiter">&quot;</span></span> <span class="tag">/&gt;</span>
+            <span class="tag">&lt;entry</span> <span class="attribute-name">key</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">FAILED</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">value</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">255</span><span class="delimiter">&quot;</span></span> <span class="tag">/&gt;</span>
+            <span class="tag">&lt;entry</span> <span class="attribute-name">key</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">UNKNOWN</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">value</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">255</span><span class="delimiter">&quot;</span></span> <span class="tag">/&gt;</span>
+            <span class="tag">&lt;entry</span> <span class="attribute-name">key</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">SKIPPED</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">value</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">200</span><span class="delimiter">&quot;</span></span> <span class="tag">/&gt;</span> <span class="comment">&lt;!-- (1) --&gt;</span>
+        <span class="tag">&lt;/util:map&gt;</span>
+    <span class="tag">&lt;/property&gt;</span>
+<span class="tag">&lt;/bean&gt;</span>
+
+<span class="comment">&lt;!-- omitted --&gt;</span></code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all spread">
+<caption class="title">説明</caption>
+<colgroup>
+<col style="width: 10%;">
+<col style="width: 90%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">独自の終了コードを追加する。<br>
+マッピングするためのキーに<code>SKIPPED</code>、コード値として<code>200</code>を指定する。</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="sect2">
+<h3 id="Ch09_Impl_ExceptionHandlingWithTryCatchJob_Chunk_Coding"><a class="anchor" href="#Ch09_Impl_ExceptionHandlingWithTryCatchJob_Chunk_Coding"></a>例外ハンドリングの実装</h3>
+<div class="paragraph">
+<p>ポイント加算処理を行うビジネスロジッククラスにtry-catch処理を実装する。<br>
+既に実装してある<code>PointAddItemProcessor</code>クラスにtry-catch処理の実装を追加する。</p>
+</div>
+<div class="paragraph">
+<p><a href="#Ch09_Impl_ExceptionHandlingWithTryCatchJob_Prerequisite">前提</a>のとおりデータベースアクセスするジョブの場合の説明となるため、
+ファイルアクセスするジョブの場合の実装は以下の(1)～(5)のみ追加する。</p>
+</div>
+<div class="listingblock">
+<div class="title">com.example.batch.tutorial.dbaccess.chunk.PointAddItemProcessor</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="java"><span class="comment">// Package and the other import are omitted.</span>
+
+<span class="keyword">import</span> <span class="include">org.slf4j.Logger</span>;
+<span class="keyword">import</span> <span class="include">org.slf4j.LoggerFactory</span>;
+<span class="keyword">import</span> <span class="include">org.springframework.batch.item.validator.ValidationException</span>;
+<span class="keyword">import</span> <span class="include">org.springframework.context.MessageSource</span>;
+
+<span class="keyword">import</span> <span class="include">java.util.Locale</span>;
+
+<span class="annotation">@Component</span>
+<span class="directive">public</span> <span class="type">class</span> <span class="class">PointAddItemProcessor</span> <span class="directive">implements</span> ItemProcessor&lt;MemberInfoDto, MemberInfoDto&gt; {
+    <span class="comment">// Definition of constans are omitted.</span>
+
+    <span class="directive">private</span> <span class="directive">static</span> <span class="directive">final</span> <span class="predefined-type">Logger</span> logger = LoggerFactory.getLogger(PointAddItemProcessor.class); <span class="comment">// (1)</span>
+
+    <span class="annotation">@Inject</span>
+    <span class="predefined-type">Validator</span>&lt;MemberInfoDto&gt; validator;
+
+    <span class="annotation">@Inject</span>
+    MessageSource messageSource; <span class="comment">// (2)</span>
+
+    <span class="annotation">@Override</span>
+    <span class="directive">public</span> MemberInfoDto process(MemberInfoDto item) <span class="directive">throws</span> <span class="exception">Exception</span> {
+        <span class="keyword">try</span> { <span class="comment">// (3)</span>
+            validator.validate(item);
+        } <span class="keyword">catch</span> (ValidationException e) {
+            logger.warn(messageSource
+                    .getMessage(<span class="string"><span class="delimiter">&quot;</span><span class="content">errors.maxInteger</span><span class="delimiter">&quot;</span></span>, <span class="keyword">new</span> <span class="predefined-type">String</span><span class="type">[]</span> { <span class="string"><span class="delimiter">&quot;</span><span class="content">point</span><span class="delimiter">&quot;</span></span>, <span class="string"><span class="delimiter">&quot;</span><span class="content">1000000</span><span class="delimiter">&quot;</span></span> }, <span class="predefined-type">Locale</span>.getDefault())); <span class="comment">// (4)</span>
+            <span class="keyword">return</span> <span class="predefined-constant">null</span>; <span class="comment">// (5)</span>
+        }
+
+        <span class="comment">// The other codes of bussiness logic are omitted.</span>
+    }
+}</code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all spread">
+<caption class="title">説明</caption>
+<colgroup>
+<col style="width: 10%;">
+<col style="width: 90%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ログを出力するために<code>LoggerFactory</code>のインスタンスを定義する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(2)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>MessageSource</code>のインスタンスをインジェクトする。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(3)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">例外ハンドリングを実装する。<br>
+入力チェック処理をtry-catchで囲み、<code>ValidationException</code>をハンドリングする。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(4)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">プロパティファイルからメッセージIDが<code>errors.maxInteger</code>のメッセージを取得し、ログに出力している。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(5)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">エラーレコードをスキップするためにnullを返却する。</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect2">
+<h3 id="Ch09_Impl_ExceptionHandlingWithTryCatchJob_Chunk_Execution"><a class="anchor" href="#Ch09_Impl_ExceptionHandlingWithTryCatchJob_Chunk_Execution"></a>ジョブの実行と結果の確認</h3>
+<div class="paragraph">
+<p>作成したジョブをSTS上で実行し、結果を確認する。</p>
+</div>
+<div class="sect3">
+<h4 id="Ch09_Impl_ExceptionHandlingWithTryCatchJob_Chunk_Execution_Run"><a class="anchor" href="#Ch09_Impl_ExceptionHandlingWithTryCatchJob_Chunk_Execution_Run"></a>実行構成からジョブを実行</h4>
+<div class="paragraph">
+<p>既に作成してある実行構成からジョブを実行し、結果を確認する。</p>
+</div>
+<div class="paragraph">
+<p>ここでは、異常系データを利用してジョブを実行する。<br>
+例外ハンドリングを実装したジョブが扱うリソース(データベース or ファイル)によって、
+入力データの切替方法が異なるため、以下のとおり実行すること。</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">データベースアクセスでデータ入出力を行うジョブに対して例外ハンドリングを実装した場合</dt>
+<dd>
+<p>データベースアクセスでデータ入出力を行うジョブの<a href="Ch09_DBAccessJob.html#Ch09_Impl_DBAccessJob_Chunk_Execution_Run">実行構成からジョブを実行</a>
+で作成した実行構成を使ってジョブを実行する。</p>
+</dd>
+</dl>
+</div>
+<div class="paragraph">
+<p>異常系データを利用するために、<code>batch-application.proeprties</code>のDatabase Initializeで
+正常系データのスクリプトをコメントアウトし、異常系データのスクリプトのコメントアウトを解除する。</p>
+</div>
+<div class="listingblock">
+<div class="title">src/main/resources/batch-application.proeprties</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"># Database Initialize
+tutorial.create-table.script=file:sqls/create-member-info-table.sql
+#tutorial.insert-data.script=file:sqls/insert-member-info-data.sql
+tutorial.insert-data.script=file:sqls/insert-member-info-error-data.sql</code></pre>
+</div>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">ファイルアクセスでデータ入出力を行うジョブに対して例外ハンドリングを実装した場合</dt>
+<dd>
+<p>ファイルアクセスでデータ入出力を行うジョブの<a href="Ch09_FileAccessJob.html#Ch09_Impl_FileAccessJob_Chunk_Execution_Run">実行構成からジョブを実行</a>
+で作成した実行構成を使ってジョブを実行する。</p>
+</dd>
+</dl>
+</div>
+<div class="paragraph">
+<p>異常系データを利用するために、実行構成で設定する引数のうち、
+入力ファイル(inputFile)のパスを正常系データ(insert-member-info-data.csv)から異常系データ(insert-member-info-error-data.csv)に変更する。</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="Ch09_Impl_ExceptionHandlingWithTryCatchJob_Chunk_Execution_Console"><a class="anchor" href="#Ch09_Impl_ExceptionHandlingWithTryCatchJob_Chunk_Execution_Console"></a>コンソールログの確認</h4>
+<div class="paragraph">
+<p>Console Viewを開き、以下の内容のログが出力されていることを確認する。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>例外が発生していないこと</p>
+</li>
+<li>
+<p>WARNログとして次のメッセージを出力していること</p>
+<div class="ulist">
+<ul>
+<li>
+<p>「The Point exceeds 1000000.」</p>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+<div class="listingblock">
+<div class="title">コンソールログ出力例</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="console">[2017/09/05 18:27:01] [main] [o.t.b.t.e.c.PointAddItemProcessor] [WARN ] The point exceeds 1000000.
+[2017/09/05 18:27:01] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=jobPointAddChunk]] completed with the following parameters: [{jsr_batch_run_id=450}] and the following status: [COMPLETED]
+[2017/09/05 18:27:01] [main] [o.s.c.s.ClassPathXmlApplicationContext] [INFO ] Closing org.springframework.context.support.ClassPathXmlApplicationContext@2145433b: startup date [Tue Sep 05 18:26:57 JST 2017]; root of context hierarchy</code></pre>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="Ch09_Impl_ExceptionHandlingWithTryCatchJob_Chunk_Execution_Exitcode"><a class="anchor" href="#Ch09_Impl_ExceptionHandlingWithTryCatchJob_Chunk_Execution_Exitcode"></a>終了コードの確認</h4>
+<div class="paragraph">
+<p>終了コードにより、警告終了したことを確認する。<br>
+確認手順は<a href="Ch09_EnvironmentConstruction.html#Ch09_EnvironmentConstruction_OperationCheck_ExecJob_Run">ジョブの実行と結果の確認</a>を参照。
+終了コード(exit value)が200(警告終了)となっていることを確認する。</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/ch09/ExceptionHandlingWithTryCatch/Ch09_ExceptionHandlingWithTryCatchJob_Confirm_ExitCode_ChunkModel.png" alt="Confirm the Exit Code of ExceptionHandlingWithTryCatchJob for ChunkModel">
+</div>
+<div class="title">終了コードの確認</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="Ch09_Impl_ExceptionHandlingWithTryCatchJob_Chunk_Execution_Output"><a class="anchor" href="#Ch09_Impl_ExceptionHandlingWithTryCatchJob_Chunk_Execution_Output"></a>出力リソースの確認</h4>
+<div class="paragraph">
+<p>例外ハンドリングを実装したジョブによって出力リソース(データベース or ファイル)を確認する。</p>
+</div>
+<div class="paragraph">
+<p>スキップを実装しているため、エラーレコード以外の更新対象レコードについては
+正常に更新されていることを確認する。</p>
+</div>
+<div class="sect4">
+<h5 id="Ch09_Impl_ExceptionHandlingWithTryCatchJob_Chunk_Execution_Output_Table"><a class="anchor" href="#Ch09_Impl_ExceptionHandlingWithTryCatchJob_Chunk_Execution_Output_Table"></a>会員情報テーブルの確認</h5>
+<div class="paragraph">
+<p>Data Source Explorerを使用して会員情報テーブルの確認を行う。<br>
+更新前後の会員情報テーブルの内容を比較し、確認内容のとおりとなっていることを確認する。<br>
+確認手順は<a href="Ch09_EnvironmentConstruction.html#Ch09_EnvironmentConstruction_OperationCheck_RefDB">Data Source Explorerを使用してデータベースを参照する</a>を参照。</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">確認内容</dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>エラーレコード(会員番号が"000000013")を除くすべてのレコードについて</p>
+<div class="ulist">
+<ul>
+<li>
+<p>statusカラム</p>
+<div class="ulist">
+<ul>
+<li>
+<p>"0"(初期状態)のレコードが存在しないこと</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>pointカラム</p>
+<div class="ulist">
+<ul>
+<li>
+<p>ポイント加算対象について、会員種別に応じたポイントが加算されていること</p>
+<div class="ulist">
+<ul>
+<li>
+<p>typeカラムが"G"(ゴールド会員)の場合は100ポイント</p>
+</li>
+<li>
+<p>typeカラムが"N"(一般会員)の場合は10ポイント</p>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>エラーレコード(会員番号が"000000013")について</p>
+<div class="ulist">
+<ul>
+<li>
+<p>更新されていないこと</p>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+</dd>
+</dl>
+</div>
+<div class="paragraph">
+<p>更新前後の会員情報テーブルの内容は以下のとおり。</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/ch09/ExceptionHandlingWithTryCatch/Ch09_ExceptionHandlingWithTryCatchJob_Result_MemberInfoTable.png" alt="Table of member_info">
+</div>
+<div class="title">更新前後の会員情報テーブルの内容</div>
+</div>
+</div>
+<div class="sect4">
+<h5 id="Ch09_Impl_ExceptionHandlingWithTryCatchJob_Chunk_Execution_Output_File"><a class="anchor" href="#Ch09_Impl_ExceptionHandlingWithTryCatchJob_Chunk_Execution_Output_File"></a>会員情報ファイルの確認</h5>
+<div class="paragraph">
+<p>会員情報ファイルの入出力内容を比較し、確認内容のとおりとなっていることを確認する。</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">確認内容</dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>出力ディレクトリに会員情報ファイルが出力されていること</p>
+<div class="ulist">
+<ul>
+<li>
+<p>出力ファイル: files/output/output-member-info-data.csv</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>エラーレコード(会員番号が"00000013")を除くすべてのレコードについて</p>
+<div class="ulist">
+<ul>
+<li>
+<p>statusカラム</p>
+<div class="ulist">
+<ul>
+<li>
+<p>"0"(初期状態)のレコードが存在しないこと</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>pointカラム</p>
+<div class="ulist">
+<ul>
+<li>
+<p>ポイント加算対象について、会員種別に応じたポイントが加算されていること</p>
+<div class="ulist">
+<ul>
+<li>
+<p>typeカラムが"G"(ゴールド会員)の場合は100ポイント</p>
+</li>
+<li>
+<p>typeカラムが"N"(一般会員)の場合は10ポイント</p>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>エラーレコード(会員番号が"00000013")が出力されていないこと</p>
+</li>
+</ul>
+</div>
+</dd>
+</dl>
+</div>
+<div class="paragraph">
+<p>会員情報ファイルの入出力内容は以下のとおり。<br>
+ファイルのフィールドはid(会員番号)、type(会員種別)、status(商品購入フラグ)、point(ポイント)の順で出力される。</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/ch09/ExceptionHandlingWithTryCatch/Ch09_ExceptionHandlingWithTryCatchJob_Result_MemberInfoFile.png" alt="File of member_info">
+</div>
+<div class="title">会員情報ファイルの入出力内容</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="Ch09_Impl_ExceptionHandlingWithTryCatchJob_Tasklet"><a class="anchor" href="#Ch09_Impl_ExceptionHandlingWithTryCatchJob_Tasklet"></a>タスクレットモデルでの実装</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>タスクレットモデルで入力チェックを行うジョブの作成から実行までを以下の手順で実施する。</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p><a href="#Ch09_Impl_ExceptionHandlingWithTryCatchJob_Tasklet_MessageDefinition">メッセージ定義の追加</a></p>
+</li>
+<li>
+<p><a href="#Ch09_Impl_ExceptionHandlingWithTryCatchJob_Tasklet_ExitCode">終了コードのカスタマイズ</a></p>
+</li>
+<li>
+<p><a href="#Ch09_Impl_ExceptionHandlingWithTryCatchJob_Tasklet_Coding">例外ハンドリングの実装</a></p>
+</li>
+<li>
+<p><a href="#Ch09_Impl_ExceptionHandlingWithTryCatchJob_Tasklet_Execution">ジョブの実行と結果の確認</a></p>
+</li>
+</ol>
+</div>
+<div class="sect2">
+<h3 id="Ch09_Impl_ExceptionHandlingWithTryCatchJob_Tasklet_MessageDefinition"><a class="anchor" href="#Ch09_Impl_ExceptionHandlingWithTryCatchJob_Tasklet_MessageDefinition"></a>メッセージ定義の追加</h3>
+<div class="paragraph">
+<p>コード体系のばらつき防止や、監視対象のキーワードとしての抽出を設計しやすくするため、
+ログメッセージはメッセージ定義を使用し、ログ出力時に使用する。</p>
+</div>
+<div class="paragraph">
+<p>チャンクモデル/タスクレットモデルで共通して利用するため、既に作成している場合は読み飛ばしてよい。</p>
+</div>
+<div class="paragraph">
+<p><code>application-messages.properties</code>および<code>launch-context.xml</code>を以下のとおり設定する。<br>
+<code>launch-context.xml</code>はMacchinetta Batch 2.xでは設定済みである。</p>
+</div>
+<div class="listingblock">
+<div class="title">src/main/resources/i18n/application-messages.properties</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"># (1)
+errors.maxInteger=The {0} exceeds {1}.</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">src/main/resources/META-INF/spring/launch-context.xml</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"><span class="comment">&lt;!-- omitted --&gt;</span>
+
+<span class="tag">&lt;bean</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">messageSource</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">org.springframework.context.support.ResourceBundleMessageSource</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">p:basenames</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">i18n/application-messages</span><span class="delimiter">&quot;</span></span> <span class="tag">/&gt;</span> <span class="comment">&lt;!-- (2) --&gt;</span>
+
+<span class="comment">&lt;!-- omitted --&gt;</span></code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all spread">
+<caption class="title">説明</caption>
+<colgroup>
+<col style="width: 10%;">
+<col style="width: 90%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ポイント上限超過時に出力するメッセージを設定する。<br>
+{0)に項目名、{1}に上限値を割り当てる。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(2)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">プロパティファイルからメッセージを使用するために、<code>MessageSource</code>を設定する。<br>
+<code>basenames</code>に、プロパティファイルの格納場所を指定する。</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect2">
+<h3 id="Ch09_Impl_ExceptionHandlingWithTryCatchJob_Tasklet_ExitCode"><a class="anchor" href="#Ch09_Impl_ExceptionHandlingWithTryCatchJob_Tasklet_ExitCode"></a>終了コードのカスタマイズ</h3>
+<div class="paragraph">
+<p>ジョブ終了時のjavaプロセスの終了コードをカスタマイズする。<br>
+詳細は<a href="Ch07_JobManagement.html#Ch07_JobManagement_HowToUse_ExitCode">終了コードのカスタマイズ</a>を参照のこと。</p>
+</div>
+<div class="paragraph">
+<p>以下の作業を実施する。</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p><a href="#Ch09_Impl_ExceptionHandlingWithTryCatchJob_Tasklet_ExitCode_JobExecutionListener">JobExecutionListenerの実装</a></p>
+</li>
+<li>
+<p><a href="#Ch09_Impl_ExceptionHandlingWithTryCatchJob_Tasklet_ExitCode_Bean">ジョブBean定義ファイルの設定</a></p>
+</li>
+<li>
+<p><a href="#Ch09_Impl_ExceptionHandlingWithTryCatchJob_Tasklet_ExitCode_Context">終了コードのマッピング定義</a></p>
+</li>
+</ol>
+</div>
+<div class="sect3">
+<h4 id="Ch09_Impl_ExceptionHandlingWithTryCatchJob_Tasklet_ExitCode_JobExecutionListener"><a class="anchor" href="#Ch09_Impl_ExceptionHandlingWithTryCatchJob_Tasklet_ExitCode_JobExecutionListener"></a>JobExecutionListenerの実装</h4>
+<div class="paragraph">
+<p><code>JobExecutionListener</code>インターフェースを利用してジョブの終了コードを条件により変更する。<br>
+ここでは、<code>JobExecutionListener</code>インターフェースの実装クラスとして、
+最終的なジョブの終了コードを各ステップの終了コードに合わせて変更する処理を実装する。</p>
+</div>
+<div class="listingblock">
+<div class="title">com.example.batch.tutorial.common.listener.JobExitCodeChangeListener</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="java"><span class="keyword">package</span> <span class="namespace">com.example.batch.tutorial.common.listener</span>;
+
+<span class="keyword">import</span> <span class="include">org.springframework.batch.core.ExitStatus</span>;
+<span class="keyword">import</span> <span class="include">org.springframework.batch.core.JobExecution</span>;
+<span class="keyword">import</span> <span class="include">org.springframework.batch.core.JobExecutionListener</span>;
+<span class="keyword">import</span> <span class="include">org.springframework.batch.core.StepExecution</span>;
+<span class="keyword">import</span> <span class="include">org.springframework.stereotype.Component</span>;
+
+<span class="keyword">import</span> <span class="include">java.util.Collection</span>;
+
+<span class="annotation">@Component</span>
+<span class="directive">public</span> <span class="type">class</span> <span class="class">JobExitCodeChangeListener</span> <span class="directive">implements</span> JobExecutionListener {
+
+    <span class="annotation">@Override</span>
+    <span class="directive">public</span> <span class="type">void</span> beforeJob(JobExecution jobExecution) {
+        <span class="comment">// do nothing.</span>
+    }
+
+    <span class="annotation">@Override</span>
+    <span class="directive">public</span> <span class="type">void</span> afterJob(JobExecution jobExecution) {
+        <span class="predefined-type">Collection</span>&lt;StepExecution&gt; stepExecutions = jobExecution.getStepExecutions();
+        <span class="keyword">for</span> (StepExecution stepExecution : stepExecutions) { <span class="comment">// (1)</span>
+            <span class="keyword">if</span> (<span class="string"><span class="delimiter">&quot;</span><span class="content">SKIPPED</span><span class="delimiter">&quot;</span></span>.equals(stepExecution.getExitStatus().getExitCode())) {
+                jobExecution.setExitStatus(<span class="keyword">new</span> ExitStatus(<span class="string"><span class="delimiter">&quot;</span><span class="content">SKIPPED</span><span class="delimiter">&quot;</span></span>));
+                <span class="keyword">break</span>;
+            }
+        }
+    }
+}</code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all spread">
+<caption class="title">説明</caption>
+<colgroup>
+<col style="width: 10%;">
+<col style="width: 90%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ジョブの実行結果に応じて、最終的なジョブの終了コードを<code>JobExecution</code>に設定する。<br>
+ここではステップから返却された終了コードのいずれかに<code>SKIPPED</code>が含まれている場合、
+終了コードを<code>SKIPPED</code>としている。</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect3">
+<h4 id="Ch09_Impl_ExceptionHandlingWithTryCatchJob_Tasklet_ExitCode_Bean"><a class="anchor" href="#Ch09_Impl_ExceptionHandlingWithTryCatchJob_Tasklet_ExitCode_Bean"></a>ジョブBean定義ファイルの設定</h4>
+<div class="paragraph">
+<p>作成したリスナーを利用するためのジョブBean定義ファイルの設定を以下に示す。</p>
+</div>
+<div class="listingblock">
+<div class="title">src/main/resources/META-INF/jobs/dbaccess/jobPointAddTasklet.xml</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"><span class="preprocessor">&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;</span>
+<span class="tag">&lt;beans</span> <span class="attribute-name">xmlns</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">http://www.springframework.org/schema/beans</span><span class="delimiter">&quot;</span></span>
+       <span class="attribute-name">xmlns:xsi</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">http://www.w3.org/2001/XMLSchema-instance</span><span class="delimiter">&quot;</span></span>
+       <span class="attribute-name">xmlns:context</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">http://www.springframework.org/schema/context</span><span class="delimiter">&quot;</span></span>
+       <span class="attribute-name">xmlns:batch</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">http://www.springframework.org/schema/batch</span><span class="delimiter">&quot;</span></span>
+       <span class="attribute-name">xmlns:p</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">http://www.springframework.org/schema/p</span><span class="delimiter">&quot;</span></span>
+       <span class="attribute-name">xmlns:mybatis</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">http://mybatis.org/schema/mybatis-spring</span><span class="delimiter">&quot;</span></span>
+       <span class="attribute-name">xsi:schemaLocation</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd</span>
+             <span class="content">http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd</span>
+             <span class="content">http://www.springframework.org/schema/batch http://www.springframework.org/schema/batch/spring-batch.xsd</span>
+             <span class="content">http://mybatis.org/schema/mybatis-spring http://mybatis.org/schema/mybatis-spring.xsd</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+
+    <span class="comment">&lt;!-- omitted --&gt;</span>
+
+    <span class="tag">&lt;context:component-scan</span> <span class="attribute-name">base-package</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">com.example.batch.tutorial.dbaccess.tasklet,</span>
+            <span class="content">com.example.batch.tutorial.common.listener</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span> <span class="comment">&lt;!-- (1) --&gt;</span>
+
+    <span class="comment">&lt;!-- omitted --&gt;</span>
+
+    <span class="tag">&lt;batch:job</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobPointAddTasklet</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">job-repository</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobRepository</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+        <span class="tag">&lt;batch:step</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobPointAddTasklet.step01</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+            <span class="tag">&lt;batch:tasklet</span> <span class="attribute-name">transaction-manager</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobTransactionManager</span><span class="delimiter">&quot;</span></span>
+                           <span class="attribute-name">ref</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">pointAddTasklet</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+        <span class="tag">&lt;/batch:step&gt;</span>
+        <span class="tag">&lt;batch:listeners&gt;</span>
+            <span class="tag">&lt;batch:listener</span> <span class="attribute-name">ref</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobExitCodeChangeListener</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span> <span class="comment">&lt;!-- (2) --&gt;</span>
+        <span class="tag">&lt;/batch:listeners&gt;</span>
+    <span class="tag">&lt;/batch:job&gt;</span>
+
+<span class="tag">&lt;/beans&gt;</span></code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all spread">
+<caption class="title">説明</caption>
+<colgroup>
+<col style="width: 10%;">
+<col style="width: 90%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">コンポーネントスキャン対象とするベースパッケージの設定を行う。<br>
+<code>base-package</code>属性に、<code>StepExecutionListener</code>および<code>JobExecutionListener</code>の実装クラスが格納されているパッケージを追加で指定する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(2)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>JobExecutionListener</code>の実装クラスを設定する。
+なお、<code>JobExecutionListener</code>は<code>JobListener</code>の拡張インターフェースである。<br>
+ここでは、<code>JobExecutionListener</code>の実装クラスのBeanIDである<code>jobExitCodeChangeListener</code>を指定する。</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect3">
+<h4 id="Ch09_Impl_ExceptionHandlingWithTryCatchJob_Tasklet_ExitCode_Context"><a class="anchor" href="#Ch09_Impl_ExceptionHandlingWithTryCatchJob_Tasklet_ExitCode_Context"></a>終了コードのマッピング定義</h4>
+<div class="paragraph">
+<p>終了コードのマッピングを追加で設定する。</p>
+</div>
+<div class="paragraph">
+<p>チャンクモデル/タスクレットモデルで共通して利用するため、既に実施している場合は読み飛ばしてよい。</p>
+</div>
+<div class="paragraph">
+<p><code>launch-context.xml</code>に以下のとおり、独自の終了コードを追加する。</p>
+</div>
+<div class="listingblock">
+<div class="title">src/main/resources/META-INF/spring/launch-context.xml</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"><span class="comment">&lt;!-- omitted --&gt;</span>
+
+<span class="tag">&lt;bean</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">exitCodeMapper</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">org.springframework.batch.core.launch.support.SimpleJvmExitCodeMapper</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+    <span class="tag">&lt;property</span> <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">mapping</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+        <span class="tag">&lt;util:map</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">exitCodeMapper</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">key-type</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">java.lang.String</span><span class="delimiter">&quot;</span></span>
+                  <span class="attribute-name">value-type</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">java.lang.Integer</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+            <span class="comment">&lt;!-- ExitStatus --&gt;</span>
+            <span class="tag">&lt;entry</span> <span class="attribute-name">key</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">NOOP</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">value</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">0</span><span class="delimiter">&quot;</span></span> <span class="tag">/&gt;</span>
+            <span class="tag">&lt;entry</span> <span class="attribute-name">key</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">COMPLETED</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">value</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">0</span><span class="delimiter">&quot;</span></span> <span class="tag">/&gt;</span>
+            <span class="tag">&lt;entry</span> <span class="attribute-name">key</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">STOPPED</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">value</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">255</span><span class="delimiter">&quot;</span></span> <span class="tag">/&gt;</span>
+            <span class="tag">&lt;entry</span> <span class="attribute-name">key</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">FAILED</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">value</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">255</span><span class="delimiter">&quot;</span></span> <span class="tag">/&gt;</span>
+            <span class="tag">&lt;entry</span> <span class="attribute-name">key</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">UNKNOWN</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">value</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">255</span><span class="delimiter">&quot;</span></span> <span class="tag">/&gt;</span>
+            <span class="tag">&lt;entry</span> <span class="attribute-name">key</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">SKIPPED</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">value</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">200</span><span class="delimiter">&quot;</span></span> <span class="tag">/&gt;</span> <span class="comment">&lt;!-- (1) --&gt;</span>
+        <span class="tag">&lt;/util:map&gt;</span>
+    <span class="tag">&lt;/property&gt;</span>
+<span class="tag">&lt;/bean&gt;</span>
+
+<span class="comment">&lt;!-- omitted --&gt;</span></code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all spread">
+<caption class="title">説明</caption>
+<colgroup>
+<col style="width: 10%;">
+<col style="width: 90%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">独自の終了コードを追加する。<br>
+マッピングするためのキーに<code>SKIPPED</code>、コード値として<code>200</code>を指定する。</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="sect2">
+<h3 id="Ch09_Impl_ExceptionHandlingWithTryCatchJob_Tasklet_Coding"><a class="anchor" href="#Ch09_Impl_ExceptionHandlingWithTryCatchJob_Tasklet_Coding"></a>例外ハンドリングの実装</h3>
+<div class="paragraph">
+<p>ポイント加算処理を行うビジネスロジッククラスにtry-catch処理を実装する。<br>
+既に実装してある<code>PointAddItemProcessor</code>クラスにtry-catch処理の実装を追加する。</p>
+</div>
+<div class="paragraph">
+<p><a href="#Ch09_Impl_ExceptionHandlingWithTryCatchJob_Prerequisite">前提</a>のとおりデータベースアクセスするジョブの場合の説明となるため、
+ファイルアクセスするジョブの場合の実装は以下の(1)～(5)のみ追加する。</p>
+</div>
+<div class="listingblock">
+<div class="title">com.example.batch.tutorial.dbaccess.tasklet.PointAddTasklet</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="java"><span class="comment">// Package and the other import are omitted.</span>
+
+<span class="keyword">import</span> <span class="include">org.slf4j.Logger</span>;
+<span class="keyword">import</span> <span class="include">org.slf4j.LoggerFactory</span>;
+<span class="keyword">import</span> <span class="include">org.springframework.batch.core.ExitStatus</span>;
+<span class="keyword">import</span> <span class="include">org.springframework.batch.item.validator.ValidationException</span>;
+<span class="keyword">import</span> <span class="include">org.springframework.context.MessageSource</span>;
+
+<span class="keyword">import</span> <span class="include">java.util.Locale</span>;
+
+<span class="annotation">@Component</span>
+<span class="directive">public</span> <span class="type">class</span> <span class="class">PointAddTasklet</span> <span class="directive">implements</span> Tasklet {
+    <span class="comment">// Definition of constans, ItemStreamReader and ItemWriter are omitted.</span>
+
+    <span class="directive">private</span> <span class="directive">static</span> <span class="directive">final</span> <span class="predefined-type">Logger</span> logger = LoggerFactory.getLogger(PointAddTasklet.class); <span class="comment">// (1)</span>
+
+    <span class="annotation">@Inject</span>
+    <span class="predefined-type">Validator</span>&lt;MemberInfoDto&gt; validator;
+
+    <span class="annotation">@Inject</span>
+    MessageSource messageSource; <span class="comment">// (2)</span>
+
+    <span class="annotation">@Override</span>
+    <span class="directive">public</span> RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) <span class="directive">throws</span> <span class="exception">Exception</span> {
+        MemberInfoDto item = <span class="predefined-constant">null</span>;
+
+        <span class="predefined-type">List</span>&lt;MemberInfoDto&gt; items = <span class="keyword">new</span> <span class="predefined-type">ArrayList</span>&lt;&gt;(CHUNK_SIZE);
+        <span class="type">int</span> errorCount = <span class="integer">0</span>; <span class="comment">// (3)</span>
+
+        <span class="keyword">try</span> {
+            reader.open(chunkContext.getStepContext().getStepExecution().getExecutionContext());
+            <span class="keyword">while</span> ((item = reader.read()) != <span class="predefined-constant">null</span>) {
+                <span class="keyword">try</span> { <span class="comment">// (4)</span>
+                    validator.validate(item);
+                } <span class="keyword">catch</span> (ValidationException e) {
+                    logger.warn(messageSource
+                            .getMessage(<span class="string"><span class="delimiter">&quot;</span><span class="content">errors.maxInteger</span><span class="delimiter">&quot;</span></span>, <span class="keyword">new</span> <span class="predefined-type">String</span><span class="type">[]</span> { <span class="string"><span class="delimiter">&quot;</span><span class="content">point</span><span class="delimiter">&quot;</span></span>, <span class="string"><span class="delimiter">&quot;</span><span class="content">1000000</span><span class="delimiter">&quot;</span></span> }, <span class="predefined-type">Locale</span>.getDefault()));  <span class="comment">// (5)</span>
+                    errorCount++;
+                    <span class="keyword">continue</span>; <span class="comment">// (6)</span>
+                }
+
+                <span class="comment">// The other codes of bussiness logic are omitted.</span>
+            }
+
+            writer.write(items);
+        } <span class="keyword">finally</span> {
+            reader.close();
+        }
+        <span class="keyword">if</span> (errorCount &gt; <span class="integer">0</span>) {
+            contribution.setExitStatus(<span class="keyword">new</span> ExitStatus(<span class="string"><span class="delimiter">&quot;</span><span class="content">SKIPPED</span><span class="delimiter">&quot;</span></span>)); <span class="comment">// (7)</span>
+        }
+        <span class="keyword">return</span> RepeatStatus.FINISHED;
+    }
+}</code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all spread">
+<caption class="title">説明</caption>
+<colgroup>
+<col style="width: 10%;">
+<col style="width: 90%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ログを出力するために<code>LoggerFactory</code>のインスタンスを定義する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(2)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>MessageSource</code>のインスタンスをインジェクトする。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(3)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">例外の発生を判定するためのカウンターを用意する。<br>
+<code>ValidationException</code>をキャッチした際にインクリメントする。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(4)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">例外ハンドリングを実装する。<br>
+入力チェック処理をtry-catchで囲み、<code>ValidationException</code>をハンドリングする。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(5)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">プロパティファイルからメッセージIDが<code>errors.maxInteger</code>のメッセージを取得し、ログに出力している。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(6)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">エラーレコードをスキップするためにcontinueで処理を継続する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(7)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">独自の終了コードとして<code>SKIPPED</code>を設定する。</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect2">
+<h3 id="Ch09_Impl_ExceptionHandlingWithTryCatchJob_Tasklet_Execution"><a class="anchor" href="#Ch09_Impl_ExceptionHandlingWithTryCatchJob_Tasklet_Execution"></a>ジョブの実行と結果の確認</h3>
+<div class="paragraph">
+<p>作成したジョブをSTS上で実行し、結果を確認する。</p>
+</div>
+<div class="sect3">
+<h4 id="Ch09_Impl_ExceptionHandlingWithTryCatchJob_Tasklet_Execution_Run"><a class="anchor" href="#Ch09_Impl_ExceptionHandlingWithTryCatchJob_Tasklet_Execution_Run"></a>実行構成からジョブを実行</h4>
+<div class="paragraph">
+<p>既に作成してある実行構成からジョブを実行し、結果を確認する。</p>
+</div>
+<div class="paragraph">
+<p>ここでは、異常系データを利用してジョブを実行する。<br>
+例外ハンドリングを実装したジョブが扱うリソース(データベース or ファイル)によって、
+入力データの切替方法が異なるため、以下のとおり実行すること。</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">データベースアクセスでデータ入出力を行うジョブに対して例外ハンドリングを実装した場合</dt>
+<dd>
+<p>データベースアクセスでデータ入出力を行うジョブの<a href="Ch09_DBAccessJob.html#Ch09_Impl_DBAccessJob_Chunk_Execution_Run">実行構成からジョブを実行</a>
+で作成した実行構成を使ってジョブを実行する。</p>
+</dd>
+</dl>
+</div>
+<div class="paragraph">
+<p>異常系データを利用するために、<code>batch-application.proeprties</code>のDatabase Initializeで
+正常系データのスクリプトをコメントアウトし、異常系データのスクリプトのコメントアウトを解除する。</p>
+</div>
+<div class="listingblock">
+<div class="title">src/main/resources/batch-application.proeprties</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"># Database Initialize
+tutorial.create-table.script=file:sqls/create-member-info-table.sql
+#tutorial.insert-data.script=file:sqls/insert-member-info-data.sql
+tutorial.insert-data.script=file:sqls/insert-member-info-error-data.sql</code></pre>
+</div>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">ファイルアクセスでデータ入出力を行うジョブに対して例外ハンドリングを実装した場合</dt>
+<dd>
+<p>ファイルアクセスでデータ入出力を行うジョブの<a href="Ch09_FileAccessJob.html#Ch09_Impl_FileAccessJob_Chunk_Execution_Run">実行構成からジョブを実行</a>
+で作成した実行構成を使ってジョブを実行する。</p>
+</dd>
+</dl>
+</div>
+<div class="paragraph">
+<p>異常系データを利用するために、実行構成で設定する引数のうち、
+入力ファイル(inputFile)のパスを正常系データ(insert-member-info-data.csv)から異常系データ(insert-member-info-error-data.csv)に変更する。</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="Ch09_Impl_ExceptionHandlingWithTryCatchJob_Tasklet_Execution_Console"><a class="anchor" href="#Ch09_Impl_ExceptionHandlingWithTryCatchJob_Tasklet_Execution_Console"></a>コンソールログの確認</h4>
+<div class="paragraph">
+<p>Console Viewを開き、以下の内容のログが出力されていることを確認する。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>例外が発生していないこと</p>
+</li>
+<li>
+<p>WARNログとして次のメッセージを出力していること</p>
+<div class="ulist">
+<ul>
+<li>
+<p>「The Point exceeds 1000000.」</p>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+<div class="listingblock">
+<div class="title">コンソールログ出力例</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="console">[2017/09/11 15:36:29] [main] [o.t.b.t.e.t.PointAddTasklet] [WARN ] The point exceeds 1000000.
+[2017/09/11 15:36:29] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=jobPointAddTasklet]] completed with the following parameters: [{jsr_batch_run_id=468}] and the following status: [COMPLETED]
+[2017/09/11 15:36:29] [main] [o.s.c.s.ClassPathXmlApplicationContext] [INFO ] Closing org.springframework.context.support.ClassPathXmlApplicationContext@735f7ae5: startup date [Mon Sep 11 15:36:27 JST 2017]; root of context hierarchy</code></pre>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="Ch09_Impl_ExceptionHandlingWithTryCatchJob_Tasklet_Execution_Exitcode"><a class="anchor" href="#Ch09_Impl_ExceptionHandlingWithTryCatchJob_Tasklet_Execution_Exitcode"></a>終了コードの確認</h4>
+<div class="paragraph">
+<p>終了コードにより、警告終了したことを確認する。<br>
+確認手順は<a href="Ch09_EnvironmentConstruction.html#Ch09_EnvironmentConstruction_OperationCheck_ExecJob_Run">ジョブの実行と結果の確認</a>を参照。
+終了コード(exit value)が200(警告終了)となっていることを確認する。</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/ch09/ExceptionHandlingWithTryCatch/Ch09_ExceptionHandlingWithTryCatchJob_Confirm_ExitCode_TaskletModel.png" alt="Confirm the Exit Code of ExceptionHandlingWithTryCatchJob for TaskletModel">
+</div>
+<div class="title">終了コードの確認</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="Ch09_Impl_ExceptionHandlingWithTryCatchJob_Tasklet_Execution_Output"><a class="anchor" href="#Ch09_Impl_ExceptionHandlingWithTryCatchJob_Tasklet_Execution_Output"></a>出力リソースの確認</h4>
+<div class="paragraph">
+<p>例外ハンドリングを実装したジョブによって出力リソース(データベース or ファイル)を確認する。</p>
+</div>
+<div class="paragraph">
+<p>スキップを実装しているため、エラーレコード以外の更新対象レコードについては
+正常に更新されていることを確認する。</p>
+</div>
+<div class="sect4">
+<h5 id="Ch09_Impl_ExceptionHandlingWithTryCatchJob_Tasklet_Execution_Output_Table"><a class="anchor" href="#Ch09_Impl_ExceptionHandlingWithTryCatchJob_Tasklet_Execution_Output_Table"></a>会員情報テーブルの確認</h5>
+<div class="paragraph">
+<p>Data Source Explorerを使用して会員情報テーブルの確認を行う。<br>
+更新前後の会員情報テーブルの内容を比較し、確認内容のとおりとなっていることを確認する。<br>
+確認手順は<a href="Ch09_EnvironmentConstruction.html#Ch09_EnvironmentConstruction_OperationCheck_RefDB">Data Source Explorerを使用してデータベースを参照する</a>を参照。</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">確認内容</dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>エラーレコード(会員番号が"000000013")を除くすべてのレコードについて</p>
+<div class="ulist">
+<ul>
+<li>
+<p>statusカラム</p>
+<div class="ulist">
+<ul>
+<li>
+<p>"0"(初期状態)のレコードが存在しないこと</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>pointカラム</p>
+<div class="ulist">
+<ul>
+<li>
+<p>ポイント加算対象について、会員種別に応じたポイントが加算されていること</p>
+<div class="ulist">
+<ul>
+<li>
+<p>typeカラムが"G"(ゴールド会員)の場合は100ポイント</p>
+</li>
+<li>
+<p>typeカラムが"N"(一般会員)の場合は10ポイント</p>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>エラーレコード(会員番号が"000000013")について</p>
+<div class="ulist">
+<ul>
+<li>
+<p>更新されていないこと</p>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+</dd>
+</dl>
+</div>
+<div class="paragraph">
+<p>更新前後の会員情報テーブルの内容は以下のとおり。</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/ch09/ExceptionHandlingWithTryCatch/Ch09_ExceptionHandlingWithTryCatchJob_Result_MemberInfoTable.png" alt="Table of member_info">
+</div>
+<div class="title">更新前後の会員情報テーブルの内容</div>
+</div>
+</div>
+<div class="sect4">
+<h5 id="Ch09_Impl_ExceptionHandlingWithTryCatchJob_Tasklet_Execution_Output_File"><a class="anchor" href="#Ch09_Impl_ExceptionHandlingWithTryCatchJob_Tasklet_Execution_Output_File"></a>会員情報ファイルの確認</h5>
+<div class="paragraph">
+<p>会員情報ファイルの入出力内容を比較し、確認内容のとおりとなっていることを確認する。</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">確認内容</dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>出力ディレクトリに会員情報ファイルが出力されていること</p>
+<div class="ulist">
+<ul>
+<li>
+<p>出力ファイル: files/output/output-member-info-data.csv</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>エラーレコード(会員番号が"00000013")を除くすべてのレコードについて</p>
+<div class="ulist">
+<ul>
+<li>
+<p>statusカラム</p>
+<div class="ulist">
+<ul>
+<li>
+<p>"0"(初期状態)のレコードが存在しないこと</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>pointカラム</p>
+<div class="ulist">
+<ul>
+<li>
+<p>ポイント加算対象について、会員種別に応じたポイントが加算されていること</p>
+<div class="ulist">
+<ul>
+<li>
+<p>typeカラムが"G"(ゴールド会員)の場合は100ポイント</p>
+</li>
+<li>
+<p>typeカラムが"N"(一般会員)の場合は10ポイント</p>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>エラーレコード(会員番号が"00000013")が出力されていないこと</p>
+</li>
+</ul>
+</div>
+</dd>
+</dl>
+</div>
+<div class="paragraph">
+<p>会員情報ファイルの入出力内容は以下のとおり。<br>
+ファイルのフィールドはid(会員番号)、type(会員種別)、status(商品購入フラグ)、point(ポイント)の順で出力される。</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/ch09/ExceptionHandlingWithTryCatch/Ch09_ExceptionHandlingWithTryCatchJob_Result_MemberInfoFile.png" alt="File of member_info">
+</div>
+<div class="title">会員情報ファイルの入出力内容</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="container">
+
+  <div class="common-bg">
+    <div class="information">
+      Macchinetta Batch Framework (2.x) Development Guideline - version 2.0.1.RELEASE, 2018-3-9
+    </div>
+    <div class="index">
+      <a href="index.html">&gt; INDEX</a>
+    </div>
+  </div>
+
+  <div class="footer-bg">
+    <div class="copyright">
+      &copy; Copyright 2018 NTT Corporation.
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<!--[if IE]><meta http-equiv="X-UA-Compatible" content="IE=edge"><![endif]-->
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Asciidoctor 1.5.6.1">
+<title>利用時の注意点</title>
+<link rel="stylesheet" href="./theme/css/readthedocs.css">
+<link rel="stylesheet" href="./theme/css/font-awesome.min.css">
+<link rel="stylesheet" href="./theme/css/coderay-asciidoctor.css">
+<link rel="stylesheet" href="./theme/css/header-footer.css">
+<title>Macchinetta Batch Framework (2.x) Development Guideline</title>
+
+<div class="common-bg">
+  <div class="information">
+    Macchinetta Batch Framework (2.x) Development Guideline - version 2.0.1.RELEASE, 2018-3-9
+  </div>
+  <div class="index">
+      <a href="index.html">&gt; INDEX</a>
+  </div>
+</div>
+
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-113850349-5"></script>
+<script>
+ window.dataLayer = window.dataLayer || [];
+ function gtag(){dataLayer.push(arguments);}
+ gtag('js', new Date());
+
+ gtag('config', 'UA-113850349-5');
+</script>
+</head>
+<body id="Ch99_SummaryOfPoints" class="book toc2 toc-left">
+<div id="header">
+<h1>利用時の注意点</h1>
+<div id="toc" class="toc2">
+<div id="toctitle">Table of Contents</div>
+<ul class="sectlevel1">
+<li><a href="#Ch99_SummaryOfPoints_AboutThis">Macchinetta Batch 2.xの注意点について</a></li>
+</ul>
+</div>
+</div>
+<div id="content">
+<div class="sect1">
+<h2 id="Ch99_SummaryOfPoints_AboutThis"><a class="anchor" href="#Ch99_SummaryOfPoints_AboutThis"></a>Macchinetta Batch 2.xの注意点について</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>ここでは、各節で説明しているMacchinetta Batch 2.xを利用する際の、ルールや注意点についてリストにまとめる。
+ユーザはバッチアプリケーションを開発する際、以降に示すポイントに留意して進めてほしい。</p>
+</div>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-warning" title="Warning"></i>
+</td>
+<td class="content">
+<div class="paragraph">
+<p>ここでは、特に重要な注意点を挙げているのみであり、あらゆる検討事項を網羅しているわけではない。
+ユーザは必ず利用する機能を一読すること。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<hr>
+<div class="ulist">
+<div class="title">バッチ処理で考慮する原則と注意点</div>
+<ul>
+<li>
+<p>単一のバッチ処理は可能な限り簡素化し、複雑な論理構造を避ける。</p>
+</li>
+<li>
+<p>複数のジョブで同じことを何度もしない。</p>
+</li>
+<li>
+<p>システムリソースの利用を最小限にし、不要な物理I/Oを避け、メモリ上での操作を活用する。</p>
+</li>
+</ul>
+</div>
+<hr>
+<div class="ulist">
+<div class="title">Macchinetta Batch 2.xの指針</div>
+<ul>
+<li>
+<p><a href="Ch03_CreateProject.html#Ch03_CreateProject">バッチアプリケーションの開発</a></p>
+<div class="ulist">
+<ul>
+<li>
+<p>1ジョブ=1Bean定義(1ジョブ定義) として作成する</p>
+</li>
+<li>
+<p>1ステップ=1バッチ処理=1ビジネスロジック として作成する</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p><a href="Ch03_CreateChunkJob.html#Ch03_CreateChunkJob">チャンクモデル</a></p>
+<div class="ulist">
+<ul>
+<li>
+<p>大量データを効率よく処理したい場合に利用する。</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p><a href="Ch03_CreateTaskletJob.html#Ch03_CreateTaskletJob">タスクレットモデル</a></p>
+<div class="ulist">
+<ul>
+<li>
+<p>シンプルな処理や、定型化しにくい処理、データを一括で処理したい場合に利用する。</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p><a href="Ch04_SyncJob.html#Ch04_SyncJob">同期実行</a></p>
+<div class="ulist">
+<ul>
+<li>
+<p>スケジュールどおりにジョブを起動したり、複数のジョブを組み合わせてバッチ処理行う場合に利用する。</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p><a href="Ch04_AsyncJobWithDB.html#Ch04_AsyncJobWithDB">非同期実行(DBポーリング)</a></p>
+<div class="ulist">
+<ul>
+<li>
+<p>ディレード処理、処理時間が短いジョブの連続実行、大量ジョブの集約などに利用する。</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p><a href="Ch04_AsyncJobWithWebContainer.html#Ch04_AsyncJobWithWeb">非同期実行(Webコンテナ)</a></p>
+<div class="ulist">
+<ul>
+<li>
+<p>DBポーリングと同様だが、起動までの即時性が求められる場合にはこちらを利用する。</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>JobRepositoryの管理</p>
+<div class="ulist">
+<ul>
+<li>
+<p>Spring Batch はジョブの起動状態・実行結果の記録に<code>JobRepository</code>を使用する。</p>
+</li>
+<li>
+<p>Macchinetta Batch 2.xでは、以下のすべてに該当する場合は永続化は任意としてよい。</p>
+<div class="ulist">
+<ul>
+<li>
+<p>同期型ジョブ実行のみでMacchinetta Batch 2.xを使用する。</p>
+</li>
+<li>
+<p>ジョブの停止・リスタートを含め、ジョブの実行管理はすべてジョブスケジューラに委ねる。</p>
+<div class="ulist">
+<ul>
+<li>
+<p>Spring Batchがもつ<code>JobRepository</code>を前提としたリスタートを利用しない。</p>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>これらに該当する場合は<code>JobRepository</code>が使用するRDBMSの選択肢として、インメモリ・組み込み型データベースである<code>H2</code>を利用する。
+一方で非同期実行を利用する場合や、Spring Batchの停止・リスタートを活用する場合は、ジョブの実行状態・結果を永続化可能なRDBMSが必要となる。<br>
+この点については、<a href="Ch07_JobManagement.html#Ch07_JobManagement">ジョブの管理</a>も一読のこと。</p>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+<hr>
+<div class="ulist">
+<div class="title">チャンクモデルとタスクレットモデルの使い分け</div>
+<ul>
+<li>
+<p><a href="Ch03_CreateChunkJob.html#Ch03_CreateChunkJob">チャンクモデル</a></p>
+<div class="ulist">
+<ul>
+<li>
+<p>大量のデータを安定して処理したい場合</p>
+</li>
+<li>
+<p>件数ベースリスタートをしたい場合</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p><a href="Ch03_CreateTaskletJob.html#Ch03_CreateTaskletJob">タスクレットモデル</a></p>
+<div class="ulist">
+<ul>
+<li>
+<p>リカバリを限りなくシンプルにしたい場合</p>
+</li>
+<li>
+<p>処理の内容をまとめたい場合</p>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p><a href="Ch03_ChunkOrTasklet.html#Ch03_ChunkOrTasklet">チャンクモデルとタスクレットモデルの使い分け</a>も一読のこと。</p>
+</div>
+<hr>
+<div class="ulist">
+<div class="title">Beanスコープの統一</div>
+<ul>
+<li>
+<p>Tasklet実装では、Injectされるコンポーネントのスコープに合わせる。</p>
+</li>
+<li>
+<p>Composite系コンポーネントは、委譲するコンポーネントのスコープに合わせる。</p>
+</li>
+<li>
+<p>JobParameterを使用する場合は、<code>step</code>のスコープにする。</p>
+</li>
+<li>
+<p>Step単位でインスタンス変数を確保したい場合は、<code>step</code>のスコープにする。</p>
+</li>
+</ul>
+</div>
+<hr>
+<div class="ulist">
+<div class="title">性能チューニングポイント</div>
+<ul>
+<li>
+<p>チャンクサイズを調整する</p>
+<div class="ulist">
+<ul>
+<li>
+<p>チャンクを利用するときは、コミット件数を適度なサイズにする。サイズを大きくしすぎない。</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>フェッチサイズを調整する</p>
+<div class="ulist">
+<ul>
+<li>
+<p>データベースアクセスでは、フェッチサイズを適度なサイズにする。サイズを大きくしすぎない。</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>ファイル読み込みを効率化する</p>
+<div class="ulist">
+<ul>
+<li>
+<p>専用のFieldSetMapperインターフェース実装を用意する。</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>並列処理・多重処理</p>
+<div class="ulist">
+<ul>
+<li>
+<p>出来る限りジョブスケジューラによって実現する。</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>分散処理</p>
+<div class="ulist">
+<ul>
+<li>
+<p>出来る限りジョブスケジューラによって実現する。</p>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+<hr>
+<div id="Ch99_SummaryOfPoints_dbpolling" class="ulist">
+<div class="title">非同期実行(DBポーリング)</div>
+<ul>
+<li>
+<p>インメモリデータベースの使用</p>
+<div class="ulist">
+<ul>
+<li>
+<p>長期連続運用するには向かず、定期的に再起動する運用が望ましい。</p>
+</li>
+<li>
+<p>長期連続運用で利用したい場合は、定期的に<code>JobRepository</code>からデータを削除するなどのメンテナンス作業が必須である。</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>登録ジョブの絞込み</p>
+<div class="ulist">
+<ul>
+<li>
+<p>非同期実行することを前提に設計・実装されたジョブを指定する。</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>性能劣化もあり得るため、超ショートバッチの大量処理は向いていない。</p>
+</li>
+<li>
+<p>同一ジョブの並列実行が可能になっているので、並列実行した場合に同一ジョブが影響を与えないようにする必要がある</p>
+</li>
+</ul>
+</div>
+<hr>
+<div class="ulist">
+<div class="title">非同期実行(Webコンテナ)</div>
+<ul>
+<li>
+<p>基本的な検討事項は、<a href="#Ch99_SummaryOfPoints_dbpolling">非同期実行(DBポーリング)</a>と同じ。</p>
+</li>
+<li>
+<p>スレッドプールの調整をする。</p>
+<div class="ulist">
+<ul>
+<li>
+<p>非同期実行のスレッドプールとは別に、Webコンテナのリクエストスレッドや同一筐体内で動作している他のアプリケーションも含めて検討する必要がある。</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>Webとバッチとでは、データソース、MyBatis設定、Mapperインターフェースは相互参照はできない。</p>
+</li>
+<li>
+<p>スレッドプール枯渇によるジョブの起動失敗はジョブ起動時に捕捉できないので、別途確認する手段を用意しておく。</p>
+</li>
+</ul>
+</div>
+<hr>
+<div class="ulist">
+<div class="title">データベースアクセスとトランザクション</div>
+<ul>
+<li>
+<p>「ItemWriterに<code>MyBatisBatchItemWriter</code>を使用する」と「ItemProcessorでMapperインターフェースを使用し参照更新をする」は同時にできない。</p>
+<div class="ulist">
+<ul>
+<li>
+<p>MyBatisには、同一トランザクション内で2つ以上の<code>ExecutorType</code>で実行してはいけないという制約があるため。
+<a href="Ch05_DBAccess.html#Ch05_DBAccess_HowToUse_Input_MapperInterface">Mapperインターフェース(入力)</a>を参照。</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>データベースの同一テーブルへ入出力する際の注意点</p>
+<div class="ulist">
+<ul>
+<li>
+<p>読み取り一貫性を担保するための情報が出力(UPDATEの発行)により失われた結果、入力(SELECT)にてエラーが発生することがある。 以下の対策を検討する。</p>
+<div class="ulist">
+<ul>
+<li>
+<p>データベースに依存になるが、情報を確保する領域を大きくする。</p>
+</li>
+<li>
+<p>入力データを分割し多重処理を行う。</p>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+<hr>
+<div class="ulist">
+<div class="title">ファイルアクセス</div>
+<ul>
+<li>
+<p>以下の固定長ファイルを扱う場合は、TERASOLUNA Batch 5.xが提供する部品を必ず使う。</p>
+<div class="ulist">
+<ul>
+<li>
+<p>マルチバイト文字を含む固定長ファイル</p>
+</li>
+<li>
+<p>改行なし固定長ファイル</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>フッタレコードを読み飛ばす場合は、OSコマンドによる対応が必要。</p>
+</li>
+</ul>
+</div>
+<hr>
+<div class="ulist">
+<div class="title">排他制御</div>
+<ul>
+<li>
+<p>複数ジョブを同時実行する場合は、排他制御の必要がないようにジョブ設計を行う。</p>
+<div class="ulist">
+<ul>
+<li>
+<p>アクセスするリソースや処理対象をジョブごとに分割することが基本である。</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>デッドロックが発生しないように設計を行う。</p>
+</li>
+<li>
+<p>ファイルの排他制御は、タスクレットモデルで実装すること。</p>
+</li>
+</ul>
+</div>
+<hr>
+<div class="ulist">
+<div class="title">異常系への対応</div>
+<ul>
+<li>
+<p>例外ハンドリングではトランザクション処理を行わない。</p>
+</li>
+<li>
+<p>処理モデルでChunkListenerの挙動が異なることに注意する。</p>
+<div class="ulist">
+<ul>
+<li>
+<p>リソースのオープン･クローズで発生した例外は、</p>
+<div class="ulist">
+<ul>
+<li>
+<p>チャンクモデル…ChunkListenerインターフェースが捕捉するスコープ外となる。</p>
+</li>
+<li>
+<p>タスクレットモデル…ChunkListenerインターフェースが捕捉するスコープ内となる。</p>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>入力チェックエラーは、チェックエラーの原因となる入力リソースを修正しない限り、リスタートしても回復不可能である</p>
+</li>
+<li>
+<p>JobRepositoryに障害が発生した時の対処方法を検討する必要がある。</p>
+</li>
+</ul>
+</div>
+<hr>
+<div class="ulist">
+<div class="title">ExecutionContextについて</div>
+<ul>
+<li>
+<p><code>ExecutionContext</code>は<code>JobRepository</code>へ格納されるため、以下の制約がある。</p>
+<div class="ulist">
+<ul>
+<li>
+<p><code>ExecutionContext</code>へ格納するオブジェクトは、<code>java.io.Serializable</code>を実装したクラスでなければならない。</p>
+</li>
+<li>
+<p>格納できるサイズに制限がある。</p>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+<hr>
+<div class="ulist">
+<div class="title">終了コード</div>
+<ul>
+<li>
+<p>Javaプロセス強制終了時の終了コードとバッチアプリケーションの終了コードとは明確に区別する。</p>
+<div class="ulist">
+<ul>
+<li>
+<p>バッチアプリケーションによるプロセスの終了コードを1に設定することは厳禁とする。</p>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+<hr>
+<div class="ulist">
+<div class="title">並列処理と多重処理</div>
+<ul>
+<li>
+<p><code>Multi Thread Step</code>は利用しない。</p>
+</li>
+<li>
+<p>処理内容によっては、リソース競合とデッドロックが発生する可能性に注意する。</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+<div class="container">
+
+  <div class="common-bg">
+    <div class="information">
+      Macchinetta Batch Framework (2.x) Development Guideline - version 2.0.1.RELEASE, 2018-3-9
+    </div>
+    <div class="index">
+      <a href="index.html">&gt; INDEX</a>
+    </div>
+  </div>
+
+  <div class="footer-bg">
+    <div class="copyright">
+      &copy; Copyright 2018 NTT Corporation.
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

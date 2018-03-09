@@ -1,0 +1,961 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<!--[if IE]><meta http-equiv="X-UA-Compatible" content="IE=edge"><![endif]-->
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Asciidoctor 1.5.6.1">
+<title>排他制御</title>
+<link rel="stylesheet" href="./theme/css/readthedocs.css">
+<link rel="stylesheet" href="./theme/css/font-awesome.min.css">
+<link rel="stylesheet" href="./theme/css/coderay-asciidoctor.css">
+<link rel="stylesheet" href="./theme/css/header-footer.css">
+<title>Macchinetta Batch Framework (2.x) Development Guideline</title>
+
+<div class="common-bg">
+  <div class="information">
+    Macchinetta Batch Framework (2.x) Development Guideline - version 2.0.1.RELEASE, 2018-3-9
+  </div>
+  <div class="index">
+      <a href="index.html">&gt; INDEX</a>
+  </div>
+</div>
+
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-113850349-5"></script>
+<script>
+ window.dataLayer = window.dataLayer || [];
+ function gtag(){dataLayer.push(arguments);}
+ gtag('js', new Date());
+
+ gtag('config', 'UA-113850349-5');
+</script>
+</head>
+<body id="Ch05_ExclusiveControl" class="book toc2 toc-left">
+<div id="header">
+<h1>排他制御</h1>
+<div id="toc" class="toc2">
+<div id="toctitle">Table of Contents</div>
+<ul class="sectlevel1">
+<li><a href="#Ch05_ExclusiveControl_Overview">Overview</a>
+<ul class="sectlevel2">
+<li><a href="#Ch05_ExclusiveControl_Overview_Necessity">排他制御の必要性</a></li>
+<li><a href="#Ch05_ExclusiveControl_Overview_File">ファイルの排他制御</a></li>
+<li><a href="#Ch05_ExclusiveControl_Overview_DB">データベースの排他制御</a></li>
+<li><a href="#Ch05_ExclusiveControl_Overview_Usecase">排他制御方式の使い分け</a></li>
+<li><a href="#Ch05_ExclusiveControl_Overview_Component">排他制御とコンポーネントの関係</a></li>
+</ul>
+</li>
+<li><a href="#Ch05_ExclusiveControl_HowToUse">How to use</a>
+<ul class="sectlevel2">
+<li><a href="#Ch05_ExclusiveControl_HowToUse_File">ファイルの排他制御</a></li>
+<li><a href="#Ch05_ExclusiveControl_HowToUse_DB">データベースの排他制御</a>
+<ul class="sectlevel3">
+<li><a href="#Ch05_ExclusiveControl_HowToUse_DB_OptimisticLock">楽観ロック</a></li>
+<li><a href="#Ch05_ExclusiveControl_HowToUse_DB_PessimisticLock">悲観ロック</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div id="content">
+<div class="sect1">
+<h2 id="Ch05_ExclusiveControl_Overview"><a class="anchor" href="#Ch05_ExclusiveControl_Overview"></a>Overview</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>排他制御とは、複数のトランザクションから同じリソースに対して、同時に更新処理が行われる際に、データの整合性を保つために行う処理のことである。
+複数のトランザクションから同じリソースに対して、同時に更新処理が行われる可能性がある場合は、基本的に排他制御を行う必要がある。</p>
+</div>
+<div class="paragraph">
+<p>ここでの複数トランザクションとは以下のことを指す。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>複数ジョブの同時実行時におけるトランザクション</p>
+</li>
+<li>
+<p>オンライン処理との同時実行時におけるトランザクション</p>
+</li>
+</ul>
+</div>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-important" title="Important"></i>
+</td>
+<td class="content">
+<div class="title">複数ジョブの排他制御</div>
+<div class="paragraph">
+<p>複数ジョブを同時実行する場合は、排他制御の必要がないようにジョブ設計を行うことが基本である。
+これは、アクセスするリソースや処理対象をジョブごとに分割することが基本であることを意味する。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>排他制御に関する概念は、オンライン処理と同様であるため、Macchinetta Server 1.x 開発ガイドラインにある
+<a href="https://macchinetta.github.io/server-guideline/current/ja//ArchitectureInDetail/DataAccessDetail/ExclusionControl.html">排他制御</a>を参照してほしい。</p>
+</div>
+<div class="paragraph">
+<p>ここでは、Macchinetta Server 1.xでは説明されていない部分を中心に説明をする。</p>
+</div>
+<div class="paragraph">
+<p>本機能は、チャンクモデルとタスクレットモデルとで同じ使い方になる。</p>
+</div>
+<div class="sect2">
+<h3 id="Ch05_ExclusiveControl_Overview_Necessity"><a class="anchor" href="#Ch05_ExclusiveControl_Overview_Necessity"></a>排他制御の必要性</h3>
+<div class="paragraph">
+<p>排他制御の必要性に関しては、Macchinetta Server 1.x 開発ガイドラインにある
+<a href="https://macchinetta.github.io/server-guideline/current/ja//ArchitectureInDetail/DataAccessDetail/ExclusionControl.html#exclusioncontrol-necessity">排他制御の必要性</a>を参照。</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="Ch05_ExclusiveControl_Overview_File"><a class="anchor" href="#Ch05_ExclusiveControl_Overview_File"></a>ファイルの排他制御</h3>
+<div class="paragraph">
+<p>ファイルでの排他制御はファイルロックにより実現するのが一般的である。</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">ファイルロックとは</dt>
+<dd>
+<p>ファイルロックとは、ファイルをあるプログラムで使用している間、ほかのプログラムからの読み書きを制限する仕組みである。
+ファイルロックの処理概要を以下に示す。</p>
+</dd>
+</dl>
+</div>
+<div class="ulist">
+<div class="title">シナリオ</div>
+<ul>
+<li>
+<p>バッチ処理Aがファイルのロックを取得し、ファイルの更新処理を開始する。</p>
+</li>
+<li>
+<p>バッチ処理Bが同一のファイルの更新を試みファイルのロック取得を試みるが失敗する。</p>
+</li>
+<li>
+<p>バッチ処理Aが処理を終了し、ファイルのロックを解除する</p>
+</li>
+</ul>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/Ch05_ExclusiveControl_File_Senario.png" alt="ExclusiveControl_File_Senario">
+</div>
+<div class="title">ファイルロックの処理概要</div>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>バッチ処理A(Batch ProcessA)が対象ファイル(TargetFile)のロック取得を試みる。</p>
+</li>
+<li>
+<p>バッチ処理Aが、対象ファイルのロック取得に成功する</p>
+</li>
+<li>
+<p>バッチ処理B(Batch ProcessB)が、対象ファイルのロック取得を試みる</p>
+</li>
+<li>
+<p>バッチ処理Aが、対象ファイルに書き込みを行う</p>
+</li>
+<li>
+<p>バッチ処理Bは、バッチ処理Aがロック中であるため、対象ファイルのロック取得に失敗する</p>
+</li>
+<li>
+<p>バッチ処理Bが、ファイル更新失敗の処理を行う。</p>
+</li>
+<li>
+<p>バッチ処理Aが、対象ファイルのロックを開放する。</p>
+</li>
+</ol>
+</div>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-important" title="Important"></i>
+</td>
+<td class="content">
+<div class="title">デッドロックの予防</div>
+<div class="paragraph">
+<p>ファイルにおいてもデータベースと同様に複数のファイルに対してロックを取得する場合、デッドロックとなる場合がある。
+そのため、ファイルの更新順序をルール化することが重要である。<br>
+デッドロックの予防に関してはデータベースのテーブル間でのデッドロック防止と同様である。
+詳細については、Macchinetta Server 1.x 開発ガイドラインの
+<a href="https://macchinetta.github.io/server-guideline/current/ja//ArchitectureInDetail/DataAccessDetail/ExclusionControl.html#id9">デッドロックの予防</a>を参照。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect2">
+<h3 id="Ch05_ExclusiveControl_Overview_DB"><a class="anchor" href="#Ch05_ExclusiveControl_Overview_DB"></a>データベースの排他制御</h3>
+<div class="paragraph">
+<p>データベースの排他制御に関しては、Macchinetta Server 1.x 開発ガイドラインにある
+<a href="https://macchinetta.github.io/server-guideline/current/ja//ArchitectureInDetail/DataAccessDetail/ExclusionControl.html#id5">データベースのロック機能による排他制御</a>
+で詳しく説明されているため、そちらを参照のこと。</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="Ch05_ExclusiveControl_Overview_Usecase"><a class="anchor" href="#Ch05_ExclusiveControl_Overview_Usecase"></a>排他制御方式の使い分け</h3>
+<div class="paragraph">
+<p>Macchinetta Batch 2.xでのロック方式と向いているシチュエーションを示す。</p>
+</div>
+<table class="tableblock frame-all grid-all spread">
+<caption class="title">排他制御方式の使い分け</caption>
+<colgroup>
+<col style="width: 20%;">
+<col style="width: 80%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">ロック方式</th>
+<th class="tableblock halign-left valign-top">向いているシチュエーション</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="https://macchinetta.github.io/server-guideline/current/ja//ArchitectureInDetail/DataAccessDetail/ExclusionControl.html#id7">楽観ロック</a></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">同時実行時におけるトランザクションで、別トランザクションの更新結果を処理対象外にして処理を継続できる場合</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="https://macchinetta.github.io/server-guideline/current/ja//ArchitectureInDetail/DataAccessDetail/ExclusionControl.html#id8">悲観ロック</a></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">処理時間が長く、処理中に対象データの状況が変化したことによるやり直しが難しい処理<br>
+ファイルに対する排他制御が必要な処理</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect2">
+<h3 id="Ch05_ExclusiveControl_Overview_Component"><a class="anchor" href="#Ch05_ExclusiveControl_Overview_Component"></a>排他制御とコンポーネントの関係</h3>
+<div class="paragraph">
+<p>Macchinetta Batch 2.xが提供する各コンポーネントと排他制御との関係は以下のとおり。</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">楽観ロック</dt>
+</dl>
+</div>
+<table class="tableblock frame-all grid-all spread">
+<caption class="title">排他制御とコンポーネントの関係</caption>
+<colgroup>
+<col style="width: 15%;">
+<col style="width: 15%;">
+<col style="width: 35%;">
+<col style="width: 35%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">処理モデル</th>
+<th class="tableblock halign-left valign-top">コンポーネント</th>
+<th class="tableblock halign-left valign-top">ファイル</th>
+<th class="tableblock halign-left valign-top">データベース</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top" rowspan="3"><p class="tableblock">チャンク</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ItemReader</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Versionカラムなど取得時と更新時とで同じデータであることが確認できるカラムを含めてデータ取得を行う。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ItemProcessor</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">排他制御は不要である。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ItemWriter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">取得時と更新時との差分を確認し、他の処理で更新されていないことを確認した上で更新を行う。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">タスクレット</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Tasklet</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">データ取得時にはItemReader、データ更新時はItemWriterで説明した処理を実施する。<br>
+Mapperインターフェースを直接利用する場合も考え方は同じである。</p></td>
+</tr>
+</tbody>
+</table>
+<div class="admonitionblock caution">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-caution" title="Caution"></i>
+</td>
+<td class="content">
+<div class="title">ファイルに対する楽観ロック</div>
+<div class="paragraph">
+<p>ファイルの特性上、ファイルに対して楽観ロックを適用することがない。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">悲観ロック</dt>
+</dl>
+</div>
+<table class="tableblock frame-all grid-all spread">
+<caption class="title">排他制御とコンポーネントの関係</caption>
+<colgroup>
+<col style="width: 15%;">
+<col style="width: 15%;">
+<col style="width: 35%;">
+<col style="width: 35%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">処理モデル</th>
+<th class="tableblock halign-left valign-top">コンポーネント</th>
+<th class="tableblock halign-left valign-top">ファイル</th>
+<th class="tableblock halign-left valign-top">データベース</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top" rowspan="3"><p class="tableblock">チャンク</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ItemReader</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">悲観ロックを用いずにSELECT文を発行する。<br>
+ItemProcessorやItemWriterとは別コネクションになるため、ItemReaderでは排他制御は行わない。<br>
+SELECTで取得するデータは、ItemProcessorでデータを取得する条件とする必要最低限のデータ(キー情報)とすることで性能が向上する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ItemProcessor</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Mapperインターフェースを利用して、ItemReaderで取得したデータ(キー情報)を条件とするSQL文でSELECT FOR UPDATEを発行する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ItemWriter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">悲観ロックを行ったItemProcessorと同トランザクションとなるため、ItemWriterでは排他制御を意識することなくデータを更新する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">タスクレット</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Tasklet</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ItemStreamReaderでファイルをオープンした直後にファイルロックを取得する。<br>
+ItemStreamWriterをクローズする直前にファイルロックを開放する。</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">データ取得時にはSELECT FOR UPDATE文を発行するItemReaderかMapperインターフェースを直接利用する。<br>
+データ更新時はItemWriterで説明した処理を実施する。Mapperインターフェースを直接利用する場合も考え方は同じである。</p></td>
+</tr>
+</tbody>
+</table>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-warning" title="Warning"></i>
+</td>
+<td class="content">
+<div class="title">チャンクモデルでのデータベースでの悲観ロックによる注意事項</div>
+<div class="paragraph">
+<p>ItemReaderで取得したデータ(キー情報)がItemProcessorへ渡される間は排他制御されず、他のトランザクションにより元のデータが更新されている可能性がある。
+そのため、ItemProcessorがデータを取得する条件は、ItemReaderと同じデータ(キー情報)を取得する条件を含む必要がある。<br>
+ItemProcessorでデータが取得できない場合は、他のトランザクションにより更新されている可能性を考慮して、処理の継続または中断を検討し実装する必要がある。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-important" title="Important"></i>
+</td>
+<td class="content">
+<div class="title">ファイルに対する悲観ロック</div>
+<div class="paragraph">
+<p>ファイルに対する悲観ロックはタスクレットモデルで実装すること。
+チャンクモデルではその構造上、チャンク処理の隙間で排他できない期間が存在してしまうためである。
+また、ファイルアクセスはItemStreamReader/ItemStreamWriterをInjectして利用することを前提とする。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-important" title="Important"></i>
+</td>
+<td class="content">
+<div class="title">データベースでの悲観ロックによる待ち時間</div>
+<div class="paragraph">
+<p>悲観ロックを行う場合、競合により処理が待たされる時間が長くなる可能性がある。
+その場合、NO WAITオプションやタイムアウト時間を指定して、悲観ロックを使用するのが妥当である。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="Ch05_ExclusiveControl_HowToUse"><a class="anchor" href="#Ch05_ExclusiveControl_HowToUse"></a>How to use</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>排他制御の使い方をリソース別に説明する。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="#Ch05_ExclusiveControl_HowToUse_File">ファイルの排他制御</a></p>
+</li>
+<li>
+<p><a href="#Ch05_ExclusiveControl_HowToUse_DB">データベースの排他制御</a></p>
+</li>
+</ul>
+</div>
+<div class="sect2">
+<h3 id="Ch05_ExclusiveControl_HowToUse_File"><a class="anchor" href="#Ch05_ExclusiveControl_HowToUse_File"></a>ファイルの排他制御</h3>
+<div class="paragraph">
+<p>Macchinetta Batch 2.xにおけるファイルの排他制御はタスクレットを実装することで実現する。
+排他の実現手段としては、<code>java.nio.channels.FileChannel</code>クラスを使用したファイルロック取得で排他制御を行う。</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+<div class="title">FileChannelクラスの詳細</div>
+<div class="paragraph">
+<p><code>FileChannel</code>クラスの詳細、使用方法については
+<a href="https://docs.oracle.com/javase/8/docs/api/java/nio/channels/FileChannel.html">Javadoc</a>を参照。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p><code>FileChannel</code>クラスを使用しファイルのロックを取得する例を示す。</p>
+</div>
+<div class="listingblock">
+<div class="title">Tasklet実装</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="java"><span class="annotation">@Component</span>
+<span class="annotation">@Scope</span>(<span class="string"><span class="delimiter">&quot;</span><span class="content">step</span><span class="delimiter">&quot;</span></span>)
+<span class="directive">public</span> <span class="type">class</span> <span class="class">FileExclusiveTasklet</span> <span class="directive">implements</span> Tasklet {
+
+    <span class="directive">private</span> <span class="predefined-type">String</span> targetPath = <span class="predefined-constant">null</span>; <span class="comment">// (1)</span>
+
+    <span class="annotation">@Inject</span>
+    ItemStreamReader&lt;SalesPlanDetail&gt; reader;
+
+    <span class="annotation">@Inject</span>
+    ItemStreamWriter&lt;SalesPlanDetailWithProcessName&gt; writer;
+
+    <span class="annotation">@Override</span>
+    <span class="directive">public</span> RepeatStatus execute(StepContribution contribution,
+            ChunkContext chunkContext) <span class="directive">throws</span> <span class="exception">Exception</span> {
+
+        <span class="comment">// omitted.</span>
+
+        <span class="predefined-type">FileChannel</span> fc = <span class="predefined-constant">null</span>;
+        <span class="predefined-type">FileLock</span> fileLock = <span class="predefined-constant">null</span>;
+
+        <span class="keyword">try</span> {
+            <span class="keyword">try</span> {
+                <span class="predefined-type">File</span> file = <span class="keyword">new</span> <span class="predefined-type">File</span>(targetPath);
+                fc = <span class="predefined-type">FileChannel</span>.open(file.toPath(), StandardOpenOption.WRITE,
+                        StandardOpenOption.CREATE,
+                        StandardOpenOption.APPEND); <span class="comment">// (2)</span>
+                fileLock = fc.tryLock();  <span class="comment">// (3)</span>
+            } <span class="keyword">catch</span> (<span class="exception">IOException</span> e) {
+                logger.error(<span class="string"><span class="delimiter">&quot;</span><span class="content">Failure other than lock acquisition</span><span class="delimiter">&quot;</span></span>, e);
+                <span class="keyword">throw</span> <span class="keyword">new</span> FailedOtherAcquireLockException(
+                        <span class="string"><span class="delimiter">&quot;</span><span class="content">Failure other than lock acquisition</span><span class="delimiter">&quot;</span></span>, e);
+            }
+            <span class="keyword">if</span> (fileLock == <span class="predefined-constant">null</span>) {
+                logger.error(<span class="string"><span class="delimiter">&quot;</span><span class="content">Failed to acquire lock. [processName={}]</span><span class="delimiter">&quot;</span></span>, processName);
+                <span class="keyword">throw</span> <span class="keyword">new</span> FailedAcquireLockException(<span class="string"><span class="delimiter">&quot;</span><span class="content">Failed to acquire lock</span><span class="delimiter">&quot;</span></span>);
+            }
+
+            reader.open(executionConetxt);
+            writer.open(executionConetxt);  <span class="comment">// (4)</span>
+
+            <span class="comment">// (5)</span>
+            SalesPlanDetail item;
+            <span class="predefined-type">List</span>&lt;SalesPlanDetailWithProcessName&gt; items = <span class="keyword">new</span> <span class="predefined-type">ArrayList</span>&lt;&gt;();
+            <span class="keyword">while</span> ((item = reader.read()) != <span class="predefined-constant">null</span>) {
+
+                <span class="comment">// omitted.</span>
+
+                items.add(item);
+                <span class="keyword">if</span> (items.size() &gt;= <span class="integer">10</span>) {
+                    writer.write(items);
+                    items.clear();
+                }
+            }
+            <span class="keyword">if</span> (items.size() &gt; <span class="integer">0</span>) {
+                writer.write(items);
+            }
+
+        } <span class="keyword">finally</span> {
+            <span class="keyword">if</span> (fileLock != <span class="predefined-constant">null</span>) {
+                <span class="keyword">try</span> {
+                    fileLock.release();  <span class="comment">// (6)</span>
+                } <span class="keyword">catch</span> (<span class="exception">IOException</span> e) {
+                    logger.warn(<span class="string"><span class="delimiter">&quot;</span><span class="content">Lock release failed.</span><span class="delimiter">&quot;</span></span>, e);
+                }
+            }
+            <span class="keyword">if</span> (fc != <span class="predefined-constant">null</span>) {
+                <span class="keyword">try</span> {
+                    fc.close();
+                } <span class="keyword">catch</span> (<span class="exception">IOException</span> e) {
+                    <span class="comment">// do nothing.</span>
+                }
+            }
+            <span class="keyword">try</span> {
+                writer.close(); <span class="comment">// (7)</span>
+            } <span class="keyword">catch</span> (ItemStreamException e) {
+                <span class="comment">// ignore</span>
+            }
+            <span class="keyword">try</span> {
+                reader.close();
+            } <span class="keyword">catch</span> (ItemStreamException e) {
+                <span class="comment">// ignore</span>
+            }
+        }
+        <span class="keyword">return</span> RepeatStatus.FINISHED;
+    }
+
+    <span class="comment">// (8)</span>
+    <span class="annotation">@Value</span>(<span class="string"><span class="delimiter">&quot;</span><span class="content">#{jobParameters['outputFile']}</span><span class="delimiter">&quot;</span></span>)
+    <span class="directive">public</span> <span class="type">void</span> setTargetPath(<span class="predefined-type">String</span> targetPath) {
+        <span class="local-variable">this</span>.targetPath = targetPath;
+    }
+}</code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all spread">
+<caption class="title">説明</caption>
+<colgroup>
+<col style="width: 10%;">
+<col style="width: 90%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">排他対象のファイルパス。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(2)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ファイルチャネルを取得する。<br>
+この例では、ファイルの新規作成・追記・書き込みに対するチャネルを取得している。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(3)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ファイルロックを取得する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(4)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ファイロックの取得に成功した場合、排他対象のファイルをオープンする。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(5)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ファイル出力を伴うビジネスロジックを実行する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(6)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ファイルロックを開放する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(7)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">排他対象のファイルをクローズする。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(8)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ファイルパスを設定する。<br>
+この例では、ジョブパラメータから受け取るようにしている。</p></td>
+</tr>
+</tbody>
+</table>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+<div class="title">ロック取得に用いるFileChannelのメソッドについて</div>
+<div class="paragraph">
+<p><code>lock()</code>メソッドは対象ファイルがロック済みの場合ロックが解除されるまで待機するため、待機されない<code>tryLock()</code>メソッドを使用することを推奨する。
+なおtrylock()は共有ロックと排他ロックが選択できるが、バッチ処理においては、通常は排他ロックを用いる。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-warning" title="Warning"></i>
+</td>
+<td class="content">
+<div class="title">同一VMでのスレッド間の排他制御</div>
+<div class="paragraph">
+<p>同一VMにおけるスレッド間の排他制御は注意が必要である。
+同一VMでのスレッド間でファイルに対する処理を行う場合、<code>FileChannel</code>クラスを用いたのロック機能では、ファイルが別スレッドの処理にてロックされているかの判定ができない。<br>
+そのため、スレッド間での排他制御は機能しない。これを回避するには、ファイルへの書き込みを行う部分で同期化処理をすることでスレッド間の排他制御が行える。<br>
+しかし、同期化を行うことで並列処理のメリットが薄れてしまい、単一スレッドで処理することと差異がなくなってしまう。
+結果、同一のファイルに対して異なるスレッドで排他制御をして処理することは適していないため、そのような処理設計・実装を行わないこと。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="admonitionblock tip">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+<div class="title">FlatFileItemWriterのappendAllowedプロパティについて</div>
+<div class="paragraph">
+<p>ファイルを新規作成(上書き)する場合は、<code>appendAllowed</code>プロパティを<code>false</code>(デフォルト)にすることで、排他制御が実現できる。
+これは、<code>FlatFileItemWriter</code>の内部で<code>FileChannel</code>を使って制御しているためである。
+しかし、ファイルの追記(<code>appendAllowed</code>プロパティが<code>true</code>)の場合は、開発者が<code>FileChannel</code>による排他制御を実装する必要がある。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect2">
+<h3 id="Ch05_ExclusiveControl_HowToUse_DB"><a class="anchor" href="#Ch05_ExclusiveControl_HowToUse_DB"></a>データベースの排他制御</h3>
+<div class="paragraph">
+<p>Macchinetta Batch 2.xにおけるデータベースの排他制御について説明する。</p>
+</div>
+<div class="paragraph">
+<p>データベースの排他制御実装は、Macchinetta Server 1.x 開発ガイドラインにある
+<a href="https://macchinetta.github.io/server-guideline/current/ja//ArchitectureInDetail/DataAccessDetail/ExclusionControl.html#mybatis3">MyBatis3使用時の実装方法</a>が基本である。
+本ガイドラインでは、
+<a href="https://macchinetta.github.io/server-guideline/current/ja//ArchitectureInDetail/DataAccessDetail/ExclusionControl.html#mybatis3">MyBatis3使用時の実装方法</a>ができている前提で説明を行う。</p>
+</div>
+<div class="paragraph">
+<p><a href="#Ch05_ExclusiveControl_Overview_Component">排他制御とコンポーネントの関係</a>にあるとおり、処理モデル・コンポーネントの組み合わせによるバリエーションがある。</p>
+</div>
+<table class="tableblock frame-all grid-all spread">
+<caption class="title">データベースの排他制御のバリエーション</caption>
+<colgroup>
+<col style="width: 20%;">
+<col style="width: 30%;">
+<col style="width: 50%;">
+</colgroup>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">排他方式</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">処理モデル</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">コンポーネント</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top" rowspan="3"><p class="tableblock">楽観ロック</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">チャンクモデル</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ItemReader/ItemWriter</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">タスクレットモデル</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ItemReader/ItemWriter</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Mapperインターフェース</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top" rowspan="3"><p class="tableblock">悲観ロック</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">チャンクモデル</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ItemReader/ItemProcessor/ItemWriter</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">タスクレットモデル</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ItemReader/ItemWriter</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Mapperインターフェース</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>タスクレットモデルでMapperインターフェースを使用する場合は、
+<a href="https://macchinetta.github.io/server-guideline/current/ja//ArchitectureInDetail/DataAccessDetail/ExclusionControl.html#mybatis3">MyBatis3使用時の実装方法</a>のとおりであるため、説明を割愛する。</p>
+</div>
+<div class="paragraph">
+<p>タスクレットモデルでItemReader/ItemWriterを使用する場合は、Mapperインターフェースでの呼び出し部分がItemReader/ItemWriterに代わるだけなので、これも説明を割愛する。</p>
+</div>
+<div class="paragraph">
+<p>よって、ここではチャンクモデルの排他制御について説明する。</p>
+</div>
+<div class="sect3">
+<h4 id="Ch05_ExclusiveControl_HowToUse_DB_OptimisticLock"><a class="anchor" href="#Ch05_ExclusiveControl_HowToUse_DB_OptimisticLock"></a>楽観ロック</h4>
+<div class="paragraph">
+<p>チャンクモデルでの楽観ロックについて説明する。</p>
+</div>
+<div class="paragraph">
+<p>MyBatisBatchItemWriterがもつ<code>assertUpdates</code>プロパティの設定により、ジョブの振る舞いが変化するので業務要件に合わせて、適切に設定をする必要がある。</p>
+</div>
+<div class="paragraph">
+<p>楽観ロックを行うジョブ定義を以下に示す。</p>
+</div>
+<div class="listingblock">
+<div class="title">ジョブ定義</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"><span class="comment">&lt;!-- (1) --&gt;</span>
+<span class="tag">&lt;bean</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">reader</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">org.mybatis.spring.batch.MyBatisCursorItemReader</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">scope</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">step</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">p:queryId</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jp.co.ntt.fw.macchinetta.batch.functionaltest.ch05.exclusivecontrol.repository.ExclusiveControlRepository.branchFindOne</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">p:sqlSessionFactory-ref</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobSqlSessionFactory</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+    <span class="tag">&lt;property</span> <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">parameterValues</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+        <span class="tag">&lt;map&gt;</span>
+            <span class="tag">&lt;entry</span> <span class="attribute-name">key</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">branchId</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">value</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">#{jobParameters['branchId']}</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+        <span class="tag">&lt;/map&gt;</span>
+    <span class="tag">&lt;/property&gt;</span>
+<span class="tag">&lt;/bean&gt;</span>
+
+<span class="comment">&lt;!-- (2) ---&gt;</span>
+<span class="tag">&lt;bean</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">writer</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">org.mybatis.spring.batch.MyBatisBatchItemWriter</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">scope</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">step</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">p:statementId</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jp.co.ntt.fw.macchinetta.batch.functionaltest.ch05.exclusivecontrol.repository.ExclusiveControlRepository.branchExclusiveUpdate</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">p:sqlSessionTemplate-ref</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">batchModeSqlSessionTemplate</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">p:assertUpdates</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">true</span><span class="delimiter">&quot;</span></span> <span class="tag">/&gt;</span>  <span class="comment">&lt;!-- (3) --&gt;</span>
+
+<span class="tag">&lt;batch:job</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">chunkOptimisticLockCheckJob</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">job-repository</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobRepository</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+    <span class="tag">&lt;batch:step</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">chunkOptimisticLockCheckJob.step01</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+        <span class="tag">&lt;batch:tasklet</span> <span class="attribute-name">transaction-manager</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobTransactionManager</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+            <span class="tag">&lt;batch:chunk</span> <span class="attribute-name">reader</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">reader</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">processor</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">branchEditItemProcessor</span><span class="delimiter">&quot;</span></span>
+                         <span class="attribute-name">writer</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">writer</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">commit-interval</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">10</span><span class="delimiter">&quot;</span></span> <span class="tag">/&gt;</span>
+        <span class="tag">&lt;/batch:tasklet&gt;</span>
+    <span class="tag">&lt;/batch:step&gt;</span>
+<span class="tag">&lt;/batch:job&gt;</span></code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all spread">
+<caption class="title">説明</caption>
+<colgroup>
+<col style="width: 10%;">
+<col style="width: 90%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">楽観ロックによるデータ取得のSQLIDを設定する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(2)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">楽観ロックによるデータ更新のSQLIDを設定する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(3)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">バッチ更新の件数を検証有無を設定する。<br>
+<code>true</code>(デフォルト)に設定すると、更新件数が0件の場合に例外をスローする。<br>
+<code>false</code>に設定すると、更新件数が0件の場合でも正常処理とする。</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect3">
+<h4 id="Ch05_ExclusiveControl_HowToUse_DB_PessimisticLock"><a class="anchor" href="#Ch05_ExclusiveControl_HowToUse_DB_PessimisticLock"></a>悲観ロック</h4>
+<div class="paragraph">
+<p>チャンクモデルでの悲観ロックについて説明する。</p>
+</div>
+<div class="paragraph">
+<p>悲観ロックを行うジョブ定義とItemProcessorを以下に示す。</p>
+</div>
+<div class="listingblock">
+<div class="title">ジョブ定義</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"><span class="comment">&lt;!-- (1) --&gt;</span>
+<span class="tag">&lt;mybatis:scan</span>
+        <span class="attribute-name">base-package</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jp.co.ntt.fw.macchinetta.batch.functionaltest.ch05.exclusivecontrol.repository</span><span class="delimiter">&quot;</span></span>
+        <span class="attribute-name">template-ref</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">batchModeSqlSessionTemplate</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+
+<span class="comment">&lt;!-- (2) --&gt;</span>
+<span class="tag">&lt;bean</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">reader</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">org.mybatis.spring.batch.MyBatisCursorItemReader</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">scope</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">step</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">p:queryId</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jp.co.ntt.fw.macchinetta.batch.functionaltest.ch05.exclusivecontrol.repository.ExclusiveControlRepository.branchIdFindByName</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">p:sqlSessionFactory-ref</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobSqlSessionFactory</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+    <span class="tag">&lt;property</span> <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">parameterValues</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+        <span class="tag">&lt;map&gt;</span>
+            <span class="tag">&lt;entry</span> <span class="attribute-name">key</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">branchName</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">value</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">#{jobParameters['branchName']}</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+        <span class="tag">&lt;/map&gt;</span>
+    <span class="tag">&lt;/property&gt;</span>
+<span class="tag">&lt;/bean&gt;</span>
+
+<span class="comment">&lt;!-- (3) --&gt;</span>
+<span class="tag">&lt;bean</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">writer</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">org.mybatis.spring.batch.MyBatisBatchItemWriter</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">scope</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">step</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">p:statementId</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jp.co.ntt.fw.macchinetta.batch.functionaltest.ch05.exclusivecontrol.repository.ExclusiveControlRepository.branchUpdate</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">p:sqlSessionTemplate-ref</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">batchModeSqlSessionTemplate</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">p:assertUpdates</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">#{new Boolean(jobParameters['assertUpdates'])}</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+
+<span class="tag">&lt;batch:job</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">chunkPessimisticLockCheckJob</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">job-repository</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobRepository</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+    <span class="tag">&lt;batch:step</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">chunkPessimisticLockCheckJob.step01</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+        <span class="tag">&lt;batch:tasklet</span> <span class="attribute-name">transaction-manager</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobTransactionManager</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+            <span class="comment">&lt;!-- (4) --&gt;</span>
+            <span class="tag">&lt;batch:chunk</span> <span class="attribute-name">reader</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">reader</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">processor</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">branchEditWithkPessimisticLockItemProcessor</span><span class="delimiter">&quot;</span></span>
+                         <span class="attribute-name">writer</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">writer</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">commit-interval</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">3</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+        <span class="tag">&lt;/batch:tasklet&gt;</span>
+    <span class="tag">&lt;/batch:step&gt;</span>
+<span class="tag">&lt;/batch:job&gt;</span></code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">悲観ロックを行うItemProcessor</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="java"><span class="annotation">@Component</span>
+<span class="annotation">@Scope</span>(<span class="string"><span class="delimiter">&quot;</span><span class="content">step</span><span class="delimiter">&quot;</span></span>)
+<span class="directive">public</span> <span class="type">class</span> <span class="class">BranchEditWithkPessimisticLockItemProcessor</span> <span class="directive">implements</span> ItemProcessor&lt;<span class="predefined-type">String</span>, ExclusiveBranch&gt; {
+
+    <span class="comment">// (5)</span>
+    <span class="annotation">@Inject</span>
+    ExclusiveControlRepository exclusiveControlRepository;
+
+    <span class="comment">// (6)</span>
+    <span class="annotation">@Value</span>(<span class="string"><span class="delimiter">&quot;</span><span class="content">#{jobParameters['branchName']}</span><span class="delimiter">&quot;</span></span>)
+    <span class="directive">private</span> <span class="predefined-type">String</span> branchName;
+
+    <span class="comment">// omitted.</span>
+
+    <span class="annotation">@Override</span>
+    <span class="directive">public</span> ExclusiveBranch process(<span class="predefined-type">String</span> item) <span class="directive">throws</span> <span class="exception">Exception</span> {
+
+      <span class="comment">// (7)</span>
+        Branch branch = exclusiveControlRepository.branchFindOneByNameWithNowWaitLock(item, branchName);
+
+        <span class="keyword">if</span> (branch != <span class="predefined-constant">null</span>) {
+            ExclusiveBranch updatedBranch = <span class="keyword">new</span> ExclusiveBranch();
+
+            updatedBranch.setBranchId(branch.getBranchId());
+            updatedBranch.setBranchName(branch.getBranchName() + <span class="string"><span class="delimiter">&quot;</span><span class="content"> - </span><span class="delimiter">&quot;</span></span> + identifier);
+            updatedBranch.setBranchAddress(branch.getBranchAddress() + <span class="string"><span class="delimiter">&quot;</span><span class="content"> - </span><span class="delimiter">&quot;</span></span> + identifier);
+            updatedBranch.setBranchTel(branch.getBranchTel());
+            updatedBranch.setCreateDate(branch.getUpdateDate());
+            updatedBranch.setUpdateDate(<span class="keyword">new</span> <span class="predefined-type">Timestamp</span>(clock.millis()));
+            updatedBranch.setOldBranchName(branch.getBranchName());
+
+            <span class="keyword">return</span> updatedBranch;
+        } <span class="keyword">else</span> {
+            <span class="comment">// (8)</span>
+            logger.warn(<span class="string"><span class="delimiter">&quot;</span><span class="content">An update by another user occurred. [branchId: {}]</span><span class="delimiter">&quot;</span></span>, item);
+            <span class="keyword">return</span> <span class="predefined-constant">null</span>;
+        }
+    }
+}</code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all spread">
+<caption class="title">説明</caption>
+<colgroup>
+<col style="width: 10%;">
+<col style="width: 90%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">MapperインターフェースがItemWriterと同じ更新モードになるように、<code>batchModeSqlSessionTemplate</code>を設定する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(2)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">悲観ロックを用いないデータ取得のSQLIDを設定する。<br>
+抽出条件として、ジョブ起動パラメータから、<code>branchName</code>を設定する。
+このSQLによる取得項目は、(6)でデータを一意に特定するのに必要最低限に絞り込むことで性能を向上させることができる。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(3)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">排他制御をしないデータ更新のSQLと同じSQLIDを設定する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(4)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">悲観ロックによるデータ取得を行うItemProcessorを設定する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(5)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">悲観ロックによるデータ取得を行うMapperインターフェースをインジェクションする。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(6)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">悲観ロックの抽出条件とするため、ジョブ起動パラメータから、<code>branchName</code>を設定する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(7)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">悲観ロックによるデータ取得のメソッドを呼び出す。<br>
+(2)の抽出条件と同じ条件を設定しているため、キー情報(id)の他にジョブ起動パラメータ``branchName`を引数に渡している。<br>
+NO WAITやタイムアウトを設定して悲観ロックを行い、他のトランザクションにより排他された時は、ここで例外が発生する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(8)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">他のトランザクションにより対象データが先に更新されて対象データを取得できない場合、悲観ロックによるデータ取得のメソッドがnullを返却する。<br>
+悲観ロックによるデータ取得のメソッドがnullを返却した場合、例外を発生させて処理を中断するなど業務要件に合せた処理が必要となる。<br>
+ここでは、WARNログを出力してnullを返却することで後続の処理を継続させる。</p></td>
+</tr>
+</tbody>
+</table>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+<div class="title">タスクレットモデルでの悲観ロックを行うコンポーネントについて</div>
+<div class="paragraph">
+<p>タスクレットモデルで悲観ロックを行う場合は、悲観ロックを行うSQL発行するItemReaderを用いる。Mapperインターフェースを直接利用する場合も同様である。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="container">
+
+  <div class="common-bg">
+    <div class="information">
+      Macchinetta Batch Framework (2.x) Development Guideline - version 2.0.1.RELEASE, 2018-3-9
+    </div>
+    <div class="index">
+      <a href="index.html">&gt; INDEX</a>
+    </div>
+  </div>
+
+  <div class="footer-bg">
+    <div class="copyright">
+      &copy; Copyright 2018 NTT Corporation.
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

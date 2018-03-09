@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<!--[if IE]><meta http-equiv="X-UA-Compatible" content="IE=edge"><![endif]-->
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Asciidoctor 1.5.6.1">
+<title>同期実行</title>
+<link rel="stylesheet" href="./theme/css/readthedocs.css">
+<link rel="stylesheet" href="./theme/css/font-awesome.min.css">
+<link rel="stylesheet" href="./theme/css/coderay-asciidoctor.css">
+<link rel="stylesheet" href="./theme/css/header-footer.css">
+<title>Macchinetta Batch Framework (2.x) Development Guideline</title>
+
+<div class="common-bg">
+  <div class="information">
+    Macchinetta Batch Framework (2.x) Development Guideline - version 2.0.1.RELEASE, 2018-3-9
+  </div>
+  <div class="index">
+      <a href="index.html">&gt; INDEX</a>
+  </div>
+</div>
+
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-113850349-5"></script>
+<script>
+ window.dataLayer = window.dataLayer || [];
+ function gtag(){dataLayer.push(arguments);}
+ gtag('js', new Date());
+
+ gtag('config', 'UA-113850349-5');
+</script>
+</head>
+<body id="Ch04_SyncJob" class="book toc2 toc-left">
+<div id="header">
+<h1>同期実行</h1>
+<div id="toc" class="toc2">
+<div id="toctitle">Table of Contents</div>
+<ul class="sectlevel1">
+<li><a href="#Ch04_SyncJob_Overview">Overview</a></li>
+<li><a href="#Ch04_SyncJob_HowToUse">How to use</a>
+<ul class="sectlevel2">
+<li><a href="#Ch04_SyncJob_HowToUse_Run">実行方法</a></li>
+<li><a href="#Ch04_SyncJob_HowToUse_Options">任意オプション</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div id="content">
+<div class="sect1">
+<h2 id="Ch04_SyncJob_Overview"><a class="anchor" href="#Ch04_SyncJob_Overview"></a>Overview</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>同期実行について説明する。
+同期実行とは、ジョブスケジューラなどによりシェルを介して新規プロセスとして起動し、ジョブの実行結果を呼び出し元に返却する実行方法である。</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/Ch04_syncJob_overview.png" alt="overview of sync job">
+</div>
+<div class="title">同期実行の概要</div>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/Ch04_syncjob_seq.png" alt="sequence of sync job">
+</div>
+<div class="title">同期実行の流れ</div>
+</div>
+<div class="paragraph">
+<p>本機能は、チャンクモデルとタスクレットモデルとで同じ使い方になる。</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="Ch04_SyncJob_HowToUse"><a class="anchor" href="#Ch04_SyncJob_HowToUse"></a>How to use</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p><code>CommandLineJobRunner</code>によってジョブを起動する方法を説明する。</p>
+</div>
+<div class="paragraph">
+<p>なお、アプリケーションのビルドや実行については、<a href="Ch03_CreateProject.html#Ch03_CreateProject_HowToCreate">プロジェクトの作成</a>を参照のこと。
+また、起動パラメータの指定方法や活用方法については、<a href="Ch04_JobParameter.html#Ch04_JobParameter">ジョブの起動パラメータ</a>を参照のこと。
+これらと本節の説明は一部重複するが、同期実行の要素に注目して説明する。</p>
+</div>
+<div class="sect2">
+<h3 id="Ch04_SyncJob_HowToUse_Run"><a class="anchor" href="#Ch04_SyncJob_HowToUse_Run"></a>実行方法</h3>
+<div class="paragraph">
+<p>Macchinetta Batch 2.xにおいて、同期実行は Spring Batch が提供する<code>CommandLineJobRunner</code>によって実現する。
+<code>CommandLineJobRunner</code>は、以下の要領にてjavaコマンドを発行することで起動する。</p>
+</div>
+<div id="Ch04_SyncJob_HowToUse_Run_Syntax" class="listingblock">
+<div class="title">CommandLineJobRunnerの構文</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="console">$ java org.springframework.batch.core.launch.support.CommandLineJobRunner &lt;jobPath&gt; &lt;options&gt; &lt;jobIdentifier&gt; &lt;jobParameters&gt;</code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all spread">
+<caption class="title">引数にて指定する項目</caption>
+<colgroup>
+<col style="width: 10%;">
+<col style="width: 80%;">
+<col style="width: 10%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">指定する項目</th>
+<th class="tableblock halign-left valign-top">説明</th>
+<th class="tableblock halign-left valign-top">必須</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">jobPath</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">起動するジョブの設定を記述したBean定義ファイルのパス。classpathからの相対パスにて指定する。</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><span class="icon"><i class="fa fa-check"></i></span></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">options</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">起動する際の各種オプション(停止、リスタートなど)を指定する。</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">jobIdentifier</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ジョブの識別子として、Bean定義上のジョブ名、もしくはジョブを実行後のジョブ実行IDを指定する。
+通常はジョブ名を指定する。ジョブ実行IDは停止やリスタートの際にのみ指定する。</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><span class="icon"><i class="fa fa-check"></i></span></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">jobParameters</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ジョブの引数を指定する。指定は<code>key=value</code>形式となる。</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>以下に、必須項目のみを指定した場合の実行例を示す。</p>
+</div>
+<div class="listingblock">
+<div class="title">コマンドプロンプトでのCommandLineJobRunnerの実行例</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="console">C:\xxx&gt;java -cp &quot;target\[artifactId]-[version].jar;lib\*&quot; ^   # (1)
+    org.springframework.batch.core.launch.support.CommandLineJobRunner ^ # (2)
+    META-INF/jobs/job01.xml job01 # (3)</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">BashでのCommandLineJobRunnerの実行例</div>
+<div class="content">
+<pre>$ java -cp 'target/[artifactId]-[version].jar:lib/*' \ # (1)
+    org.springframework.batch.core.launch.support.CommandLineJobRunner \ # (2)
+    META-INF/jobs/job01.xml job01 # (3)</pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">Bean定義の設定(抜粋)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"><span class="tag">&lt;batch:job</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">job01</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">job-repository</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobRepository</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span> <span class="comment">&lt;!-- (3) --&gt;</span>
+    <span class="tag">&lt;batch:step</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">job01.step01</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+        <span class="tag">&lt;batch:tasklet</span> <span class="attribute-name">transaction-manager</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobTransactionManager</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+            <span class="tag">&lt;batch:chunk</span> <span class="attribute-name">reader</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">employeeReader</span><span class="delimiter">&quot;</span></span>
+                         <span class="attribute-name">processor</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">employeeProcessor</span><span class="delimiter">&quot;</span></span>
+                         <span class="attribute-name">writer</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">employeeWriter</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">commit-interval</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">10</span><span class="delimiter">&quot;</span></span> <span class="tag">/&gt;</span>
+        <span class="tag">&lt;/batch:tasklet&gt;</span>
+    <span class="tag">&lt;/batch:step&gt;</span>
+<span class="tag">&lt;/batch:job&gt;</span></code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all spread">
+<caption class="title">設定内容の項目一覧</caption>
+<colgroup>
+<col style="width: 10%;">
+<col style="width: 90%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>java</code>コマンドを実行する際に、バッチアプリケーションのjarと、依存するjarを<code>classpath</code>に指定する。
+ ここではコマンド引数で指定しているが、環境変数等を用いてもよい。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(2)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">起動するクラスに、<code>CommandLineJobRunner</code>をFQCNで指定する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(3)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>CommandLineJobRunner</code>に沿って、起動引数を渡す。
+ここでは、<code>jobPath</code>と<code>jobIdentifier</code>としてジョブ名の2つを指定している。</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>次に、任意項目として起動パラメータを指定した場合の実行例を示す。</p>
+</div>
+<div class="listingblock">
+<div class="title">コマンドプロンプトでのCommandLineJobRunnerの実行例</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="console">C:\xxx&gt;java -cp &quot;target\[artifactId]-[version].jar;lib\*&quot; ^
+    org.springframework.batch.core.launch.support.CommandLineJobRunner ^
+    META-INF/jobs/setupJob.xml setupJob target=server1 outputFile=/tmp/result.csv # (1)</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">BashでのCommandLineJobRunnerの実行例</div>
+<div class="content">
+<pre>$ java -cp 'target/[artifactId]-[version].jar:lib/*' \
+    org.springframework.batch.core.launch.support.CommandLineJobRunner \
+    META-INF/jobs/setupJob.xml setupJob target=server1 outputFile=/tmp/result.csv # (1)</pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all spread">
+<caption class="title">設定内容の項目一覧</caption>
+<colgroup>
+<col style="width: 10%;">
+<col style="width: 90%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ジョブの起動パラメータとして、<code>target=server1</code>と<code>outputFile=/tmp/result.csv</code>を指定している。</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect2">
+<h3 id="Ch04_SyncJob_HowToUse_Options"><a class="anchor" href="#Ch04_SyncJob_HowToUse_Options"></a>任意オプション</h3>
+<div class="paragraph">
+<p><a href="#Ch04_SyncJob_HowToUse_Run_Syntax">CommandLineJobRunnerの構文</a>で示した任意のオプションについて補足する。</p>
+</div>
+<div class="paragraph">
+<p><code>CommandLineJobRunner</code>では以下の4つの起動オプションが使用できる。
+ここでは個々の説明は他に委ねることとし、概要のみ説明する。</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">-restart</dt>
+<dd>
+<p>失敗したジョブを再実行する。詳細は、<a href="Ch06_ReProcessing.html#Ch06_RerunRestart">処理の再実行</a>を参照のこと。</p>
+</dd>
+<dt class="hdlist1">-stop</dt>
+<dd>
+<p>実行中のジョブを停止する。詳細は、<a href="Ch07_JobManagement.html#Ch07_JobManagement">ジョブの管理</a>を参照のこと。</p>
+</dd>
+<dt class="hdlist1">-abandon</dt>
+<dd>
+<p>停止されたジョブを放棄する。放棄されたジョブは再実行不可となる。
+Macchinetta Batch 2.xでは、このオプションを活用するシーンがないため、説明を割愛する。</p>
+</dd>
+<dt class="hdlist1">-next</dt>
+<dd>
+<p>過去に一度実行完了したジョブを再度実行する。ただし、Macchinetta Batch 2.xでは、このオプションを利用しない。<br>
+なぜなら、Macchinetta Batch 2.xでは、Spring Batchのデフォルトである「同じパラメータで起動したジョブは同一ジョブとして認識され、同一ジョブは1度しか実行できない」
+という制約を回避しているためである。<br>
+詳細は<a href="Ch04_JobParameter.html#Ch04_JobParameter_HowToUse_Converter">パラメータ変換クラスについて</a>にて説明する。<br>
+また、本オプションを利用するには、<code>JobParametersIncrementer</code>というインターフェースの実装クラスが必要だが、
+Macchinetta Batch 2.xでは設定を行っていない。<br>
+そのため、本オプションを指定して起動すると、必要なBean定義が存在しないためエラーとなる。</p>
+</dd>
+</dl>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="container">
+
+  <div class="common-bg">
+    <div class="information">
+      Macchinetta Batch Framework (2.x) Development Guideline - version 2.0.1.RELEASE, 2018-3-9
+    </div>
+    <div class="index">
+      <a href="index.html">&gt; INDEX</a>
+    </div>
+  </div>
+
+  <div class="footer-bg">
+    <div class="copyright">
+      &copy; Copyright 2018 NTT Corporation.
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

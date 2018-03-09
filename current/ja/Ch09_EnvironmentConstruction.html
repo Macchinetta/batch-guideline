@@ -1,0 +1,1166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<!--[if IE]><meta http-equiv="X-UA-Compatible" content="IE=edge"><![endif]-->
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Asciidoctor 1.5.6.1">
+<title>環境構築</title>
+<link rel="stylesheet" href="./theme/css/readthedocs.css">
+<link rel="stylesheet" href="./theme/css/font-awesome.min.css">
+<link rel="stylesheet" href="./theme/css/coderay-asciidoctor.css">
+<link rel="stylesheet" href="./theme/css/header-footer.css">
+<title>Macchinetta Batch Framework (2.x) Development Guideline</title>
+
+<div class="common-bg">
+  <div class="information">
+    Macchinetta Batch Framework (2.x) Development Guideline - version 2.0.1.RELEASE, 2018-3-9
+  </div>
+  <div class="index">
+      <a href="index.html">&gt; INDEX</a>
+  </div>
+</div>
+
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-113850349-5"></script>
+<script>
+ window.dataLayer = window.dataLayer || [];
+ function gtag(){dataLayer.push(arguments);}
+ gtag('js', new Date());
+
+ gtag('config', 'UA-113850349-5');
+</script>
+</head>
+<body id="Ch09_EnvironmentConstruction" class="book toc2 toc-left">
+<div id="header">
+<h1>環境構築</h1>
+<div id="toc" class="toc2">
+<div id="toctitle">Table of Contents</div>
+<ul class="sectlevel1">
+<li><a href="#Ch09_EnvironmentConstruction_BlankProject">プロジェクトの作成</a></li>
+<li><a href="#Ch09_EnvironmentConstruction_Import">プロジェクトのインポート</a></li>
+<li><a href="#Ch09_EnvironmentConstruction_BlankProjectConstruction">プロジェクトの構成</a></li>
+<li><a href="#Ch09_EnvironmentConstruction_Setting">設定ファイルの確認・編集</a>
+<ul class="sectlevel2">
+<li><a href="#Ch09_EnvironmentConstruction_Setting_Check">設定ファイルの確認</a></li>
+<li><a href="#Ch09_EnvironmentConstruction_Setting_Edit">設定ファイルの編集</a></li>
+</ul>
+</li>
+<li><a href="#Ch09_EnvironmentConstruction_InputDataPreparation">入力データの準備</a>
+<ul class="sectlevel2">
+<li><a href="#Ch09_EnvironmentConstruction_InputDataPreparation_DB">データベースアクセスでデータ入出力を行うジョブの入力データ</a>
+<ul class="sectlevel3">
+<li><a href="#Ch09_EnvironmentConstruction_InputDataPreparation_DB_SQL">テーブル作成・初期データ挿入スクリプト作成</a></li>
+<li><a href="#Ch09_EnvironmentConstruction_InputDataPreparation_DB_Setting">ジョブ実行時にスクリプトを自動実行する設定の追加</a></li>
+</ul>
+</li>
+<li><a href="#Ch09_EnvironmentConstruction_InputDataPreparation_File">ファイルアクセスでデータ入出力を行うジョブの入力データ</a></li>
+</ul>
+</li>
+<li><a href="#Ch09_EnvironmentConstruction_DataSourceExplorer">STSからデータベースを参照する準備</a></li>
+<li><a href="#Ch09_EnvironmentConstruction_OperationCheck">プロジェクトの動作確認</a>
+<ul class="sectlevel2">
+<li><a href="#Ch09_EnvironmentConstruction_OperationCheck_ExecJob">STSでジョブを実行する</a>
+<ul class="sectlevel3">
+<li><a href="#Ch09_EnvironmentConstruction_OperationCheck_ExecJob_RunConf">Run Configuration(実行構成)の作成</a></li>
+<li><a href="#Ch09_EnvironmentConstruction_OperationCheck_ExecJob_Run">ジョブの実行と結果の確認</a></li>
+</ul>
+</li>
+<li><a href="#Ch09_EnvironmentConstruction_OperationCheck_RefDB">Data Source Explorerを使用してデータベースを参照する</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div id="content">
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph">
+<p>以下の流れでチュートリアルを実施するための環境構築を行う。</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p><a href="#Ch09_EnvironmentConstruction_BlankProject">プロジェクトの作成</a></p>
+</li>
+<li>
+<p><a href="#Ch09_EnvironmentConstruction_Import">プロジェクトのインポート</a></p>
+</li>
+<li>
+<p><a href="#Ch09_EnvironmentConstruction_BlankProjectConstruction">プロジェクトの構成</a></p>
+</li>
+<li>
+<p><a href="#Ch09_EnvironmentConstruction_Setting">設定ファイルの確認・編集</a></p>
+</li>
+<li>
+<p><a href="#Ch09_EnvironmentConstruction_InputDataPreparation">入力データの準備</a></p>
+</li>
+<li>
+<p><a href="#Ch09_EnvironmentConstruction_DataSourceExplorer">STSからデータベースを参照する準備</a></p>
+</li>
+<li>
+<p><a href="#Ch09_EnvironmentConstruction_OperationCheck">プロジェクトの動作確認</a></p>
+</li>
+</ol>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="Ch09_EnvironmentConstruction_BlankProject"><a class="anchor" href="#Ch09_EnvironmentConstruction_BlankProject"></a>プロジェクトの作成</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>まず、<code>Maven Archetype Plugin</code>の<code>mvn archetype:generate</code>を利用して、プロジェクトを作成する。<br>
+ここでは、Windowsのコマンドプロンプトを使用してプロジェクトを作成する手順となっている。</p>
+</div>
+<div class="paragraph">
+<p><code>mvn archetype:generate</code>を利用してプロジェクトを作成する方法の詳細については、<a href="Ch03_CreateProject.html#Ch03_CreateProject_HowToCreate">プロジェクトの作成</a>を参照すること。</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+<div class="title">プロキシサーバの経由について</div>
+<div class="paragraph">
+<p>インターネット接続するためにプロキシサーバを経由する必要がある場合、STSのProxy設定と <a href="http://maven.apache.org/guides/mini/guide-proxies.html">MavenのProxy設定</a>をする。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>プロジェクトを作成するディレクトリにて、以下のコマンドを実行する。</p>
+</div>
+<div class="listingblock">
+<div class="title">コマンドプロンプト(Windows)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="console">C:\xxx&gt;mvn archetype:generate ^
+  -DarchetypeGroupId=com.github.macchinetta.blank ^
+  -DarchetypeArtifactId=macchinetta-batch-archetype ^
+  -DarchetypeVersion=2.0.1.RELEASE</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>その後、以下を対話式に設定する。</p>
+</div>
+<table class="tableblock frame-all grid-all spread">
+<caption class="title">プロジェクト作成時に設定する値</caption>
+<colgroup>
+<col style="width: 30%;">
+<col style="width: 70%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項目名</th>
+<th class="tableblock halign-left valign-top">設定例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">groupId</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">com.example.batch.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">artifactId</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">macchinetta-batch-tutorial</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">version</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1.0.0-SNAPSHOT</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">package</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">com.example.batch.tutorial</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>以下のとおり、mvnコマンドに対して「BUILD SUCCESS」が表示されることを確認する。</p>
+</div>
+<div class="listingblock">
+<div class="title">実行例</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="console">C:\xxx&gt;mvn archetype:generate -DarchetypeGroupId=com.github.macchinetta.blank -Darchetyp
+eArtifactId=macchinetta-batch-archetype -DarchetypeVersion=2.0.1.RELEASE
+[INFO] Scanning for projects&#8230;&#8203;
+[INFO]
+[INFO] ------------------------------------------------------------------------
+[INFO] Building Maven Stub Project (No POM) 1
+[INFO] ------------------------------------------------------------------------
+
+(.. omitted)
+
+Define value for property 'groupId': com.example.batch
+Define value for property 'artifactId': macchinetta-batch-tutorial
+Define value for property 'version' 1.0-SNAPSHOT: : 1.0.0-SNAPSHOT
+Define value for property 'package':  com.example.batch: : com.example.batch.tutorial
+Confirm properties configuration:
+groupId: com.example.batch
+artifactId: macchinetta-batch-tutorial
+version: 1.0.0-SNAPSHOT
+package: com.example.batch.tutorial
+ Y: : y
+[INFO] -------------------------------------------------------------------------
+---
+[INFO] Using following parameters for creating project from Archetype: macchinet
+ta-batch-archetype:2.0.1.RELEASE
+[INFO] -------------------------------------------------------------------------
+---
+[INFO] Parameter: groupId, Value: com.example.batch
+[INFO] Parameter: artifactId, Value: macchinetta-batch-tutorial
+[INFO] Parameter: version, Value: 1.0.0-SNAPSHOT
+[INFO] Parameter: package, Value: com.example.batch.tutorial
+[INFO] Parameter: packageInPathFormat, Value: com/example/batch/tutorial
+[INFO] Parameter: package, Value: com.example.batch.tutorial
+[INFO] Parameter: version, Value: 1.0.0-SNAPSHOT
+[INFO] Parameter: groupId, Value: com.example.batch
+[INFO] Parameter: artifactId, Value: macchinetta-batch-tutorial
+[INFO] Project created from Archetype in dir: C:\xxx\macchinetta-batch-tutorial
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time: 45.293 s
+[INFO] Finished at: 2017-08-22T09:03:01+09:00
+[INFO] Final Memory: 16M/197M
+[INFO] ------------------------------------------------------------------------</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>サンプルジョブを実行し、プロジェクトが正しく作成できたことを確認する。</p>
+</div>
+<div id="Ch09_EnvironmentConstruction_BlankProject_ExecSample" class="listingblock">
+<div class="title">サンプルジョブの実行(正しく作成できたことの確認)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="console">C:\xxx&gt;cd macchinetta-batch-tutorial
+C:\xxx&gt;mvn clean dependency:copy-dependencies -DoutputDirectory=lib package
+C:\xxx&gt;java -cp &quot;lib/*;target/*&quot; ^
+org.springframework.batch.core.launch.support.CommandLineJobRunner ^
+META-INF/jobs/job01.xml job01</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>以下のとおり、mvnコマンドに対して「BUILD SUCCESS」、javaコマンドに対して「COMPLETED」が表示されることを確認する。</p>
+</div>
+<div class="listingblock">
+<div class="title">出力例</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="console">C:\xxx&gt;cd macchinetta-batch-tutorial
+
+C:\xxx\macchinetta-batch-tutorial&gt;mvn clean dependency:copy-dependencies -Doutput
+Directory=lib package
+[INFO] Scanning for projects...
+[INFO]
+[INFO] ------------------------------------------------------------------------
+[INFO] Building Maccinetta Batch Framework for Java (2.x) Blank Project 1.0.0-SN
+APSHOT
+[INFO] ------------------------------------------------------------------------
+
+(.. omitted)
+
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time: 9.462 s
+[INFO] Finished at: 2017-08-22T09:12:22+09:00
+[INFO] Final Memory: 26M/211M
+[INFO] ------------------------------------------------------------------------
+
+C:\xxx\macchinetta-batch-tutorial&gt;java -cp &quot;lib/*;target/*&quot; org.springframework.b
+atch.core.launch.support.CommandLineJobRunner META-INF/jobs/job01.xml job01
+[2017/08/22 09:17:32] [main] [o.s.c.s.ClassPathXmlApplicationContext] [INFO ] Re
+freshing org.springframework.context.support.ClassPathXmlApplicationContext@6204
+3840: startup date [Tue Aug 22 09:17:32 JST 2017]; root of context hierarchy
+
+(.. ommited)
+
+[2017/08/22 09:17:35] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJ
+ob: [name=job01]] launched with the following parameters: [{jsr_batch_run_id=1}]
+
+[2017/08/22 09:17:35] [main] [o.s.b.c.j.SimpleStepHandler] [INFO ] Executing ste
+p: [job01.step01]
+[2017/08/22 09:17:35] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJ
+ob: [name=job01]] completed with the following parameters: [{jsr_batch_run_id=1}
+] and the following status: [COMPLETED]
+[2017/08/22 09:17:35] [main] [o.s.c.s.ClassPathXmlApplicationContext] [INFO ] Cl
+osing org.springframework.context.support.ClassPathXmlApplicationContext@6204384
+0: startup date [Tue Aug 22 09:17:32 JST 2017]; root of context hierarchy</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="Ch09_EnvironmentConstruction_Import"><a class="anchor" href="#Ch09_EnvironmentConstruction_Import"></a>プロジェクトのインポート</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>作成したプロジェクトをSTSへインポートする。<br>
+STSのメニューから、[File] &#8594; [Import] &#8594; [Maven] &#8594; [Existing Maven Projects] &#8594; [Next]を選択し、archetypeで作成したプロジェクトを選択する。</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_Import_ImportMavenProjects.png" alt="Import Existing Maven Projects">
+</div>
+</div>
+<div class="paragraph">
+<p>Root Directoryに<code>C:\xxx\macchinetta-batch-tutorial</code>を設定し、Projectsにcom.example.batchのpom.xmlが選択された状態で、 [Finish]を押下する。</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_Import_Import.png" alt="Select Maven Projects">
+</div>
+</div>
+<div class="paragraph">
+<p>インポートが完了すると、Package Explorerに次のようなプロジェクトが表示される。</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_Import_PackageExplorer.png" alt="Package Explorer">
+</div>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+<div class="title">インポート後にビルドエラーが発生する場合</div>
+<div class="paragraph">
+<p>インポート後にビルドエラーが発生する場合は、プロジェクト名を右クリックし、「Maven」&#8594;「Update Project&#8230;&#8203;」をクリックし、 「OK」ボタンをクリックすることでエラーが解消されるケースがある。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="admonitionblock tip">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+<div class="title">パッケージの表示形式の設定</div>
+<div class="paragraph">
+<p>パッケージの表示形式は、デフォルトは「Flat」だが、「Hierarchical」にしたほうが見通しがよい。<br>
+Package Explorerの「View Menu」 (右端の下矢印)をクリックし、「Package Presentation」&#8594;「Hierarchical」を選択する。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="Ch09_EnvironmentConstruction_BlankProjectConstruction"><a class="anchor" href="#Ch09_EnvironmentConstruction_BlankProjectConstruction"></a>プロジェクトの構成</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>プロジェクトの構成については、<a href="Ch03_CreateProject.html#Ch03_CreateProject_ProjectStructure">プロジェクトの構成</a>を参照すること。</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="Ch09_EnvironmentConstruction_Setting"><a class="anchor" href="#Ch09_EnvironmentConstruction_Setting"></a>設定ファイルの確認・編集</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="Ch09_EnvironmentConstruction_Setting_Check"><a class="anchor" href="#Ch09_EnvironmentConstruction_Setting_Check"></a>設定ファイルの確認</h3>
+<div class="paragraph">
+<p>作成したプロジェクトにはSpring BatchやMyBatisなどの設定のほとんどが既に設定済みである。<br>
+作成したプロジェクトの設定ファイルについては<a href="Ch03_CreateProject.html#Ch03_CreateProject_ProjectStructure">プロジェクトの構成</a>を参照のこと。</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+<div class="title">設定値のカスタマイズについて</div>
+<div class="paragraph">
+<p>チュートリアルを実施する場合にユーザの状況に応じてカスタマイズが必要な設定値について理解する必要はないが、チュートリアルを実施する前または後に一読するとよい。
+詳細については<a href="Ch03_CreateProject.html#Ch03_CreateProject_Make_Setting">アプリケーション全体の設定</a>を参照のこと。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect2">
+<h3 id="Ch09_EnvironmentConstruction_Setting_Edit"><a class="anchor" href="#Ch09_EnvironmentConstruction_Setting_Edit"></a>設定ファイルの編集</h3>
+<div class="paragraph">
+<p>チュートリアルを実施するため、H2 Databaseの設定を変更する。設定の変更点を以下に示す。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>手動でサーバを起動することなく複数のバッチアプリケーションのプロセスからデータベースへ接続可能とする。</p>
+</li>
+<li>
+<p>バッチアプリケーションのプロセスの終了後でもデータを保持した状態のデータベースへ接続可能とする。</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>なお、H2 Databaseの設定の詳細については <a href="http://www.h2database.com/html/features.html">H2の公式ドキュメントのFeatures</a> を参照すること。</p>
+</div>
+<div class="paragraph">
+<p>具体的な編集内容を以下に示す。</p>
+</div>
+<div class="paragraph">
+<p>batch-application.propertiesを開き、<code>admin.jdbc.url</code>及び<code>jdbc.url</code>を以下のように編集する。<br>
+下記の例は分かりやすさのために編集対象行のみ記載し、上書きではなくコメントアウトをした上で新たに行を追加している。</p>
+</div>
+<div class="listingblock">
+<div class="title">src/main/resources/batch-application.properties</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="txt">##  Application settings.
+
+# Admin DataSource settings.
+#admin.jdbc.url=jdbc:h2:mem:batch-admin;DB_CLOSE_DELAY=-1
+admin.jdbc.url=jdbc:h2:~/batch-admin;AUTO_SERVER=TRUE
+
+# Job DataSource settings.
+#jdbc.url=jdbc:h2:mem:batch;DB_CLOSE_DELAY=-1
+jdbc.url=jdbc:h2:~/batch-admin;AUTO_SERVER=TRUE</code></pre>
+</div>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+<div class="title">admin.jdbc.urlとjdbc.urlにおいて同じdatabaseName(batch-admin)を指定している理由</div>
+<div class="paragraph">
+<p>チュートリアルを実施する際のJDBCドライバの接続設定では、<code>admin.jdbc.url</code>と<code>jdbc.url</code>において同じdatabaseNameを指定している。</p>
+</div>
+<div class="paragraph">
+<p><a href="Ch03_CreateProject.html#Ch03_CreateProject_Make_Setting">アプリケーション全体の設定</a>に記載してあるとおり、<code>admin.jdbc.url</code>はFW(Spring BatchやMacchinetta Batch 2.x)が利用するURLであり、<code>jdbc.url</code>はジョブ個別が利用するURLである。</p>
+</div>
+<div class="paragraph">
+<p>本来はFWとジョブ個別が使用するデータベースは分けるのが好ましい。<br>
+しかし、チュートリアルではデータベースを切替る手間をなくし、より簡単にFWとチュートリアルで使用するテーブルを参照するため、このような設定にしている。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="Ch09_EnvironmentConstruction_InputDataPreparation"><a class="anchor" href="#Ch09_EnvironmentConstruction_InputDataPreparation"></a>入力データの準備</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="Ch09_EnvironmentConstruction_InputDataPreparation_DB"><a class="anchor" href="#Ch09_EnvironmentConstruction_InputDataPreparation_DB"></a>データベースアクセスでデータ入出力を行うジョブの入力データ</h3>
+<div class="paragraph">
+<p><a href="Ch09_DBAccessJob.html#Ch09_Impl_DBAccessJob">データベースアクセスでデータ入出力を行うジョブ</a>で使用する入力データの準備を行う。<br>
+なお、データベースアクセスでデータ入出力を行うジョブを作成しない場合は実施する必要はない。</p>
+</div>
+<div class="paragraph">
+<p>入力データの準備は以下の流れで行う。</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p><a href="#Ch09_EnvironmentConstruction_InputDataPreparation_DB_SQL">テーブル作成・初期データ挿入スクリプト作成</a></p>
+</li>
+<li>
+<p><a href="#Ch09_EnvironmentConstruction_InputDataPreparation_DB_Setting">ジョブ実行時にスクリプトを自動実行する設定の追加</a></p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>これらの設定を行うことにより、ジョブ実行時(ApplicationContext生成時)にスクリプトを実行し、データベースの初期化を行う。</p>
+</div>
+<div class="sect3">
+<h4 id="Ch09_EnvironmentConstruction_InputDataPreparation_DB_SQL"><a class="anchor" href="#Ch09_EnvironmentConstruction_InputDataPreparation_DB_SQL"></a>テーブル作成・初期データ挿入スクリプト作成</h4>
+<div class="paragraph">
+<p>テーブル作成・初期データ挿入スクリプトの作成を行う。</p>
+</div>
+<div class="paragraph">
+<p>プロジェクトルートディレクトリに<code>sqls</code>ディレクトリを作成し、下記の3つのスクリプトを格納する。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>テーブル作成スクリプト(<code>create-member-info-table.sql</code>)</p>
+</li>
+<li>
+<p>初期データ(正常)挿入スクリプト(<code>insert-member-info-data.sql</code>)</p>
+</li>
+<li>
+<p>初期データ(異常)挿入スクリプト(<code>insert-member-info-error-data.sql</code>)</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>作成するファイルの内容を以下に示す。</p>
+</div>
+<div class="listingblock">
+<div class="title">sqls/create-member-info-table.sql</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="sql"><span class="class">CREATE</span> <span class="type">TABLE</span> <span class="keyword">IF</span> <span class="keyword">NOT</span> <span class="keyword">EXISTS</span> member_info (
+    id <span class="predefined-type">CHAR</span>(<span class="integer">8</span>),
+    type <span class="predefined-type">CHAR</span>(<span class="integer">1</span>),
+    status <span class="predefined-type">CHAR</span>(<span class="integer">1</span>),
+    point <span class="predefined-type">INT</span>,
+    <span class="directive">PRIMARY</span> <span class="type">KEY</span>(id)
+);</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">sqls/insert-member-info-data.sql</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="sql"><span class="class">TRUNCATE</span> <span class="type">TABLE</span> member_info;
+<span class="class">INSERT</span> <span class="class">INTO</span> member_info (id, type, status, point) <span class="keyword">VALUES</span> (<span class="string"><span class="delimiter">'</span><span class="content">00000001</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">G</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">1</span><span class="delimiter">'</span></span>, <span class="integer">0</span>);
+<span class="class">INSERT</span> <span class="class">INTO</span> member_info (id, type, status, point) <span class="keyword">VALUES</span> (<span class="string"><span class="delimiter">'</span><span class="content">00000002</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">N</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">1</span><span class="delimiter">'</span></span>, <span class="integer">0</span>);
+<span class="class">INSERT</span> <span class="class">INTO</span> member_info (id, type, status, point) <span class="keyword">VALUES</span> (<span class="string"><span class="delimiter">'</span><span class="content">00000003</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">G</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">0</span><span class="delimiter">'</span></span>, <span class="integer">10</span>);
+<span class="class">INSERT</span> <span class="class">INTO</span> member_info (id, type, status, point) <span class="keyword">VALUES</span> (<span class="string"><span class="delimiter">'</span><span class="content">00000004</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">N</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">0</span><span class="delimiter">'</span></span>, <span class="integer">10</span>);
+<span class="class">INSERT</span> <span class="class">INTO</span> member_info (id, type, status, point) <span class="keyword">VALUES</span> (<span class="string"><span class="delimiter">'</span><span class="content">00000005</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">G</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">1</span><span class="delimiter">'</span></span>, <span class="integer">100</span>);
+<span class="class">INSERT</span> <span class="class">INTO</span> member_info (id, type, status, point) <span class="keyword">VALUES</span> (<span class="string"><span class="delimiter">'</span><span class="content">00000006</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">N</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">1</span><span class="delimiter">'</span></span>, <span class="integer">100</span>);
+<span class="class">INSERT</span> <span class="class">INTO</span> member_info (id, type, status, point) <span class="keyword">VALUES</span> (<span class="string"><span class="delimiter">'</span><span class="content">00000007</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">G</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">0</span><span class="delimiter">'</span></span>, <span class="integer">1000</span>);
+<span class="class">INSERT</span> <span class="class">INTO</span> member_info (id, type, status, point) <span class="keyword">VALUES</span> (<span class="string"><span class="delimiter">'</span><span class="content">00000008</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">N</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">0</span><span class="delimiter">'</span></span>, <span class="integer">1000</span>);
+<span class="class">INSERT</span> <span class="class">INTO</span> member_info (id, type, status, point) <span class="keyword">VALUES</span> (<span class="string"><span class="delimiter">'</span><span class="content">00000009</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">G</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">1</span><span class="delimiter">'</span></span>, <span class="integer">10000</span>);
+<span class="class">INSERT</span> <span class="class">INTO</span> member_info (id, type, status, point) <span class="keyword">VALUES</span> (<span class="string"><span class="delimiter">'</span><span class="content">00000010</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">N</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">1</span><span class="delimiter">'</span></span>, <span class="integer">10000</span>);
+<span class="class">INSERT</span> <span class="class">INTO</span> member_info (id, type, status, point) <span class="keyword">VALUES</span> (<span class="string"><span class="delimiter">'</span><span class="content">00000011</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">G</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">0</span><span class="delimiter">'</span></span>, <span class="integer">100000</span>);
+<span class="class">INSERT</span> <span class="class">INTO</span> member_info (id, type, status, point) <span class="keyword">VALUES</span> (<span class="string"><span class="delimiter">'</span><span class="content">00000012</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">N</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">0</span><span class="delimiter">'</span></span>, <span class="integer">100000</span>);
+<span class="class">INSERT</span> <span class="class">INTO</span> member_info (id, type, status, point) <span class="keyword">VALUES</span> (<span class="string"><span class="delimiter">'</span><span class="content">00000013</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">G</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">1</span><span class="delimiter">'</span></span>, <span class="integer">999901</span>);
+<span class="class">INSERT</span> <span class="class">INTO</span> member_info (id, type, status, point) <span class="keyword">VALUES</span> (<span class="string"><span class="delimiter">'</span><span class="content">00000014</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">N</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">1</span><span class="delimiter">'</span></span>, <span class="integer">999991</span>);
+<span class="class">INSERT</span> <span class="class">INTO</span> member_info (id, type, status, point) <span class="keyword">VALUES</span> (<span class="string"><span class="delimiter">'</span><span class="content">00000015</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">G</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">0</span><span class="delimiter">'</span></span>, <span class="integer">999900</span>);
+<span class="class">INSERT</span> <span class="class">INTO</span> member_info (id, type, status, point) <span class="keyword">VALUES</span> (<span class="string"><span class="delimiter">'</span><span class="content">00000016</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">N</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">0</span><span class="delimiter">'</span></span>, <span class="integer">999990</span>);
+<span class="class">INSERT</span> <span class="class">INTO</span> member_info (id, type, status, point) <span class="keyword">VALUES</span> (<span class="string"><span class="delimiter">'</span><span class="content">00000017</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">G</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">1</span><span class="delimiter">'</span></span>, <span class="integer">10</span>);
+<span class="class">INSERT</span> <span class="class">INTO</span> member_info (id, type, status, point) <span class="keyword">VALUES</span> (<span class="string"><span class="delimiter">'</span><span class="content">00000018</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">N</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">1</span><span class="delimiter">'</span></span>, <span class="integer">10</span>);
+<span class="class">INSERT</span> <span class="class">INTO</span> member_info (id, type, status, point) <span class="keyword">VALUES</span> (<span class="string"><span class="delimiter">'</span><span class="content">00000019</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">G</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">0</span><span class="delimiter">'</span></span>, <span class="integer">100</span>);
+<span class="class">INSERT</span> <span class="class">INTO</span> member_info (id, type, status, point) <span class="keyword">VALUES</span> (<span class="string"><span class="delimiter">'</span><span class="content">00000020</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">N</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">0</span><span class="delimiter">'</span></span>, <span class="integer">100</span>);
+<span class="class">INSERT</span> <span class="class">INTO</span> member_info (id, type, status, point) <span class="keyword">VALUES</span> (<span class="string"><span class="delimiter">'</span><span class="content">00000021</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">G</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">1</span><span class="delimiter">'</span></span>, <span class="integer">1000</span>);
+<span class="class">INSERT</span> <span class="class">INTO</span> member_info (id, type, status, point) <span class="keyword">VALUES</span> (<span class="string"><span class="delimiter">'</span><span class="content">00000022</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">N</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">1</span><span class="delimiter">'</span></span>, <span class="integer">1000</span>);
+<span class="class">INSERT</span> <span class="class">INTO</span> member_info (id, type, status, point) <span class="keyword">VALUES</span> (<span class="string"><span class="delimiter">'</span><span class="content">00000023</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">G</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">0</span><span class="delimiter">'</span></span>, <span class="integer">10000</span>);
+<span class="class">INSERT</span> <span class="class">INTO</span> member_info (id, type, status, point) <span class="keyword">VALUES</span> (<span class="string"><span class="delimiter">'</span><span class="content">00000024</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">N</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">0</span><span class="delimiter">'</span></span>, <span class="integer">10000</span>);
+<span class="class">INSERT</span> <span class="class">INTO</span> member_info (id, type, status, point) <span class="keyword">VALUES</span> (<span class="string"><span class="delimiter">'</span><span class="content">00000025</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">G</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">1</span><span class="delimiter">'</span></span>, <span class="integer">100000</span>);
+<span class="class">INSERT</span> <span class="class">INTO</span> member_info (id, type, status, point) <span class="keyword">VALUES</span> (<span class="string"><span class="delimiter">'</span><span class="content">00000026</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">N</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">1</span><span class="delimiter">'</span></span>, <span class="integer">100000</span>);
+<span class="class">INSERT</span> <span class="class">INTO</span> member_info (id, type, status, point) <span class="keyword">VALUES</span> (<span class="string"><span class="delimiter">'</span><span class="content">00000027</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">G</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">0</span><span class="delimiter">'</span></span>, <span class="integer">1000000</span>);
+<span class="class">INSERT</span> <span class="class">INTO</span> member_info (id, type, status, point) <span class="keyword">VALUES</span> (<span class="string"><span class="delimiter">'</span><span class="content">00000028</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">N</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">0</span><span class="delimiter">'</span></span>, <span class="integer">1000000</span>);
+<span class="class">INSERT</span> <span class="class">INTO</span> member_info (id, type, status, point) <span class="keyword">VALUES</span> (<span class="string"><span class="delimiter">'</span><span class="content">00000029</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">G</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">1</span><span class="delimiter">'</span></span>, <span class="integer">999899</span>);
+<span class="class">INSERT</span> <span class="class">INTO</span> member_info (id, type, status, point) <span class="keyword">VALUES</span> (<span class="string"><span class="delimiter">'</span><span class="content">00000030</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">N</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">1</span><span class="delimiter">'</span></span>, <span class="integer">999989</span>);
+<span class="class">COMMIT</span>;</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">sqls/insert-member-info-error-data.sql</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="sql"><span class="class">TRUNCATE</span> <span class="type">TABLE</span> member_info;
+<span class="class">INSERT</span> <span class="class">INTO</span> member_info (id, type, status, point) <span class="keyword">VALUES</span> (<span class="string"><span class="delimiter">'</span><span class="content">00000001</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">G</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">0</span><span class="delimiter">'</span></span>, <span class="integer">0</span>);
+<span class="class">INSERT</span> <span class="class">INTO</span> member_info (id, type, status, point) <span class="keyword">VALUES</span> (<span class="string"><span class="delimiter">'</span><span class="content">00000002</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">N</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">0</span><span class="delimiter">'</span></span>, <span class="integer">0</span>);
+<span class="class">INSERT</span> <span class="class">INTO</span> member_info (id, type, status, point) <span class="keyword">VALUES</span> (<span class="string"><span class="delimiter">'</span><span class="content">00000003</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">G</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">1</span><span class="delimiter">'</span></span>, <span class="integer">10</span>);
+<span class="class">INSERT</span> <span class="class">INTO</span> member_info (id, type, status, point) <span class="keyword">VALUES</span> (<span class="string"><span class="delimiter">'</span><span class="content">00000004</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">N</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">1</span><span class="delimiter">'</span></span>, <span class="integer">10</span>);
+<span class="class">INSERT</span> <span class="class">INTO</span> member_info (id, type, status, point) <span class="keyword">VALUES</span> (<span class="string"><span class="delimiter">'</span><span class="content">00000005</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">G</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">0</span><span class="delimiter">'</span></span>, <span class="integer">100</span>);
+<span class="class">INSERT</span> <span class="class">INTO</span> member_info (id, type, status, point) <span class="keyword">VALUES</span> (<span class="string"><span class="delimiter">'</span><span class="content">00000006</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">N</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">0</span><span class="delimiter">'</span></span>, <span class="integer">100</span>);
+<span class="class">INSERT</span> <span class="class">INTO</span> member_info (id, type, status, point) <span class="keyword">VALUES</span> (<span class="string"><span class="delimiter">'</span><span class="content">00000007</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">G</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">1</span><span class="delimiter">'</span></span>, <span class="integer">1000</span>);
+<span class="class">INSERT</span> <span class="class">INTO</span> member_info (id, type, status, point) <span class="keyword">VALUES</span> (<span class="string"><span class="delimiter">'</span><span class="content">00000008</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">N</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">1</span><span class="delimiter">'</span></span>, <span class="integer">1000</span>);
+<span class="class">INSERT</span> <span class="class">INTO</span> member_info (id, type, status, point) <span class="keyword">VALUES</span> (<span class="string"><span class="delimiter">'</span><span class="content">00000009</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">G</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">0</span><span class="delimiter">'</span></span>, <span class="integer">10000</span>);
+<span class="class">INSERT</span> <span class="class">INTO</span> member_info (id, type, status, point) <span class="keyword">VALUES</span> (<span class="string"><span class="delimiter">'</span><span class="content">00000010</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">N</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">0</span><span class="delimiter">'</span></span>, <span class="integer">10000</span>);
+<span class="class">INSERT</span> <span class="class">INTO</span> member_info (id, type, status, point) <span class="keyword">VALUES</span> (<span class="string"><span class="delimiter">'</span><span class="content">00000011</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">G</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">1</span><span class="delimiter">'</span></span>, <span class="integer">100000</span>);
+<span class="class">INSERT</span> <span class="class">INTO</span> member_info (id, type, status, point) <span class="keyword">VALUES</span> (<span class="string"><span class="delimiter">'</span><span class="content">00000012</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">N</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">1</span><span class="delimiter">'</span></span>, <span class="integer">100000</span>);
+<span class="class">INSERT</span> <span class="class">INTO</span> member_info (id, type, status, point) <span class="keyword">VALUES</span> (<span class="string"><span class="delimiter">'</span><span class="content">00000013</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">G</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">1</span><span class="delimiter">'</span></span>, <span class="integer">1000001</span>);
+<span class="class">INSERT</span> <span class="class">INTO</span> member_info (id, type, status, point) <span class="keyword">VALUES</span> (<span class="string"><span class="delimiter">'</span><span class="content">00000014</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">N</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">1</span><span class="delimiter">'</span></span>, <span class="integer">999991</span>);
+<span class="class">INSERT</span> <span class="class">INTO</span> member_info (id, type, status, point) <span class="keyword">VALUES</span> (<span class="string"><span class="delimiter">'</span><span class="content">00000015</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">G</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">1</span><span class="delimiter">'</span></span>, <span class="integer">999901</span>);
+<span class="class">COMMIT</span>;</code></pre>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="Ch09_EnvironmentConstruction_InputDataPreparation_DB_Setting"><a class="anchor" href="#Ch09_EnvironmentConstruction_InputDataPreparation_DB_Setting"></a>ジョブ実行時にスクリプトを自動実行する設定の追加</h4>
+<div class="paragraph">
+<p>ジョブ実行時(ApplicationContext生成時)にスクリプトを実行し、データベースの初期化を行うため、<code>&lt;jdbc:initialize-database&gt;</code>タグの定義を追加する。<br></p>
+</div>
+<div class="paragraph">
+<p>以下の2つのファイルの編集を実施する。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>batch-application.propertiesに実行対象スクリプトのパスの設定を追加する</p>
+</li>
+<li>
+<p>launch-context.xmlに<code>&lt;jdbc:initialize-database&gt;</code>タグの定義を追加する</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>具体的な設定内容を以下に示す。</p>
+</div>
+<div class="paragraph">
+<p>batch-application.propertiesを開き、末尾に以下の実行対象スクリプトのパスの設定を追加する。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>tutorial.create-table.script(テーブル作成スクリプトのパス)</p>
+</li>
+<li>
+<p>tutorial.insert-data.script(初期データ挿入スクリプトのパス)<br></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>初期データ挿入スクリプトのパスは、実行するスクリプトの切替を容易にするために正常データと異常データを同じプロパティ名で定義し、コメントアウトしている。</p>
+</div>
+<div class="listingblock">
+<div class="title">src/main/resources/batch-application.properties</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="txt"># Database Initialize
+tutorial.create-table.script=file:sqls/create-member-info-table.sql
+tutorial.insert-data.script=file:sqls/insert-member-info-data.sql
+#tutorial.insert-data.script=file:sqls/insert-member-info-error-data.sql</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>launch-context.xmlを開き、<code>&lt;beans&gt;</code>タグ内に<code>&lt;jdbc:initialize-database&gt;</code>タグの定義を追加する。</p>
+</div>
+<div class="listingblock">
+<div class="title">src/main/resources/META-INF/spring/launch-context.xml</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"><span class="comment">&lt;!-- database initialize definition --&gt;</span>
+<span class="tag">&lt;jdbc:initialize-database</span> <span class="attribute-name">data-source</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobDataSource</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">enabled</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">${data-source.initialize.enabled:false}</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">ignore-failures</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">ALL</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+    <span class="tag">&lt;jdbc:script</span> <span class="attribute-name">location</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">${tutorial.create-table.script}</span><span class="delimiter">&quot;</span></span> <span class="tag">/&gt;</span>
+    <span class="tag">&lt;jdbc:script</span> <span class="attribute-name">location</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">${tutorial.insert-data.script}</span><span class="delimiter">&quot;</span></span> <span class="tag">/&gt;</span>
+<span class="tag">&lt;/jdbc:initialize-database&gt;</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="Ch09_EnvironmentConstruction_InputDataPreparation_File"><a class="anchor" href="#Ch09_EnvironmentConstruction_InputDataPreparation_File"></a>ファイルアクセスでデータ入出力を行うジョブの入力データ</h3>
+<div class="paragraph">
+<p><a href="Ch09_FileAccessJob.html#Ch09_Impl_FileAccessJob">ファイルアクセスでデータ入出力を行うジョブ</a>で使用する入力データの準備を行う。<br>
+なお、ファイルアクセスでデータ入出力を行うジョブを作成しない場合は実施する必要はない。</p>
+</div>
+<div class="paragraph">
+<p>入力データの準備は入出力ファイルを格納ディレクトリの作成及び入力ファイルの作成を行う。</p>
+</div>
+<div class="paragraph">
+<p>プロジェクトルートディレクトリに入出力ファイル格納用として以下の2ディレクトリを作成する。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>files/input</code></p>
+</li>
+<li>
+<p><code>files/output</code></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p><code>files/input</code>配下に以下の2ファイルを作成する。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>正常データ入力ファイル(<code>input-member-info-data.csv</code>)</p>
+</li>
+<li>
+<p>異常データ入力ファイル(<code>input-member-info-error-data.csv</code>)</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>作成した入力ファイル格納ディレクトリに以下の内容で入力ファイルを格納する。</p>
+</div>
+<div class="paragraph">
+<p>作成するファイルの内容を以下に示す。</p>
+</div>
+<div class="listingblock">
+<div class="title">files/input/input-member-info-data.csv</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="text">00000001,G,1,0
+00000002,N,1,0
+00000003,G,0,10
+00000004,N,0,10
+00000005,G,1,100
+00000006,N,1,100
+00000007,G,0,1000
+00000008,N,0,1000
+00000009,G,1,10000
+00000010,N,1,10000
+00000011,G,0,100000
+00000012,N,0,100000
+00000013,G,1,999901
+00000014,N,1,999991
+00000015,G,0,999900
+00000016,N,0,999990
+00000017,G,1,10
+00000018,N,1,10
+00000019,G,0,100
+00000020,N,0,100
+00000021,G,1,1000
+00000022,N,1,1000
+00000023,G,0,10000
+00000024,N,0,10000
+00000025,G,1,100000
+00000026,N,1,100000
+00000027,G,0,1000000
+00000028,N,0,1000000
+00000029,G,1,999899
+00000030,N,1,999989</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">files/input/input-member-info-error-data.csv</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="text">00000001,G,0,0
+00000002,N,0,0
+00000003,G,1,10
+00000004,N,1,10
+00000005,G,0,100
+00000006,N,0,100
+00000007,G,1,1000
+00000008,N,1,1000
+00000009,G,0,10000
+00000010,N,0,10000
+00000011,G,1,100000
+00000012,N,1,100000
+00000013,G,1,1000001
+00000014,N,1,999991
+00000015,G,1,999901</code></pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="Ch09_EnvironmentConstruction_DataSourceExplorer"><a class="anchor" href="#Ch09_EnvironmentConstruction_DataSourceExplorer"></a>STSからデータベースを参照する準備</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>チュートリアルではデータベースを参照するためにData Source Explorerを使用するため、Data Source Explorerの設定を実施する。<br>
+Data Source Explorerを使用することでSTS上でデータベースの参照やSQL実行が可能となる。</p>
+</div>
+<div class="paragraph">
+<p>チュートリアルで参照するデータベースの対象は以下のとおり。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>JobRepositoryに永続化されているバッチアプリケーション実行結果や状態を管理するためのデータ</p>
+</li>
+<li>
+<p><a href="Ch09_DBAccessJob.html#Ch09_Impl_DBAccessJob">データベースアクセスでデータ入出力を行うジョブ</a>が使用するデータ</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>まず、Data Source Explorer Viewを表示する。<br>
+STSのメニューから、[Window] &#8594; [Show View] &#8594; [Other&#8230;&#8203;]を選択し、Data Management配下のData Source Explorerが選択された状態で、 [OK]を押下する。</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_DataSourceExplorer_ShowView.png" alt="Show View">
+</div>
+</div>
+<div class="paragraph">
+<p>ワークベンチ上にData Source Explorer Viewが表示される。</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_DataSourceExplorer_DataSourceExplorerView.png" alt="Data Source Explorer View">
+</div>
+</div>
+<div class="paragraph">
+<p>次に、データベースへ接続するためのConnection Profileを作成する。<br>
+Data Source Explorer ViewのDatabase Connectionsを右クリックし、[New&#8230;&#8203;]を押下し、Connection Profileを表示する。<br>
+そして、Generic JDBCを選択し、Nameに<code>H2 Database</code>と入力した状態で、[Next]を押下する。<br>
+(Nameに入力する値は任意である。)</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_DataSourceExplorer_NewConnectionProfileType.png" alt="New Conenction Profile Type">
+</div>
+</div>
+<div class="paragraph">
+<p>初期状態ではDriverが設定されていないためH2 Databaseへ接続するためのDriverの追加を行う。<br>
+Driversのドロップダウンの右にあるNew Driver Definitionボタンを押下し、Driverの定義ウィンドウを表示する。</p>
+</div>
+<div class="paragraph">
+<p>Name/Typeタブの、Available driver templatesにてGeneric JDBC Driverを選択する。</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_DataSourceExplorer_NewDriverDifinitionName.png" alt="New Driver Difinition Name/Type">
+</div>
+</div>
+<div class="paragraph">
+<p>次に、JAR Listタブを開き、[Add Jar/Zip&#8230;&#8203;]を押下し、H2 Databaseのjarファイルを選択し、[開く]を押下する。</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+<div class="title">H2 Databaseのjarが格納されている場所</div>
+<div class="paragraph">
+<p>H2 Databaseのjarは、プロジェクトのルートディレクトリの<code>lib</code>ディレクトリ配下に格納されている。<br>
+これは、<a href="#Ch09_EnvironmentConstruction_BlankProject_ExecSample">サンプルジョブの実行(正しく作成できたことの確認)</a>の下記のコマンドの実行によって依存ライブラリが<code>lib</code>ディレクトリ配下にコピーされたからである。
+<code>lib</code>ディレクトリは以下にH2 Databaseのjarが格納されていない場合は下記のコマンドを実行すること。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="console">C:\xxx&gt;mvn clean dependency:copy-dependencies -DoutputDirectory=lib package</code></pre>
+</div>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_DataSourceExplorer_NewDriverDifinitionJARList.png" alt="New Driver Difinition JAR List">
+</div>
+</div>
+<div class="paragraph">
+<p>次に、Propertiesタブを開き下記の内容を設定し[OK]を押下し、Driverを追加する。</p>
+</div>
+<div class="paragraph">
+<p>Database Nameに設定する値は任意である。その他の設定値はbatch-application.propertiesに設定されている値と同じになる。</p>
+</div>
+<table class="tableblock frame-all grid-all spread">
+<caption class="title">Propertiesタブで設定する値</caption>
+<colgroup>
+<col style="width: 30%;">
+<col style="width: 70%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Property</th>
+<th class="tableblock halign-left valign-top">Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Connection URL</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">jdbc:h2:~/batch-admin;AUTO_SERVER=TRUE</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Database Name</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">macchinetta-batch-tutorial</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Driver Class</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">org.h2.Driver</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">User ID</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">sa</p></td>
+</tr>
+</tbody>
+</table>
+<div class="imageblock">
+<div class="content">
+<img src="./images/ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_DataSourceExplorer_NewDriverDifinitionProperties.png" alt="New Driver Difinition Properties">
+</div>
+</div>
+<div class="paragraph">
+<p>設定した内容でDriverが追加されていることを確認し、[Finish]を押下する。</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_DataSourceExplorer_NewConnectionProfileDetails.png" alt="New Conenction Profile Details">
+</div>
+</div>
+<div class="paragraph">
+<p>Connection Profileの作成が完了すると、Data Source Explorer ViewにH2 DatabaseへのConnectionが表示される。</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_DataSourceExplorer_DataSourceExplorerAddedConnection.png" alt="Data Source Explorer added Connection">
+</div>
+</div>
+<div class="paragraph">
+<p>以上でSTSからデータベースを参照する準備が完了した。<br>
+Data Source Explorerの設定確認は<a href="#Ch09_EnvironmentConstruction_OperationCheck">プロジェクトの動作確認</a>にて実施する。</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="Ch09_EnvironmentConstruction_OperationCheck"><a class="anchor" href="#Ch09_EnvironmentConstruction_OperationCheck"></a>プロジェクトの動作確認</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>プロジェクトの動作確認の手順を以下に示す。</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p><a href="#Ch09_EnvironmentConstruction_OperationCheck_ExecJob">STSでジョブを実行する</a></p>
+</li>
+<li>
+<p><a href="#Ch09_EnvironmentConstruction_OperationCheck_RefDB">Data Source Explorerを使用してデータベースを参照する</a></p>
+</li>
+</ol>
+</div>
+<div class="sect2">
+<h3 id="Ch09_EnvironmentConstruction_OperationCheck_ExecJob"><a class="anchor" href="#Ch09_EnvironmentConstruction_OperationCheck_ExecJob"></a>STSでジョブを実行する</h3>
+<div class="paragraph">
+<p>STSでジョブを実行する手順を以下に示す。</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p><a href="#Ch09_EnvironmentConstruction_OperationCheck_ExecJob_RunConf">Run Configuration(実行構成)の作成</a></p>
+</li>
+<li>
+<p><a href="#Ch09_EnvironmentConstruction_OperationCheck_ExecJob_Run">ジョブの実行と結果の確認</a></p>
+</li>
+</ol>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+<div class="title">ジョブの実行方法について</div>
+<div class="paragraph">
+<p>本来であればジョブはシェルスクリプトなどから実行するが、本チュートリアルでは説明のしやすさからSTSでジョブを実行する手順としている。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="sect3">
+<h4 id="Ch09_EnvironmentConstruction_OperationCheck_ExecJob_RunConf"><a class="anchor" href="#Ch09_EnvironmentConstruction_OperationCheck_ExecJob_RunConf"></a>Run Configuration(実行構成)の作成</h4>
+<div class="paragraph">
+<p>Run Configuration(実行構成)を作成する方法についてサンプルジョブの実行を例にして説明する。</p>
+</div>
+<div class="paragraph">
+<p>STSのメニューから、[Run] &#8594; [Run Configurations&#8230;&#8203;] &#8594; タイプの一覧からJava Applicationを選択して右クリック &#8594; [New]を選択しRun Configuration作成画面を表示し、以下の値を設定する。<br></p>
+</div>
+<table class="tableblock frame-all grid-all spread">
+<caption class="title">Run ConfigurationsのMainタブで設定する値</caption>
+<colgroup>
+<col style="width: 30%;">
+<col style="width: 70%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項目名</th>
+<th class="tableblock halign-left valign-top">値</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Name</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Execute Job01<br>
+(任意の値を設定する)</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Project</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">macchinetta-batch-tutorial</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Main class</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">org.springframework.batch.core.launch.support.CommandLineJobRunner</p></td>
+</tr>
+</tbody>
+</table>
+<div class="imageblock">
+<div class="content">
+<img src="./images/ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_OperationCheck_ExecJob_RunConf_Main.png" alt="Run Configurations Main tab">
+</div>
+</div>
+<div class="paragraph">
+<p>次にArgumentsタブを開き、以下の値を設定する。</p>
+</div>
+<table class="tableblock frame-all grid-all spread">
+<caption class="title">Run ConfigurationsのArgumentsタブで設定する値</caption>
+<colgroup>
+<col style="width: 30%;">
+<col style="width: 70%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項目名</th>
+<th class="tableblock halign-left valign-top">値</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Program arguments</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">META-INF/jobs/job01.xml job01</p></td>
+</tr>
+</tbody>
+</table>
+<div class="imageblock">
+<div class="content">
+<img src="./images/ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_OperationCheck_ExecJob_RunConf_Arg.png" alt="Run Configurations Arguments tab">
+</div>
+</div>
+<div class="paragraph">
+<p>設定が完了したら[Apply]を押下する。</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+<div class="title">Run Configurationの作成で設定する値について</div>
+<div class="paragraph">
+<p>Run Configurationに<a href="#Ch09_EnvironmentConstruction_BlankProject_ExecSample">サンプルジョブの実行(正しく作成できたことの確認)</a>のコマンドと同様のパラメータを設定する。<br>
+ただし、クラスパスはMainタブのProjectへプロジェクトを設定するとSTSによって自動的に解決される。<br>
+Run Configurationに設定するパラメータは、実行するジョブによってパラメータを変更してほしい。<br>
+なお、ファイルアクセスするジョブの場合はinputFileやoutputFileのパラメータも必要になるため留意すること。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect3">
+<h4 id="Ch09_EnvironmentConstruction_OperationCheck_ExecJob_Run"><a class="anchor" href="#Ch09_EnvironmentConstruction_OperationCheck_ExecJob_Run"></a>ジョブの実行と結果の確認</h4>
+<div class="paragraph">
+<p>ジョブの実行及び結果の確認方法について説明する。<br>
+ここで説明するジョブの実行結果の確認とはコンソールログの確認及びジョブ実行の終了コードの確認である。</p>
+</div>
+<div class="paragraph">
+<p>チュートリアルではジョブ実行の終了コードを確認するため、Debug Viewを使用する。Debug Viewの表示方法は後述する。</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+<div class="title">Debug Viewを表示する理由</div>
+<div class="paragraph">
+<p>STSでDebug Viewを表示しないとジョブの実行時の終了コードを確認することはできない。<br>
+<a href="Ch09_ExceptionHandlingWithTryCatchJob.html#Ch09_ExceptionHandlingWithTryCatchJob">try-catchで例外ハンドリングを行うジョブ</a>ではリスナーにてジョブの終了コードの変換するため、Debug Viewを表示して結果を確認する必要がある。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>はじめにジョブを実行する方法について説明する。</p>
+</div>
+<div class="paragraph">
+<p>STSのメニューから、[Run] &#8594; [Run Configurations&#8230;&#8203;] &#8594; タイプの一覧からJava Application配下にある<a href="#Ch09_EnvironmentConstruction_OperationCheck_ExecJob_RunConf">Run Configuration(実行構成)の作成</a>にて作成したExecute Job01を選択して[Run]を押下することでジョブが実行される。</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_OperationCheck_ExecJob_Run_Job01.png" alt="Run Job01">
+</div>
+</div>
+<div class="paragraph">
+<p>ジョブの実行結果はコンソールログにて確認する。<br>
+以下のように表示されていれば正常にジョブが実行されている。</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_OperationCheck_ExecJob_Run_Job01Console.png" alt="Run Job01 console">
+</div>
+</div>
+<div class="paragraph">
+<p>次に、Debug Viewを表示させてジョブ実行の終了コードを確認する。</p>
+</div>
+<div class="paragraph">
+<p>STSのメニューから、[Window] &#8594; [Show View] &#8594; [Other&#8230;&#8203;]を選択し、Debug配下のDebugが選択された状態で、 [OK]を押下する。</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_OperationCheck_ExecJob_Run_ShowView.png" alt="Show View">
+</div>
+</div>
+<div class="paragraph">
+<p>ワークベンチ上にDebugが表示される。</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_OperationCheck_ExecJob_Run_DebugView.png" alt="Debug View">
+</div>
+</div>
+<div class="paragraph">
+<p><code>&lt;terminated, exit value: 0&gt;</code>という表示により、ジョブ実行の終了コードが<code>0</code>であることが確認できる。</p>
+</div>
+<div class="admonitionblock tip">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+<div class="title">STSでジョブの実行が失敗する場合について</div>
+<div class="paragraph">
+<p>正しいソースコードにもかかわらずSTSでジョブの実行が失敗する場合、不完全なビルド状態を解消することによりジョブの実行が成功する可能性がある。手順を以下に示す。<br>
+STSのメニューから、[project] &#8594; [clean]を選択する。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="Ch09_EnvironmentConstruction_OperationCheck_RefDB"><a class="anchor" href="#Ch09_EnvironmentConstruction_OperationCheck_RefDB"></a>Data Source Explorerを使用してデータベースを参照する</h3>
+<div class="paragraph">
+<p>Data Source Explorer Viewを使用してデータベースを参照する方法について説明する。</p>
+</div>
+<div class="paragraph">
+<p>Data Source Explorerにてデータベース<code>BATCH-ADMIN</code>を下記の階層で開くとテーブルの一覧を確認することができる。</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_OperationCheck_RefDB_Tables.png" alt="Show Tables">
+</div>
+</div>
+<div class="paragraph">
+<p>Spring Batchメタデータテーブル(詳細は<a href="Ch02_SpringBatchArchitecture.html#Ch02_SpringBatchArch_Arch_MetadataSchema">JobRepositoryのメタデータスキーマ</a>を参照)及び、
+<a href="#Ch09_EnvironmentConstruction_InputDataPreparation_DB">データベースアクセスでデータ入出力を行うジョブの入力データの準備</a>を実施した場合には<code>MEMBER_INFO</code>テーブルが作成されていることが確認できる。</p>
+</div>
+<div class="paragraph">
+<p>次に、テーブルに格納されているレコードは以下の方法で参照することができる。</p>
+</div>
+<div class="paragraph">
+<p>参照したいテーブルを右クリック、[Data] &#8594; [Edit]と選択することでテーブル形式でテーブルに格納されているレコードを参照することができる。<br>
+以下は<code>BATCH_JOB_INSTANCE</code>テーブルを参照した例である。</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_OperationCheck_RefDB_BATCH_JOB_INSTANCE.png" alt="Show BATCH_JOB_INSTANCE">
+</div>
+</div>
+<div class="paragraph">
+<p><code>job01</code>という名前のジョブが実行されたことがわかる。</p>
+</div>
+<div class="paragraph">
+<p>以上でチュートリアルの環境構築は完了である。</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="container">
+
+  <div class="common-bg">
+    <div class="information">
+      Macchinetta Batch Framework (2.x) Development Guideline - version 2.0.1.RELEASE, 2018-3-9
+    </div>
+    <div class="index">
+      <a href="index.html">&gt; INDEX</a>
+    </div>
+  </div>
+
+  <div class="footer-bg">
+    <div class="copyright">
+      &copy; Copyright 2018 NTT Corporation.
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
