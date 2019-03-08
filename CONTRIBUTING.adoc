@@ -61,7 +61,7 @@ e.g.)
 
 [source, text]
 ----
-$ git clone https://github.com/{your account}/v5-guideline.git
+$ git clone https://github.com/{your account}/batch-guideline.git
 ----
 
 == Create a work branch

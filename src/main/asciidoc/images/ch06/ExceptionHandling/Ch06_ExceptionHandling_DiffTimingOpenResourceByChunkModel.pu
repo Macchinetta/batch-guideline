@@ -33,7 +33,7 @@ group execute business logic
   chunkTasklet -[#blue]> ChunkListener : <font color="blue">afterChunkError</font>
 end
 
-== EndC Chunk ==
+== End Chunk ==
 
 group close resource
   chunkTasklet -> reader1 : close

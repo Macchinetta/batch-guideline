@@ -463,6 +463,14 @@ TSVファイルの読み込みを行う場合には、区切り文字にタブ�
 
 ====
 
+[WARNING]
+.BeanWrapperFieldSetMapperの留意事項
+====
+`BeanWrapperFieldSetMapper`は、文字列を`trim`するため、先頭・末尾の空白と制御文字が削除されることに留意すること。
+
+====
+
+
 [[Ch05_FileAccess_HowToUse_VariableLength_Output]]
 ==== 出力
 
@@ -515,7 +523,7 @@ public class Customer {
       <property name="fieldExtractor">  <!-- (10) -->
         <!-- (11) -->
         <bean class="org.springframework.batch.item.file.transform.BeanWrapperFieldExtractor"
-              p:names="customerId,customerName,customerAddress,customerTel,chargeBranchId">
+              p:names="customerId,customerName,customerAddress,customerTel,chargeBranchId"/>
       </property>
     </bean>
   </property>
@@ -978,7 +986,6 @@ FieldSetMapperを独自に実装する場合については、<<Ch05_FileAccess_
 <property name="bufferedReaderFactory">
     <bean class="org.terasoluna.batch.item.file.FixedByteLengthBufferedReaderFactory"
         c:byteLength="32"/>  <!-- (1) -->
-
 </property>
 ----
 
@@ -1117,7 +1124,7 @@ public class SalesPlanDetail {
       p:transactional="true">
     <property name="lineAggregator">  <!-- (8) -->
         <bean class="org.springframework.batch.item.file.transform.FormatterLineAggregator"
-              p:format="%6s%4s%2s%10s%10s"/>  <!-- (9) -->
+              p:format="%6s%4s%2s%10s%10s">  <!-- (9) -->
             <property name="fieldExtractor">  <!-- (10) -->
               <bean class="org.springframework.batch.item.file.transform.BeanWrapperFieldExtractor"
                     p:names="branchId,year,month,customerId,amount"/>  <!-- (11) -->
@@ -1256,7 +1263,7 @@ icon:warning[] 他のプロパティとの組み合わせによって意図し�
 ----
 <property name="lineAggregator">  <!-- (1) -->
     <bean class="org.springframework.batch.item.file.transform.FormatterLineAggregator"
-          p:format="%s%4s%2s%s%10s"/>  <!-- (2) -->
+          p:format="%s%4s%2s%s%10s">  <!-- (2) -->
         <property name="fieldExtractor">  <!-- (3) -->
             <bean class="jp.co.ntt.fw.macchinetta.batch.functionaltest.ch05.fileaccess.plan.SalesPlanFixedLengthFieldExtractor"/>
         </property>
@@ -1960,17 +1967,11 @@ total of amounts,6000000000
 [source, console]
 .OSコマンドによる読み飛ばし処理
 ----
-# Remove number of lines in footer from the end of input file
-head -n -2 input.txt > output.txt
+$ # Remove number of lines in footer from the end of input file
+$ head -n -2 input.txt > output.txt
 ----
 
 headコマンドを利用し、入力ファイルinput.txtの末尾から2行目より前を取得し、output.txtに出力している。
-
-[IMPORTANT]
-====
-フッタレコードを読み飛ばすことは、{SB}では機能をもっていないため、JIRAの  https://jira.spring.io/browse/BATCH-2539[{SB}/BATCH-2539]  にて報告している。 +
-よって、今後OSコマンドによる読み飛ばしだけではなく、{SB}でも対応できるようになる可能性がある。
-====
 
 [[Ch05_FileAccess_HowToUse_HeaderFooter_Input_AccessFooters]]
 ===== フッタ情報の取り出し
@@ -2017,11 +2018,11 @@ total of amounts,6000000000
 [source, console]
 .OSコマンドによる読み飛ばし処理
 ----
-# Extract non-footer record from input file and save to output file.
-head -n -2 input.txt > input_data.txt
+$ # Extract non-footer record from input file and save to output file.
+$ head -n -2 input.txt > input_data.txt
 
-# Extract footer record from input file and save to output file.
-tail -n 2 input.txt > input_footer.txt
+$ # Extract footer record from input file and save to output file.
+$ tail -n 2 input.txt > input_footer.txt
 ----
 
 headコマンドを利用し、入力ファイルinput.txtのフッタ部以外をinput_data.txtへ、フッタ部をinput_footer.txtに出力している。
@@ -2492,7 +2493,6 @@ sales_plan_detail_03.csv
       scope="step"
       p:resources="file:input/sales_plan_detail_*.csv"
       p:delegate-ref="reader"/>
-</bean>
 
 <!-- (3) -->
 <bean id="reader"
@@ -2701,7 +2701,7 @@ public class CustomerListResourceSuffixCreator implements ResourceSuffixCreator 
 * 対象レコード処理後にコントロールブレイク実施
 ** ``SingleItemPeekableItemReader``により次のレコードを先読みし、次レコードと現在読み込んだレコードとの比較
 
-下記にの入力データから処理結果を出力するコントロールブレイクの実装例を示す。
+下記に入力データから処理結果を出力するコントロールブレイクの実装例を示す。
 
 [source,csv]
 .入力データ
@@ -3097,11 +3097,11 @@ XMLファイルの入力には{SB}が提供する``org.springframework.batch.ite
 
 ``StaxEventItemReader``は以下の要領で定義する。
 
-* XMLのルートエレメントとなる変換対象クラスに``@XmlRootElement``を付与する
+* XMLのルート要素となる変換対象クラスに``@XmlRootElement``を付与する
 
 * ``StaxEventItemReader``に以下のプロパティを設定する
 ** プロパティ``resource``に読み込み対象ファイルを設定する
-** プロパティ``fragmentRootElementName``にルートエレメントとなる要素の名前を設定する
+** プロパティ``fragmentRootElementName``にルート要素の名前を設定する
 ** プロパティ``unmarshaller``に``org.springframework.oxm.jaxb.Jaxb2Marshaller``を設定する
 
 * ``Jaxb2Marshaller``には以下のプロパティを設定する
@@ -3118,43 +3118,75 @@ XMLファイルの入力には{SB}が提供する``org.springframework.batch.ite
 ----
 <?xml version="1.0" encoding="UTF-8"?>
 <records>
-    <SalesPlanDetail>
-        <branchId>000001</branchId>
-        <year>2016</year>
-        <month>1</month>
-        <customerId>0000000001</customerId>
-        <amount>1000000000</amount>
-    </SalesPlanDetail>
-    <SalesPlanDetail>
-        <branchId>000002</branchId>
-        <year>2017</year>
-        <month>2</month>
-        <customerId>0000000002</customerId>
-        <amount>2000000000</amount>
-    </SalesPlanDetail>
-    <SalesPlanDetail>
-        <branchId>000003</branchId>
-        <year>2018</year>
-        <month>3</month>
-        <customerId>0000000003</customerId>
-        <amount>3000000000</amount>
-    </SalesPlanDetail>
+    <customer>
+        <name>Data Taro</name>
+        <phoneNumbers>
+            <phone-number>01234567890</phone-number>
+        </phoneNumbers>
+    </customer>
+    <customer>
+        <name>Data Jiro</name>
+        <phoneNumbers>
+            <phone-number>01234567891</phone-number>
+            <phone-number>01234567892</phone-number>
+        </phoneNumbers>
+    </customer>
+    <customer>
+        <name>Data Hanako</name>
+        <phoneNumbers>
+            <phone-number>01234567893</phone-number>
+            <phone-number>01234567894</phone-number>
+        </phoneNumbers>
+    </customer>
 </records>
 ----
 
 [source, java]
 .変換対象クラス
 ----
-@XmlRootElement(name = "SalesPlanDetail")  // (1)
-public class SalesPlanDetailToJaxb {
+@XmlRootElement  // (1)
+public class Customer {
 
-    private String branchId;
-    private int year;
-    private int month;
-    private String customerId;
-    private BigDecimal amount;
+    private String name;
+    private List<PhoneNumber> phoneNumbers = new ArrayList<>();
 
-    // omitted getter/setter
+    @XmlElement  // (2)
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    @XmlElement(name = "phone-number")  // (3)
+    @XmlElementWrapper(name = "phoneNumbers")  // (4)
+    public List<PhoneNumber> getPhoneNumbers() {
+        return phoneNumbers;
+    }
+
+    public void setPhoneNumbers(List<PhoneNumber> phoneNumbers) {
+        this.phoneNumbers = phoneNumbers;
+    }
+
+    // omitted.
+}
+
+@XmlType(name = "phone-number") 　// (5)
+public class PhoneNumber {
+
+    private String phoneNumber;
+
+    @XmlValue 　// (6)
+    public String getPhoneNumber() {
+        return phoneNumber;
+    }
+
+    public void setPhoneNumber(String phoneNumber) {
+        this.phoneNumber = phoneNumber;
+    }
+
+    // omitted.
 }
 ----
 
@@ -3165,8 +3197,27 @@ public class SalesPlanDetailToJaxb {
 |説明
 
 |(1)
-|XML のルートタグとするため、``@XmlRootElement``アノテーションを付与する。 +
-タグの名前に``SalesPlanDetail``を設定する。
+|``@XmlRootElement``アノテーションで``customer``要素をルート要素としてXML要素にマップする。 +
+XML要素とクラス名が同じの場合、``name``属性での要素の指定は不要である。
+
+|(2)
+|``@XmlElement``アノテーションで``name``要素をXML要素にマップする。 +
+XML要素とJavaBeanプロパティが同じの場合、``name``属性での要素の指定は不要である。
+
+|(3)
+|``@XmlElement``アノテーションで``phone-number``要素をXML要素にマップする。 +
+``name``属性には、(4)の属性名でラップされる要素の名前を設定する。
+
+|(4)
+|``@XmlElementWrapper``アノテーションで(3)の要素をラップするラッパー要素を生成する。 +
+``name``属性には、ラッパー要素の名前を設定する。
+
+|(5)
+|``@XmlType``アノテーションで(3)の``phone-number``要素にクラスをマップする。 +
+``name``属性には、マップされる要素の名前を設定する。
+
+|(6)
+|``@XmlValue``アノテーションで(5)でマップされたクラスの``phone-number``要素にマップする。
 |===
 
 上記のファイルを読む込むための設定は以下のとおり。
@@ -3175,19 +3226,18 @@ public class SalesPlanDetailToJaxb {
 .Bean定義
 ----
 <!-- (1) (2) (3) -->
-<bean id="reader"
-      class="org.springframework.batch.item.xml.StaxEventItemReader" scope="step"
+<bean id="reader" class="org.springframework.batch.item.xml.StaxEventItemReader" scope="step"
       p:resource="file:#{jobParameters['inputFile']}"
-      p:fragmentRootElementName="SalesPlanDetail"
+      p:fragmentRootElementName="customer"
       p:strict="true">
     <property name="unmarshaller">  <!-- (4) -->
         <!-- (5) (6) -->
         <bean class="org.springframework.oxm.jaxb.Jaxb2Marshaller"
-              p:schema="file:files/test/input/ch05/fileaccess/SalesPlanDetail.xsd"
-              p:validationEventHandler-ref="salesPlanDetailValidationEventHandler">
+              p:schema="file:files/test/input/ch05/fileaccess/customer.xsd"
+              p:validationEventHandler-ref="customerValidationEventHandler">
             <property name="classesToBeBound">  <!-- (7) -->
                 <list>
-                    <value>jp.co.ntt.fw.macchinetta.batch.functionaltest.ch05.fileaccess.model.plan.SalesPlanDetailToJaxb</value>
+                    <value>jp.co.ntt.fw.macchinetta.batch.functionaltest.ch05.fileaccess.model.jaxb.Customer</value>
                 </list>
             </property>
         </bean>
@@ -3212,7 +3262,7 @@ public class SalesPlanDetailToJaxb {
 
 |(2)
 |fragmentRootElementName
-|ルートエレメントとなる要素の名前を設定する。 +
+|ルート要素の名前を設定する。 +
 対象となるオブジェクトが複数ある場合には、``fragmentRootElementNames``を利用する。
 |
 |なし
@@ -3232,7 +3282,8 @@ JAXBを利用する場合は、``org.springframework.oxm.jaxb.Jaxb2Marshaller``�
 
 |(5)
 |schema
-|バリデーションにて使用するスキーマファイルを設定する。
+|バリデーションにて使用するスキーマファイルを設定する。 +
+スキーマファイルの記述例は後述する。
 |
 |
 
@@ -3250,24 +3301,91 @@ JAXBを利用する場合は、``org.springframework.oxm.jaxb.Jaxb2Marshaller``�
 |なし
 |===
 
+[source, xml]
+.スキーマファイル記述例
+----
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+    <!-- (1) -->
+    <xs:element name="customer">
+        <!-- (2) -->
+        <xs:complexType>
+            <!-- (3) -->
+            <xs:sequence>
+                <!-- (4) -->
+                <xs:element name="name" type="stringMaxSize"/>  <!-- (5) -->
+                <xs:element name="phoneNumbers" type="phoneNumberList"/>  <!-- (6) -->
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <!-- (7) -->
+    <xs:simpleType name="stringMaxSize">
+        <xs:restriction base="xs:string">
+            <xs:maxLength value="10"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- (8) -->
+    <xs:complexType name="phoneNumberList">
+        <xs:sequence>
+            <xs:element name="phone-number" minOccurs="1" maxOccurs="2"/>
+        </xs:sequence>
+    </xs:complexType>
+
+</xs:schema>
+----
+
+[cols="10,90", options="header"]
+.設定内容の項目一覧
+|===
+|項番
+|説明
+
+|(1)
+|``<xs:element>``要素の``name``属性には、入力XMLファイルのレコードにおけるルート要素を設定する。 +
+ここでは``customer``を設定する。
+
+|(2)
+|``<xs:complexType>``要素は、子要素や属性を設定する。
+
+|(3)
+|``<xs:sequence>``要素は、子要素の出現順序を設定する。 +
+ここでは、``name``、``phoneNumbers``の順で出現することを設定する。
+
+|(4)
+|``<xs:element>``要素は、子要素の属性名や属性値のデータ型などを設定する。
+
+|(5)
+|子要素``name``に(7)の制約を設定する。
+
+|(6)
+|子要素``phoneNumbers``に(8)の制約を設定する。
+
+|(7)
+|``<xs:simpleType>``要素は、整数値の範囲や文字列の長さといった制約を設定することができる。 +
+ここでは、文字列の長さの最大値は10という制約を設定する。
+
+|(8)
+|``phoneNumbers``要素の子要素である``phone-number``要素に制約を設定する。 +
+ここでは、最低出現回数が1回、最高出現回数が2回という制約を設定する。
+|===
+
 [source, java]
 .ValidationEventHandlerの実装例
 ----
 @Component
 // (1)
-public class SalesPlanDetailValidationEventHandler implements ValidationEventHandler {
+public class CustomerValidationEventHandler implements ValidationEventHandler {
     /**
      * Logger.
      */
-    private static final Logger logger =
-            LoggerFactory.getLogger(SalesPlanDetailValidationEventHandler.class);
+    private static final Logger logger = LoggerFactory.getLogger(CustomerValidationEventHandler.class);
 
     @Override
     public boolean handleEvent(ValidationEvent event) {
         // (2)
-        logger.error("[EVENT [SEVERITY:{}] [MESSAGE:{}] [LINKED EXCEPTION:{}]" +
-                " [LOCATOR: [LINE NUMBER:{}] [COLUMN NUMBER:{}] [OFFSET:{}]" +
-                " [OBJECT:{}] [NODE:{}] [URL:{}] ] ]",
+        logger.error("[EVENT [SEVERITY:{}] [MESSAGE:{}] [LINKED EXCEPTION:{}] [LOCATOR: " +
+                "[LINE NUMBER:{}] [COLUMN NUMBER:{}] [OFFSET:{}] [OBJECT:{}] [NODE:{}] [URL:{}] ] ]",
                 event.getSeverity(),
                 event.getMessage(),
                 event.getLinkedException(),
@@ -3277,7 +3395,7 @@ public class SalesPlanDetailValidationEventHandler implements ValidationEventHan
                 event.getLocator().getObject(),
                 event.getLocator().getNode(),
                 event.getLocator().getURL());
-        return false;  // (3)
+        return false; // (3)
     }
 }
 ----
@@ -3326,7 +3444,7 @@ XMLファイルの出力には{SB}が提供する``org.springframework.batch.ite
 ``StaxEventItemWriter``は以下の要領で定義する。
 
 * 変換対象クラスに以下の設定を行う
-** XMLのルートエレメントとなるためクラスに``@XmlRootElement``を付与する
+** XMLのルート要素となる変換対象クラスに``@XmlRootElement``を付与する
 ** ``@XmlType``アノテーションを使用してフィールドを出力する順番を設定する
 ** XMLへの変換対象外とするフィールドがある場合、対象フィールドのgetterに``@XmlTransient``アノテーションを付与する
 
@@ -3433,8 +3551,8 @@ public class CustomerToJaxb {
 |説明
 
 |(1)
-|XML のルートタグとするため、``@XmlRootElement``アノテーションを付与する。 +
-タグの名前に``Customer``を設定している。
+|``@XmlRootElement``アノテーションで``Customer``要素をルート要素としてXML要素にマップする。 +
+``name``属性には、``Customer``を設定する。
 
 |(2)
 |``@XmlType``アノテーションを使用してフィールドを出力する順番を設定する。
@@ -3495,7 +3613,7 @@ icon:warning[] {SB}が提供するコンポーネントの文字コードのデ�
 
 |(3)
 |rootTagName
-|XMLのルートタグを設定する。
+|ルート要素の名前を設定する。
 |
 |
 
@@ -3557,7 +3675,7 @@ Spring Frameworkが提供するライブラリであるSpring Object/XML Marshal
 ヘッダの出力は、``headerCallback``、フッタの出力は、``footerCallback``に``StaxWriterCallback``の実装を設定する。
 
 以下に出力されるファイルの例を示す。 +
-ヘッダはルートエレメント開始タグの直後、フッタはルートエレメント終了タグの直前に出力される。
+ヘッダはルート要素の開始タグ直後、フッタはルート要素の終了タグ直前に出力される。
 
 [source, xml]
 .出力ファイル例

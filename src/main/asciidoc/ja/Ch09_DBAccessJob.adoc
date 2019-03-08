@@ -235,7 +235,7 @@ DTOクラスはテーブルごとに作成する。
 チャンクモデル/タスクレットモデルで共通して利用するため、既に作成している場合は読み飛ばしてよい。
 
 [source, java]
-.com.example.batch.tutorial.common.dto.MemberInfoDTO
+.com.example.batch.tutorial.common.dto.MemberInfoDto
 ----
 package com.example.batch.tutorial.common.dto;
 
@@ -315,9 +315,9 @@ MyBatisを利用してデータベースアクセスするための実装・設�
 チャンクモデル/タスクレットモデルで共通して利用するため、既に作成している場合は読み飛ばしてよい。
 
 [[Ch09_Impl_DBAccessJob_Chunk_MyBatis_Repository]]
-==== Repositoryインターフェースの実装
-MapperXMLファイルに定義したSQLを呼び出すためのインターフェースを実装する。 +
-このインターフェースに対する実装クラスは、MyBatisが自動で生成するため、開発者はインターフェースのみ作成すればよい。
+==== Repositoryインタフェースの実装
+MapperXMLファイルに定義したSQLを呼び出すためのインタフェースを実装する。 +
+このインタフェースに対する実装クラスは、MyBatisが自動で生成するため、開発者はインタフェースのみ作成すればよい。
 
 [source, java]
 .com.example.batch.tutorial.common.repository.MemberInfoRepository
@@ -325,10 +325,10 @@ MapperXMLファイルに定義したSQLを呼び出すためのインターフ�
 package com.example.batch.tutorial.common.repository;
 
 import com.example.batch.tutorial.common.dto.MemberInfoDto;
-import java.util.List;
+import org.apache.ibatis.cursor.Cursor;
 
 public interface MemberInfoRepository {
-  List<MemberInfoDto> findAll(); // (1)
+  Cursor<MemberInfoDto> cursor(); // (1)
 
   int updatePointAndStatus(MemberInfoDto memberInfo); // (2)
 }
@@ -352,10 +352,10 @@ public interface MemberInfoRepository {
 [[Ch09_Impl_DBAccessJob_Chunk_MyBatis_MapperXML]]
 ==== MapperXMLファイルの作成
 SQLとO/Rマッピングの設定を記載するMapperXMLファイルを作成する。 +
-MapperXMLファイルは、Repositoryインターフェースごとに作成する。
+MapperXMLファイルは、Repositoryインタフェースごとに作成する。
 
 MyBatisが定めたルールに則ったディレクトリに格納することで、自動的にMapperXMLファイルを読み込むことができる。
-MapperXMLファイルを自動的に読み込ませるために、Repositoryインターフェースのパッケージ階層と同じ階層のディレクトリにMapperXMLファイルを格納する。
+MapperXMLファイルを自動的に読み込ませるために、Repositoryインタフェースのパッケージ階層と同じ階層のディレクトリにMapperXMLファイルを格納する。
 
 [source, xml]
 .src/main/resources/com/example/batch/tutorial/common/repository/MemberInfoRepository.xml
@@ -368,7 +368,7 @@ MapperXMLファイルを自動的に読み込ませるために、Repositoryイ�
 <mapper namespace="com.example.batch.tutorial.common.repository.MemberInfoRepository">
 
     <!-- (2) -->
-    <select id="findAll" resultType="com.example.batch.tutorial.common.dto.MemberInfoDto">
+    <select id="cursor" resultType="com.example.batch.tutorial.common.dto.MemberInfoDto">
         SELECT
             id,
             type,
@@ -400,7 +400,7 @@ MapperXMLファイルを自動的に読み込ませるために、Repositoryイ�
 |説明
 
 |(1)
-|mapper要素のnamespace属性に、Repositoryインターフェースの完全修飾クラス名(FQCN)を指定する。
+|mapper要素のnamespace属性に、Repositoryインタフェースの完全修飾クラス名(FQCN)を指定する。
 
 |(2)
 |参照系のSQLの設定を行う。 +
@@ -442,7 +442,7 @@ MyBatisによるデータベースアクセスするための設定として、�
     <!-- (2) -->
     <bean id="reader"
           class="org.mybatis.spring.batch.MyBatisCursorItemReader"
-          p:queryId="com.example.batch.tutorial.common.repository.MemberInfoRepository.findAll"
+          p:queryId="com.example.batch.tutorial.common.repository.MemberInfoRepository.cursor"
           p:sqlSessionFactory-ref="jobSqlSessionFactory"/>
 
     <!-- (3) -->
@@ -460,8 +460,8 @@ MyBatisによるデータベースアクセスするための設定として、�
 |説明
 
 |(1)
-|Repositoryインターフェースをスキャンするための設定を行う。 +
-``base-package``属性に、Repositoryインターフェースが格納されている基底パッケージを指定する。
+|Repositoryインタフェースをスキャンするための設定を行う。 +
+``base-package``属性に、Repositoryインタフェースが格納されている基底パッケージを指定する。
 
 |(2)
 |ItemReaderの設定を行う。 +
@@ -480,9 +480,9 @@ MyBatisによるデータベースアクセスするための設定として、�
 [NOTE]
 .ItemReader・ItemWriter以外のデータベースアクセス
 ====
-ItemReader・ItemWriter以外でデータベースアクセスする方法として、Mapperインターフェースを利用する方法がある。
-Mapperインターフェースを利用するにあたっては、{batch5_shortname}として制約を設けているため、
-<<Ch05_DBAccess.adoc#Ch05_DBAccess_HowToUse_Input_MapperInterface,Mapperインターフェース(入力)>>、<<Ch05_DBAccess.adoc#Ch05_DBAccess_HowToUse_Output_MapperInterface,Mapperインターフェース(出力)>>を参照してほしい。
+ItemReader・ItemWriter以外でデータベースアクセスする方法として、Mapperインタフェースを利用する方法がある。
+Mapperインタフェースを利用するにあたっては、{batch5_shortname}として制約を設けているため、
+<<Ch05_DBAccess.adoc#Ch05_DBAccess_HowToUse_Input_MapperInterface,Mapperインタフェース(入力)>>、<<Ch05_DBAccess.adoc#Ch05_DBAccess_HowToUse_Output_MapperInterface,Mapperインタフェース(出力)>>を参照してほしい。
 ItemProcessorの実装例は、<<Ch05_DBAccess.adoc#Ch05_DBAccess_HowToUse_Input_MapperInterface_Chunk,チャンクモデルにおける利用方法>>(入力)、
 <<Ch05_DBAccess.adoc#Ch05_DBAccess_HowToUse_Output_MapperInterface_Chunk,チャンクモデルにおける利用方法>>(出力)を参照のこと。
 ====
@@ -498,7 +498,7 @@ ItemProcessorの実装例は、<<Ch05_DBAccess.adoc#Ch05_DBAccess_HowToUse_Input
 
 [[Ch09_Impl_DBAccessJob_Chunk_Logic_ItemProcessor]]
 ==== PointAddItemProcessorクラスの実装
-ItemProcessorインターフェースを実装したPointAddItemProcessorクラスを実装する。
+ItemProcessorインタフェースを実装したPointAddItemProcessorクラスを実装する。
 
 [source, java]
 .com.example.batch.tutorial.dbaccess.chunk.PointAddItemProcessor
@@ -553,8 +553,8 @@ public class PointAddItemProcessor implements ItemProcessor<MemberInfoDto, Membe
 |コンポーネントスキャンの対象とするため、``@Component``アノテーションを付与してBean定義を行う。
 
 |(2)
-|入出力で使用するオブジェクトの型をそれぞれ型引数に指定した``ItemProcessor``インターフェースを実装する。 +
-ここでは、入出力で使用するオブジェクトは共に<<Ch09_Impl_DBAccessJob_Chunk_Dto>>で作成した``MemberInfoDTO``を指定する。
+|入出力で使用するオブジェクトの型をそれぞれ型引数に指定した``ItemProcessor``インタフェースを実装する。 +
+ここでは、入出力で使用するオブジェクトは共に<<Ch09_Impl_DBAccessJob_Chunk_Dto>>で作成した``MemberInfoDto``を指定する。
 
 |(3)
 |定数として、ポイント加算対象とする商品購入フラグ:1を定義する。 +
@@ -577,12 +577,12 @@ public class PointAddItemProcessor implements ItemProcessor<MemberInfoDto, Membe
 |商品購入フラグおよび、会員種別に応じてポイント加算するビジネスロジックを実装する。
 
 |(9)
-|返り値の型は、このクラスで実装している``ItemProcessor``インターフェースの型引数で指定した
-出力オブジェクトの型である``MemberInfoDTO``とする。
+|返り値の型は、このクラスで実装している``ItemProcessor``インタフェースの型引数で指定した
+出力オブジェクトの型である``MemberInfoDto``とする。
 
 |(10)
 |引数として受け取る``item``の型は、
-このクラスで実装している``ItemProcessor``インターフェースの型引数で指定した入力オブジェクトの型である``MemberInfoDTO``とする。
+このクラスで実装している``ItemProcessor``インタフェースの型引数で指定した入力オブジェクトの型である``MemberInfoDto``とする。
 
 |===
 
@@ -613,7 +613,7 @@ public class PointAddItemProcessor implements ItemProcessor<MemberInfoDto, Membe
 
     <bean id="reader"
           class="org.mybatis.spring.batch.MyBatisCursorItemReader"
-          p:queryId="com.example.batch.tutorial.common.repository.MemberInfoRepository.findAll"
+          p:queryId="com.example.batch.tutorial.common.repository.MemberInfoRepository.cursor"
           p:sqlSessionFactory-ref="jobSqlSessionFactory"/>
 
     <bean id="writer" class="org.mybatis.spring.batch.MyBatisBatchItemWriter"
@@ -742,7 +742,7 @@ Bean定義ファイルにて、タスクレットモデルでデータベース�
 ここでは、Bean定義ファイルの枠および共通的な設定のみ記述し、以降の項で各構成要素の設定を行う。
 
 [source, xml]
-.src/main/resources/META-INF/jobs/dbaccess/jobPointAddtasklet.xml
+.src/main/resources/META-INF/jobs/dbaccess/jobPointAddTasklet.xml
 ----
 <?xml version="1.0" encoding="UTF-8"?>
 <beans xmlns="http://www.springframework.org/schema/beans"
@@ -787,7 +787,7 @@ DTOクラスはテーブルごとに作成する。
 チャンクモデル/タスクレットモデルで共通して利用するため、既に作成している場合は読み飛ばしてよい。
 
 [source, java]
-.com.example.batch.tutorial.common.dto.MemberInfoDTO
+.com.example.batch.tutorial.common.dto.MemberInfoDto
 ----
 package com.example.batch.tutorial.common.dto;
 
@@ -867,9 +867,9 @@ MyBatisを利用してデータベースアクセスするための実装・設�
 チャンクモデル/タスクレットモデルで共通して利用するため、既に作成している場合は読み飛ばしてよい。
 
 [[Ch09_Impl_DBAccessJob_Tasklet_MyBatis_Repository]]
-==== Repositoryインターフェースの実装
-MapperXMLファイルに定義したSQLを呼び出すためのインターフェースを作成する。 +
-このインターフェースに対する実装クラスは、MyBatisが自動で生成するため、開発者はインターフェースのみ作成すればよい。
+==== Repositoryインタフェースの実装
+MapperXMLファイルに定義したSQLを呼び出すためのインタフェースを作成する。 +
+このインタフェースに対する実装クラスは、MyBatisが自動で生成するため、開発者はインタフェースのみ作成すればよい。
 
 [source, java]
 .com.example.batch.tutorial.common.repository.MemberInfoRepository
@@ -877,10 +877,10 @@ MapperXMLファイルに定義したSQLを呼び出すためのインターフ�
 package com.example.batch.tutorial.common.repository;
 
 import com.example.batch.tutorial.common.dto.MemberInfoDto;
-import java.util.List;
+import org.apache.ibatis.cursor.Cursor;
 
 public interface MemberInfoRepository {
-    List<MemberInfoDto> findAll(); // (1)
+    Cursor<MemberInfoDto> cursor(); // (1)
 
     int updatePointAndStatus(MemberInfoDto memberInfo); // (2)
 }
@@ -904,10 +904,10 @@ public interface MemberInfoRepository {
 [[Ch09_Impl_DBAccessJob_Tasklet_MyBatis_MapperXML]]
 ==== MapperXMLファイルの作成
 SQLとO/Rマッピングの設定を記載するMapperXMLファイルを作成する。 +
-MapperXMLファイルは、Repositoryインターフェースごとに作成する。
+MapperXMLファイルは、Repositoryインタフェースごとに作成する。
 
 MyBatisが定めたルールに則ったディレクトリに格納することで、自動的にMapperXMLファイルを読み込むことができる。
-MapperXMLファイルを自動的に読み込ませるために、Repositoryインターフェースのパッケージ階層と同じ階層のディレクトリにMapperXMLファイルを格納する。
+MapperXMLファイルを自動的に読み込ませるために、Repositoryインタフェースのパッケージ階層と同じ階層のディレクトリにMapperXMLファイルを格納する。
 
 [source, xml]
 .src/main/resources/com/example/batch/tutorial/common/repository/MemberInfoRepository.xml
@@ -920,7 +920,7 @@ MapperXMLファイルを自動的に読み込ませるために、Repositoryイ�
 <mapper namespace="com.example.batch.tutorial.common.repository.MemberInfoRepository">
 
     <!-- (2) -->
-    <select id="findAll" resultType="com.example.batch.tutorial.common.dto.MemberInfoDto">
+    <select id="cursor" resultType="com.example.batch.tutorial.common.dto.MemberInfoDto">
         SELECT
             id,
             type,
@@ -952,7 +952,7 @@ MapperXMLファイルを自動的に読み込ませるために、Repositoryイ�
 |説明
 
 |(1)
-|mapper要素のnamespace属性に、Repositoryインターフェースの完全修飾クラス名(FQCN)を指定する。
+|mapper要素のnamespace属性に、Repositoryインタフェースの完全修飾クラス名(FQCN)を指定する。
 
 |(2)
 |参照系のSQLの定義を行う。 +
@@ -994,7 +994,7 @@ MyBatisによるデータベースアクセスするための設定として、�
     <!-- (2) -->
     <bean id="reader"
           class="org.mybatis.spring.batch.MyBatisCursorItemReader"
-          p:queryId="com.example.batch.tutorial.common.repository.MemberInfoRepository.findAll"
+          p:queryId="com.example.batch.tutorial.common.repository.MemberInfoRepository.cursor"
           p:sqlSessionFactory-ref="jobSqlSessionFactory"/>
 
     <!-- (3) -->
@@ -1012,8 +1012,8 @@ MyBatisによるデータベースアクセスするための設定として、�
 |説明
 
 |(1)
-|Repositoryインターフェースをスキャンするための設定を行う。 +
-``base-package``属性に、Repositoryインターフェースが格納されている基底パッケージを指定する。
+|Repositoryインタフェースをスキャンするための設定を行う。 +
+``base-package``属性に、Repositoryインタフェースが格納されている基底パッケージを指定する。
 
 |(2)
 |ItemReaderの設定を行う。 +
@@ -1040,9 +1040,9 @@ Tasklet実装の中でチャンクモデルの各種コンポーネントを利�
 [NOTE]
 .ItemReader・ItemWriter以外のデータベースアクセス
 ====
-ItemReader・ItemWriter以外でデータベースアクセスする方法として、Mapperインターフェースを利用する方法がある。
-Mapperインターフェースを利用するにあたっては、{batch5_shortname}として制約を設けているため、
-<<Ch05_DBAccess.adoc#Ch05_DBAccess_HowToUse_Input_MapperInterface,Mapperインターフェース(入力)>>、<<Ch05_DBAccess.adoc#Ch05_DBAccess_HowToUse_Output_MapperInterface,Mapperインターフェース(出力)>>を参照してほしい。
+ItemReader・ItemWriter以外でデータベースアクセスする方法として、Mapperインタフェースを利用する方法がある。
+Mapperインタフェースを利用するにあたっては、{batch5_shortname}として制約を設けているため、
+<<Ch05_DBAccess.adoc#Ch05_DBAccess_HowToUse_Input_MapperInterface,Mapperインタフェース(入力)>>、<<Ch05_DBAccess.adoc#Ch05_DBAccess_HowToUse_Output_MapperInterface,Mapperインタフェース(出力)>>を参照してほしい。
 Taskletの実装例は、<<Ch05_DBAccess.adoc#Ch05_DBAccess_HowToUse_Input_MapperInterface_Tasklet,タスクレットモデルにおける利用方法>>(入力)、
 <<Ch05_DBAccess.adoc#Ch05_DBAccess_HowToUse_Output_MapperInterface_Tasklet,タスクレットモデルにおける利用方法>>(出力)を参照のこと。
 ====
@@ -1058,7 +1058,7 @@ Taskletの実装例は、<<Ch05_DBAccess.adoc#Ch05_DBAccess_HowToUse_Input_Mappe
 
 [[Ch09_Impl_DBAccessJob_Tasklet_Logic_Tasklet]]
 ==== PointAddTaskletクラスの実装
-Taskletインターフェースを実装したPointAddTaskletクラスを実装する。
+Taskletインタフェースを実装したPointAddTaskletクラスを実装する。
 
 [source, java]
 .com.example.batch.tutorial.dbaccess.tasklet.PointAddTasklet
@@ -1175,7 +1175,7 @@ public class PointAddTasklet implements Tasklet {
 |``@Inject``アノテーションを付与して、``ItemStreamReader/ItemWriter``の実装をインジェクションする。
 
 |(9)
-|データベースアクセスするために``ItemReader``のサブインターフェースである、``ItemStreamReader``として型を定義する。 +
+|データベースアクセスするために``ItemReader``のサブインタフェースである、``ItemStreamReader``として型を定義する。 +
 ``ItemStreamReader``はリソースのオープン/クローズを実行する必要がある。
 
 |(10)
@@ -1245,7 +1245,7 @@ public class PointAddTasklet implements Tasklet {
 
     <bean id="reader"
           class="org.mybatis.spring.batch.MyBatisCursorItemReader"
-          p:queryId="com.example.batch.tutorial.common.repository.MemberInfoRepository.findAll"
+          p:queryId="com.example.batch.tutorial.common.repository.MemberInfoRepository.cursor"
           p:sqlSessionFactory-ref="jobSqlSessionFactory"/>
 
     <bean id="writer" class="org.mybatis.spring.batch.MyBatisBatchItemWriter"

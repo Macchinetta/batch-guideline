@@ -67,7 +67,7 @@ image::Ch02_SpringBatchArchitecture_Overview_MainComponents.png[{SB} Main Compon
 Stepは、チャンクモデルまたはタスクレットモデル(これらについては後述する)のいずれかで実装する。
 
 |JobLauncher
-|Jobを起動するためのインターフェース。 +
+|Jobを起動するためのインタフェース。 +
 JobLauncherをユーザが直接利用することも可能だが、javaコマンドから +
 ``CommandLineJobRunner``を起動することでより簡単にバッチ処理を開始できる。
 ``CommandLineJobRunner``は、JobLauncherを起動するための各種処理を引き受けてくれる。
@@ -75,10 +75,10 @@ JobLauncherをユーザが直接利用することも可能だが、javaコマ�
 |ItemReader +
 ItemProcessor +
 ItemWriter
-|チャンクモデルを実装する際に、データの入力/加工/出力の3つに分割するためのインターフェース。 +
+|チャンクモデルを実装する際に、データの入力/加工/出力の3つに分割するためのインタフェース。 +
 バッチアプリケーションは、この3パターンの処理で構成されることが多いことに由来し、
 {SB}では主にチャンクモデルで +
-これらインターフェースの実装を活用する。
+これらインタフェースの実装を活用する。
 ユーザはビジネスロジックをそれぞれの役割に応じて分割して記述する。 +
 データの入出力を担うItemReaderとItemWriterは、データベースやファイルからJavaオブジェクトへの変換、もしくはその逆の処理であることが多い。
 そのため、{SB}から標準的な実装が提供されている。
@@ -86,7 +86,7 @@ ItemWriter
 {SB}の標準実装をそのまま使用するだけで要件を満たせるケースもある。 +
 データの加工を担うItemProcessorは、入力チェックやビジネスロジックを実装する。
 
-タスクレットモデルでは、ItemReader/ItemProcessor/ItemWriterが、1つのTaskletインターフェース実装に置き換わる。Tasklet内に入出力、入力チェック、ビジネスロジックのすべてを実装する必要がある。
+タスクレットモデルでは、ItemReader/ItemProcessor/ItemWriterが、1つのTaskletインタフェース実装に置き換わる。Tasklet内に入出力、入力チェック、ビジネスロジックのすべてを実装する必要がある。
 |JobRepository
 |JobやStepの状況を管理する機構。これらの管理情報は、{SB}が規定するテーブルスキーマを元にデータベース上に永続化される。
 |===
@@ -165,11 +165,10 @@ StepExecutionContextに格納するオブジェクトは、``java.io.Serializabl
 
 |JobRepository
 |JobExecutionやStepExecutionなどのバッチアプリケーション実行結果や状態を管理するためのデータを管理、永続化する機能を提供する。 +
-一般的なバッチアプリケーションはJavaプロセスを起動することで処理が開始し、処理の終了ともにJavaプロセスも終了させるケースが多い。
+一般的なバッチアプリケーションはJavaプロセスを起動することで処理が開始し、処理の終了とともにJavaプロセスも終了させるケースが多い。
 そのためこれらのデータはJavaプロセスを跨いで参照される可能性があることから、揮発性なメモリ上だけではなくデータベースなどの永続層へ格納する。
 データベースに格納する場合は、JobExecutionやStepExecutionを格納するためのテーブルやシーケンスなどのデータベースオブジェクトが必要になる。 +
-{SB} が提供するスキーマ情報を元に +
-データベースオブジェクトを生成する必要がある。
+{SB} が提供するスキーマ情報を元にデータベースオブジェクトを生成する必要がある。
 
 |===
 
@@ -180,49 +179,58 @@ StepExecutionContextに格納するオブジェクトは、``java.io.Serializabl
 === Jobの起動
 Jobをどのように起動するかについて説明する。
 
-Javaプロセス起動直後にバッチ処理を開始し、バッチ処理が完了後にJavaプロセスを終了するケースを考える。
-下図にJavaプロセス起動からバッチ処理を開始までについて処理の流れを示す。
+Javaプロセス起動直後にバッチ処理を開始し、バッチ処理完了後にJavaプロセスを終了するケースを考える。
+{SB}上で定義されたJobを開始するには、Javaを起動するシェルスクリプトを記述するのが一般的である。
+また、{SB}が提供するCommandLineJobRunnerを使用することで、ユーザが定義した{SB}上のJobを簡単に起動することができる。
 
-.Javaプロセス起動からバッチ処理を開始までの処理の流れ
+下図にJavaプロセス起動からバッチ処理開始までの流れを示す。
+
+.Javaプロセス起動からバッチ処理開始までの流れ
 image::ch02/SpringBatchArchitecture/Ch02_SpringBatchArchitecture_Architecture_LaunchFlow.png[Job Launch Flow]
 
-.Javaプロセスの起動とJobの開始
-Javaプロセス起動と同時に、{SB}上で定義されたJobを開始するためには、Javaを起動するシェルスクリプトを記述するのが一般的である。
-{SB}が提供するCommandLineJobRunnerを使用すると、ユーザが定義した{SB}上のJobを簡単に起動することができる。
+Javaプロセス起動からバッチ処理開始までの流れについて説明する。
+
+.Javaプロセス起動からバッチ処理開始までの流れ
+. シェルスクリプトからジョブを起動するためにCommandLineJobRunnerを起動する。 +
+* CommandLineJobRunnerは起動するJob名だけでなく、引数(ジョブパラメータ)を渡すことも可能であり、引数は``<Job引数名>=<値>``の形式で指定する。
+. CommandLineJobRunnerはJobLauncherを起動する。
+. JobLauncherはJobRepositoryからJob名と引数に合致するJobInstanceをデータベースから取得する。
+* 該当するJobInstanceが存在しない場合は、JobInstanceを新規登録する。
+* 該当するJobInstanceが存在した場合は、紐付いているJobExecutionを復元する。
+* {SB}では日次実行など繰り返して起動する可能性のあるJobに対しては、JobExecutionをユニークにするためだけの引数を追加する方法がとられている。
+たとえば、システム時刻であったり、乱数を引数に追加する方法が挙げられる。 +
+本ガイドラインで推奨している方法については<<Ch04_JobParameter.adoc#Ch04_JobParameter_HowToUse_Converter,パラメータ変換クラスについて>>を参照。
+. JobLauncherはJobExecutionを生成する。
+. JobLauncherはExecutionContextおよびJobParametersを登録する。
+* CommandLineJobRunnerに渡されたすべての引数はCommandLineJobRunnerおよびJobLauncherが解釈とチェックを行なったうえで、JobExecutionへJobParametersに変換して格納される。詳細は<<Ch04_JobParameter.adoc#Ch04_JobParameter,ジョブの起動パラメータ>>を参照のこと。
+. JobLauncherはjobを実行する。
 
 CommandLineJobRunnerを使用したジョブの起動コマンドは以下のとおりである。
 
 [source,sh]
 .XMLによるBean定義を行った場合の起動コマンド
 ----
-java -cp ${CLASSPATH} org.springframework.batch.core.launch.support.CommandLineJobRunner <jobPath> <jobName> <JobArgumentName1>=<value1> <JobArgumentName2>=<value2> ...
+$ java -cp ${CLASSPATH} org.springframework.batch.core.launch.support.CommandLineJobRunner <jobPath> <jobName> <JobArgumentName1>=<value1> <JobArgumentName2>=<value2> ...
 ----
-
-.ジョブパラメータの指定
-CommandLineJobRunnerは起動するJob名だけでなく、引数(ジョブパラメータ)を渡すことも可能である。
-引数は前述した例のように、``<Job引数名>=<値>``の形式で指定する。
-すべての引数はCommandLineJobRunnerやJobLauncherが解釈とチェックを行なったうえで、JobExecutionへJobParametersに変換して格納する。
-詳細は<<Ch04_JobParameter.adoc#Ch04_JobParameter,ジョブの起動パラメータ>>を参照のこと。
-
-.JobInstanceの登録と復元
-JobLauncherがJobRepositoryからJob名と引数に合致するJobInstanceをデータベースから取得する。
-
-* 該当するJobInstanceが存在しない場合は、JobInstanceを新規登録する。
-* 該当するJobInstanceが存在した場合は、紐付いているJobExecutionを復元する。 +
-** {SB}では日次実行など繰り返して起動する可能性のあるJobに対しては、JobInstanceをユニークにするためだけの引数を追加する方法がとられている。
-たとえば、システム時刻であったり、乱数を引数に追加する方法が挙げられる。 +
-本ガイドラインで推奨している方法については<<Ch04_JobParameter.adoc#Ch04_JobParameter_HowToUse_Converter,パラメータ変換クラスについて>>を参照。
 
 [[Ch02_SpringBatchArch_Arch_BusinessLogic]]
 === ビジネスロジックの実行
 {SB}では、JobをStepと呼ぶさらに細かい単位に分割する。
-Jobが起動すると、Jobは自身に登録されているStepを起動し、StepExecutionを生成する。
+Jobが起動すると、StepExecutionを生成し、Jobは自身に登録されているStepを起動する。
 Stepはあくまで処理を分割するための枠組みであり、ビジネスロジックの実行はStepから呼び出されるTaskletに任されている。
 
 StepからTaskletへの流れを以下に示す。
 
-.StepからTaskletへの処理の流れ
+.StepからTaskletへの流れ
 image::ch02/SpringBatchArchitecture/Ch02_SpringBatchArchitecture_Architecture_StepTaskletFlow.png[Step-Tasklet Flow]
+
+StepからTaskletへの流れについて説明する。
+
+.StepからTaskletへの流れ
+. JobはStepExecutionを生成する。
+. JobはExecutionContextを登録する。
+. JobはStepを実行する。
+. StepはTaskletを実行する。
 
 Taskletの実装方法には「チャンクモデル」と「タスクレットモデル」の2つの方式がある。
 概要についてはすでに説明しているため、ここではその構造について説明する。
@@ -232,7 +240,7 @@ Taskletの実装方法には「チャンクモデル」と「タスクレット�
 前述したようにチャンクモデルとは、処理対象となるデータを1件ずつ処理するのではなく、一定数の塊(チャンク)を単位として処理を行う方式である。
 ChunkOrientedTaskletがチャンク処理をサポートしたTaskletの具象クラスとなる。
 このクラスがもつcommit-intervalという設定値により、チャンクに含めるデータの最大件数(以降、「チャンク数」と呼ぶ)を調整することができる。
-ItemReader、ItemProcessor、ItemWriterは、いずれもチャンク処理を前提としたインターフェースとなっている。
+ItemReader、ItemProcessor、ItemWriterは、いずれもチャンク処理を前提としたインタフェースとなっている。
 
 次に、ChunkOrientedTasklet がどのようにItemReader、ItemProcessor、ItemWriterを呼び出しているかを説明する。
 
@@ -246,10 +254,10 @@ ChunkOrientedTaskletは、チャンク数分だけItemReaderおよびItemProcess
 データの更新処理がチャンクに対して1回呼び出されるように設計されているのは、JDBCのaddBatch、executeBatchのようにI/Oをまとめやすくするためである。
 
 次に、チャンク処理において実際の処理を担うItemReader、ItemProcessor、ItemWriterについて紹介する。
-各インターフェースともユーザが独自に実装を行うことが想定されているが、{SB}が提供する汎用的な具象クラスでまかなうことができる場合がある。
+各インタフェースともユーザが独自に実装を行うことが想定されているが、{SB}が提供する汎用的な具象クラスでまかなうことができる場合がある。
 
 特にItemProcessorはビジネスロジックそのものが記述されることが多いため、{SB}からは具象クラスがあまり提供されていない。
-ビジネスロジックを記述する場合はItemProcessorインターフェースを実装する。
+ビジネスロジックを記述する場合はItemProcessorインタフェースを実装する。
 ItemProcessorはタイプセーフなプログラミングが可能になるよう、入出力で使用するオブジェクトの型をそれぞれ型引数に指定できるようになっている。
 
 以下に簡単なItemProcessorの実装例を示す。
@@ -277,7 +285,7 @@ public class MyItemProcessor implements
 |説明
 
 |(1)
-|入出力で使用するオブジェクトの型をそれぞれ型引数に指定したItemProcessorインターフェースを実装する。
+|入出力で使用するオブジェクトの型をそれぞれ型引数に指定したItemProcessorインタフェースを実装する。
 
 |(2)
 |``process``メソッドを実装する。引数のitemが入力データである。
@@ -311,33 +319,37 @@ endif::[]
 [cols=".^15,25,60", options="header"]
 .{SB}が提供するItemReader、ItemProcessor、ItemWriterの代表的な具象クラス
 |===
-|インターフェース
+|インタフェース
 |具象クラス名
 |概要
 
-.5+|ItemReader
+.7+|ItemReader
 |FlatFileItemReader
 |CSVファイルなどの、フラットファイル(非構造的なファイル)の読み込みを行う。Resourceオブジェクトをインプットとし、区切り文字やオブジェクトへのマッピングルールをカスタマイズすることができる。
 
 |StaxEventItemReader
 |XMLファイルの読み込みを行う。名前のとおり、StAXをベースとしたXMLファイルの読み込みを行う実装となっている。
 
-|JdbcPagingItemReader +
-JdbcCursorItemReader
+|JdbcCursorItemReader +
+JdbcPagingItemReader
 |JDBCを使用してSQLを実行し、データベース上のレコードを読み込む。データベース上にある大量のデータを処理する場合は、全件をメモリ上に読み込むことを避け、一度の処理に必要なデータのみの読み込み、破棄を繰り返す必要がある。 +
-JdbcPagingItemReaderはJdbcTemplateを用いてSELECT SQLをページごとに分けて発行することで実現する。一方、JdbcCursorItemReaderはJDBCのカーソルを使用することで、1回のSELECT SQLの発行で実現する。 +
-icon:warning[] {batch5_shortname}ではMyBatisを利用することを基本とする。
+JdbcPagingItemReaderはJdbcTemplateを用いてSELECT SQLをページごとに分けて発行することで実現する。一方、JdbcCursorItemReaderはJDBCのカーソルを使用することで、1回のSELECT SQLの発行で実現する。
 
 |MyBatisCursorItemReader +
 MyBatisPagingItemReader
 |MyBatisと連携してデータベース上のレコードを読み込む。MyBatisが提供しているSpring連携ライブラリMyBatis-Springから提供されている。PagingとCursorの違いについては、MyBatisを利用して実現していること以外はJdbcXXXItemReaderと同様。 +
-その他に、JPA実装やHibernateなどと連携してデータベース上のレコードを読み込むJpaPagingItemReader、HibernatePagingItemReader、
-HibernateCursorItemReaderが提供されている。
-icon:warning[] {batch5_shortname}では``MyBatisCursorItemReader``を利用することを基本とする。
+icon:warning[] {batch5_shortname}では、データベースを参照する際には``MyBatisCursorItemReader``を利用することを基本とする。
 
 |JmsItemReader +
 AmqpItemReader
 |JMSやAMQPからメッセージを受信し、その中に含まれるデータの読み込みを行う。
+
+|JpaPagingItemReader
+|JPA実装と連携してデータベース上のレコードを読み込む。
+
+|HibernateCursorItemReader +
+HibernatePagingItemReader
+|Hibernateと連携してデータベース上のレコードを読み込む。
 
 .3+|ItemProcessor
 |PassThroughItemProcessor
@@ -354,7 +366,7 @@ icon:warning[] {batch5_shortname}ではValidatingItemProcessorの利用は禁止
 |CompositeItemProcessor
 |同一の入力データに対し、複数のItemProcessorを逐次的に実行する。ValidatingItemProcessorによる入力チェックの後にビジネスロジックを実行したい場合などに有効。
 
-.5+|ItemWriter
+.7+|ItemWriter
 |FlatFileItemWriter
 |処理済みのJavaオブジェクトを、CSVファイルなどのフラットファイルとして書き込みを行う。区切り文字やオブジェクトからファイル行へのマッピングルールをカスタマイズできる。
 
@@ -365,12 +377,19 @@ icon:warning[] {batch5_shortname}ではValidatingItemProcessorの利用は禁止
 |JDBCを使用してSQLを実行し、処理済みのJavaオブジェクトをデータベースへ出力する。内部ではJdbcTemplateが使用されている。
 
 |MyBatisBatchItemWriter
-|MyBatisと連携して、処理済みのJavaオブジェクトをデータベースへ出力する。MyBatisが提供しているSpring連携ライブラリMyBatis-Springから提供されている。 +
-icon:warning[] {batch5_shortname}では、JPA実装やHibernate向けのJpaItemWriter、HibernateItemWriterは利用しない。
+|MyBatisと連携して、処理済みのJavaオブジェクトをデータベースへ出力する。MyBatisが提供しているSpring連携ライブラリMyBatis-Springから提供されている。
 
 |JmsItemWriter +
 AmqpItemWriter
 |処理済みのJavaオブジェクトを、JMSやAMQPでメッセージを送信する。
+
+|JpaItemWriter
+|JPA実装と連携してデータベースへの出力を行う。 +
+icon:warning[] {batch5_shortname}では、JpaItemWriterは利用しない。
+
+|HibernateItemWriter
+|Hibernateと連携してデータベースへの出力を行う。 +
+icon:warning[] {batch5_shortname}では、HibernateItemWriterは利用しない。
 
 |===
 
@@ -402,7 +421,7 @@ XMLでジョブを定義する場合は、ItemProcessorの設定を省略する�
 そのような場合には、チャンク処理によって得られる性能面のメリットが少なく、
 設計や実装を困難にするデメリットの方が大きいため、タスクレットモデルを使用するほうが合理的である。
 
-タスクレットモデルを使用する場合は、{SB}から提供されているTaskletインターフェースをユーザが実装する必要がある。
+タスクレットモデルを使用する場合は、{SB}から提供されているTaskletインタフェースをユーザが実装する必要がある。
 また、{SB}では以下の具象クラスが提供されているが、{batch5_shortname}では以降説明しない。
 
 [cols=".^30,70", options="header"]
@@ -493,11 +512,17 @@ JobRepositoryが値の更新時に、バージョン番号が変更されてい�
 
 [[Ch02_SpringBatchArch_Arch_MetadataSchema_SequenceID]]
 ==== ID(シーケンス)定義
-BATCH_JOB_INSTANCE、BATCH_JOB_EXECUTION、およびBATCH_STEP_EXECUTIONは各_IDで終わる列が含まれている。
-これらのフィールドは、それぞれのテーブル用主キーとして機能する。
-しかし、それらは、データベースで生成されたキーではなく、むしろ個別のシーケンスで生成される。
-データベースにドメインオブジェクトのいずれかを挿入した後、それが与えられたキーは、それらが一意にJavaで識別できるように、実際のオブジェクトに設定する必要なためである。 +
-データベースによってはシーケンスをサポートしていないことがある。この場合、テーブルを各シーケンスの代わりに使用している。
+BATCH_JOB_INSTANCE、BATCH_JOB_EXECUTION、およびBATCH_STEP_EXECUTIONはそれぞれ、JOB_INSTANCE_ID、JOB_EXECUTION_ID、STEP_EXECUTION_IDという列を有している。
+これらの列は、それぞれのテーブル用主キーとして機能し、個別のシーケンスによって生成される。
+これは、データベースにドメインオブジェクトの一つを挿入した後、与えられたキーをJavaで一意に識別できるように、実際のオブジェクトに設定する必要があるためである。 +
+データベースによってはシーケンスをサポートしていないことがある。この場合、以下のようにテーブルをシーケンスとして作成する。以下のクエリはいずれのデータベースでも適用できるものではないので、利用するデータベースに合わせて適宜読み替えてほしい。
+
+[source,sql]
+.テーブルをシーケンスとして作成する例
+----
+CREATE TABLE BATCH_JOB_SEQ (ID BIGINT NOT NULL);
+INSERT INTO BATCH_JOB_SEQ values(0);
+----
 
 [[Ch02_SpringBatchArch_Arch_MetadataSchema_TableDefinition]]
 ==== テーブル定義
@@ -751,7 +776,7 @@ BATCH_STEP_EXECUTION_CONTEXTテーブルは、StepのExecutionContext に関連�
 
 ファイル読み込みの効率化::
   BeanWrapperFieldSetMapperを使用すると、Beanのクラスとプロパティ名を順番に指定するだけでレコードをBeanにマッピングしてくれる。
-  しかし、内部で複雑な処理を行うため時間がかかる。マッピングを行う専用のFieldSetMapperインターフェース実装を用いることで処理時間を短縮できる可能性がある。 +
+  しかし、内部で複雑な処理を行うため時間がかかる。マッピングを行う専用のFieldSetMapperインタフェース実装を用いることで処理時間を短縮できる可能性がある。 +
   ファイル入出力の詳細は、<<Ch05_FileAccess.adoc#Ch05_FileAccess,"ファイルアクセス">>を参照。
 
 並列処理・多重処理::

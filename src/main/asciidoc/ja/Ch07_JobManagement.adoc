@@ -13,19 +13,19 @@ include::_include_all.adoc[]
 === ジョブの実行管理とは
 ジョブの起動状態や実行結果を記録しバッチシステムを維持することを指す。
 特に、異常発生時の検知や次に行うべき行動(異常終了後のリラン・リスタート等)を判断するために、必要な情報を確保することが重要である。 +
-バッチアプリケーションの特性上、起動直後にその結果をユーザインターフェースで確認できることは稀である。
+バッチアプリケーションの特性上、起動直後にその結果をユーザインタフェースで確認できることは稀である。
 よって、ジョブスケジューラ/RDBMS/アプリケーションログといった、ジョブの実行とは別に実行状態・結果の記録を行う仕組みが必要となる。
 
 [[Ch07_JobManagement_Overview_JobExecutionManagement_Function]]
 ==== {SB} が提供する機能
 
-{SB}は、ジョブの実行管理向けに以下のインターフェースを提供している。
+{SB}は、ジョブの実行管理向けに以下のインタフェースを提供している。
 
 [cols="40,60", options="header"]
 .ジョブの管理機能一覧
 |===
 |機能
-|対応するインターフェース
+|対応するインタフェース
 
 |ジョブの実行状態・結果の記録
 |``org.springframework.batch.core.repository.JobRepository``
@@ -64,6 +64,19 @@ include::_include_all.adoc[]
 とテスト用であることが示されており、また、
 ``Not suited for use in multi-threaded jobs with splits``
 と並列処理には不適切であると示されているためである。
+====
+
+[[Ch07_JobManagement_Overview_JobExecutionManagement_PerformanceImprovement]]
+[NOTE]
+.IndexによるJobRepositoryの性能改善
+====
+Indexを作成することで、``JobRepository``の性能改善が期待できる。 +
+どのSQL文のどの列に対してIndexを作成するかは、実行計画を確認するなどして適切に判断してほしい。
+{SB}のリファレンス
+http://docs.spring.io/spring-batch/trunk/reference/html/metaDataSchema.html#recommendationsForIndexingMetaDataTables[B.10 Recommendations for Indexing Meta Data Tables]
+では、{SB}が提供するDaoの実装によって、WHERE句でどの列が利用されているか、およびそれらの使用頻度を示しているので参考にするとよい。 +
+
+``JobRepository``の永続化を行う場合は、Indexを作成することを検討されたい。
 ====
 
 ジョブスケジューラを使用したジョブの実行管理については各製品のマニュアルを参照のこと。 +
@@ -661,7 +674,7 @@ public class JobExecutionLoggingListener implements JobExecutionListener {
 
 [[Ch07_JobManagement_HowToUse_Logging_Monitoring]]
 ==== ログ監視
-バッチアプリケーションは運用時のユーザインターフェースはログが主体となる。
+バッチアプリケーションは運用時のユーザインタフェースはログが主体となる。
 監視対象と発生時のアクションを明確に設計しておかないと、
 フィルタリングが困難となり、対処に必要なログが埋もれてしまう危険がある。
 このため、ログの監視対象としてキーワードとなるメッセージやコード体系をあらかじめ決めておくとよい。

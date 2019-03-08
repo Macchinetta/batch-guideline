@@ -352,11 +352,11 @@ try-catchを利用した例外ハンドリングは<<Ch09_ExceptionHandlingWithT
 データベースアクセスでデータ入出力を行うジョブの<<Ch09_DBAccessJob.adoc#Ch09_Impl_DBAccessJob_Chunk_Execution_Run,実行構成からジョブを実行>>
 で作成した実行構成を使ってジョブを実行する。
 
-異常系データを利用するために、``batch-application.proeprties``のDatabase Initializeで
+異常系データを利用するために、``batch-application.properties``のDatabase Initializeで
 正常系データのスクリプトをコメントアウトし、異常系データのスクリプトのコメントアウトを解除する。
 
 [source, xml]
-.src/main/resources/batch-application.proeprties
+.src/main/resources/batch-application.properties
 ----
 # Database Initialize
 tutorial.create-table.script=file:sqls/create-member-info-table.sql
@@ -589,11 +589,11 @@ try-catchを利用した例外ハンドリングは<<Ch09_ExceptionHandlingWithT
 データベースアクセスでデータ入出力を行うジョブの<<Ch09_DBAccessJob.adoc#Ch09_Impl_DBAccessJob_Chunk_Execution_Run,実行構成からジョブを実行>>
 で作成した実行構成を使ってジョブを実行する。
 
-異常系データを利用するために、``batch-application.proeprties``のDatabase Initializeで
+異常系データを利用するために、``batch-application.properties``のDatabase Initializeで
 正常系データのスクリプトをコメントアウトし、異常系データのスクリプトのコメントアウトを解除する。
 
 [source, xml]
-.src/main/resources/batch-application.proeprties
+.src/main/resources/batch-application.properties
 ----
 # Database Initialize
 tutorial.create-table.script=file:sqls/create-member-info-table.sql

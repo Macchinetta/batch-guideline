@@ -11,12 +11,33 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.author>NTT Corporation.</project.author>
-        <project.date>2018-3-9</project.date>
+        <project.date>2019-3-8</project.date>
         <asciidoctor.maven.plugin.version>1.5.5</asciidoctor.maven.plugin.version>
         <asciidoctorj.version>1.5.6</asciidoctorj.version>
         <asciidoctorj.diagram.version>1.5.4.1</asciidoctorj.diagram.version>
         <jruby.version>9.1.8.0</jruby.version>
     </properties>
+
+    <profiles>
+        <profile>
+            <id>ja</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <properties>
+                <image.resource>src/main/asciidoc/images/ja</image.resource>
+                <asciidoc.image.lang>ja</asciidoc.image.lang>
+            </properties>
+        </profile>
+        <profile>
+            <id>en</id>
+            <properties>
+                <image.resource>src/main/asciidoc/images/en</image.resource>
+                <asciidoc.image.lang>en</asciidoc.image.lang>
+            </properties>
+        </profile>
+    </profiles>
+
 
     <build>
         <defaultGoal>process-resources</defaultGoal>
@@ -69,6 +90,7 @@
                             <attributes>
                                 <imagesdir>${project.build.directory}/generated-docs/images</imagesdir>
                                 <icons>font</icons>
+                                <lang-dir>${asciidoc.image.lang}</lang-dir>
                             </attributes>
                         </configuration>
                     </execution>
@@ -89,6 +111,28 @@
                             <resources>
                                 <resource>
                                     <directory>src/main/asciidoc/images</directory>
+                                    <includes>
+                                        <include>**/*.png</include>
+                                    </includes>
+                                    <excludes>
+                                        <exclude>ja/**/*</exclude>
+                                        <exclude>en/**/*</exclude>
+                                    </excludes>
+                                </resource>
+                            </resources>
+                            <outputDirectory>${project.build.directory}/generated-docs/images</outputDirectory>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>copy-static-images-lang</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <resources>
+                                <resource>
+                                    <directory>${image.resource}</directory>
                                     <includes>
                                         <include>**/*.png</include>
                                     </includes>

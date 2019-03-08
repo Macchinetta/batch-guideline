@@ -279,7 +279,7 @@ Webアプリケーションにより事前にリクエストに対する入力�
 == How to use
 例外ハンドリングの実現方法について説明をする。
 
-バッチアプリケーション運用時のユーザインターフェースはログが主体である。よって、例外発生の監視もログを通じて行うことになる。
+バッチアプリケーション運用時のユーザインタフェースはログが主体である。よって、例外発生の監視もログを通じて行うことになる。
 
 {SB} では、ステップ実行時に例外が発生した場合はログを出力し異常終了するため、ユーザにて追加実装をせずとも要件を満たせる可能性がある。
 以降の説明は、ユーザにてシステムに応じたログ出力を行う必要があるときのみ、ピンポイントに実装するとよい。
@@ -294,14 +294,14 @@ Webアプリケーションにより事前にリクエストに対する入力�
 
 <<Ch06_ExceptionHandling_HowToUse_StepExceptionHandling_ChunkListener>>::
   処理モデルによらず、発生した例外を統一的にハンドリングしたい場合は、
-  <<Ch04_Listener.adoc#Ch04_Listener_Overview_Types_ChunkListener,ChunkListener>>インターフェースを利用する。 +
+  <<Ch04_Listener.adoc#Ch04_Listener_Overview_Types_ChunkListener,ChunkListener>>インタフェースを利用する。 +
   チャンクよりスコープの広い、ステップやジョブのリスナーを利用しても実現できるが、
   出来る限り発生した直後にハンドリングすることを重視し、``ChunkListener``を採用する。
 
 各処理モデルごとの例外ハンドリング方法は以下のとおり。
 
 <<Ch06_ExceptionHandling_HowToUse_StepExceptionHandling_Chunk>>::
-  {SB}提供の各種Listenerインターフェースを使用して機能を実現する。
+  {SB}提供の各種Listenerインタフェースを使用して機能を実現する。
 <<Ch06_ExceptionHandling_HowToUse_StepExceptionHandling_Tasklet>>::
   タスクレット実装内にて独自に例外ハンドリングを実装する。
 
@@ -312,7 +312,7 @@ Webアプリケーションにより事前にリクエストに対する入力�
 これは、{SB} においてビジネスロジックの実行はチャンクを基準に考えられており、
 1回のタスクレット実行は、1つのチャンク処理として扱われているためである。
 
-この点は``org.springframework.batch.core.step.tasklet.Tasklet``のインターフェースにも表れている。
+この点は``org.springframework.batch.core.step.tasklet.Tasklet``のインタフェースにも表れている。
 
 [source,java]
 ----
@@ -326,8 +326,8 @@ public interface Tasklet {
 
 
 [[Ch06_ExceptionHandling_HowToUse_StepExceptionHandling_ChunkListener]]
-==== ChunkListenerインターフェースによる例外ハンドリング
-<<Ch04_Listener.adoc#Ch04_Listener_Overview_Types_ChunkListener,ChunkListener>>インターフェースの``afterChunkError``メソッドを実装する。 +
+==== ChunkListenerインタフェースによる例外ハンドリング
+<<Ch04_Listener.adoc#Ch04_Listener_Overview_Types_ChunkListener,ChunkListener>>インタフェースの``afterChunkError``メソッドを実装する。 +
 ``afterChunkError``メソッドの引数である``ChunkContext``から``ChunkListener.ROLLBACK_EXCEPTION_KEY``をキーにしてエラー情報を取得する。
 
 リスナーの設定方法については、<<Ch04_Listener.adoc#Ch04_Listener_HowToUse_Configuration,リスナーの設定>>を参照。
@@ -377,7 +377,7 @@ public class ChunkAroundListener implements ChunkListener {
 [WARNING]
 .処理モデルの違いによるChunkListenerの挙動の違い
 ====
-チャンクモデルでは、リソースのオープン･クローズで発生した例外は、ChunkListenerインターフェースが捕捉するスコープ外となる。
+チャンクモデルでは、リソースのオープン･クローズで発生した例外は、ChunkListenerインタフェースが捕捉するスコープ外となる。
 そのため、afterChunkErrorメソッドでハンドリングが行われない。
 概略図を以下に示す。
 
@@ -385,7 +385,7 @@ public class ChunkAroundListener implements ChunkListener {
 image::Ch06_ExceptionHandling_DiffTimingOpenResourceByChunkModel.png[Difference in resource open timing by chunk model]
 
 
-タスクレットモデルでは、リソースのオープン･クローズで発生した例外は、ChunkListenerインターフェースが捕捉するスコープ内となる。
+タスクレットモデルでは、リソースのオープン･クローズで発生した例外は、ChunkListenerインタフェースが捕捉するスコープ内となる。
 そのため、afterChunkErrorメソッドでハンドリングが行わる。
 概略図を以下に示す。
 
@@ -393,7 +393,7 @@ image::Ch06_ExceptionHandling_DiffTimingOpenResourceByChunkModel.png[Difference 
 image::Ch06_ExceptionHandling_DiffTimingOpenResourceByTaskletModel.png[Difference in resource open timing by tasklet model]
 
 この挙動の差を吸収して統一的に例外をハンドリングしたい場合は、
-<<Ch04_Listener.adoc#Ch04_Listener_Overview_Types_StepExecutionListener,StepExecutionListener>>インターフェースで例外の発生有無をチェックすることで実現できる。
+<<Ch04_Listener.adoc#Ch04_Listener_Overview_Types_StepExecutionListener,StepExecutionListener>>インタフェースで例外の発生有無をチェックすることで実現できる。
 ただし、``ChunkListener``よりも実装が少々複雑になる。
 
 [source,java]
@@ -465,7 +465,7 @@ public class StepErrorLoggingListener implements StepExecutionListener {
 
 [[Ch06_ExceptionHandling_HowToUse_StepExceptionHandling_Chunk_ItemReader]]
 ===== コーディングポイント(ItemReader編)
-<<Ch04_Listener.adoc#Ch04_Listener_Overview_Types_ItemReadListener,ItemReadListener>>インターフェースの
+<<Ch04_Listener.adoc#Ch04_Listener_Overview_Types_ItemReadListener,ItemReadListener>>インタフェースの
 ``onReadError``メソッドを実装することで、ItemReader内で発生した例外をハンドリングする。
 
 [source, java]
@@ -508,13 +508,13 @@ public class CommonItemReadListener implements ItemReadListener<Object> {
 ItemProcessorでの例外ハンドリングには、2つの方法があり、要件に応じて使い分ける。
 
 . ItemProcessor 内でtry～catchをする方法
-. <<Ch04_Listener.adoc#Ch04_Listener_Overview_Types_ItemProcessListener,ItemProcessListener>>インターフェースを使用する方法
+. <<Ch04_Listener.adoc#Ch04_Listener_Overview_Types_ItemProcessListener,ItemProcessListener>>インタフェースを使用する方法
 
 使い分ける理由について説明する。 +
 ItemProcessorの処理内で例外発生時に実行される``onProcessError``メソッドの引数は、処理対処のアイテムと例外の2つである。 +
-システムの要件によっては、``ItemProcessListener``インターフェース内でログ出力等の例外をハンドリングする際に、この2つの引数で要件を満たせない場合が出てくる。
+システムの要件によっては、``ItemProcessListener``インタフェース内でログ出力等の例外をハンドリングする際に、この2つの引数で要件を満たせない場合が出てくる。
 その場合は、ItemProcessor内でtry～catchにて例外をcatchし例外ハンドリング処理を行うことを推奨する。 +
-注意点として、ItemProcessor内でtry～catchを実装した上で、``ItemProcessListener``インターフェースを実装すると二重処理になる場合があるため、注意が必要である。 +
+注意点として、ItemProcessor内でtry～catchを実装した上で、``ItemProcessListener``インタフェースを実装すると二重処理になる場合があるため、注意が必要である。 +
 きめ細かい例外ハンドリングを行いたい場合は、ItemProcessor内でtry～catchをする方法を採用すること。
 
 それぞれの方法について説明する。
@@ -571,7 +571,7 @@ public class AmountCheckProcessor implements
 |===
 
 
-``ItemProcessListener``インターフェースを使用する方法::
+``ItemProcessListener``インタフェースを使用する方法::
   業務例外に対するハンドリングが共通化できる場合はこちらを使用する。
 
 [source, java]
@@ -612,7 +612,7 @@ public class CommonItemProcessListener implements ItemProcessListener<Object, Ob
 
 [[Ch06_ExceptionHandling_HowToUse_StepExceptionHandling_Chunk_ItemWriter]]
 ===== コーディングポイント(ItemWriter編)
-<<Ch04_Listener.adoc#Ch04_Listener_Overview_Types_ItemWriteListener,ItemWriteListener>>インターフェースの
+<<Ch04_Listener.adoc#Ch04_Listener_Overview_Types_ItemWriteListener,ItemWriteListener>>インタフェースの
 ``onWriteError``メソッドを実装することで、ItemWriter内で発生した例外をハンドリングする。
 
 [source, java]
@@ -734,7 +734,7 @@ public class SalesPerformanceTasklet implements Tasklet {
 チャンクモデルとタスクレットモデルとで共通のハンドリング方法となる。
 
 システム例外や致命的エラー等エラーはジョブ単位に
-<<Ch04_Listener.adoc#Ch04_Listener_Overview_Types_JobExecutionListener,JobExecutionListener>>インターフェースの実装を行う。
+<<Ch04_Listener.adoc#Ch04_Listener_Overview_Types_JobExecutionListener,JobExecutionListener>>インタフェースの実装を行う。
 
 例外ハンドリング処理を集約して定義するために、ステップごとにハンドリング処理を定義はせずジョブ単位でハンドリングを行う。 +
 ここでの例外ハンドリングは、ログ出力、およびExitCodeの設定を行い、トランザクション処理は実装しないこと。
@@ -1157,7 +1157,7 @@ ItemProcessorでのスキップ::
 <<Ch06_ExceptionHandling_Appendix_SkippableExceptionClasses>>にあるように、
 ItemProcessorでは、``<batch:skippable-exception-classes>``を利用したスキップは禁止している。
 そのため、<<Ch06_ExceptionHandling_HowToUse_StepExceptionHandling_Chunk_ItemProcessor>>で説明している
-「<<Ch04_Listener.adoc#Ch04_Listener_Overview_Types_ItemProcessListener,ItemProcessListener>>インターフェースを使用する方法」を応用したスキップはできない。
+「<<Ch04_Listener.adoc#Ch04_Listener_Overview_Types_ItemProcessListener,ItemProcessListener>>インタフェースを使用する方法」を応用したスキップはできない。
 ====
 
 スキップの実装例を説明する。
@@ -1579,7 +1579,7 @@ ItemWriterで例外が発生した場合::
 本来1回のトランザクションにも関わらず1000回のトランザクションに分割し処理されてしまう。
 
 これらはジョブ全体の処理時間が長期化することを意味し、異常時に状況を悪化させる可能性が高い。
-また、二重処理すること自体が問題化する可能性を秘めており、設計製造に追加の考慮事項を産む。
+また、二重処理すること自体が問題化する可能性を秘めており、設計製造に追加の考慮事項を生む。
 
 よって、``<skippable-exception-classes>``を使用することは推奨しない。
 ``ItemReader``でエラーになったデータをスキップすることはこれらの問題を引き起こさないが、

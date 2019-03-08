@@ -25,10 +25,10 @@ DBポーリングを利用してジョブを非同期実行する。
 以降では、DBポーリングによるジョブの非同期実行方法を以下の手順で説明する。
 
 . <<Ch09_Impl_AsyncExecutionJob_Preparation>>
-. <<Ch09_Impl_AsyncExecutionJob_StartAsyncBatchDeamon>>
+. <<Ch09_Impl_AsyncExecutionJob_StartAsyncBatchDaemon>>
 . <<Ch09_Impl_AsyncExecutionJob_JobRegistration>>
 . <<Ch09_Impl_AsyncExecutionJob_ExecutionResultCheck>>
-. <<Ch09_Impl_AsyncExecutionJob_StopAsyncBatchDeamon>>
+. <<Ch09_Impl_AsyncExecutionJob_StopAsyncBatchDaemon>>
 . <<Ch09_Impl_AsyncExecutionJob_ExecutionStatusCheck>>
 
 [[Ch09_Impl_AsyncExecutionJob_Preparation]]
@@ -151,10 +151,10 @@ async-batch-daemon.polling-stop-file-path=/tmp/stop-async-batch-daemon
 
 //^
 データベースアクセスするジョブの場合::
-``batch-application.proeprties``のDatabase Initializeのスクリプトを以下のとおり設定する。
+``batch-application.properties``のDatabase Initializeのスクリプトを以下のとおり設定する。
 
 [source, xml]
-.src/main/resources/batch-application.proeprties
+.src/main/resources/batch-application.properties
 ----
 # Database Initialize
 tutorial.create-table.script=file:sqls/create-member-info-table.sql
@@ -181,7 +181,7 @@ tutorial.insert-data.script=file:sqls/insert-member-info-data.sql
 ジョブ要求テーブルへジョブ情報の登録時にそのジョブ情報のパラメータ部として入出力ファイルのパスを指定する。
 ====
 
-[[Ch09_Impl_AsyncExecutionJob_StartAsyncBatchDeamon]]
+[[Ch09_Impl_AsyncExecutionJob_StartAsyncBatchDaemon]]
 == 非同期バッチデーモンを起動
 {batch5_shortname}が提供する``AsyncBatchDaemon``を起動する。
 
@@ -377,7 +377,7 @@ image::ch09/AsyncExecution/Ch09_AsyncExecutionJob_Result_MemberInfoTable.png[Tab
 .会員情報ファイルの入出力内容
 image::ch09/AsyncExecution/Ch09_AsyncExecutionJob_Result_MemberInfoFile.png[File of member_info]
 
-[[Ch09_Impl_AsyncExecutionJob_StopAsyncBatchDeamon]]
+[[Ch09_Impl_AsyncExecutionJob_StopAsyncBatchDaemon]]
 == 非同期バッチデーモンの停止
 終了ファイルを作成し、非同期バッチデーモンを停止する。
 
@@ -385,7 +385,7 @@ image::ch09/AsyncExecution/Ch09_AsyncExecutionJob_Result_MemberInfoFile.png[File
 C:\tmpにstop-async-batch-daemonファイル(空ファイル)を作成する。
 
 .終了ファイル作成
-image::ch09/AsyncExecution/Ch09_AsyncExecutionJob_StopAsyncBatchDaemon.png[Stop AsyncBatchDeamon]
+image::ch09/AsyncExecution/Ch09_AsyncExecutionJob_StopAsyncBatchDaemon.png[Stop AsyncBatchDaemon]
 
 STSのコンソールで以下のとおり非同期バッチデーモンが停止していることを確認する。
 
@@ -397,7 +397,7 @@ STSのコンソールで以下のとおり非同期バッチデーモンが停�
 [2017/09/08 21:41:41] [daemonTaskScheduler-1] [o.t.b.a.d.JobRequestPollTask] [INFO ] Polling processing.
 [2017/09/08 21:41:44] [main] [o.t.b.a.d.AsyncBatchDaemon] [INFO ] Async Batch Daemon has detected the polling stop file, and then shutdown now!
 [2017/09/08 21:41:44] [main] [o.s.c.s.ClassPathXmlApplicationContext] [INFO ] Closing org.springframework.context.support.ClassPathXmlApplicationContext@6b2fad11: startup date [Fri Sep 08 21:41:01 JST 2017]; root of context hierarchy
-[2017/09/08 21:41:44] [main] [o.s.b.c.c.s.GenericApplicationContextFactory$ResourceXmlApplicationContext] [INFO ] Closing ResourceXmlApplicationContext:file:/C:/dev/workspace/tutorial/Maccinetta-batch-tutorial/target/classes/META-INF/jobs/dbaccess/jobPointAddChunk.xml
+[2017/09/08 21:41:44] [main] [o.s.b.c.c.s.GenericApplicationContextFactory$ResourceXmlApplicationContext] [INFO ] Closing ResourceXmlApplicationContext:file:/C:/dev/workspace/tutorial/macchinetta-batch-tutorial/target/classes/META-INF/jobs/dbaccess/jobPointAddChunk.xml
 [2017/09/08 21:41:44] [main] [o.s.c.s.DefaultLifecycleProcessor] [INFO ] Stopping beans in phase 0
 [2017/09/08 21:41:44] [main] [o.t.b.a.d.JobRequestPollTask] [INFO ] JobRequestPollTask is called shutdown.
 [2017/09/08 21:41:44] [main] [o.s.s.c.ThreadPoolTaskScheduler] [INFO ] Shutting down ExecutorService 'daemonTaskScheduler'

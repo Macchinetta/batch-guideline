@@ -4,46 +4,46 @@ hide footbox
 autonumber
 
 participant AsyncBatchDaemon
-participant JobRequestPollingTask
+participant JobRequestPollTask
 participant Job
 database "jobRequest" as JobRequest
 database "admin" as adminDB
 database "job" as jobDB
 
 
-AsyncBatchDaemon ->> JobRequestPollingTask : schedule
+AsyncBatchDaemon ->> JobRequestPollTask : schedule
 activate AsyncBatchDaemon
-activate JobRequestPollingTask
-group JobRequestPollingTask Transaction
-  JobRequestPollingTask -> JobRequest : beginTransaction
-  JobRequestPollingTask -> JobRequest : select
-  JobRequestPollingTask -> JobRequest : commit
+activate JobRequestPollTask
+group JobRequestPollTask Transaction
+  JobRequestPollTask -> JobRequest : beginTransaction
+  JobRequestPollTask -> JobRequest : select
+  JobRequestPollTask -> JobRequest : commit
 end
 
 loop concurrent execute size
-    group JobRequestPollingTask Transaction
-    JobRequestPollingTask -> JobRequest : beginTransaction
-      JobRequestPollingTask -> JobRequest : update (INIT->POLLED)
-      JobRequestPollingTask -> JobRequest : commit
+    group JobRequestPollTask Transaction
+    JobRequestPollTask -> JobRequest : beginTransaction
+      JobRequestPollTask -> JobRequest : update (INIT->POLLED)
+      JobRequestPollTask -> JobRequest : commit
     end
 
-    JobRequestPollingTask -> Job : execute
+    JobRequestPollTask -> Job : execute
     activate Job #lightblue
     group Spring Batch Transaction
         Job -> adminDB : access (R/W)
         Job -> jobDB : access (R/W)
     end
-    Job --> JobRequestPollingTask : job_execution_id
+    Job --> JobRequestPollTask : job_execution_id
     deactivate Job
 
-    group JobRequestPollingTask Transaction
-      JobRequestPollingTask -> JobRequest : beginTransaction
-      JobRequestPollingTask -> JobRequest : update (POLLED->EXECUTED)
-      JobRequestPollingTask -> JobRequest : commit
+    group JobRequestPollTask Transaction
+      JobRequestPollTask -> JobRequest : beginTransaction
+      JobRequestPollTask -> JobRequest : update (POLLED->EXECUTED)
+      JobRequestPollTask -> JobRequest : commit
     end
 end
 
-deactivate JobRequestPollingTask
+deactivate JobRequestPollTask
 deactivate AsyncBatchDaemon
 
 'Set styles such as format and color of each figure

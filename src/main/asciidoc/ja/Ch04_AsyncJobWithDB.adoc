@@ -77,13 +77,15 @@ DBポーリングによるジョブ起動について説明をする。
 |===
 
 [NOTE]
-.非同期実行(Webコンテナ)と使い分けるポイント
+.非同期実行(DBポーリング)と非同期実行(Webコンテナ)を使い分けるポイント
 ====
-<<Ch04_AsyncJobWithDB.adoc#Ch04_AsyncJobWithWeb,"非同期実行(Webコンテナ)">>と使い分けるポイントを以下に示す。
+以下に該当する場合は非同期実行(DBポーリング)の利用が想定できる。
 
 * バッチ処理にWebAPサーバを導入することにハードルがある
 * 可用性を担保する際に、データベースのみを考慮すればよい
-** その代わり、データベースにアクセスが集中するため、非同期実行(Webコンテナ)ほどスケールしない可能性がある
+
+ただし、非同期実行(DBポーリング)では、データベースにアクセスが集中するため、非同期実行(Webコンテナ)ほど性能が出ない可能性がある。
+データベースへのアクセス集中が懸念材料になる場合は、<<Ch04_AsyncJobWithWebContainer.adoc#Ch04_AsyncJobWithWeb,非同期実行(Webコンテナ)>>の利用も検討してほしい。
 ====
 
 [NOTE]
@@ -112,9 +114,9 @@ DBポーリングの処理シーケンスについて説明する。
 .DBポーリングのシーケンス図
 image::Ch04_AsyncJobWithDB_Sequence_db_polling.png[sequence of DB polling]
 
-. ``AsyncBatchDeamon``をshなどから起動する。
-. ``AsyncBatchDeamon``は、起動時にジョブを定義したBean定義ファイルをすべて読み込む。
-. ``AsyncBatchDeamon``は、一定間隔でポーリングするために``TaskScheduler``を起動する。
+. ``AsyncBatchDaemon``をshなどから起動する。
+. ``AsyncBatchDaemon``は、起動時にジョブを定義したBean定義ファイルをすべて読み込む。
+. ``AsyncBatchDaemon``は、一定間隔でポーリングするために``TaskScheduler``を起動する。
 * ``TaskScheduler``は、一定間隔で特定の処理を起動する。
 . ``TaskScheduler``は、``JobRequestPollTask``(ジョブ要求テーブルをポーリングする処理)を起動する。
 . ``JobRequestPollTask``は、ジョブ要求テーブルからポーリングステータスが未実行(INIT)のレコードを取得する。
@@ -341,7 +343,7 @@ DBポーリング処理で異常が発生した場合について説明する。
 
 [[Ch04_AsyncJobWithDB_Arch_Shutdown]]
 === DBポーリング処理の停止について
-非同期バッチデーモン(``AsyncBatchDeamon``)は、ファイルの生成によって停止する。
+非同期バッチデーモン(``AsyncBatchDaemon``)は、ファイルの生成によって停止する。
 ファイルが生成されたことを確認後、ポーリング処理を空振りさせ、起動中ジョブの終了を可能な限り待ってから停止する。
 
 [[Ch04_AsyncJobWithDB_Arch_Components]]
@@ -382,7 +384,7 @@ DBポーリング処理で異常が発生した場合について説明する。
 
 * 同期実行では、``job-base-context.xml``から更に``launch-context.xml``をインポートする。
 * 非同期実行では、``job-base-context.xml``から``launch-context.xml``をインポートしない。
-  その代わりに``AsyncBatchDeamon``がロードする``async-batch-daemon.xml``にて、
+  その代わりに``AsyncBatchDaemon``がロードする``async-batch-daemon.xml``にて、
   ``launch-context.xml``をインポートする。
 
 これは、{SB}を起動する際に必要な各種Beanは各ジョブごとにインスタンス化する必要はないことに起因する。
@@ -402,7 +404,7 @@ DBポーリング処理で異常が発生した場合について説明する。
 [source,properties]
 .batch-application.properties
 ----
-#(1)
+# (1)
 # Admin DataSource settings.
 admin.jdbc.driver=org.postgresql.Driver
 admin.jdbc.url=jdbc:postgresql://localhost:5432/postgres
@@ -573,7 +575,7 @@ async-batch-daemon.polling-stop-file-path=/tmp/stop-async-batch-daemon
 [source,console]
 .AsyncBatchDaemonの起動
 ----
-# Start AsyncBatchDaemon
+$ # Start AsyncBatchDaemon
 $ java -cp dependency/* org.terasoluna.batch.async.db.AsyncBatchDaemon
 ----
 
@@ -586,9 +588,8 @@ $ java -cp dependency/* org.terasoluna.batch.async.db.AsyncBatchDaemon
 [source,console]
 .カスタマイズしたMETA-INF/spring/customized-async-batch-daemon.xmlを利用する場合
 ----
-# Start AsyncBatchDaemon
-$ java -cp dependency/* org.terasoluna.batch.async.db.AsyncBatchDaemon \
-    META-INF/spring/customized-async-batch-daemon.xml
+$ # Start AsyncBatchDaemon
+$ java -cp dependency/* org.terasoluna.batch.async.db.AsyncBatchDaemon META-INF/spring/customized-async-batch-daemon.xml
 ----
 
 ``async-batch-daemon.xml``のカスタマイズは、ごく一部の設定を変更する場合は直接修正してよい。 +
@@ -693,6 +694,7 @@ ocation
 * IDの採番用シーケンスが周回することによるIDの重複
 
 テーブルデータの退避やシーケンスのリセットについては、利用するデータベースのマニュアルを参照してほしい。
+また、``JobRepository``への検索/更新で性能劣化を懸念している場合は、<<Ch07_JobManagement.adoc#Ch07_JobManagement_Overview_JobExecutionManagement_PerformanceImprovement,"IndexによるJobRepositoryの性能改善">>を参照のこと。
 
 以下に退避対象のテーブルおよびシーケンスの一覧を示す。
 
@@ -753,7 +755,7 @@ Oracleではデータ型にCLOBを利用するなど、データベース固有�
 ジョブ要求テーブルのカスタマイズによる拡張手順は以下のとおり。
 
 . ジョブ要求テーブルのカスタマイズ
-. ``BatchJobRequestRepository``インターフェースの拡張インターフェースの作成
+. ``BatchJobRequestRepository``インタフェースの拡張インタフェースの作成
 . カスタマイズしたテーブルを使用したSQLMapの定義
 . ``async-batch-daemon.xml``のBean定義の修正
 
@@ -787,12 +789,12 @@ CREATE TABLE IF NOT EXISTS batch_job_request (
 ----
 
 [start=2]
-. ``BatchJobRequestRepository``インターフェースの拡張インターフェースの作成
+. ``BatchJobRequestRepository``インタフェースの拡張インタフェースの作成
 
-``BatchJobRequestRepository``インターフェースを拡張したインターフェースを作成する。
+``BatchJobRequestRepository``インタフェースを拡張したインタフェースを作成する。
 
 [source,java]
-.拡張インターフェース
+.拡張インタフェース
 ----
 // (1)
 public interface CustomizedBatchJobRequestRepository extends BatchJobRequestRepository {
@@ -871,7 +873,7 @@ public interface CustomizedBatchJobRequestRepository extends BatchJobRequestRepo
 |説明
 
 |(1)
-|``BatchJobRequestRepository``の拡張インターフェースをFQCNでnamespaceに設定する。
+|``BatchJobRequestRepository``の拡張インタフェースをFQCNでnamespaceに設定する。
 
 
 |(2)
@@ -885,7 +887,7 @@ public interface CustomizedBatchJobRequestRepository extends BatchJobRequestRepo
 [start=4]
 . ``async-batch-daemon.xml``のBean定義の修正
 
-(2)で作成した拡張インターフェースを``batchJobRequestRepository``に設定する。
+(2)で作成した拡張インタフェースを``batchJobRequestRepository``に設定する。
 
 [source,xml]
 .async-batch-daemon.xml
@@ -905,7 +907,7 @@ public interface CustomizedBatchJobRequestRepository extends BatchJobRequestRepo
 |説明
 
 |(1)
-|``BatchJobRequestRepository``の拡張インターフェースをFQCNで``mapperInterface``プロパティに設定する。
+|``BatchJobRequestRepository``の拡張インタフェースをFQCNで``mapperInterface``プロパティに設定する。
 
 |===
 
@@ -934,7 +936,7 @@ CREATE TABLE IF NOT EXISTS batch_job_request (
 ----
 
 [start=2]
-. ``BatchJobRequestRepository``インターフェースの拡張インターフェース作成
+. ``BatchJobRequestRepository``インタフェースの拡張インタフェース作成
 ** <<Ch04_AsyncJobWithDB_HowToExtend_CustomTable_Priority>>と同じ
 
 [start=3]
@@ -980,7 +982,7 @@ CREATE TABLE IF NOT EXISTS batch_job_request (
 |説明
 
 |(1)
-|``BatchJobRequestRepository``の拡張インターフェースをFQCNでnamespaceに設定する。
+|``BatchJobRequestRepository``の拡張インタフェースをFQCNでnamespaceに設定する。
 
 
 |(2)
@@ -990,7 +992,7 @@ CREATE TABLE IF NOT EXISTS batch_job_request (
 [start=4]
 . ``async-batch-daemon.xml``のBean定義の修正
 
-(2)で作成した拡張インターフェースを``batchJobRequestRepository``に設定し、
+(2)で作成した拡張インタフェースを``batchJobRequestRepository``に設定し、
 ``jobRequestPollTask``に環境変数で与えられたグループIDをクエリパラメータとして設定する。
 
 
@@ -1030,7 +1032,7 @@ CREATE TABLE IF NOT EXISTS batch_job_request (
 |説明
 
 |(1)
-|``BatchJobRequestRepository``の拡張インターフェースをFQCNで``mapperInterface``プロパティに設定する。
+|``BatchJobRequestRepository``の拡張インタフェースをFQCNで``mapperInterface``プロパティに設定する。
 
 |(2)
 |``JobRequestPollTask``の``optionalPollingQueryParams``プロパティに(3)で定義するMapを設定する。
@@ -1046,10 +1048,10 @@ CREATE TABLE IF NOT EXISTS batch_job_request (
 [source,console]
 .AsyncBatchDaemonの起動
 ----
-# Set environment variables
+$ # Set environment variables
 $ export GROUP_ID=G1
 
-# Start AsyncBatchDaemon
+$ # Start AsyncBatchDaemon
 $ java -cp dependency/* org.terasoluna.batch.async.db.AsyncBatchDaemon
 ----
 

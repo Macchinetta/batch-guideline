@@ -5,46 +5,46 @@ include::_include_all.adoc[]
 
 [[Ch04_Listener_Overview]]
 == Overview
-リスナーとは、ジョブやステップを実行する前後に処理を挿入するためのインターフェースである。
+リスナーとは、ジョブやステップを実行する前後に処理を挿入するためのインタフェースである。
 
 本機能は、チャンクモデルとタスクレットモデルとで使い方が異なるため、それぞれについて説明する。
 
-リスナーには多くのインターフェースがあるため、それぞれの役割について説明する。
+リスナーには多くのインタフェースがあるため、それぞれの役割について説明する。
 その後に、設定および実装方法について説明をする。
 
 [[Ch04_Listener_Overview_Types]]
 === リスナーの種類
-{SB}では、実に多くのリスナーインターフェースが定義されている。
+{SB}では、実に多くのリスナーインタフェースが定義されている。
 ここではそのすべてを説明するのではなく、利用頻度が高いものを中心に扱う。
 
 まず、リスナーは2種類に大別される。
 
 JobListener::
-  ジョブの実行に対して処理を挟み込むためのインターフェース
+  ジョブの実行に対して処理を挟み込むためのインタフェース
 
 StepListener::
-  ステップの実行に対して処理を挟み込むためのインターフェース
+  ステップの実行に対して処理を挟み込むためのインタフェース
 
 
 [WARNING]
 .JobListenerについて
 ====
-{SB}には、``JobListener``という名前のインターフェースは存在しない。
+{SB}には、``JobListener``という名前のインタフェースは存在しない。
 ``StepListener``との対比のため 、本ガイドラインでは便宜的に定義している。 +
-Java Batch(jBatch)には、``javax.batch.api.listener.JobListener``というインターフェースが存在するので、実装時には間違えないように注意すること。
-また、``StepListener``もシグネチャが異なる同名インターフェース(``javax.batch.api.listener.StepListener``)が存在するので、同様に注意すること。
+Java Batch(jBatch)には、``javax.batch.api.listener.JobListener``というインタフェースが存在するので、実装時には間違えないように注意すること。
+また、``StepListener``もシグネチャが異なる同名インタフェース(``javax.batch.api.listener.StepListener``)が存在するので、同様に注意すること。
 ====
 
 [[Ch04_Listener_Overview_Types_JobListener]]
 ==== JobListener
-``JobListener``のインターフェースは、``JobExecutionListener``の1つのみとなる。
+``JobListener``のインタフェースは、``JobExecutionListener``の1つのみとなる。
 
 [[Ch04_Listener_Overview_Types_JobExecutionListener]]
 JobExecutionListener::
   ジョブの開始前、終了後に処理を挟み込む。
 
 [source,java]
-.JobExecutionListenerインターフェース
+.JobExecutionListenerインタフェース
 ----
 public interface JobExecutionListener {
   void beforeJob(JobExecution jobExecution);
@@ -54,17 +54,17 @@ public interface JobExecutionListener {
 
 [[Ch04_Listener_Overview_Types_StepListener]]
 ==== StepListener
-``StepListener``のインターフェースは以下のように多くの種類がある。
+``StepListener``のインタフェースは以下のように多くの種類がある。
 
 StepListener::
-  以降に紹介する各種リスナーのマーカーインターフェース。
+  以降に紹介する各種リスナーのマーカーインタフェース。
 
 [[Ch04_Listener_Overview_Types_StepExecutionListener]]
 StepExecutionListener::
   ステップ実行の開始前、終了後に処理を挟み込む。
 
 [source,java]
-.StepExecutionListenerインターフェース
+.StepExecutionListenerインタフェース
 ----
 public interface StepExecutionListener extends StepListener {
   void beforeStep(StepExecution stepExecution);
@@ -77,7 +77,7 @@ ChunkListener::
   1つのチャンクを処理する前後と、エラーが発生した場合に処理を挟み込む。
 
 [source,java]
-.ChunkListenerインターフェース
+.ChunkListenerインタフェース
 ----
 public interface ChunkListener extends StepListener {
   static final String ROLLBACK_EXCEPTION_KEY = "sb_rollback_exception";
@@ -104,14 +104,14 @@ public void afterChunkError(ChunkContext context) {
 ----
 ====
 
-例外ハンドリングについては、<<Ch06_ExceptionHandling.adoc#Ch06_ExceptionHandling_HowToUse_StepExceptionHandling_ChunkListener,ChunkListenerインターフェースによる例外ハンドリング>>を参照。
+例外ハンドリングについては、<<Ch06_ExceptionHandling.adoc#Ch06_ExceptionHandling_HowToUse_StepExceptionHandling_ChunkListener,ChunkListenerインタフェースによる例外ハンドリング>>を参照。
 
 [[Ch04_Listener_Overview_Types_ItemReadListener]]
 ItemReadListener::
   ItemReaderが1件のデータを取得する前後と、エラーが発生した場合に処理を挟み込む。
 
 [source,java]
-.ItemReadListenerインターフェース
+.ItemReadListenerインタフェース
 ----
 public interface ItemReadListener<T> extends StepListener {
   void beforeRead();
@@ -125,7 +125,7 @@ ItemProcessListener::
   ItemProcessorが1件のデータを加工する前後と、エラーが発生した場合に処理を挟み込む。
 
 [source,java]
-.ItemProcessListenerインターフェース
+.ItemProcessListenerインタフェース
 ----
 public interface ItemProcessListener<T, S> extends StepListener {
   void beforeProcess(T item);
@@ -139,7 +139,7 @@ ItemWriteListener::
   ItemWriterが1つのチャンクを出力する前後と、エラーが発生した場合に処理を挟み込む。
 
 [source,java]
-.ItemWriteListenerインターフェース
+.ItemWriteListenerインタフェース
 ----
 public interface ItemWriteListener<S> extends StepListener {
   void beforeWrite(List<? extends S> items);
@@ -161,6 +161,15 @@ public interface ItemWriteListener<S> extends StepListener {
 
 ====
 
+[WARNING]
+====
+``JobExecutionListener``や、``StepExecutionListener``は、<<Ch05_Transaction.adoc#Ch05_Transaction_Arch_UnderSpringBatch,{SB}におけるトランザクション制御>>で説明するフレームワークトランザクションによる制御範囲外となる。
+加えて、<<Ch05_DBAccess#Ch05_DBAccess_HowToUse_MapperInterface_Listener,リスナーでのデータベースアクセス>>における制約があるため、本ガイドラインではリスナーによるデータベース更新は基本的に推奨しない。
+
+前処理でデータベース更新を行う必要がある場合は<<Ch08_FlowControll.adoc#Ch08_FlowControll,フロー制御>>を参照し、データベース更新を行う前処理と後続処理のステップを分けて、``JobExecutionListener``、``StepExecutionListener``ではデータベース更新を行わない設計・実装を行うことを検討してほしい。
+
+====
+
 [[Ch04_Listener_HowToUse]]
 == How to use
 リスナーの実装と設定方法について説明する。
@@ -169,14 +178,14 @@ public interface ItemWriteListener<S> extends StepListener {
 === リスナーの実装
 リスナーの実装と設定方法について説明する。
 
-. リスナーインターフェースを``implements``して実装する。
+. リスナーインタフェースを``implements``して実装する。
 . コンポーネントにメソッドベースでアノテーションを付与して実装する。
 
 どちらで実装するかは、リスナーの役割に応じて選択する。基準は後述する。
 
 [[Ch04_Listener_HowToUse_Impl_WithoutAnnotation]]
-==== インターフェースを実装する場合
-各種リスナーインターフェースを``implements``して実装する。必要に応じて、複数のインターフェースを同時に実装してもよい。
+==== インタフェースを実装する場合
+各種リスナーインタフェースを``implements``して実装する。必要に応じて、複数のインタフェースを同時に実装してもよい。
 以下に実装例を示す。
 
 [source,java]
@@ -247,9 +256,9 @@ public class JobExecutionLoggingListener implements JobExecutionListener { // (1
 [NOTE]
 .リスナーのサポートクラス
 ====
-複数のリスナーインターフェースを``implements``した場合、処理が不要な部分についても空実装をする必要がある。
+複数のリスナーインタフェースを``implements``した場合、処理が不要な部分についても空実装をする必要がある。
 この作業を簡略化するため、あらかじめ空実装を施したサポートクラスが{SB}には用意されている。
-インターフェースではなく、サポートクラスを活用してもよいが、その場合``implements``ではなく``extends``になるため注意すること。
+インタフェースではなく、サポートクラスを活用してもよいが、その場合``implements``ではなく``extends``になるため注意すること。
 
 .サポートクラス
 * ``org.springframework.batch.core.listener.ItemListenerSupport``
@@ -258,17 +267,17 @@ public class JobExecutionLoggingListener implements JobExecutionListener { // (1
 
 [[Ch04_Listener_HowToUse_Impl_WithAnnotation]]
 ==== アノテーションを付与する場合
-各種リスナーインターフェースに対応したアノテーションを付与する。必要に応じて、複数のアノテーションを同時に実装してもよい。
+各種リスナーインタフェースに対応したアノテーションを付与する。必要に応じて、複数のアノテーションを同時に実装してもよい。
 
 [cols="40,40", options="header"]
-.リスナーインターフェースとの対応表
+.リスナーインタフェースとの対応表
 |===
-|リスナーインターフェース
+|リスナーインタフェース
 |アノテーション
 
 |<<Ch04_Listener_Overview_Types_JobExecutionListener,JobExecutionListener>>
-|``@beforeJob`` +
-``@afterJob``
+|``@BeforeJob`` +
+``@AfterJob``
 
 |<<Ch04_Listener_Overview_Types_StepExecutionListener,StepExecutionListener>>
 |``@BeforeStep`` +
@@ -277,7 +286,7 @@ public class JobExecutionLoggingListener implements JobExecutionListener { // (1
 |<<Ch04_Listener_Overview_Types_ChunkListener,ChunkListener>>
 |``@BeforeChunk`` +
 ``@AfterChunk`` +
-``@afterChunkError``
+``@AfterChunkError``
 
 |<<Ch04_Listener_Overview_Types_ItemReadListener,ItemReadListener>>
 |``@BeforeRead`` +
@@ -285,9 +294,9 @@ public class JobExecutionLoggingListener implements JobExecutionListener { // (1
 ``@OnReadError``
 
 |<<Ch04_Listener_Overview_Types_ItemProcessListener,ItemProcessListener>>
-|``@beforeProcess`` +
-``@afterProcess`` +
-``@onProcessError``
+|``@BeforeProcess`` +
+``@AfterProcess`` +
+``@OnProcessError``
 
 |<<Ch04_Listener_Overview_Types_ItemWriteListener,ItemWriteListener>>
 |``@BeforeWrite`` +
@@ -362,7 +371,7 @@ public class AnnotationAmountCheckProcessor implements
 
 |(1)
 |アノテーションで実装する場合は、処理が必要なタイミングのアノテーションのみを付与すればよい。 +
-この例では、ItemProcessの処理前には何もする必要がないため、``@beforeProcess``を付与した実装は不要となる。
+この例では、ItemProcessの処理前には何もする必要がないため、``@BeforeProcess``を付与した実装は不要となる。
 
 |(2)
 |ItemProcessの処理後に行う処理を実装する。 +
@@ -374,7 +383,7 @@ public class AnnotationAmountCheckProcessor implements
 
 |(4)
 |アノテーションでリスナー実装がされているItemProcessを``<chunk>``タグに設定する。 +
-リスナーインターフェースとは異なり、``<listener>``タグで設定しなくても、自動的にリスナーが登録される。
+リスナーインタフェースとは異なり、``<listener>``タグで設定しなくても、自動的にリスナーが登録される。
 
 |===
 
@@ -382,7 +391,7 @@ public class AnnotationAmountCheckProcessor implements
 .アノテーションを付与するメソッドの制約
 ====
 アノテーションを付与するメソッドはどのようなメソッドでもよいわけではない。
-対応するリスナーインターフェースのメソッドと、シグネチャを一致させる必要がある。
+対応するリスナーインタフェースのメソッドと、シグネチャを一致させる必要がある。
 この点は、各アノテーションのjavadocに明記されている。
 ====
 
@@ -410,13 +419,13 @@ Tasklet実装へのアノテーションによるリスナー実装した場合�
 </batch:job>
 ----
 
-タスクレットモデルの場合は、<<Ch04_Listener_HowToUse_SelectionCriteria>>に従ってリスナーインターフェースを利用するのがよい。
+タスクレットモデルの場合は、<<Ch04_Listener_HowToUse_SelectionCriteria>>に従ってリスナーインタフェースを利用するのがよい。
 ====
 
 [[Ch04_Listener_HowToUse_Configuration]]
 === リスナーの設定
 リスナーは、Bean定義の``<listeners>``.``<listener>``タグによって設定する。
-XMLスキーマ定義では様々な箇所に記述できるが、インターフェースの種類によっては意図とおり動作しないものが存在するため、
+XMLスキーマ定義では様々な箇所に記述できるが、インタフェースの種類によっては意図とおり動作しないものが存在するため、
 以下の位置に設定すること。
 
 [source,xml]
@@ -465,12 +474,12 @@ XMLスキーマ定義では様々な箇所に記述できるが、インター�
 アノテーションの場合、必然的にこの場所に設定することになる。
 
 |(2)
-|<<Ch04_Listener_Overview_Types_StepListener>>に属するリスナーインターフェース実装を設定する。 +
+|<<Ch04_Listener_Overview_Types_StepListener>>に属するリスナーインタフェース実装を設定する。 +
 タスクレットモデルの場合、``ItemReadListener``,``ItemProcessListener``,``ItemWriteListener``は利用できない。
 
 |(3)
 |<<Ch04_Listener_Overview_Types_JobListener>>に属するリスナーを設定する。 +
-インターフェースとアノテーション、どちらの実装でもここに設定する必要がある。
+インタフェースとアノテーション、どちらの実装でもここに設定する必要がある。
 
 |===
 
@@ -515,10 +524,10 @@ image::Ch04_Listener_composite.png[Listener execution order]
 * 後処理またはエラー処理に該当する処理は、リスナー登録の逆順に起動される。
 
 [[Ch04_Listener_HowToUse_SelectionCriteria]]
-=== インターフェースとアノテーションの使い分け
-リスナーインターフェースとアノテーションによるリスナーの使い分けを説明する。
+=== インタフェースとアノテーションの使い分け
+リスナーインタフェースとアノテーションによるリスナーの使い分けを説明する。
 
-リスナーインターフェース::
+リスナーインタフェース::
   job、step、chunkにおいて共通する横断的な処理の場合に利用する。
 
 アノテーション::
@@ -620,6 +629,6 @@ public class CheckingJobParameterErrorStepExecutionListener implements StepExecu
 パラメータをセットしているクラスはそれぞれ``ItemStreamReader``、``ItemStreamWriter``を実装した独自クラスである。
 
 |(4)
-|リスナーインターフェース実装を設定する。
+|リスナーインタフェース実装を設定する。
 
 |===

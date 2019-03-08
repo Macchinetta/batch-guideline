@@ -123,7 +123,7 @@ image::Ch05_transaction_TransactionControlChunkModel_commit.png[Transaction Cont
 
 .シーケンス図の説明
 . ジョブからステップが実行される。
-** 入力データがなくなるまで、以降の処理を繰り返す。
+** 入力データがなくなるまで2から8までの処理を繰り返す。
 ** チャンク単位で、フレームワークトランザクションを開始する。
 ** チャンクサイズに達するまで2から5までの処理を繰り返す。
 . ステップは、``ItemReader``から入力データを取得する。
@@ -142,8 +142,8 @@ image::Ch05_transaction_TransactionControlChunkModel_rollback.png[Transaction Co
 
 .シーケンス図の説明
 . ジョブからステップが実行される。
-** 入力データがなくなるまで以降の処理を繰り返す。
-** チャンク単位でのフレームワークトランザクションを開始する。
+** 入力データがなくなるまで2から7までの処理を繰り返す。
+** チャンク単位で、フレームワークトランザクションを開始する。
 ** チャンクサイズに達するまで2から5までの処理を繰り返す。
 . ステップは、``ItemReader``から入力データを取得する。
 . ``ItemReader``は、ステップに入力データを返却する。
@@ -152,7 +152,7 @@ image::Ch05_transaction_TransactionControlChunkModel_rollback.png[Transaction Co
 . ステップはチャンクサイズ分のデータを``ItemWriter``で出力する。
 . ``ItemWriter``は、対象となるリソースへ出力を行う。
 
-** 2から7までの処理過程で**例外が発生**すると、以降の処理を行う。
+** 2から7までの処理過程で**例外が発生**すると、その時点で実行中の処理を中断し、以降の処理を行う。
 
 [start=8]
 . ステップはフレームワークトランザクションをロールバックする。
@@ -189,6 +189,18 @@ image::Ch05_transaction_TransactionControlTaskletModel_SingleTransaction_commit.
 . タスクレットはステップへ処理終了を返却する。
 . ステップはフレームワークトランザクションをコミットする。
 
+[CAUTION]
+.タスクレットモデルにおける一括コミット方式での注意点
+====
+タスクレットモデルで一括コミット方式を利用する場合、Taskletはフレームワークトランザクションの管理下で実行されるため、
+StepがTasklet実行前にフレームワークトランザクションを開始し、TaskletがStepに処理終了を返すことでコミットまたはロールバックされ、トランザクションが終了する。 +
+そのため、たとえば、常駐型のバッチプロセスを作る目的で、Tasklet実装内に無限ループを起こすような処理を記述すると、フレームワークトランザクションが終了しなくなる。
+利用するDBMSの仕様によっては、上記のようなトランザクションの長期間滞留は性能劣化を引き起こす原因となり得るため、プロセス常駐を目的としたTaskletの実装は避けるべきである。
+
+プロセス常駐型のジョブ実行方式として、非同期実行方式(<<Ch04_AsyncJobWithDB.adoc#Ch04_AsyncJobWithDB,非同期実行(DBポーリング)>>、<<Ch04_AsyncJobWithWebContainer.adoc#Ch04_AsyncJobWithWeb,非同期実行(Webコンテナ)>>)が適用可能であるかを検討してほしい。
+
+====
+
 //^
 異常系でのトランザクション制御:: 異常系でのトランザクション制御を説明する。
 
@@ -206,7 +218,7 @@ image::Ch05_transaction_TransactionControlTaskletModel_SingleTransaction_rollbac
 . タスクレットは、``Repository``へ出力データを渡す。
 . ``Repository``は、対象となるリソースへ出力を行う。
 
-** 2から7までの処理過程で**例外が発生**すると、以降の処理を行う。
+** 2から7までの処理過程で**例外が発生**すると、その時点で実行中の処理を中断し、以降の処理を行う。
 
 [start=8]
 . タスクレットはステップへ例外をスローする。
@@ -229,15 +241,15 @@ image::Ch05_transaction_TransactionControlTaskletModel_ChunkTransaction_commit.p
 ** ステップは**フレームワークトランザクション**を開始する。
 . ステップはタスクレットを実行する。
 ** 入力データがなくなるまで3から10までの処理を繰り返す。
-. タスクレットは、``TransacitonManager``より**ユーザトランザクション**を開始する。
+. タスクレットは、``TransactionManager``より**ユーザトランザクション**を開始する。
 ** チャンクサイズに達するまで4から8までの処理を繰り返す。
 . タスクレットは、``Repository``から入力データを取得する。
 . ``Repository``は、タスクレットに入力データを返却する。
 . タスクレットは、入力データを処理する。
 . タスクレットは、``Repository``へ出力データを渡す。
 . ``Repository``は、対象となるリソースへ出力を行う。
-. タスクレットは、``TransacitonManager``により**ユーザトランザクション**のコミットを実行する。
-. ``TransacitonManager``は、対象となるリソースへコミットを発行する。
+. タスクレットは、``TransactionManager``により**ユーザトランザクション**のコミットを実行する。
+. ``TransactionManager``は、対象となるリソースへコミットを発行する。
 . タスクレットはステップへ処理終了を返却する。
 . ステップは**フレームワークトランザクション**をコミットする。
 
@@ -262,7 +274,7 @@ image::Ch05_transaction_TransactionControlTaskletModel_ChunkTransaction_rollback
 ** ステップは**フレームワークトランザクション**を開始する。
 . ステップはタスクレットを実行する。
 ** 入力データがなくなるまで3から11までの処理を繰り返す。
-. タスクレットは、``TransacitonManager``より**ユーザトランザクション**を開始する。
+. タスクレットは、``TransactionManager``より**ユーザトランザクション**を開始する。
 ** チャンクサイズに達するまで4から8までの処理を繰り返す。
 . タスクレットは、``Repository``から入力データを取得する。
 . ``Repository``は、タスクレットに入力データを返却する。
@@ -270,12 +282,12 @@ image::Ch05_transaction_TransactionControlTaskletModel_ChunkTransaction_rollback
 . タスクレットは、``Repository``へ出力データを渡す。
 . ``Repository``は、対象となるリソースへ出力を行う。
 
-** 3から8までの処理過程で**例外が発生**すると、以降の処理を行う。
+** 3から8までの処理過程で**例外が発生**すると、その時点で実行中の処理を中断し、以降の処理を行う。
 
 [start=9]
 . タスクレットは、発生した例外に対する処理を行う。
-. タスクレットは、``TransacitonManager``により**ユーザトランザクション**のロールバックを実行する。
-. ``TransacitonManager``は、対象となるリソースへロールバックを発行する。
+. タスクレットは、``TransactionManager``により**ユーザトランザクション**のロールバックを実行する。
+. ``TransactionManager``は、対象となるリソースへロールバックを発行する。
 . タスクレットはステップへ例外をスローする。
 . ステップは**フレームワークトランザクション**をロールバックする。
 
@@ -489,7 +501,7 @@ image::Ch05_transaction_AsyncWithWeb_Transaction_Difference.png[With Web Applica
 |===
 
 中間コミット方式:: ユーザにてトランザクション制御を行う。
-** 処理の途中でコミットを発行する場合は、``TransacitonManager``をInjectして手動で行う。
+** 処理の途中でコミットを発行する場合は、``TransactionManager``をInjectして手動で行う。
 
 [source,xml]
 .設定例(ジョブ定義)
@@ -553,7 +565,7 @@ public class SalesPlanChunkTranTask implements Tasklet {
             transactionManager.rollback(status);    // (5)
             throw e;
         } finally {
-            if (!status.isCompleted()) {
+            if (status != null && !status.isCompleted()) {
                 transactionManager.commit(status);   // (6)
             }
             itemReader.close();
@@ -615,12 +627,12 @@ ItemWriterを利用することで実装がシンプルになる効果があり�
 そのため、データ量が多い場合にはメモリ不足になりエラーとなる可能性が高くなる。
 
 [NOTE]
-.ファイルしか扱わないジョブにおけるTransacitonManagerの設定について
+.ファイルしか扱わないジョブにおけるTransactionManagerの設定について
 ====
 以下に示すジョブ定義のように、``batch:tasklet``の``transaction-manager``属性はxsdスキーマにおいて必須のため省略できない。
 
 [source, xml]
-.TransacitonManager設定箇所の抜粋
+.TransactionManager設定箇所の抜粋
 ----
 <batch:tasklet transaction-manager="jobTransactionManager">
 <batch:chunk reader="reader" writer="writer" commit-interval="100" />
@@ -630,9 +642,9 @@ ItemWriterを利用することで実装がシンプルになる効果があり�
 そのため、``jobTransactionManager``を常に指定すること。この時、以下の挙動となる。
 
 * ``transactional``がtrueの場合
-** 指定したTransacitonManagerに同期してリソースに出力する。
+** 指定したTransactionManagerに同期してリソースに出力する。
 * ``transactional``がfalseの場合
-** 指定したTransacitonManagerのトランザクション処理は空振りし、トランザクションと関係なくリソースに出力する。
+** 指定したTransactionManagerのトランザクション処理は空振りし、トランザクションと関係なくリソースに出力する。
 
 この時、``jobTransactionManager``が参照するリソース(たとえば、データベース)に対してトランザクションが発行されるが、
 テーブルアクセスは伴わないため実害がない。
@@ -755,8 +767,8 @@ public class RetrieveBranchFromContextItemProcessor implements
 |説明
 
 |(1)
-|``StepExecutionListener``インターフェースを実装する。 +
-ここでは実装を簡易にするため、``StepExecutionListener``インターフェースを実装した``StepExecutionListenerSupport``からの拡張としている。
+|``StepExecutionListener``インタフェースを実装する。 +
+ここでは実装を簡易にするため、``StepExecutionListener``インタフェースを実装した``StepExecutionListenerSupport``からの拡張としている。
 
 |(2)
 |ステップ実行前にデータを取得するため、``beforeStep``メソッドを実装する。
@@ -882,23 +894,23 @@ public class RetrieveBranchFromRepositoryItemProcessor implements
 より簡易に複数データソースをまとめて処理する方法として、**Best Efforts 1PCパターン**による実現手段を推奨する。
 
 Best Efforts 1PCパターンとは::
-  端的に言うと、複数データソースをローカルトランザクションで扱い、同じタイミングで逐次コミットを発行する、という手法を指す。
+  端的に言うと、複数データソースをローカルトランザクションで扱い、同じタイミングで逐次コミットを発行するという手法を指す。
   下図に概念図を示す。
 
 .Best Efforts 1PCパターンの概念図
 image::Ch05_transaction_Best_Efforts_1PC.png[Best Efforts 1PC Overview]
 
 .図の説明
-. ユーザが``ChainedTransactionManager``にトランザクション開始を指示する。
-. ``ChainedTransactionManager``は、登録されているトランザクションマネージャを逐次トランザクションを開始する。
-. ユーザは各リソースへトランザクショナルな操作を行う。
-. ユーザが``ChainedTransactionManager``にコミットを指示する。
-. ``ChainedTransactionManager``は、登録されているトランザクションマネージャを逐次コミットを発行する。
-** トランザクション開始と逆順にコミット(またはロールバック)される
+[horizontal]
+1.:: ユーザが``ChainedTransactionManager``にトランザクション開始を指示する。
+2~7.:: ``ChainedTransactionManager``は、登録されているトランザクションマネージャの逐次トランザクションを開始する。
+8~10.:: ユーザは各リソースへトランザクショナルな操作を行う。
+11.:: ユーザが``ChainedTransactionManager``にコミットを指示する。
+12~17.:: ``ChainedTransactionManager``は、登録されているトランザクションマネージャの逐次コミットを発行する。なお、コミット(またはロールバック)の発行はトランザクション開始と逆順になる。
 
 この方法は分散トランザクションではないため、2番目以降のトランザクションマネージャにおけるcommit/rollback時に障害(例外)が発生した場合に、
 データの整合性が保てない可能性がある。
-そのため、トランザクション境界で障害が発生した場合のリカバリ方法を設計する必要があるが、リカバリ頻度を低減し、リカバリ手順を簡素しやすくなる効果がある。
+そのため、トランザクション境界で障害が発生した場合のリカバリ方法を設計する必要があるが、リカバリ頻度を低減し、リカバリ手順を簡潔にできる効果がある。
 
 [[Ch05_Transaction_HowToUse_MultiDataSource_SingleTx_MultiTxResource]]
 ===== 複数のトランザクショナルリソースを同時に処理する場合

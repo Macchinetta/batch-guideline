@@ -40,7 +40,7 @@ Linux環境でのOracle JDBCを利用時は、Oracle JDBCが使用するOSの乱
 ** チャンクモデルでのデータベースアクセスによる入出力で使用する。
 *** org.mybatis.spring.batch.MyBatisCursorItemReader
 *** org.mybatis.spring.batch.MyBatisBatchItemWriter
-. Mapperインターフェースを利用する
+. Mapperインタフェースを利用する
 ** チャンクモデルでのビジネスロジック処理で使用する。
 *** ItemProcessor実装で利用する。
 ** タスクレットモデルでのデータベースアクセス全般で使用する。
@@ -74,6 +74,15 @@ JobRepositoryや<<Ch04_AsyncJobWithDB.adoc#Ch04_AsyncJobWithDB,非同期実行(D
 |ジョブが利用するデータソース
 
 |===
+
+[NOTE]
+.JobRepositoryのトランザクション
+====
+``JobRepositoy``と業務ジョブは利用するデータソースおよび、トランザクションが異なる。
+そのため、``JobRepositoy``への更新は、ユーザが使用するデータベースのトランザクションとは独立したトランザクションで行われる。
+つまり、業務処理に対する障害のみがリカバリ対象となる。
+
+====
 
 以下に、launch-context.xmlと接続情報のプロパティを示す。 +
 これらをユーザの環境に合わせて設定すること。
@@ -337,16 +346,15 @@ MyBatis-Springが提供するItemReaderとして下記の2つが存在する。
 
 {batch5_shortname}では、<<Ch05_DBAccess_HowToUse_Config_Scan>>で説明したとおり、
 ``mybatis:scan``によって動的にMapper XMLを登録する方法を採用している。
-そのため、Mapper XMLに対応するインターフェースを用意する必要がある。
+そのため、Mapper XMLに対応するインタフェースを用意する必要がある。
 詳細については、{server5_guide}の
 {server5_url}/ArchitectureInDetail/DataAccessDetail/DataAccessMyBatis3.html#dataaccessmybatis3howtodababaseaccess[データベースアクセス処理の実装]を参照。
 
 [WARNING]
-.MyBatisCursorItemReaderにおけるクローズ時の注意事項について
+.MyBatisCursorItemReaderのトランザクションについて
 ====
-``Mybatis-Spring1.3.1``までの不具合により、``MyBatisCursorItemReader``をオープンせずにクローズする場合（@BeforeStepアノテーションで異常終了する場合等）、``java.lang.NullPointerException``が発生する。
-その場合は、``MyBatisCursorItemReader``を拡張するなどして、クローズ時に例外を捕捉し、正常終了するように実装する必要がある。
-
+``MyBatisCursorItemReader``は``select``ステートメントを発行する際に、ステップ処理の一部として生成された他のトランザクション(チャンクモデルにおけるチャンクごとのトランザクション)には参加しない。
+これは、``MyBatisCursorItemReader``が異なるコネクションを利用しているためである。そのため、適切に排他制御を行っていない場合、デッドロックが発生する可能性があるため留意すること。
 ====
 
 ``MyBatisCursorItemReader``を利用してデータベースを参照するための実装例を処理モデルごとに以下に示す。
@@ -368,7 +376,7 @@ MyBatis-Springが提供するItemReaderとして下記の2つが存在する。
 
 <!-- (2) (3) (4) -->
 <bean id="reader" class="org.mybatis.spring.batch.MyBatisCursorItemReader"
-      p:queryId="jp.co.ntt.fw.macchinetta.batch.functionaltest.app.repository.mst.CustomerRepository.findAll"
+      p:queryId="jp.co.ntt.fw.macchinetta.batch.functionaltest.app.repository.mst.CustomerRepository.cursor"
       p:sqlSessionFactory-ref="jobSqlSessionFactory"/>
 
 <batch:job id="outputAllCustomerList01" job-repository="jobRepository">
@@ -392,7 +400,7 @@ MyBatis-Springが提供するItemReaderとして下記の2つが存在する。
     <!-- omitted -->
 
     <!-- (7) -->
-    <select id="findAll" resultType="jp.co.ntt.fw.macchinetta.batch.functionaltest.app.model.mst.Customer">
+    <select id="cursor" resultType="jp.co.ntt.fw.macchinetta.batch.functionaltest.app.model.mst.Customer">
         <![CDATA[
         SELECT
             customer_id AS customerId,
@@ -414,11 +422,11 @@ MyBatis-Springが提供するItemReaderとして下記の2つが存在する。
 ----
 
 [source,java]
-.Mapperインターフェース
+.Mapperインタフェース
 ----
 public interface CustomerRepository {
     // (8)
-    List<Customer> findAll();
+    Cursor<Customer> cursor();
 
     // omitted.
 }
@@ -464,18 +472,17 @@ public class RetrieveBranchFromContextItemProcessor implements ItemProcessor<Cus
 |(2)で定義した``MyBatisCursorItemReader``をreader属性に指定する。
 
 |(6)
-|Mapper XMLを定義する。namespaceの値とインターフェースのFQCNを一致させること。
+|Mapper XMLを定義する。namespaceの値とインタフェースのFQCNを一致させること。
 
 |(7)
 |SQLを定義する。
 
 |(8)
-|(7)で定義したSQLのIDに対応するメソッドをインターフェースに定義する。 +
-この例では検索条件のパラメータとして``branchId``を@Paramアノテーションにより渡している。条件が無い場合は不要である。
+|(7)で定義したSQLのIDに対応するメソッドをインタフェースに定義する。
 
 |(9)
 |引数として受け取るitemの型は、
-このクラスで実装しているItemProcessorインターフェースの型引数で指定した入力オブジェクトの型である``SalesPerformanceDetail``とする。
+このクラスで実装しているItemProcessorインタフェースの型引数で指定した入力オブジェクトの型である``Customer``とする。
 
 |(10)
 |引数に渡されたitemを利用して各カラムの値を取得する。
@@ -540,7 +547,7 @@ public class RetrieveBranchFromContextItemProcessor implements ItemProcessor<Cus
 ----
 
 [source,java]
-.Mapperインターフェース
+.Mapperインタフェース
 ----
 public interface SalesPlanDetailRepository {
     // (7)
@@ -551,7 +558,7 @@ public interface SalesPlanDetailRepository {
 ----
 
 [source,java]
-.Tasklelet実装
+.Tasklet実装
 ----
 @Component
 @Scope("step")
@@ -611,13 +618,13 @@ public class CheckAmountTasklet implements Tasklet {
 |``sqlSessionFactory-ref``のプロパティに、アクセスするデータベースの``SqlSessionFactory``を指定する。
 
 |(5)
-|Mapper XMLを定義する。namespaceの値とインターフェースのFQCNを一致させること。
+|Mapper XMLを定義する。namespaceの値とインタフェースのFQCNを一致させること。
 
 |(6)
 |SQLを定義する。
 
 |(7)
-|(6)で定義したSQLのIDに対応するメソッドをインターフェースに定義する。
+|(6)で定義したSQLのIDに対応するメソッドをインタフェースに定義する。
 
 |(8)
 |``@Inject``アノテーションを付与して、``ItemStreamReader``の実装をインジェクションする。 +
@@ -646,8 +653,7 @@ Bean定義にてMap形式でジョブパラメータから値を取得し、キ�
 [source,sh]
 .ジョブパラメータを指定した場合のジョブ起動コマンド
 ----
-java -cp ${CLASSPATH} org.springframework.batch.core.launch.support.CommandLineJobRunner
- /META-INF/job/job001 job001 year=2017 month=12
+$ java -cp ${CLASSPATH} org.springframework.batch.core.launch.support.CommandLineJobRunner /META-INF/job/job001 job001 year=2017 month=12
 ----
 
 [source,xml]
@@ -722,21 +728,21 @@ SQLの引数が数値型で定義されているため、``value-type``で``Inte
 [NOTE]
 .StepExectionContextによる検索指定方法について
 ====
-@beforeStepなどジョブの前処理で検索条件を指定する場合は、``StepExecutionContext``に設定することで、``JobParameters``同様に取得することができる。
+@BeforeStepなどジョブの前処理で検索条件を指定する場合は、``StepExecutionContext``に設定することで、``JobParameters``同様に取得することができる。
 ====
 
 [[Ch05_DBAccess_HowToUse_Input_MapperInterface]]
-==== Mapperインターフェース(入力)
+==== Mapperインタフェース(入力)
 
-ItemReader以外でデータベースの参照を行うにはMapperインターフェースを利用する。 +
-ここではMapperインターフェースを利用したデータベースの参照について説明する。
+ItemReader以外でデータベースの参照を行うにはMapperインタフェースを利用する。 +
+ここではMapperインタフェースを利用したデータベースの参照について説明する。
 
 [[Ch05_DBAccess_HowToUse_Input_MapperInterface_Overview]]
 機能概要::
 
-Mapperインターフェースを利用するにあたって、{batch5_shortname}では以下の制約を設けている。
+Mapperインタフェースを利用するにあたって、{batch5_shortname}では以下の制約を設けている。
 
-.Mapperインターフェースの利用可能な箇所
+.Mapperインタフェースの利用可能な箇所
 [cols="10,30,30,30", options="header"]
 |===
 |処理
@@ -756,30 +762,11 @@ Mapperインターフェースを利用するにあたって、{batch5_shortname
 
 |===
 
-ItemProcessorでの制約::
-  MyBatisには、同一トランザクション内で2つ以上の``ExecutorType``で実行してはいけないという制約がある。 +
-  「ItemWriterに``MyBatisBatchItemWriter``を使用する」と「ItemProcessorでMapperインターフェースを使用し参照更新をする」を
-  同時に満たす場合は、この制約に抵触する。 +
-  制約を回避するには、ItemProcessorでは``ExecutorType``が``BATCH``のMapperインターフェースによって
-  データベースアクセスすることになる。 +
-  加えて、``MyBatisBatchItemWriter``ではSQL実行後のステータスチェックにより、自身が発行したSQLかどうかチェックしているのだが、
-  当然ItemProcessorによるSQL実行は管理できないためエラーが発生してしまう。 +
-  よって、``MyBatisBatchItemWriter``を利用している場合は、Mapperインターフェースによる更新はできなくなり、参照のみとなる。
-
-[CAUTION]
-====
-``MyBatisBatchItemWriter``のエラーチェックを無効化する設定ができるが、予期せぬ動作が起きる可能性があるため無効化は禁止する。
-====
-
-Taskletでの制約::
-  Taskletでは、Mapperインターフェースを利用することが基本であるため、ItemProcessorのような影響はない。 +
-  ``MyBatisBatchItemWriter``をInjectして利用することも考えられるが、その場合はMapperインターフェース自体を
-  ``BATCH``設定で処理すればよい。つまり、Taskletでは、``MyBatisBatchItemWriter``をInjectして使う必要は基本的にない。
 
 [[Ch05_DBAccess_HowToUse_Input_MapperInterface_Chunk]]
 チャンクモデルにおける利用方法::
 
-チャンクモデルでMapperインターフェースを利用してデータベースを参照する実装例を以下に示す。
+チャンクモデルでMapperインタフェースを利用してデータベースを参照する実装例を以下に示す。
 
 [source,java]
 .ItemProcessorでの実装例
@@ -821,7 +808,7 @@ public class UpdateItemFromDBProcessor implements
 <!-- omitted job definition -->
 ----
 
-MapperインターフェースとMapper XMLについては<<Ch05_DBAccess_HowToUse_Input_MyBatisItemReader>>
+MapperインタフェースとMapper XMLについては<<Ch05_DBAccess_HowToUse_Input_MyBatisItemReader>>
 で説明している内容以外に特筆すべきことがないため省略する。
 
 [cols="10,90"]
@@ -831,10 +818,10 @@ MapperインターフェースとMapper XMLについては<<Ch05_DBAccess_HowToU
 |説明
 
 |(1)
-|MapperインターフェースをInjectする。
+|MapperインタフェースをInjectする。
 
 |(2)
-|Mapperインターフェースで検索処理を実行する。
+|Mapperインタフェースで検索処理を実行する。
 
 |(3)
 |Mapper XMLの登録を行う。 +
@@ -867,37 +854,17 @@ ItemProcessorでのデータベースアクセスは``BATCH``となる。
 [[Ch05_DBAccess_HowToUse_Input_MapperInterface_Tasklet]]
 タスクレットモデルにおける利用方法::
 
-タスクレットモデルでMapperインターフェースを利用してデータベースを参照する実装例を以下に示す。
-
-[source,java]
-.Taskletでの実装例
-----
-@Component
-public class OptimisticLockTasklet implements Tasklet {
-
-    // (1)
-    @Inject
-    ExclusiveControlRepository repository;
-
-    // omitted.
-
-    @Override
-    public RepeatStatus execute(StepContribution contribution,
-            ChunkContext chunkContext) throws Exception {
-
-        Branch branch = repository.branchFindOne(branchId); // (2)
-
-        // omitted.
-
-        return RepeatStatus.FINISHED;
-    }
-}
-----
+タスクレットモデルでMapperインタフェースを利用してデータベースを参照する実装例を以下に示す。 +
+大量データを処理する場合、Cursorを利用して取得データを1件ずつ処理することでメモリ容量をひっ迫せずに効率良く処理することができる。
+{batch5_shortname}では、タスクレットモデルでMapperインタフェースを利用してデータベースアクセスする場合はCursorを利用することを基本とする。 +
+Cursor同様に大量データを処理するうえで、ResultHandlerを利用することも有効である。
+ResultHandlerについては、{server5_guide}の
+{server5_url}/ArchitectureInDetail/DataAccessDetail/DataAccessMyBatis3.html#resulthandler[ResultHandlerの実装]を参照のこと。
 
 [source,xml]
 .Bean定義
 ----
-<!-- (3) -->
+<!-- (1) -->
 <mybatis:scan
         base-package="jp.co.ntt.fw.macchinetta.batch.functionaltest.ch05.exclusivecontrol.repository"
         factory-ref="jobSqlSessionFactory"/>
@@ -905,14 +872,70 @@ public class OptimisticLockTasklet implements Tasklet {
 <batch:job id="taskletOptimisticLockCheckJob" job-repository="jobRepository">
     <batch:step id="taskletOptimisticLockCheckJob.step01">
         <batch:tasklet transaction-manager="jobTransactionManager"
-                       ref="optimisticLockTasklet"> <!-- (4) -->
+                       ref="optimisticLockTasklet">
         </batch:tasklet>
     </batch:step>
 </batch:job>
 ----
 
-MapperインターフェースとMapper XMLについては<<Ch05_DBAccess_HowToUse_Input_MyBatisItemReader>>
-で説明している内容以外に特筆すべきことがないため省略する。
+[source,xml]
+.Mapper XML
+----
+<!-- (2) -->
+<mapper namespace="jp.co.ntt.fw.macchinetta.batch.functionaltest.ch05.dbaccess.repository.SalesRepository">
+
+    <!-- omitted -->
+
+    <!-- (3) -->
+    <select id="cursor" resultType="jp.co.ntt.fw.macchinetta.batch.functionaltest.app.model.plan.SalesPlanDetail">
+        <![CDATA[
+        SELECT
+            branch_id AS branchId, year, month, customer_id AS customerId, amount
+        FROM
+            sales_plan_detail
+        ORDER BY
+            branch_id ASC, year ASC, month ASC, customer_id ASC
+        ]]>
+    </select>
+
+</mapper>
+----
+
+[source,java]
+.Mapperインタフェース
+----
+public interface SalesRepository {
+    // (4)
+    Cursor<SalesPlanDetail> cursor();
+}
+----
+
+[source,java]
+.Taskletでの実装例
+----
+@Component
+public class SalesPlanCursorTasklet implements Tasklet {
+
+    // omitted.
+
+    // (5)
+    @Inject
+    SalesRepository repository;
+
+    @Override
+    public RepeatStatus execute(StepContribution contribution,
+            ChunkContext chunkContext) throws Exception {
+
+        try (Cursor<SalesPlanDetail> cursor = repository.cursor()) {  // (6)
+            for (SalesPlanDetail salesPlan : cursor) { // (7)
+                // omitted.
+            }
+        }
+
+        return RepeatStatus.FINISHED;
+    }
+}
+----
 
 [cols="10,90", options="header"]
 .説明
@@ -921,20 +944,40 @@ MapperインターフェースとMapper XMLについては<<Ch05_DBAccess_HowToU
 |説明
 
 |(1)
-|MapperインターフェースをInjectする。
+|Mapper XMLの登録を行う。
 
 |(2)
-|Mapperインターフェースで検索処理を実行する。
+|Mapper XMLを定義する。namespaceの値とインタフェースのFQCNを一致させること。
 
 |(3)
-|Mapper XMLの登録を行う。 +
-``factory-ref``属性に``REUSE``設定されている``jobSqlSessionFactory``を指定する。
+|SQLを定義する。
 
 |(4)
-|MapperインターフェースをInjectしTaskletを設定する。
+|(3)で定義したSQLのIDに対応するメソッドをインタフェースに定義する。 +
+メソッドの戻り値の型は``org.apache.ibatis.cursor.Cursor``とする。
+
+|(5)
+|MapperインタフェースをInjectする。
+
+|(6)
+|Cursorから1件ずつデータを取得する。 +
+処理の途中でエラーが発生した場合、MyBatisはCursorのクローズを保証しないため、try-with-resources文によりCursorを確実にクローズする。
+
+|(7)
+|拡張for文によりCursorをフェッチする。
 
 |===
 
+[WARNING]
+.Cursor利用時の注意点
+====
+Cursorで読み取り中のテーブルを他の処理で更新をかけると、
+読み取り済みの古いデータを処理してしまうことになり、データの不整合が発生する可能性があるため注意すること。
+これを防ぐために安易にロックをかけるとデッドロックを引き起こしかねないため、
+<<Ch05_ExclusiveControl.adoc#Ch05_ExclusiveControl,排他制御>>を参照し適切にロックをかけるか、
+テーブルアクセスが競合しないようにジョブ設計することを検討してほしい。
+
+====
 
 [[Ch05_DBAccess_HowToUse_Output]]
 === 出力
@@ -1026,7 +1069,7 @@ MyBatis-Springが提供するItemWriterは以下の1つのみである。
 ----
 
 [source,java]
-.Mapperインターフェース
+.Mapperインタフェース
 ----
 public interface SalesPlanDetailRepository {
 
@@ -1085,16 +1128,16 @@ public class BranchEditItemProcessor implements ItemProcessor<Branch, ExclusiveB
 |(2)で定義した``MyBatisBatchItemWriter``をwriter属性に指定する。
 
 |(6)
-|Mapper XMLを定義する。namespaceの値とインターフェースのFQCNを一致させること。
+|Mapper XMLを定義する。namespaceの値とインタフェースのFQCNを一致させること。
 
 |(7)
 |SQLを定義する。
 
 |(8)
-|(7)で定義したSQLのIDに対応するメソッドをインターフェースに定義する。
+|(7)で定義したSQLのIDに対応するメソッドをインタフェースに定義する。
 
 |(9)
-|返り値の型は、このクラスで実装しているItemProcessorインターフェースの型引数で指定した 出力オブジェクトの型である``ExclusiveBranch``とする。
+|返り値の型は、このクラスで実装しているItemProcessorインタフェースの型引数で指定した 出力オブジェクトの型である``ExclusiveBranch``とする。
 
 |(10)
 |更新データを設定したDTOオブジェクトを返すことでデータベースへ出力する。
@@ -1150,7 +1193,7 @@ public class BranchEditItemProcessor implements ItemProcessor<Branch, ExclusiveB
 ----
 
 [source,java]
-.Mapperインターフェース
+.Mapperインタフェース
 ----
 public interface SalesPlanDetailRepository {
     // (7)
@@ -1199,7 +1242,7 @@ public class SalesPlanDetailRegisterTasklet implements Tasklet {
 }
 ----
 
-MapperインターフェースとMapper XMLについては<<Ch05_DBAccess_HowToUse_Output_MyBatisItemWriter>>
+MapperインタフェースとMapper XMLについては<<Ch05_DBAccess_HowToUse_Output_MyBatisItemWriter>>
 で説明している内容以外に特筆すべきことがないため省略する。
 
 [cols="10,90", options="header"]
@@ -1222,17 +1265,17 @@ MapperインターフェースとMapper XMLについては<<Ch05_DBAccess_HowToU
 指定する``SessionTemplate``は、``executorType``が``BATCH``に設定されていることが必須である。
 
 |(5)
-|Mapper XMLを定義する。namespaceの値とインターフェースのFQCNを一致させること。
+|Mapper XMLを定義する。namespaceの値とインタフェースのFQCNを一致させること。
 
 |(6)
 |SQLを定義する。
 
 |(7)
-|(6)で定義したSQLのIDに対応するメソッドをインターフェースに定義する。
+|(6)で定義したSQLのIDに対応するメソッドをインタフェースに定義する。
 
 |(8)
 |``@Inject``アノテーションを付与して、``ItemWriter``の実装をインジェクションする。 +
-``ItemReader``とは異なり、データベースの更新ではリソースのopen/closeが不要であるため、``ItemStreamWriter``ではなく``ItemWriter``インターフェースにインジェクションする。
+``ItemReader``とは異なり、データベースの更新ではリソースのopen/closeが不要であるため、``ItemStreamWriter``ではなく``ItemWriter``インタフェースにインジェクションする。
 
 |(9)
 |出力データを格納するリストを定義する。 +
@@ -1247,20 +1290,41 @@ MapperインターフェースとMapper XMLについては<<Ch05_DBAccess_HowToU
 |===
 
 [[Ch05_DBAccess_HowToUse_Output_MapperInterface]]
-==== Mapperインターフェース(出力)
+==== Mapperインタフェース(出力)
 
-ItemWriter以外でデータベースの更新を行うにはMapperインターフェースを利用する。 +
-ここではMapperインターフェースを利用したデータベースの更新について説明する。
+ItemWriter以外でデータベースの更新を行うにはMapperインタフェースを利用する。 +
+ここではMapperインタフェースを利用したデータベースの更新について説明する。
 
 [[Ch05_DBAccess_HowToUse_Output_MapperInterface_Overview]]
 機能概要::
 
-Mapperインターフェースを利用してデータベースアクセスするうえでの{batch5_shortname}としての制約は<<Ch05_DBAccess_HowToUse_Input_MapperInterface>>を参照のこと。
+Mapperインタフェースを利用してデータベースアクセスするうえでの{batch5_shortname}としての制約は<<Ch05_DBAccess_HowToUse_Input_MapperInterface>>を参照のこと。 +
+さらにItemProcessor、TaskletでMapperインタフェースを利用したデータベースの更新を行う際には以下の制約がある。
+
+ItemProcessorでの制約::
+  MyBatisには、同一トランザクション内において、2つ以上の``ExecutorType``で実行してはいけないという制約がある。 +
+  「ItemWriterに``MyBatisBatchItemWriter``を使用する」と「ItemProcessorでMapperインタフェースを使用し参照更新をする」を
+  同時に満たす場合は、この制約に抵触する。 +
+  制約を回避するには、ItemProcessorでは``ExecutorType``が``BATCH``のMapperインタフェースによって
+  データベースアクセスすることになる。 +
+  加えて、``MyBatisBatchItemWriter``ではSQL実行後のステータスチェックにより、自身が発行したSQLかどうかチェックしているのだが、
+  当然ItemProcessorによるSQL実行は管理できないためエラーが発生してしまう。 +
+  よって、``MyBatisBatchItemWriter``を利用している場合は、Mapperインタフェースによる更新はできなくなり、参照のみとなる。
+
+[CAUTION]
+====
+``MyBatisBatchItemWriter``のエラーチェックを無効化する設定ができるが、予期せぬ動作が起きる可能性があるため無効化は禁止する。
+====
+
+Taskletでの制約::
+  Taskletでは、Mapperインタフェースを利用することが基本であるため、ItemProcessorのような影響はない。 +
+  ``MyBatisBatchItemWriter``をInjectして利用することも考えられるが、その場合はMapperインタフェース自体を
+  ``BATCH``設定で処理すればよい。つまり、Taskletでは、``MyBatisBatchItemWriter``をInjectして使う必要は基本的にない。
 
 [[Ch05_DBAccess_HowToUse_Output_MapperInterface_Chunk]]
 チャンクモデルにおける利用方法::
 
-チャンクモデルでMapperインターフェースを利用してデータベースを更新(登録)する実装例を以下に示す。
+チャンクモデルでMapperインタフェースを利用してデータベースを更新(登録)する実装例を以下に示す。
 
 [source,java]
 .ItemProcessorでの実装例
@@ -1315,7 +1379,7 @@ public class UpdateCustomerItemProcessor implements ItemProcessor<Customer, Cust
 </batch:job>
 ----
 
-MapperインターフェースとMapper XMLについては<<Ch05_DBAccess_HowToUse_Output_MyBatisItemWriter>>
+MapperインタフェースとMapper XMLについては<<Ch05_DBAccess_HowToUse_Output_MyBatisItemWriter>>
 で説明している内容以外に特筆すべきことがないため省略する。
 
 [cols="10,90"]
@@ -1325,7 +1389,7 @@ MapperインターフェースとMapper XMLについては<<Ch05_DBAccess_HowToU
 |説明
 
 |(1)
-|MapperインターフェースをInjectする。
+|MapperインタフェースをInjectする。
 
 |(2)
 |DTOオブジェクトを生成して更新データを設定し、DTOオブジェクトを返却することでデータベースの更新を行う。
@@ -1347,7 +1411,7 @@ MapperインターフェースとMapper XMLについては<<Ch05_DBAccess_HowToU
 [[Ch05_DBAccess_HowToUse_Output_MapperInterface_Tasklet]]
 タスクレットモデルにおける利用方法::
 
-タスクレットモデルでMapperインターフェースを利用してデータベースを更新(登録)する実装例を以下に示す。
+タスクレットモデルでMapperインタフェースを利用してデータベースを更新(登録)する実装例を以下に示す。
 
 [source,java]
 .Taskletでの実装例
@@ -1404,7 +1468,7 @@ public class OptimisticLockTasklet implements Tasklet {
 </batch:job>
 ----
 
-MapperインターフェースとMapper XMLは省略する。
+MapperインタフェースとMapper XMLは省略する。
 
 [cols="10,90", options="header"]
 .説明
@@ -1413,34 +1477,34 @@ MapperインターフェースとMapper XMLは省略する。
 |説明
 
 |(1)
-|MapperインターフェースをInjectする。
+|MapperインタフェースをInjectする。
 
 |(2)
 |DTOオブジェクトを生成して、更新データを設定する。
 
 |(3)
-|更新データを設定したDTOオブジェクトを引数に指定して、Mapperインターフェースで更新処理を実行する。
+|更新データを設定したDTOオブジェクトを引数に指定して、Mapperインタフェースで更新処理を実行する。
 
 |(4)
 |Mapper XMLの登録を行う。 +
 ``factory-ref``属性に``REUSE``設定されている``jobSqlSessionFactory``を指定する。
 
 |(5)
-|MapperインターフェースをInjectしTaskletを設定する。
+|MapperインタフェースをInjectしTaskletを設定する。
 
 |===
 
 [[Ch05_DBAccess_HowToUse_MapperInterface_Listener]]
 === リスナーでのデータベースアクセス
 リスナーでのデータベースアクセスは他のコンポーネントと連携することが多い。
-使用するリスナー及び実装方法によっては、Mapperインターフェースで取得したデータを、
+使用するリスナー及び実装方法によっては、Mapperインタフェースで取得したデータを、
 他のコンポーネントへ引き渡す仕組みを追加で用意する必要がある。
 
-リスナーでMapperインターフェースを利用してデータベースアクセスを実装するにあたり、以下の制約がある。
+リスナーでMapperインタフェースを利用してデータベースアクセスを実装するにあたり、以下の制約がある。
 
 リスナーでの制約::
   リスナーでもItemProcessorでの制約と同じ制約が成立する。
-  加えて、リスナーでは、更新を必要とするユースケースが考えにくい。よって、リスナーでは、更新系処理を禁止する。
+  加えて、リスナーでは、更新を必要とするユースケースが考えにくい。よって、リスナーでは、更新系処理を行うことを推奨しない。
 
 [NOTE]
 .リスナーで想定される更新処理の代替
@@ -1558,13 +1622,13 @@ public class CustomerCache {
 |説明
 
 |(1)
-|MapperインターフェースをInjectする。
+|MapperインタフェースをInjectする。
 
 |(2)
-|Mapperインターフェースから取得したデータをキャッシュするためのBeanをInjectする。
+|Mapperインタフェースから取得したデータをキャッシュするためのBeanをInjectする。
 
 |(3)
-|リスナーにて、Mapperインターフェースからデータを取得してキャッシュする。 +
+|リスナーにて、Mapperインタフェースからデータを取得してキャッシュする。 +
 ここでは、``StepExecutionListener#beforeStep``にてステップ実行前にキャッシュを作成し、
 以降の処理ではキャッシュを参照することで、I/Oを低減し処理効率を高めている。
 
@@ -1586,7 +1650,7 @@ public class CustomerCache {
 ``template-ref``属性に``BATCH``が設定されている``batchModeSqlSessionTemplate``を指定する。
 
 |(9)
-|Mapperインターフェースを利用するリスナーを定義する。
+|Mapperインタフェースを利用するリスナーを定義する。
 
 |(10)
 |キャッシュを利用するItemProcessorを指定する。
@@ -1819,8 +1883,7 @@ Bean定義にてMap形式でジョブパラメータから値を取得し、キ�
 [source,sh]
 .ジョブパラメータを指定した場合のジョブ起動コマンド
 ----
-java -cp ${CLASSPATH} org.springframework.batch.core.launch.support.CommandLineJobRunner
- /META-INF/job/job001 job001 year=2017 month=12
+$ java -cp ${CLASSPATH} org.springframework.batch.core.launch.support.CommandLineJobRunner /META-INF/job/job001 job001 year=2017 month=12
 ----
 
 [source,xml]
@@ -1895,5 +1958,5 @@ SQLの引数が数値型で定義されているため、``value-type``で``Inte
 [NOTE]
 .StepExectionContextによる検索指定方法について
 ====
-@beforeStepなどジョブの前処理で検索条件を指定する場合は、``StepExecutionContext``に設定することで、``JobParameters``同様に取得することができる。
+@BeforeStepなどジョブの前処理で検索条件を指定する場合は、``StepExecutionContext``に設定することで、``JobParameters``同様に取得することができる。
 ====

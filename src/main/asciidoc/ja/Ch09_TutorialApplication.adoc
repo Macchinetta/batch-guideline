@@ -107,7 +107,7 @@ A～Fのジョブで利用している機能や処理方式と{batch5_guide}の�
 |異常系への対応 > <<Ch06_InputValidation.adoc#Ch06_InputValidation,入力チェック>> | | |[red]#Chunk# [blue]#Tasklet# | |[red]#Chunk# [blue]#Tasklet# |
 
 |12
-|異常系への対応 > 例外ハンドリング > ステップ単位の例外ハンドリング > <<Ch06_ExceptionHandling#Ch06_ExceptionHandling_HowToUse_StepExceptionHandling_ChunkListener,ChunkListenerインターフェースによる例外ハンドリング>> | | | |[red]#Chunk# [blue]#Tasklet# | |
+|異常系への対応 > 例外ハンドリング > ステップ単位の例外ハンドリング > <<Ch06_ExceptionHandling#Ch06_ExceptionHandling_HowToUse_StepExceptionHandling_ChunkListener,ChunkListenerインタフェースによる例外ハンドリング>> | | | |[red]#Chunk# [blue]#Tasklet# | |
 
 |13
 |異常系への対応 > 例外ハンドリング > ステップ単位の例外ハンドリング > <<Ch06_ExceptionHandling#Ch06_ExceptionHandling_HowToUse_StepExceptionHandling_Chunk,チャンクモデルにおける例外ハンドリング>> | | | | |[red]#Chunk# |

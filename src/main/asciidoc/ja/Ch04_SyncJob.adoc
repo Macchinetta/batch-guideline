@@ -165,6 +165,6 @@ $ java -cp 'target/[artifactId]-[version].jar:lib/*' \
   なぜなら、{batch5_shortname}では、{SB}のデフォルトである「同じパラメータで起動したジョブは同一ジョブとして認識され、同一ジョブは1度しか実行できない」
   という制約を回避しているためである。 +
   詳細は<<Ch04_JobParameter.adoc#Ch04_JobParameter_HowToUse_Converter,パラメータ変換クラスについて>>にて説明する。 +
-  また、本オプションを利用するには、``JobParametersIncrementer``というインターフェースの実装クラスが必要だが、
+  また、本オプションを利用するには、``JobParametersIncrementer``というインタフェースの実装クラスが必要だが、
   {batch5_shortname}では設定を行っていない。 +
   そのため、本オプションを指定して起動すると、必要なBean定義が存在しないためエラーとなる。

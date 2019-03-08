@@ -19,6 +19,7 @@ This guideline helps to proceed with the software development (mainly coding) sm
 Source files of this guideline are stored into following directories.
 
 * Japanese version : ``{repository root}/src/main/asciidoc/ja/``
+* English version  : ``{repository root}/src/main/asciidoc/en/``
 
 == Source file format
 
@@ -59,6 +60,20 @@ $ mvn -f image_pom.xml
 $ mvn
 ----
 
+=== Build HTML and PDF files for the English
+
+Please execute the two ``mvn`` command with profile specification.
+If build is successful, HTML files generate to the directory below.
+
+* HTML : ``{your repository}/target/generated-docs/html``
+* PDF  : ``{your repository}/target/generated-docs/pdf``
+
+[source, text]
+----
+$ mvn -f image_pom.xml
+$ mvn -P en
+----
+
 == Terms of use
 
-Terms of use refer to link:/src/main/asciidoc/ja/Ch01_TermsOfUse.adoc[here(Japanese)].
+Terms of use refer to link:/src/main/asciidoc/ja/Ch01_TermsOfUse.adoc[here(Japanese)] or link:/src/main/asciidoc/en/Ch01_TermsOfUse.adoc[here(English)].

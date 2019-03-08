@@ -4,14 +4,14 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>jp.co.ntt.fw.macchinetta.batch</groupId>
     <artifactId>macchinetta-batch-guideline</artifactId>
-    <version>2.0.1.RELEASE</version>
+    <version>2.1.0.RELEASE</version>
     <name>Macchinetta Batch Framework (2.x) Development Guideline</name>
     <description>Macchinetta Batch Framework (2.x) Development Guideline.</description>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.author>NTT Corporation.</project.author>
-        <project.date>2018-3-9</project.date>
+        <project.date>2019-3-8</project.date>
         <asciidoctor.maven.plugin.version>1.5.5</asciidoctor.maven.plugin.version>
         <asciidoctorj.pdf.version>1.5.0-alpha.16</asciidoctorj.pdf.version>
         <asciidoctorj.version>1.5.6</asciidoctorj.version>
@@ -68,12 +68,16 @@
             </activation>
             <properties>
                 <asciidoc.source.lang>ja</asciidoc.source.lang>
+                <project.date>2019-3-8</project.date>
+                <project.revnumber>${project.version}</project.revnumber>
             </properties>
         </profile>
         <profile>
             <id>en</id>
             <properties>
                 <asciidoc.source.lang>en</asciidoc.source.lang>
+                <project.date>2019-3-8</project.date>
+                <project.revnumber>2.1.0.RELEASE</project.revnumber>
             </properties>
         </profile>
     </profiles>
@@ -155,7 +159,7 @@
                                 <doctitle-index>${project.name}</doctitle-index>
                                 <author-index>${project.author}</author-index>
                                 <revdate-index>${project.date}</revdate-index>
-                                <revnumber-index>${project.version}</revnumber-index>
+                                <revnumber-index>${project.revnumber}</revnumber-index>
                             </attributes>
                         </configuration>
                     </execution>
@@ -189,11 +193,11 @@
                                 <doctitle>${project.name}</doctitle>
                                 <author>${project.author}</author>
                                 <revdate>${project.date}</revdate>
-                                <revnumber>${project.version}</revnumber>
+                                <revnumber>${project.revnumber}</revnumber>
                                 <doctitle-index>${project.name}</doctitle-index>
                                 <author-index>${project.author}</author-index>
                                 <revdate-index>${project.date}</revdate-index>
-                                <revnumber-index>${project.version}</revnumber-index>
+                                <revnumber-index>${project.revnumber}</revnumber-index>
                             </attributes>
                         </configuration>
                     </execution>

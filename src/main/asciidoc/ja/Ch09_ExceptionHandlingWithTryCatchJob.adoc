@@ -290,8 +290,8 @@ errors.maxInteger=The {0} exceeds {1}.
 
 [[Ch09_Impl_ExceptionHandlingWithTryCatchJob_Chunk_ExitCode_StepExecutionListener]]
 ==== StepExecutionListenerの実装
-``StepExecutionListener``インターフェースを利用してステップの終了コードを条件により変更する。 +
-ここでは、``StepExecutionListener``インターフェースの実装クラスとして、
+``StepExecutionListener``インタフェースを利用してステップの終了コードを条件により変更する。 +
+ここでは、``StepExecutionListener``インタフェースの実装クラスとして、
 入力データと出力データの件数が異なる場合に終了コードを``SKIPPED``に変更する処理を実装する。
 
 なお、このクラスはタスクレットモデルでは作成する必要がない。
@@ -349,8 +349,8 @@ public class ExitStatusChangeListener implements StepExecutionListener {
 
 [[Ch09_Impl_ExceptionHandlingWithTryCatchJob_Chunk_ExitCode_JobExecutionListener]]
 ==== JobExecutionListenerの実装
-``JobExecutionListener``インターフェースを利用してジョブの終了コードを条件により変更する。 +
-ここでは、``JobExecutionListener``インターフェースの実装クラスとして、
+``JobExecutionListener``インタフェースを利用してジョブの終了コードを条件により変更する。 +
+ここでは、``JobExecutionListener``インタフェースの実装クラスとして、
 最終的なジョブの終了コードを各ステップの終了コードに合わせて変更する処理を実装する。
 
 [source, java]
@@ -457,7 +457,7 @@ public class JobExitCodeChangeListener implements JobExecutionListener {
 
 |(2)
 |``StepExecutionListener``の実装クラスを設定する。
-なお、``StepExecutionListener``は``StepListener``の拡張インターフェースである。 +
+なお、``StepExecutionListener``は``StepListener``の拡張インタフェースである。 +
 ここでは、``StepExecutionListener``の実装クラスのBeanIDである``exitStatusChangeListener``を指定する。
 
 |(3)
@@ -766,8 +766,8 @@ errors.maxInteger=The {0} exceeds {1}.
 
 [[Ch09_Impl_ExceptionHandlingWithTryCatchJob_Tasklet_ExitCode_JobExecutionListener]]
 ==== JobExecutionListenerの実装
-``JobExecutionListener``インターフェースを利用してジョブの終了コードを条件により変更する。 +
-ここでは、``JobExecutionListener``インターフェースの実装クラスとして、
+``JobExecutionListener``インタフェースを利用してジョブの終了コードを条件により変更する。 +
+ここでは、``JobExecutionListener``インタフェースの実装クラスとして、
 最終的なジョブの終了コードを各ステップの終了コードに合わせて変更する処理を実装する。
 
 [source, java]
@@ -868,7 +868,7 @@ public class JobExitCodeChangeListener implements JobExecutionListener {
 
 |(2)
 |``JobExecutionListener``の実装クラスを設定する。
-なお、``JobExecutionListener``は``JobListener``の拡張インターフェースである。 +
+なお、``JobExecutionListener``は``JobListener``の拡張インタフェースである。 +
 ここでは、``JobExecutionListener``の実装クラスのBeanIDである``jobExitCodeChangeListener``を指定する。
 
 |===

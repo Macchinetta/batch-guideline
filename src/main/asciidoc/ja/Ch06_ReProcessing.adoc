@@ -113,10 +113,10 @@ include::_include_all.adoc[]
 [IMPORTANT]
 .JobRepositoryの障害発生時について
 ====
-``JobRepository``への更新は、ユーザが使用するデータベースのトランザクションとは独立したトランザクションで行われる。
-つまり、業務処理に対する障害のみがリカバリ対象となる。
-これは、``JobRepository``に障害が発生した場合は実際の処理件数とずれる可能性があり、
-リスタート時に二重処理の危険性があることを意味する。
+<<Ch05_DBAccess.adoc#Ch05_DBAccess_HowToUse_Config_DataSource,データソースの設定>>で説明したとおり、
+``JobRepository``への更新は業務処理とは独立したトランザクションで行われるため、
+``JobRepository``に障害が発生した場合は実際の処理件数とずれる可能性がある。
+これは、リスタート時に二重処理の危険性があることを意味する。
 よって、``JobRepository``の可用性を検討したり、次点の方法としてリランの方法を検討しておいたりといった、
 障害時の対処方法を検討する必要がある。
 ====
@@ -154,8 +154,8 @@ include::_include_all.adoc[]
 [source,console]
 .同期実行したジョブのリスタート例
 ----
-# (1)
-java -cp dependency/* org.springframework.batch.core.launch.support.CommandLineJobRunner <jobPath> <jobName> -restart
+$ # (1)
+$ java -cp dependency/* org.springframework.batch.core.launch.support.CommandLineJobRunner <jobPath> <jobName> -restart
 ----
 
 [cols="10,90"]
@@ -170,13 +170,27 @@ java -cp dependency/* org.springframework.batch.core.launch.support.CommandLineJ
 
 |===
 
+[WARNING]
+.実運用時の考慮
+====
+リスタート時に限らず、本番運用においては上記のように直にコマンドを打つような運用は避けること。
+これは、誤ったコマンドの実行を防ぐためである。
+
+誤ったコマンドの実行は、監視に不必要な情報をログに残したり、監視ツールが不要なアラートを発する原因になる可能性がある。
+例えば、実行するべきコマンドをスクリプト化し、これを実行する運用とするなど、出来る限り直にコマンドを入力しない運用を検討してほしい。
+
+なお、ジョブのリスタートを防止する場合には、<<Ch06_RerunRestart_HowToUse_StatefullRestart>>で後述するように、
+ジョブのBean定義で、``restartable``属性を``-restart``にすることも考えられる。
+これにより、誤って``-restart``オプションをつけて起動した場合に、エラーにすることができる。
+====
+
 非同期実行(DBポーリング)で実行したジョブのリスタート例を以下に示す。
 
 [source,console]
 .非同期実行(DBポーリング)で実行したジョブのリスタート例
 ----
-# (1)
-java -cp dependency/* org.springframework.batch.core.launch.support.CommandLineJobRunner <JobExecutionId> -restart
+$ # (1)
+$ java -cp dependency/* org.springframework.batch.core.launch.support.CommandLineJobRunner <JobExecutionId> -restart
 ----
 
 [cols="10,90"]
@@ -341,8 +355,8 @@ public long restart(long JobExecutionId) throws Execption {
 [source,console]
 .リスタートのコマンド実行例
 ----
-# (8)
-java -cp dependency/* org.springframework.batch.core.launch.support.CommandLineJobRunner <jobPath> <jobName> <jobParameters> ...
+$ # (8)
+$ java -cp dependency/* org.springframework.batch.core.launch.support.CommandLineJobRunner <jobPath> <jobName> <jobParameters> ...
 ----
 
 [cols="10,90", options="header"]

@@ -99,7 +99,7 @@ include::_include_all.adoc[]
 [source, console]
 .コマンドライン引数としてパラメータを設定する例
 ----
-# Execute job
+$ # Execute job
 $ java org.springframework.batch.core.launch.support.CommandLineJobRunner \
     JobDefined.xml JOBID param1=abc outputFileName=/tmp/result.csv
 ----
@@ -224,7 +224,7 @@ outputFile=/tmp/result.csv
 [source, console]
 .実行方法
 ----
-# Execute job
+$ # Execute job
 $ java org.springframework.batch.core.launch.support.CommandLineJobRunner \
     JobDefined.xml JOBID < params.txt
 ----
@@ -255,9 +255,9 @@ $ java org.springframework.batch.core.launch.support.CommandLineJobRunner \
 <!-- (1) -->
 <bean id="reader"
       class="org.springframework.batch.item.file.FlatFileItemReader" scope="step"
-      p:resource="file:#{jobParamaters[inputFile] ?: /input/sample.csv}">  <!-- (2) -->
+      p:resource="file:#{jobParameters[inputFile] ?: /input/sample.csv}">  <!-- (2) -->
     <property name="lineMapper">
-        // omitted settings
+        <!-- omitted settings -->
     </property>
 </bean>
 
@@ -452,7 +452,7 @@ listタグを使用して任意パラメータのパラメータ名を複数指�
 [source, console]
 .NGケース1
 ----
-# Execute job
+$ # Execute job
 $ java org.springframework.batch.core.launch.support.CommandLineJobRunner \
     JobDefined.xml JOBID param1=aaa
 ----
@@ -462,7 +462,7 @@ $ java org.springframework.batch.core.launch.support.CommandLineJobRunner \
 [source, console]
 .NGケース2
 ----
-# Execute job
+$ # Execute job
 $ java org.springframework.batch.core.launch.support.CommandLineJobRunner \
     JobDefined.xml JOBID outputFileName=/tmp/result.csv param2=aaa
 ----
@@ -472,7 +472,7 @@ $ java org.springframework.batch.core.launch.support.CommandLineJobRunner \
 [source, console]
 .OKケース1
 ----
-# Execute job
+$ # Execute job
 $ java org.springframework.batch.core.launch.support.CommandLineJobRunner \
     JobDefined.xml JOBID param1=aaa outputFileName=/tmp/result.csv
 ----
@@ -482,7 +482,7 @@ $ java org.springframework.batch.core.launch.support.CommandLineJobRunner \
 [source, console]
 .OKケース2
 ----
-# Execute job
+$ # Execute job
 $ java org.springframework.batch.core.launch.support.CommandLineJobRunner \
     JobDefined.xml JOBID fileoutputFilename=/tmp/result.csv
 ----
@@ -492,7 +492,7 @@ $ java org.springframework.batch.core.launch.support.CommandLineJobRunner \
 [[Ch04_JobParameter_HowToUse_ParamsValidation_Origin]]
 ==== 複雑な妥当性検証
 
-``JobParametersValidator``インターフェースの実装を自作することで、
+``JobParametersValidator``インタフェースの実装を自作することで、
 要件に応じたパラメータの検証を実現することができる。
 
 ``JobParametersValidator``クラスは以下の要領で実装する。
@@ -507,7 +507,7 @@ $ java org.springframework.batch.core.launch.support.CommandLineJobRunner \
 ここでは、``str``で指定された文字列の長さが、``num``で指定された数値以下であることを検証している。
 
 [source, java]
-.JobParametersValidatorインターフェースの実装例
+.JobParametersValidatorインタフェースの実装例
 ----
 public class ComplexJobParametersValidator implements JobParametersValidator {  // (1)
     @Override
@@ -613,7 +613,7 @@ public class ComplexJobParametersValidator implements JobParametersValidator {  
 この差は記述方法の差に現れている。
 
 * {SB}がもつ機能の場合
-** ``#{jobParamaters[xxx]}``
+** ``#{jobParameters[xxx]}``
 * Spring Frameworkがもつ機能の場合
 ** ``@Value("${xxx}")``
 
@@ -638,11 +638,11 @@ Bean定義においても同様に参照可能である。
 [source, console]
 .環境変数に加えてコマンドライン引数でパラメータを設定する例
 ----
-# Set environment variables
+$ # Set environment variables
 $ export env1=aaa
 $ export env2=bbb
 
-# Execute job
+$ # Execute job
 $ java org.springframework.batch.core.launch.support.CommandLineJobRunner \
     JobDefined.xml JOBID param3=ccc outputFile=/tmp/result.csv
 ----
@@ -684,10 +684,10 @@ public void setParam3(String param3) {
 [source, console]
 .環境変数をデフォルトとする場合の例
 ----
-# Set environment variables
+$ # Set environment variables
 $ export env1=aaa
 
-# Execute job
+$ # Execute job
 $ java org.springframework.batch.core.launch.support.CommandLineJobRunner \
     JobDefined.xml JOBID param1=bbb outputFile=/tmp/result.csv
 ----

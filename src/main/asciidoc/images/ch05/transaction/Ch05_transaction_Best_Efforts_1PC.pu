@@ -1,6 +1,7 @@
 @startuml
 
 hide footbox
+autonumber
 
 actor User
 box "ChainedTransactionManager" #lightblue
@@ -30,12 +31,13 @@ activate TM3
 TM3 -> mq1 : beginTransaction
 end
 
-User -> db1 : access(R/w)
-User -> db2 : access(R/w)
-User -> mq1 : access(R/w)
+User -> db1 : access(R/W)
+User -> db2 : access(R/W)
+User -> mq1 : access(R/W)
 
 group chained commit
 User -> ChainedTransactionManager : commit
+
 ChainedTransactionManager -> TM3 : commit
 TM3 -> mq1 : commit
 

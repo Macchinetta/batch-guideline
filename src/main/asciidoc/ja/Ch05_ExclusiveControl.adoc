@@ -122,7 +122,7 @@ image::Ch05_ExclusiveControl_File_Senario.png[ExclusiveControl_File_Senario]
 |Tasklet
 |-
 |データ取得時にはItemReader、データ更新時はItemWriterで説明した処理を実施する。 +
-Mapperインターフェースを直接利用する場合も考え方は同じである。
+Mapperインタフェースを直接利用する場合も考え方は同じである。
 
 |===
 
@@ -151,7 +151,7 @@ SELECTで取得するデータは、ItemProcessorでデータを取得する条�
 
 |ItemProcessor
 |-
-|Mapperインターフェースを利用して、ItemReaderで取得したデータ(キー情報)を条件とするSQL文でSELECT FOR UPDATEを発行する。
+|Mapperインタフェースを利用して、ItemReaderで取得したデータ(キー情報)を条件とするSQL文でSELECT FOR UPDATEを発行する。
 
 |ItemWriter
 |-
@@ -161,8 +161,8 @@ SELECTで取得するデータは、ItemProcessorでデータを取得する条�
 |Tasklet
 |ItemStreamReaderでファイルをオープンした直後にファイルロックを取得する。 +
 ItemStreamWriterをクローズする直前にファイルロックを開放する。
-|データ取得時にはSELECT FOR UPDATE文を発行するItemReaderかMapperインターフェースを直接利用する。 +
-データ更新時はItemWriterで説明した処理を実施する。Mapperインターフェースを直接利用する場合も考え方は同じである。
+|データ取得時にはSELECT FOR UPDATE文を発行するItemReaderかMapperインタフェースを直接利用する。 +
+データ更新時はItemWriterで説明した処理を実施する。Mapperインタフェースを直接利用する場合も考え方は同じである。
 
 |===
 
@@ -353,7 +353,7 @@ public class FileExclusiveTasklet implements Tasklet {
 .同一VMでのスレッド間の排他制御
 ====
 同一VMにおけるスレッド間の排他制御は注意が必要である。
-同一VMでのスレッド間でファイルに対する処理を行う場合、``FileChannel``クラスを用いたのロック機能では、ファイルが別スレッドの処理にてロックされているかの判定ができない。 +
+同一VMでのスレッド間でファイルに対する処理を行う場合、``FileChannel``クラスを用いたロック機能では、ファイルが別スレッドの処理にてロックされているかの判定ができない。 +
 そのため、スレッド間での排他制御は機能しない。これを回避するには、ファイルへの書き込みを行う部分で同期化処理をすることでスレッド間の排他制御が行える。 +
 しかし、同期化を行うことで並列処理のメリットが薄れてしまい、単一スレッドで処理することと差異がなくなってしまう。
 結果、同一のファイルに対して異なるスレッドで排他制御をして処理することは適していないため、そのような処理設計・実装を行わないこと。
@@ -392,7 +392,7 @@ public class FileExclusiveTasklet implements Tasklet {
 
 .2+|タスクレットモデル
 |ItemReader/ItemWriter
-|Mapperインターフェース
+|Mapperインタフェース
 
 .3+|悲観ロック
 |チャンクモデル
@@ -400,14 +400,14 @@ public class FileExclusiveTasklet implements Tasklet {
 
 .2+|タスクレットモデル
 |ItemReader/ItemWriter
-|Mapperインターフェース
+|Mapperインタフェース
 
 |===
 
-タスクレットモデルでMapperインターフェースを使用する場合は、
+タスクレットモデルでMapperインタフェースを使用する場合は、
 {server5_url}/ArchitectureInDetail/DataAccessDetail/ExclusionControl.html#mybatis3[MyBatis3使用時の実装方法]のとおりであるため、説明を割愛する。
 
-タスクレットモデルでItemReader/ItemWriterを使用する場合は、Mapperインターフェースでの呼び出し部分がItemReader/ItemWriterに代わるだけなので、これも説明を割愛する。
+タスクレットモデルでItemReader/ItemWriterを使用する場合は、Mapperインタフェースでの呼び出し部分がItemReader/ItemWriterに代わるだけなので、これも説明を割愛する。
 
 よって、ここではチャンクモデルの排他制御について説明する。
 
@@ -562,7 +562,7 @@ public class BranchEditWithkPessimisticLockItemProcessor implements ItemProcesso
 |説明
 
 |(1)
-|MapperインターフェースがItemWriterと同じ更新モードになるように、``batchModeSqlSessionTemplate``を設定する。
+|MapperインタフェースがItemWriterと同じ更新モードになるように、``batchModeSqlSessionTemplate``を設定する。
 
 |(2)
 |悲観ロックを用いないデータ取得のSQLIDを設定する。 +
@@ -576,7 +576,7 @@ public class BranchEditWithkPessimisticLockItemProcessor implements ItemProcesso
 |悲観ロックによるデータ取得を行うItemProcessorを設定する。
 
 |(5)
-|悲観ロックによるデータ取得を行うMapperインターフェースをインジェクションする。
+|悲観ロックによるデータ取得を行うMapperインタフェースをインジェクションする。
 
 |(6)
 |悲観ロックの抽出条件とするため、ジョブ起動パラメータから、``branchName``を設定する。
@@ -596,5 +596,5 @@ NO WAITやタイムアウトを設定して悲観ロックを行い、他のト�
 [NOTE]
 .タスクレットモデルでの悲観ロックを行うコンポーネントについて
 ====
-タスクレットモデルで悲観ロックを行う場合は、悲観ロックを行うSQL発行するItemReaderを用いる。Mapperインターフェースを直接利用する場合も同様である。
+タスクレットモデルで悲観ロックを行う場合は、悲観ロックを行うSQL発行するItemReaderを用いる。Mapperインタフェースを直接利用する場合も同様である。
 ====

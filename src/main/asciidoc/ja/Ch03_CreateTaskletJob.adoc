@@ -160,10 +160,10 @@ public class SimpleJobTasklet implements Tasklet { // (1)
 |説明
 
 |(1)
-|``org.springframework.batch.core.step.tasklet.Tasklet``インターフェースを``implements``して実装する。
+|``org.springframework.batch.core.step.tasklet.Tasklet``インタフェースを``implements``して実装する。
 
 |(2)
-|``Tasklet``インターフェースが定義する``execute``メソッドを実装する。
+|``Tasklet``インタフェースが定義する``execute``メソッドを実装する。
 引数の``StepContribution``, ``ChunkContext``は必要に応じて利用するが、ここでは説明を割愛する。
 
 |(3)
@@ -310,7 +310,7 @@ public class SalesPlanChunkTranTask implements Tasklet {
 ここでは、``detailCSVReader``というBean名を指定するが、わかりやすさのためなので任意とする。
 
 |(3)
-|``ItemReader``のサブインターフェースである、``ItemStreamReader``として型を定義する。 +
+|``ItemReader``のサブインタフェースである、``ItemStreamReader``として型を定義する。 +
 これは、(5), (8)のリソースオープン/クローズを実装する必要があるためである。
 後ほど補足する。
 

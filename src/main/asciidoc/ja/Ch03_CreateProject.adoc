@@ -203,8 +203,9 @@ package: com.example.batch
 .コマンドプロンプトでの実行(正しく作成できたことの確認)
 [source,console]
 ----
-C:\xxx>mvn clean dependency:copy-dependencies -DoutputDirectory=lib package
-C:\xxx>java -cp "lib/*;target/*" ^
+C:\xxx>cd batch
+C:\xxx\batch>mvn clean dependency:copy-dependencies -DoutputDirectory=lib package
+C:\xxx\batch>java -cp "lib/*;target/*" ^
 org.springframework.batch.core.launch.support.CommandLineJobRunner ^
 META-INF/jobs/job01.xml job01
 ----
@@ -212,6 +213,7 @@ META-INF/jobs/job01.xml job01
 .Bashでの実行(正しく作成できたことの確認)
 [source,console]
 ----
+$ cd batch
 $ mvn clean dependency:copy-dependencies -DoutputDirectory=lib package
 $ java -cp 'lib/*:target/*' \
 org.springframework.batch.core.launch.support.CommandLineJobRunner \
@@ -223,7 +225,7 @@ META-INF/jobs/job01.xml job01
 .コマンドプロンプトでの出力例
 [source,console]
 ----
-C:\xxx>mvn clean dependency:copy-dependencies -DoutputDirectory=lib package
+C:\xxx\batch>mvn clean dependency:copy-dependencies -DoutputDirectory=lib package
 [INFO] Scanning for projects...
 [INFO]
 [INFO] ------------------------------------------------------------------------
@@ -240,7 +242,7 @@ C:\xxx>mvn clean dependency:copy-dependencies -DoutputDirectory=lib package
 [INFO] Final Memory: 23M/165M
 [INFO] ------------------------------------------------------------------------
 
-C:\xxx>java -cp "lib/*;target/*" ^
+C:\xxx\batch>java -cp "lib/*;target/*" ^
 More? org.springframework.batch.core.launch.support.CommandLineJobRunner ^
 More? META-INF/jobs/job01.xml job01
 
@@ -312,7 +314,7 @@ image::Ch03_CreateProject_BlankProjectDir.png[BlankProject Structure]
 
 |(2)
 |1ジョブに関する各種クラスを格納するパッケージ。 +
-ここには、DTO、TaskletやProcessorの実装、MyBatis3のMapperインターフェースを格納する。 +
+ここには、DTO、TaskletやProcessorの実装、MyBatis3のMapperインタフェースを格納する。 +
 本ガイドラインでは格納方法に制約は設けないので、これは一例として参考にしてほしい。
 
 初期状態を参考にユーザにて自由にカスタムしてよいが、
@@ -331,10 +333,10 @@ image::Ch03_CreateProject_BlankProjectDir.png[BlankProject Structure]
 初期状態では、BeanValidationと、その実装であるHibernateValidatorのデフォルトメッセージを定義したうえで、
 すべてコメントアウトしている。 +
 この状態ではデフォルトメッセージを使うため、メッセージをカスタマイズしたい場合にのみ
-コメントインし任意のメッセージに修正すること。
+アンコメントし任意のメッセージに修正すること。
 
 |(6)
-|MyBatis3のMapperインターフェースの対となるMapper XMLファイル。
+|MyBatis3のMapperインタフェースの対となるMapper XMLファイル。
 
 |(7)
 |主にログ出力時に用いるメッセージを定義するプロパティファイル。

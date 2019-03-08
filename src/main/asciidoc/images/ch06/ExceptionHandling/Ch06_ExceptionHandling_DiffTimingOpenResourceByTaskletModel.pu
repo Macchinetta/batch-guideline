@@ -2,7 +2,7 @@
 
 hide footbox
 
-title Taslet Model
+title Tasklet Model
 
 participant UserTasklet as userTasklet <<User>>
 participant ItemReader as reader1
@@ -41,7 +41,7 @@ group close resource
   userTasklet -[#blue]> ChunkListener : <font color="blue">afterChunkError</font>
 end
 
-== EndC Chunk ==
+== End Chunk ==
 userTasklet -->[ : RepeatStatus
 
 

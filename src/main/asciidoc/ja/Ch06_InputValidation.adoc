@@ -76,13 +76,13 @@ include::_include_all.adoc[]
 |複数のフィールドを比較するチェック
 |数値の大小比較 +
 日付の前後比較
-|``org.springframework.validation.Validator``インターフェースを実装した``Validation``クラス +
+|``org.springframework.validation.Validator``インタフェースを実装した``Validation``クラス +
 または Bean Validation
 |===
 
 Springは、Java標準であるBean Validationをサポートしている。
 単項目チェックには、このBean Validationを利用する。
-相関項目チェックの場合は、Bean ValidationまたはSpringが提供している``org.springframework.validation.Validator``インターフェースを利用する。
+相関項目チェックの場合は、Bean ValidationまたはSpringが提供している``org.springframework.validation.Validator``インタフェースを利用する。
 
 この点は、
 {server5_guide}の {server5_url}/ArchitectureInDetail/WebApplicationDetail/Validation.html#id3[入力チェックの分類]
@@ -154,7 +154,7 @@ image::Ch06_InputValidation_Architecture_classes.png[InputValidation architectur
 先にも述べたが、入力チェックの実現方法は以下のとおり{server5_shortname}と同様である。
 
 * 単項目チェックは、Bean Validationを利用する。
-* 相関項目チェックは、Bean ValidationまたはSpringが提供している``org.springframework.validation.Validator``インターフェースを利用する。
+* 相関項目チェックは、Bean ValidationまたはSpringが提供している``org.springframework.validation.Validator``インタフェースを利用する。
 
 入力チェックの方法について以下の順序で説明する。
 
@@ -530,19 +530,14 @@ public class ValidateAndContinueItemProcessor implements ItemProcessor<Verificat
 {server5_guide}の {server5_url}/ArchitectureInDetail/WebApplicationDetail/Validation.html#validation-message-def[エラーメッセージの定義]
 を参照すること。エラーメッセージを出力する場合は以下の要領で実装する。
 
-1レコード内におけるエラーメッセージを出力する方法として、以下の2とおりがある。
+エラーメッセージを出力する方法としては、以下の2とおりがある。
 
-. まとめて1つのエラーメッセージとして出力する。
-. レコード内の各項目について、エラーメッセージを出力する。
+. レコード内の各項目についてエラーメッセージを出力
+. エラーメッセージをまとめて出力
 
-例では、各項目のエラーメッセージを出力する方法で実装している。
+レコード内の各項目についてエラーメッセージを出力する場合の要領と実装例を以下に示す。
 
-
-* 入力チェックエラーで発生する例外``ValidationException``を``try/catch``で捕捉する。
-* ``ValidationException``の``getCause``メソッドにより``org.springframework.validation.BindException``を取得する。
-** ``BindException``は``BindResult``を``implements``しているため、``FiledError``を取得することができる。
-* ``getFieldErrors``メソッドにより``FiledError``をエラーの件数分、1件ずつ繰り返し取得する。
-* 取得した``FieldError``を引数として、``MessageSource``により1件ずつエラーメッセージの出力を行う。
+* 入力チェックでエラーが発生した項目に対して、``MessageSource``を用いてエラーメッセージのログ出力を行う。
 
 [source,java]
 .MessageSourceによるエラーメッセージ出力例
@@ -578,10 +573,7 @@ public class ValidateAndMessageItemProcessor implements ItemProcessor<Verificati
             return null;  // skipping item
         }
 
-        SalesPlanDetail salesPlanDetail = new SalesPlanDetail();
-        // omitted business logic
-
-        return salesPlanDetail;
+        return convert(item);
     }
 }
 ----
@@ -614,4 +606,134 @@ public class ValidateAndMessageItemProcessor implements ItemProcessor<Verificati
 
 |(7)
 |``null``を返却することで当該データをスキップし次のデータ処理へ移る。
+|===
+
+エラーメッセージをまとめて出力する場合の要領と実装例を以下に示す。
+
+* ``StepExecutionContext``を利用し、入力チェックでエラーが発生した項目のエラーメッセージをリストに格納しておく。
+* ``AfterStep``で``StepExecutionContext``からリストを取得し、まとめてエラーメッセージのログ出力を行う。
+
+[source,java]
+.StepExecutionContextを利用したエラーメッセージの一括出力例
+----
+@Component
+@Scope("step")  // (1)
+public class ValidateAndBulkMessageItemProcessor implements ItemProcessor<VerificationSalesPlanDetail, SalesPlanDetail> {
+
+    /**
+     * Logger.
+     */
+    private static final Logger logger = LoggerFactory.getLogger(ValidateAndBulkMessageItemProcessor.class);
+
+    private StepExecution stepExecution;  // (2)
+
+    @Inject
+    Validator<VerificationSalesPlanDetail> validator;
+
+    @Inject
+    MessageSource messageSource;
+
+    @BeforeStep  // (3)
+    public void beforeStep(StepExecution stepExecution) {
+        this.stepExecution = stepExecution;  // (4)
+    }
+
+    @Override
+    public SalesPlanDetail process(VerificationSalesPlanDetail item) throws Exception {
+        try {
+            validator.validate(item);
+        } catch (ValidationException e) {
+
+            BindException errors = (BindException) e.getCause();
+
+            List<String> errorMessageList = new ArrayList<>();  // (5)
+            // (6)
+            if (stepExecution.getExecutionContext().containsKey("errorMessageList")) {
+                errorMessageList = (List<String>) stepExecution.getExecutionContext().get("errorMessageList");
+                stepExecution.getExecutionContext().remove("errorMessageList");
+            }
+
+            // (7)
+            for (FieldError fieldError : errors.getFieldErrors()) {
+                String itemNumber = item.getCount() + " th item";
+                String errorMessage = messageSource.getMessage(fieldError, null);
+                String detailErrorMessage = e.getMessage();
+
+                String message = MessageFormat
+                        .format("{0} Skipping item because exception occurred in input validation at the {1}. [message:{2}]",
+                                errorMessage, itemNumber, detailErrorMessage);
+
+                errorMessageList.add(message);
+            }
+
+            stepExecution.getExecutionContext().put("errorMessageList", errorMessageList);  // (8)
+
+            return null; // skipping item
+        }
+
+        return convert(item);
+    }
+
+    @AfterStep  // (9)
+    public void afterStep(StepExecution stepExecution) {
+        ExecutionContext executionContext = stepExecution.getExecutionContext();  // (10)
+
+        List<String> errorMessageList = (List<String>) executionContext.get("errorMessageList");  // (11)
+        //  (12)
+        for (String errorMessage : errorMessageList) {
+            logger.warn(errorMessage);
+        }
+    }
+}
+----
+
+[cols="10,90", options="header"]
+.設定内容の項目一覧
+|===
+|項番
+|説明
+
+|(1)
+|クラスに``@Scope``アノテーションを付与してスコープを指定する。 +
+スコープは本クラス内で利用する``StepExecution ``に合わせて``step``とする。
+
+|(2)
+|``StepExecution``を保持するためのフィールドを定義する。
+
+|(3)
+|``beforeStep``メソッドを実装し、``@BeforeStep``アノテーションを付与する。 +
+シグネチャは``void beforeStep(StepExecution stepExecution)``とする。 +
+``StepExecutionListener``クラスを実装し、``beforeStep``メソッドをオーバーライドする方法でもよい。
+
+|(4)
+|``StepExecution``を取得してクラスフィールドに保持する。
+
+|(5)
+|エラーメッセージを格納するためのリストを定義する。
+
+|(6)
+|``StepExecution``から``stepExecutionContext``を取得し、その中に``errorMessageList``というキーが存在するかチェックする。 +
+``stepExecutionContext``から``errorMessageList``をキーとする値を取得し、(5)で定義したリストに代入する。 +
+その後、``stepExecutionContext``から削除する。
+
+|(7)
+|``getFieldErrors()``で1レコード中で発生したエラーを取得する。 +
+ログ出力用エラーメッセージを生成し、``errorMessageList``に追加する。
+
+|(8)
+|``StepExecution``から``stepExecutionContext``を取得し、``errorMessageList``というキーを指定して``stepExecutionContext``にエラーメッセージを格納したリストを登録する。
+
+|(9)
+|``afterStep``メソッドを実装し、``@AfterStep``アノテーションを付与する。 +
+シグネチャは``void afterStep(StepExecution stepExecution)``とする。 +
+``StepExecutionListener``クラスを実装し、``afterStep``メソッドをオーバーライドする方法でもよい。
+
+|(10)
+|``StepExecution``から``stepExecutionContext``を取得する。
+
+|(11)
+|``errorMessageList``というキーを指定して``stepExecutionContext``からエラーメッセージを格納したリストを取得する。
+
+|(12)
+|エラーメッセージを繰り返しログ出力する。
 |===

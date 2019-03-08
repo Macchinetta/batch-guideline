@@ -18,7 +18,7 @@ include::_include_all.adoc[]
 ChunkListenerで例外ハンドリングを行うジョブを作成する。
 
 なお、本節は{batch5_guide}を元に説明しているため、
-詳細については<<Ch06_ExceptionHandling.adoc#Ch06_ExceptionHandling_HowToUse_StepExceptionHandling_ChunkListener,ChunkListenerインターフェースによる例外ハンドリング>>を参照のこと。
+詳細については<<Ch06_ExceptionHandling.adoc#Ch06_ExceptionHandling_HowToUse_StepExceptionHandling_ChunkListener,ChunkListenerインタフェースによる例外ハンドリング>>を参照のこと。
 
 [NOTE]
 .リスナーの用途について
@@ -279,8 +279,8 @@ errors.maxInteger=The {0} exceeds {1}.
 
 [[Ch09_Impl_ExceptionHandlingWithListenerJob_Chunk_Coding_Listener]]
 ==== ChunkErrorLoggingListenerクラスの実装
-ChunkListenerインターフェースを利用して例外ハンドリングする。 +
-ここでは、ChunkListenerインターフェースの実装クラスとして、例外発生時にERRORログを出力する処理を実装する。
+ChunkListenerインタフェースを利用して例外ハンドリングする。 +
+ここでは、ChunkListenerインタフェースの実装クラスとして、例外発生時にERRORログを出力する処理を実装する。
 
 [source, java]
 .com.example.batch.tutorial.common.listener.ChunkErrorLoggingListener
@@ -397,7 +397,7 @@ public class ChunkErrorLoggingListener implements ChunkListener {
 
 |(2)
 |``StepListener``の実装クラスを設定する。
-なお、``ChunkListener``は``StepListener``の拡張インターフェースである。 +
+なお、``ChunkListener``は``StepListener``の拡張インタフェースである。 +
 ここでは、ChunkListenerの実装クラスのBeanIDである``chunkErrorLoggingListener``を指定する。
 
 |===
@@ -585,8 +585,8 @@ errors.maxInteger=The {0} exceeds {1}.
 
 [[Ch09_Impl_ExceptionHandlingWithListenerJob_Tasklet_Coding_Listener]]
 ==== ChunkErrorLoggingListenerクラスの実装
-ChunkListenerインターフェースを利用して例外ハンドリングする。 +
-ここでは、ChunkListenerインターフェースの実装クラスとして、例外発生時にERRORログを出力する処理を実装する。
+ChunkListenerインタフェースを利用して例外ハンドリングする。 +
+ここでは、ChunkListenerインタフェースの実装クラスとして、例外発生時にERRORログを出力する処理を実装する。
 
 [source, java]
 .com.example.batch.tutorial.common.listener.ChunkErrorLoggingListener
@@ -701,7 +701,7 @@ public class ChunkErrorLoggingListener implements ChunkListener {
 
 |(2)
 |``StepListener``の実装クラスを設定する。
-なお、``ChunkListener``は``StepListener``の拡張インターフェースである。 +
+なお、``ChunkListener``は``StepListener``の拡張インタフェースである。 +
 ここでは、ChunkListenerの実装クラスのBeanIDである``chunkErrorLoggingListener``を指定する。
 
 |===
