@@ -24,11 +24,9 @@ image::Ch02_MacchinettaBatchStack_Stack.png[{batch5_fullname} Stack]
 
 [NOTE]
 ====
-{batch5_fullname}で使用するOSSのバージョンは、原則として、Spring IO platformの定義に準じている。
-なお、バージョン{batch5_version}におけるSpring IO platformのバージョンは、
-https://docs.spring.io/platform/docs/Cairo-SR3/reference/htmlsingle/[Cairo-SR3]である。 +
-Spring IO platformの詳細については、{server5_fullname}の
-{server5_url}/Overview/FrameworkStack.html#oss[利用するOSSのバージョン]を参照。
+{batch5_fullname}で使用するOSSのバージョンは、原則として、Spring Boot Dependenciesの定義に準じている。
+なお、バージョン{batch5_version}におけるSpring Boot Dependenciesのバージョンは、
+https://docs.spring.io/spring-boot/docs/2.1.2.RELEASE/reference/htmlsingle/[2.1.2.RELEASE]である。
 ====
 
 [cols="25,25,25,15,5,5", options="header"]
@@ -38,111 +36,104 @@ Spring IO platformの詳細については、{server5_fullname}の
 |GroupId
 |ArtifactId
 |Version
-|Spring IO platform
+|Spring Boot Dependencies
 |Remarks
 
 |Spring
 |org.springframework
 |spring-aop
-|5.0.8.RELEASE
+|5.1.4.RELEASE
 ^|*
 |
 
 |Spring
 |org.springframework
 |spring-beans
-|5.0.8.RELEASE
+|5.1.4.RELEASE
 ^|*
 |
 
 |Spring
 |org.springframework
 |spring-context
-|5.0.8.RELEASE
+|5.1.4.RELEASE
 ^|*
 |
 
 |Spring
 |org.springframework
 |spring-expression
-|5.0.8.RELEASE
+|5.1.4.RELEASE
 ^|*
 |
 
 |Spring
 |org.springframework
 |spring-core
-|5.0.8.RELEASE
+|5.1.4.RELEASE
 ^|*
 |
 
 |Spring
 |org.springframework
 |spring-tx
-|5.0.8.RELEASE
-^|*
-|
-
-|Spring
-|org.springframework
-|spring-jcl
-|5.0.8.RELEASE
+|5.1.4.RELEASE
 ^|*
 |
 
 |Spring
 |org.springframework
 |spring-jdbc
-|5.0.8.RELEASE
+|5.1.4.RELEASE
+^|*
+|
+
+|Spring
+|org.springframework
+|spring-oxm
+|5.1.4.RELEASE
 ^|*
 |
 
 |{SB}
 |org.springframework.batch
 |spring-batch-core
-|4.0.1.RELEASE
+|4.1.1.RELEASE
 ^|*
 |
 
 |{SB}
 |org.springframework.batch
 |spring-batch-infrastructure
-|4.0.1.RELEASE
+|4.1.1.RELEASE
 ^|*
 |
 
 |Spring Retry
 |org.springframework.retry
 |spring-retry
-|1.2.2.RELEASE
+|1.2.3.RELEASE
 ^|*
 |
 
 |Java Batch
 |javax.batch
 |javax.batch-api
-|1.0.1
-^|*
+|1.0
+^|
 |
 
 |MyBatis3
 |org.mybatis
 |mybatis
-|3.4.6
+|3.5.0
 |
 |
 
 |MyBatis3
 |org.mybatis
 |mybatis-spring
-|1.3.2
-|
-|
-
-|MyBatis3
-|org.mybatis
-|mybatis-typehandlers-jsr310
-|1.0.2
+|2.0.0
 |
 |
 
@@ -150,27 +141,13 @@ Spring IO platformの詳細については、{server5_fullname}の
 |javax.inject
 |javax.inject
 |1
-^|*
+^|
 |
 
 |ログ出力
 |ch.qos.logback
 |logback-classic
 |1.2.3
-^|*
-|
-
-|ログ出力
-|ch.qos.logback
-|logback-core
-|1.2.3
-^|*
-|
-
-|ログ出力
-|org.jboss.logging
-|jboss-logging
-|3.3.2.Final
 ^|*
 |
 
@@ -196,29 +173,15 @@ Spring IO platformの詳細については、{server5_fullname}の
 |
 
 |入力チェック
-|org.hibernate
+|org.hibernate.validator
 |hibernate-validator
-|5.4.2.Final
-^|*
-|
-
-|入力チェック
-|com.fasterxml
-|classmate
-|1.3.4
+|6.0.14.Final
 ^|*
 |
 
 |コネクションプール
 |org.apache.commons
 |commons-dbcp2
-|2.2.0
-^|*
-|
-
-|コネクションプール
-|org.apache.commons
-|commons-pool2
 |2.5.0
 ^|*
 |
@@ -237,25 +200,11 @@ Spring IO platformの詳細については、{server5_fullname}の
 ^|*
 |
 
-|JSON
-|com.fasterxml.jackson.core
-|jackson-annotations
-|2.9.0
-^|*
-|
-
-|JSON
-|com.fasterxml.jackson.core
-|jackson-core
-|2.9.6
-^|*
-|
-
-|JSON
-|com.fasterxml.jackson.core
-|jackson-databind
-|2.9.6
-^|*
+|JDBCドライバ
+|org.postgresql
+|postgresql
+|42.2.5
+^|
 |
 
 |JSON
@@ -265,10 +214,31 @@ Spring IO platformの詳細については、{server5_fullname}の
 ^|*
 |
 
+|XML
+|javax.xml.bind
+|jaxb-api
+|2.3.1
+^|*
+|
+
+|XML
+|com.sun.xml.bind
+|jaxb-core
+|2.3.0.1
+^|
+|
+
+|XML
+|com.sun.xml.bind
+|jaxb-impl
+|2.3.2
+^|
+|
+
 |TERASOLUNA Batch
 |org.terasoluna.batch
 |terasoluna-batch
-|5.2.0.RC1
+|5.2.1.RELEASE
 |
 |
 
@@ -341,4 +311,3 @@ O/R Mapper::
   コネクションプールには、DBCPを利用する。
 
   ** https://commons.apache.org/proper/commons-dbcp/[DBCP 2]
-  ** https://commons.apache.org/proper/commons-pool/[Commons Pool 2]

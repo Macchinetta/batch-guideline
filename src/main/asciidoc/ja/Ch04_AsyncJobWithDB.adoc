@@ -274,12 +274,13 @@ CREATE SEQUENCE batch_job_request_seq MAXVALUE 9223372036854775807 NO CYCLE;
 
 |INIT
 |POLLED
-|ジョブの起動に成功した時に遷移する。 +
-ジョブを実行している時のステータス。
+|ポーリングしたジョブがスレッドに割り当てられてた直後に遷移する。 +
+このステータスに更新された後、ジョブが起動される。
 
 |POLLED
 |EXECUTED
-|ジョブの実行が終了した時に遷移する。
+|ジョブの実行が終了した時に遷移する。 +
+ジョブの正常終了、異常終了に関係なくこのステータスに更新される。
 
 |===
 
@@ -413,14 +414,16 @@ admin.jdbc.password=postgres
 
 # TERASOLUNA AsyncBatchDaemon settings.
 # (2)
-async-batch-daemon.schema.script=classpath:org/terasoluna/batch/async/db/schema-postgresql.sql
+async-batch-daemon.scheduler.size=1
 # (3)
-async-batch-daemon.job-concurrency-num=3
+async-batch-daemon.schema.script=classpath:org/terasoluna/batch/async/db/schema-postgresql.sql
 # (4)
-async-batch-daemon.polling-interval=5000
+async-batch-daemon.job-concurrency-num=3
 # (5)
-async-batch-daemon.polling-initial-delay=1000
+async-batch-daemon.polling-interval=5000
 # (6)
+async-batch-daemon.polling-initial-delay=1000
+# (7)
 async-batch-daemon.polling-stop-file-path=/tmp/stop-async-batch-daemon
 ----
 
@@ -436,22 +439,30 @@ async-batch-daemon.polling-stop-file-path=/tmp/stop-async-batch-daemon
 デフォルトでは``JobRepository``の設定を使用する。
 
 |(2)
+|DBポーリング処理で起動される``TaskScheduler``のスレッドプールサイズ設定。 +
+デフォルトは1(シングルスレッド)。 +
+(5)の説明にあるように、前のポーリング処理の完了から、次のポーリング処理の開始まで待ち時間を設けるようにしているため、ここで``TaskScheduler``のスレッド数を上げても並列には実行されない。そのため、基本的にはデフォルトのままとするほうが良い。
+
+|(3)
 |ジョブ要求テーブルを定義するDDLのパス。 +
 非同期バッチデーモン起動時にジョブ要求テーブルがない場合は、自動生成される。 +
 これは主に試験用機能であり、``batch-application.properties``内の +
 ``data-source.initialize.enabled``で実行可否を設定できる。 +
 詳細な定義は``async-batch-daemon.xml``内の``<jdbc:initialize-database>``を参照のこと。
 
-|(3)
-|ポーリング時に一括で取得する件数の設定。この設定値は同時並行数としても用いる。
-
 |(4)
-|ポーリング周期の設定。単位はミリ秒。
+|ポーリング時に一括で取得する件数の設定。 +
+この設定値は同時並行数(``ThreadPoolTaskExecutor``のスレッドプールサイズ)としても用いる。 +
+動作するマシンのコア数に応じて適切に設定しないと、性能問題等を引き起こす可能性がある。
 
 |(5)
-|ポーリング初回起動遅延時間の設定。単位はミリ秒。
+|ポーリング周期の設定。単位はミリ秒。 +
+前回タスクの実行完了時点から指定時間後にタスクを実行する。
 
 |(6)
+|ポーリング初回起動遅延時間の設定。単位はミリ秒。
+
+|(7)
 |終了ファイルパスの設定。
 
 |===

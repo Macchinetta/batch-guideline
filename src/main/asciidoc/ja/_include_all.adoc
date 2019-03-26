@@ -5,11 +5,8 @@
 :table-caption!:
 :figure-caption!:
 
-// フッターのindexページへのリンク先をSingleとMultiページのHTMLで変更する
+// indexページへのリンク先を定義する
 :index_ref: "index.html"
-ifeval::["{docname}" == "single_index"]
-:index_ref: "#"
-endif::[]
 
 // ドキュメント全体で使用される名称等を定義する
 :SB: Spring Batch
