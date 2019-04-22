@@ -1,0 +1,1066 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<!--[if IE]><meta http-equiv="X-UA-Compatible" content="IE=edge"><![endif]-->
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Asciidoctor 1.5.6.1">
+<title>バッチアプリケーションの開発</title>
+<link rel="stylesheet" href="./theme/css/readthedocs.css">
+<link rel="stylesheet" href="./theme/css/font-awesome.min.css">
+<link rel="stylesheet" href="./theme/css/coderay-asciidoctor.css">
+<link rel="stylesheet" href="./theme/css/header-footer.css">
+<title>Macchinetta Batch Framework (2.x) Development Guideline</title>
+
+<div class="common-bg">
+  <div class="information">
+    Macchinetta Batch Framework (2.x) Development Guideline - version 2.0.2.RELEASE, 2019-4-19
+  </div>
+  <div class="index">
+    <a href="index.html">&gt; INDEX</a>
+  </div>
+</div>
+</head>
+<body id="Ch03_CreateProject" class="book toc2 toc-left">
+<div id="header">
+<h1>バッチアプリケーションの開発</h1>
+<div id="toc" class="toc2">
+<div id="toctitle">Table of Contents</div>
+<ul class="sectlevel1">
+<li><a href="#Ch03_CreateProject_blank">ブランクプロジェクトとは</a></li>
+<li><a href="#Ch03_CreateProject_HowToCreate">プロジェクトの作成</a></li>
+<li><a href="#Ch03_CreateProject_ProjectStructure">プロジェクトの構成</a></li>
+<li><a href="#Ch03_CreateProject_Make">開発の流れ</a>
+<ul class="sectlevel2">
+<li><a href="#Ch03_CreateProject_Make_ImportToIDE">IDEへの取り込み</a></li>
+<li><a href="#Ch03_CreateProject_Make_Setting">アプリケーション全体の設定</a>
+<ul class="sectlevel3">
+<li><a href="#Ch03_CreateProject_Make_Setting_POM">pom.xmlのプロジェクト情報</a></li>
+<li><a href="#Ch03_CreateProject_Make_Setting_DB">データベース関連の設定</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="#Ch03_CreateProject_CreateJob">ジョブの作成</a></li>
+<li><a href="#Ch03_CreateProject_BuildAndExec">プロジェクトのビルドと実行</a>
+<ul class="sectlevel2">
+<li><a href="#Ch03_CreateProject_BuildAndExec_Build">アプリケーションのビルド</a></li>
+<li><a href="#Ch03_CreateProject_BuildAndExec_BuildPerEnv">環境に応じた設定ファイルの切替</a>
+<ul class="sectlevel3">
+<li><a href="#Ch03_CreateProject_BuildAndExec_BuildPerEnv_AppExecution">アプリケーションの実行</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div id="content">
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph">
+<p>バッチアプリケーションの開発について、以下の流れで説明する。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="#Ch03_CreateProject_blank">ブランクプロジェクトとは</a></p>
+</li>
+<li>
+<p><a href="#Ch03_CreateProject_HowToCreate">プロジェクトの作成</a></p>
+</li>
+<li>
+<p><a href="#Ch03_CreateProject_ProjectStructure">プロジェクトの構成</a></p>
+</li>
+<li>
+<p><a href="#Ch03_CreateProject_Make">開発の流れ</a></p>
+</li>
+<li>
+<p><a href="#Ch03_CreateProject_BuildAndExec_Build">アプリケーションのビルド</a></p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="Ch03_CreateProject_blank"><a class="anchor" href="#Ch03_CreateProject_blank"></a>ブランクプロジェクトとは</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>ブランクプロジェクトとは、Spring BatchやMyBatis3をはじめとする各種設定を予め行った開発プロジェクトの雛形であり、
+アプリケーション開発のスタート地点である。<br>
+本ガイドラインでは、シングルプロジェクト構成のブランクプロジェクトを提供する。<br>
+構成の説明については、<a href="#Ch03_CreateProject_ProjectStructure">プロジェクトの構成</a>を参照のこと。</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+<div class="title">Macchinetta Server 1.xとの違い</div>
+<div class="paragraph">
+<p>Macchinetta Server 1.xはマルチプロジェクト構成を推奨している。
+この理由は主に、以下の様なメリットを享受するためである。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>環境差分の吸収しやすくする</p>
+</li>
+<li>
+<p>ビジネスロジックとプレゼンテーションを分離しやすくする</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>しかし、本ガイドラインではMacchinetta Server 1.xと異なりシングルプロジェクト構成としている。</p>
+</div>
+<div class="paragraph">
+<p>これは、前述の点はバッチアプリケーションの場合においても考慮すべきだが、
+シングルプロジェクト構成にすることで1ジョブに関連する資材を近づけることを優先している。<br>
+また、バッチアプリケーションの場合、
+環境差分はプロパティファイルや環境変数で切替れば十分なケースが多いことも理由の1つである。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="Ch03_CreateProject_HowToCreate"><a class="anchor" href="#Ch03_CreateProject_HowToCreate"></a>プロジェクトの作成</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p><code>Maven Archetype Plugin</code>の<code>archetype:generate</code>を使用して、プロジェクトを作成する方法を説明する。</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+<div class="title">作成環境の前提について</div>
+<div class="paragraph">
+<p>以下を前提とし説明する。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Java SE Development Kit 8</p>
+</li>
+<li>
+<p>Apache Maven 3.x</p>
+<div class="ulist">
+<ul>
+<li>
+<p>インターネットに繋がっていること</p>
+</li>
+<li>
+<p>インターネットにプロキシ経由で繋ぐ場合は、Mavenのプロキシ設定 が行われていること</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>IDE</p>
+<div class="ulist">
+<ul>
+<li>
+<p>Spring Tool Suite / Eclipse 等</p>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>プロジェクトを作成するディレクトリにて、以下のコマンドを実行する。</p>
+</div>
+<div class="listingblock">
+<div class="title">コマンドプロンプト(Windows)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="console">C:\xxx&gt;mvn archetype:generate ^
+  -DarchetypeGroupId=com.github.macchinetta.blank ^
+  -DarchetypeArtifactId=macchinetta-batch-archetype ^
+  -DarchetypeVersion=2.0.2.RELEASE</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">Bash(Unix, Linux, &#8230;&#8203;)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="console">$ mvn archetype:generate \
+  -DarchetypeGroupId=com.github.macchinetta.blank \
+  -DarchetypeArtifactId=macchinetta-batch-archetype \
+  -DarchetypeVersion=2.0.2.RELEASE</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>その後、利用者の状況に合わせて、以下を対話式に設定する。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>groupId</p>
+</li>
+<li>
+<p>artifactId</p>
+</li>
+<li>
+<p>version</p>
+</li>
+<li>
+<p>package</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>以下の値を設定し実行した例を示す。</p>
+</div>
+<table class="tableblock frame-all grid-all spread">
+<caption class="title">ブランクプロジェクトの各要素の説明</caption>
+<colgroup>
+<col style="width: 30%;">
+<col style="width: 70%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項目名</th>
+<th class="tableblock halign-left valign-top">設定例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">groupId</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">com.example.batch</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">artifactId</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">batch</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">version</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1.0.0-SNAPSHOT</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">package</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">com.example.batch</p></td>
+</tr>
+</tbody>
+</table>
+<div class="listingblock">
+<div class="title">コマンドプロンプトでの実行例</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="console">C:\xxx&gt;mvn archetype:generate ^
+More? -DarchetypeGroupId=com.github.macchinetta.blank ^
+More? -DarchetypeArtifactId=macchinetta-batch-archetype ^
+More? -DarchetypeVersion=2.0.2.RELEASE
+[INFO] Scanning for projects&#8230;&#8203;
+[INFO]
+[INFO] ------------------------------------------------------------------------
+[INFO] Building Maven Stub Project (No POM) 1
+[INFO] ------------------------------------------------------------------------
+
+(.. omitted)
+
+Define value for property 'groupId': com.example.batch
+Define value for property 'artifactId': batch
+Define value for property 'version' 1.0-SNAPSHOT: : 1.0.0-SNAPSHOT
+Define value for property 'package' com.example.batch: :
+Confirm properties configuration:
+groupId: com.example.batch
+artifactId: batch
+version: 1.0.0-SNAPSHOT
+package: com.example.batch
+ Y: : y
+[INFO] ------------------------------------------------------------------------
+[INFO] Using following parameters for creating project from Archetype: macchinetta-batch-archetype:2.0.2.RELEASE
+[INFO] ------------------------------------------------------------------------
+[INFO] Parameter: groupId, Value: com.example.batch
+[INFO] Parameter: artifactId, Value: batch
+[INFO] Parameter: version, Value: 1.0.0-SNAPSHOT
+[INFO] Parameter: package, Value: com.example.batch
+[INFO] Parameter: packageInPathFormat, Value: com/example/batch
+[INFO] Parameter: package, Value: com.example.batch
+[INFO] Parameter: version, Value: 1.0.0-SNAPSHOT
+[INFO] Parameter: groupId, Value: com.example.batch
+[INFO] Parameter: artifactId, Value: batch
+[INFO] Project created from Archetype in dir: C:\xxx\batch
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time: 36.952 s
+[INFO] Finished at: 2017-07-25T14:23:42+09:00
+[INFO] Final Memory: 14M/129M
+[INFO] ------------------------------------------------------------------------</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">Bashでの実行例</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="console">$ mvn archetype:generate \
+&gt; -DarchetypeGroupId=com.github.macchinetta.blank \
+&gt; -DarchetypeArtifactId=macchinetta-batch-archetype \
+&gt; -DarchetypeVersion=2.0.2.RELEASE
+[INFO] Scanning for projects&#8230;&#8203;
+[INFO]
+[INFO] ------------------------------------------------------------------------
+[INFO] Building Maven Stub Project (No POM) 1
+[INFO] ------------------------------------------------------------------------
+
+(.. omitted)
+
+Define value for property 'groupId': com.example.batch
+Define value for property 'artifactId': batch
+Define value for property 'version' 1.0-SNAPSHOT: : 1.0.0-SNAPSHOT
+Define value for property 'package' com.example.batch: :
+Confirm properties configuration:
+groupId: com.example.batch
+artifactId: batch
+version: 1.0.0-SNAPSHOT
+package: com.example.batch
+ Y: : y
+[INFO] ----------------------------------------------------------------------------
+[INFO] Using following parameters for creating project from Archetype: macchinetta-batch-archetype:2.0.2.RELEASE
+[INFO] ----------------------------------------------------------------------------
+[INFO] Parameter: groupId, Value: com.example.batch
+[INFO] Parameter: artifactId, Value: batch
+[INFO] Parameter: version, Value: 1.0.0-SNAPSHOT
+[INFO] Parameter: package, Value: com.example.batch
+[INFO] Parameter: packageInPathFormat, Value: com/example/batch
+[INFO] Parameter: package, Value: com.example.batch
+[INFO] Parameter: version, Value: 1.0.0-SNAPSHOT
+[INFO] Parameter: groupId, Value: com.example.batch
+[INFO] Parameter: artifactId, Value: batch
+[INFO] Project created from Archetype in dir: C:\xxx\batch
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time: 01:19 min
+[INFO] Finished at: 2017-07-25T14:20:09+09:00
+[INFO] Final Memory: 17M/201M
+[INFO] ------------------------------------------------------------------------</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>以上により、プロジェクトの作成が完了した。</p>
+</div>
+<div class="paragraph">
+<p>正しく作成出来たかどうかは、以下の要領で確認できる。</p>
+</div>
+<div class="listingblock">
+<div class="title">コマンドプロンプトでの実行(正しく作成できたことの確認)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="console">C:\xxx&gt;mvn clean dependency:copy-dependencies -DoutputDirectory=lib package
+C:\xxx&gt;java -cp &quot;lib/*;target/*&quot; ^
+org.springframework.batch.core.launch.support.CommandLineJobRunner ^
+META-INF/jobs/job01.xml job01</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">Bashでの実行(正しく作成できたことの確認)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="console">$ mvn clean dependency:copy-dependencies -DoutputDirectory=lib package
+$ java -cp 'lib/*:target/*' \
+org.springframework.batch.core.launch.support.CommandLineJobRunner \
+META-INF/jobs/job01.xml job01</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>以下の出力が得られれば正しく作成できている。</p>
+</div>
+<div class="listingblock">
+<div class="title">コマンドプロンプトでの出力例</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="console">C:\xxx&gt;mvn clean dependency:copy-dependencies -DoutputDirectory=lib package
+[INFO] Scanning for projects...
+[INFO]
+[INFO] ------------------------------------------------------------------------
+[INFO] Building Macchinetta Batch Framework (2.x) Blank Project 1.0.0-SNAPSHOT
+[INFO] ------------------------------------------------------------------------
+
+(.. omitted)
+
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time: 11.007 s
+[INFO] Finished at: 2017-07-25T14:24:36+09:00
+[INFO] Final Memory: 23M/165M
+[INFO] ------------------------------------------------------------------------
+
+C:\xxx&gt;java -cp &quot;lib/*;target/*&quot; ^
+More? org.springframework.batch.core.launch.support.CommandLineJobRunner ^
+More? META-INF/jobs/job01.xml job01
+
+(.. omitted)
+
+[2017/07/25 14:25:22] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=job01]] launched with the following parameters: [{jsr_batch_run_id=1}]
+[2017/07/25 14:25:22] [main] [o.s.b.c.j.SimpleStepHandler] [INFO ] Executing step: [job01.step01]
+[2017/07/25 14:25:23] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=job01]] completed with the following parameters: [{jsr_batch_run_id=1}] and the following status: [COMPLETED]
+[2017/07/25 14:25:23] [main] [o.s.c.s.ClassPathXmlApplicationContext] [INFO ] Closing org.springframework.context.support.ClassPathXmlApplicationContext@62043840: startup date [Tue Jul 25 14:25:20 JST 2017]; root of context hierarchy</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">Bashでの出力例</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="console">$ mvn clean dependency:copy-dependencies -DoutputDirectory=lib package
+[INFO] Scanning for projects...
+[INFO]
+[INFO] ------------------------------------------------------------------------
+[INFO] Building Macchinetta Batch Framework (2.x) Blank Project 1.0.0-SNAPSHOT
+[INFO] ------------------------------------------------------------------------
+
+(.. omitted)
+
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time: 10.827 s
+[INFO] Finished at: 2017-07-25T14:21:19+09:00
+[INFO] Final Memory: 27M/276M
+[INFO] ------------------------------------------------------------------------
+
+$ java -cp 'lib/*:target/*' \
+&gt; org.springframework.batch.core.launch.support.CommandLineJobRunner \
+&gt; META-INF/jobs/job01.xml job01
+[2017/07/25 14:21:49] [main] [o.s.c.s.ClassPathXmlApplicationContext] [INFO ] Refreshing org.springframework.context.support.ClassPathXmlApplicationContext@62043840: startup date [Tue Jul 25 14:21:49 JST 2017]; root of context hierarchy
+
+(.. omitted)
+
+[2017/07/25 14:21:52] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=job01]] launched with the following parameters: [{jsr_batch_run_id=1}]
+[2017/07/25 14:21:52] [main] [o.s.b.c.j.SimpleStepHandler] [INFO ] Executing step: [job01.step01]
+[2017/07/25 14:21:52] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=job01]] completed with the following parameters: [{jsr_batch_run_id=1}] and the following status: [COMPLETED]
+[2017/07/25 14:21:52] [main] [o.s.c.s.ClassPathXmlApplicationContext] [INFO ] Closing org.springframework.context.support.ClassPathXmlApplicationContext@62043840: startup date [Tue Jul 25 14:21:49 JST 2017]; root of context hierarchy</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="Ch03_CreateProject_ProjectStructure"><a class="anchor" href="#Ch03_CreateProject_ProjectStructure"></a>プロジェクトの構成</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>前述までで作成したプロジェクトの構成について説明する。
+プロジェクトは、以下の点を考慮した構成となっている。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>起動方式に依存しないジョブの実装を実現する</p>
+</li>
+<li>
+<p>Spring BatchやMyBatisといった各種設定の手間を省く</p>
+</li>
+<li>
+<p>環境依存の切替を容易にする</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>以下に構成を示し、各要素について説明する。<br>
+(わかりやすさのため、前述の<code>mvn archetype:generate</code>実行時の出力を元に説明する。)</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/Ch03_CreateProject_BlankProjectDir.png" alt="BlankProject Structure">
+</div>
+<div class="title">プロジェクトのディレクトリ構造</div>
+</div>
+<table class="tableblock frame-all grid-all spread">
+<caption class="title">ブランクプロジェクトの各要素の説明</caption>
+<colgroup>
+<col style="width: 10%;">
+<col style="width: 90%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">バッチアプリケーション全体の各種クラスを格納するrootパッケージ。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(2)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1ジョブに関する各種クラスを格納するパッケージ。<br>
+ここには、DTO、TaskletやProcessorの実装、MyBatis3のMapperインターフェースを格納する。<br>
+本ガイドラインでは格納方法に制約は設けないので、これは一例として参考にしてほしい。</p>
+<p class="tableblock">初期状態を参考にユーザにて自由にカスタムしてよいが、
+ジョブ固有の資材を判断しやすくすることに配慮してほしい。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(3)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">バッチアプリケーション全体に関わる設定ファイル。<br>
+初期状態では、データベースの接続や、非同期実行に関する設定を記述している。
+ユーザにて、自由に追記してよい。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(4)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Logback(ログ出力)の設定ファイル。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(5)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">BeanValidationを用いた入力チェックにて、エラーとなった際に表示するメッセージを定義する設定ファイル。<br>
+初期状態では、BeanValidationと、その実装であるHibernateValidatorのデフォルトメッセージを定義したうえで、
+すべてコメントアウトしている。<br>
+この状態ではデフォルトメッセージを使うため、メッセージをカスタマイズしたい場合にのみ
+コメントインし任意のメッセージに修正すること。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(6)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">MyBatis3のMapperインターフェースの対となるMapper XMLファイル。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(7)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">主にログ出力時に用いるメッセージを定義するプロパティファイル。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(8)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ジョブ固有のBean定義ファイルを格納するディレクトリ。<br>
+階層構造はジョブ数に応じて自由に構成してよい。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(9)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">バッチアプリケーション全体に関わるBean定義ファイルを格納するディレクトリ。<br>
+Spring BatchやMyBatisの初期設定や、同期/非同期といった起動契機に依らずにジョブを起動するための設定を行っている。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(10)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">非同期実行(DBポーリング)機能に関連する設定を記述したBean定義ファイル。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(11)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ジョブ固有のBean定義ファイルにてimportすることで、各種設定を削減するためのBean定義ファイル。<br>
+これをimportすることで、ジョブは起動契機によるBean定義の差を吸収することが出来る。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(12)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Spring Batchの挙動や、ジョブ共通の設定に対するBean定義ファイル。</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>また、各ファイルの関連図を以下に示す。</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/Ch03_CreateProject_FilesRelation.png" alt="Files Relation">
+</div>
+<div class="title">各ファイルの関連図</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="Ch03_CreateProject_Make"><a class="anchor" href="#Ch03_CreateProject_Make"></a>開発の流れ</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>ジョブを開発する一連の流れについて説明する。<br>
+ここでは、詳細な説明ではなく、大まかな流れを把握することを主眼とする。</p>
+</div>
+<div class="sect2">
+<h3 id="Ch03_CreateProject_Make_ImportToIDE"><a class="anchor" href="#Ch03_CreateProject_Make_ImportToIDE"></a>IDEへの取り込み</h3>
+<div class="paragraph">
+<p>生成したプロジェクトはMavenのプロジェクト構成に従っているため、
+各種IDEによって、Mavenプロジェクトとしてimportする。<br>
+詳細な手順は割愛する。</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="Ch03_CreateProject_Make_Setting"><a class="anchor" href="#Ch03_CreateProject_Make_Setting"></a>アプリケーション全体の設定</h3>
+<div class="paragraph">
+<p>ユーザの状況に応じて以下をカスタマイズする。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="#Ch03_CreateProject_Make_Setting_POM">pom.xmlのプロジェクト情報</a></p>
+</li>
+<li>
+<p><a href="#Ch03_CreateProject_Make_Setting_DB">データベース関連の設定</a></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>これら以外の設定をカスタマイズする方法については、個々の機能にて説明する。</p>
+</div>
+<div class="sect3">
+<h4 id="Ch03_CreateProject_Make_Setting_POM"><a class="anchor" href="#Ch03_CreateProject_Make_Setting_POM"></a>pom.xmlのプロジェクト情報</h4>
+<div class="paragraph">
+<p>プロジェクトのPOMには以下の情報が仮の値で設定されているため、状況に応じて設定すること。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>プロジェクト名(name要素)</p>
+</li>
+<li>
+<p>プロジェクト説明(description要素)</p>
+</li>
+<li>
+<p>プロジェクトURL(url要素)</p>
+</li>
+<li>
+<p>プロジェクト創設年(inceptionYear要素)</p>
+</li>
+<li>
+<p>プロジェクトライセンス(licenses要素)</p>
+</li>
+<li>
+<p>プロジェクト組織(organization要素)</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="Ch03_CreateProject_Make_Setting_DB"><a class="anchor" href="#Ch03_CreateProject_Make_Setting_DB"></a>データベース関連の設定</h4>
+<div class="paragraph">
+<p>データベース関連の設定は複数箇所にあるため、それぞれを修正すること。</p>
+</div>
+<div class="listingblock">
+<div class="title">pom.xml</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"><span class="comment">&lt;!-- (1) --&gt;</span>
+<span class="tag">&lt;dependency&gt;</span>
+    <span class="tag">&lt;groupId&gt;</span>com.h2database<span class="tag">&lt;/groupId&gt;</span>
+    <span class="tag">&lt;artifactId&gt;</span>h2<span class="tag">&lt;/artifactId&gt;</span>
+    <span class="tag">&lt;scope&gt;</span>runtime<span class="tag">&lt;/scope&gt;</span>
+<span class="tag">&lt;/dependency&gt;</span>
+
+<span class="tag">&lt;dependency&gt;</span>
+    <span class="tag">&lt;groupId&gt;</span>org.postgresql<span class="tag">&lt;/groupId&gt;</span>
+    <span class="tag">&lt;artifactId&gt;</span>postgresql<span class="tag">&lt;/artifactId&gt;</span>
+    <span class="tag">&lt;scope&gt;</span>runtime<span class="tag">&lt;/scope&gt;</span>
+<span class="tag">&lt;/dependency&gt;</span></code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">batch-application.properties</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="txt"># (2)
+# Admin DataSource settings.
+admin.jdbc.driver=org.h2.Driver
+admin.jdbc.url=jdbc:h2:mem:batch-admin;DB_CLOSE_DELAY=-1
+admin.jdbc.username=sa
+admin.jdbc.password=
+
+# (2)
+# Job DataSource settings.
+#jdbc.driver=org.postgresql.Driver
+#jdbc.url=jdbc:postgresql://localhost:5432/postgres
+#jdbc.username=postgres
+#jdbc.password=postgres
+jdbc.driver=org.h2.Driver
+jdbc.url=jdbc:h2:mem:batch;DB_CLOSE_DELAY=-1
+jdbc.username=sa
+jdbc.password=
+
+# (3)
+# Spring Batch schema initialize.
+data-source.initialize.enabled=true
+spring-batch.schema.script=classpath:org/springframework/batch/core/schema-h2.sql
+terasoluna-batch.commit.script=classpath:org/terasoluna/batch/async/db/schema-commit.sql</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">META-INF/spring/launch-context.xml</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"><span class="comment">&lt;!-- (3) --&gt;</span>
+<span class="tag">&lt;jdbc:initialize-database</span> <span class="attribute-name">data-source</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">adminDataSource</span><span class="delimiter">&quot;</span></span>
+                          <span class="attribute-name">enabled</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">${data-source.initialize.enabled:false}</span><span class="delimiter">&quot;</span></span>
+                          <span class="attribute-name">ignore-failures</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">ALL</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+    <span class="tag">&lt;jdbc:script</span> <span class="attribute-name">location</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">${spring-batch.schema.script}</span><span class="delimiter">&quot;</span></span> <span class="tag">/&gt;</span>
+    <span class="tag">&lt;jdbc:script</span> <span class="attribute-name">location</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">${terasoluna-batch.commit.script}</span><span class="delimiter">&quot;</span></span> <span class="tag">/&gt;</span>
+<span class="tag">&lt;/jdbc:initialize-database&gt;</span>
+
+<span class="comment">&lt;!-- (4) --&gt;</span>
+<span class="tag">&lt;bean</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">adminDataSource</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">org.apache.commons.dbcp2.BasicDataSource</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">destroy-method</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">close</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">p:driverClassName</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">${admin.jdbc.driver}</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">p:url</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">${admin.jdbc.url}</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">p:username</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">${admin.jdbc.username}</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">p:password</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">${admin.jdbc.password}</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">p:maxTotal</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">10</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">p:minIdle</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">1</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">p:maxWaitMillis</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">5000</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">p:defaultAutoCommit</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">false</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+
+<span class="comment">&lt;!-- (4) --&gt;</span>
+<span class="tag">&lt;bean</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobDataSource</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">org.apache.commons.dbcp2.BasicDataSource</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">destroy-method</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">close</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">p:driverClassName</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">${jdbc.driver}</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">p:url</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">${jdbc.url}</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">p:username</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">${jdbc.username}</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">p:password</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">${jdbc.password}</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">p:maxTotal</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">10</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">p:minIdle</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">1</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">p:maxWaitMillis</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">5000</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">p:defaultAutoCommit</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">false</span><span class="delimiter">&quot;</span></span> <span class="tag">/&gt;</span>
+
+<span class="comment">&lt;!-- (5) --&gt;</span>
+<span class="tag">&lt;bean</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobSqlSessionFactory</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">org.mybatis.spring.SqlSessionFactoryBean</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">p:dataSource-ref</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobDataSource</span><span class="delimiter">&quot;</span></span> <span class="tag">&gt;</span>
+    <span class="tag">&lt;property</span> <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">configuration</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+        <span class="tag">&lt;bean</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">org.apache.ibatis.session.Configuration</span><span class="delimiter">&quot;</span></span>
+            <span class="attribute-name">p:localCacheScope</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">STATEMENT</span><span class="delimiter">&quot;</span></span>
+            <span class="attribute-name">p:lazyLoadingEnabled</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">true</span><span class="delimiter">&quot;</span></span>
+            <span class="attribute-name">p:aggressiveLazyLoading</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">false</span><span class="delimiter">&quot;</span></span>
+            <span class="attribute-name">p:defaultFetchSize</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">1000</span><span class="delimiter">&quot;</span></span>
+            <span class="attribute-name">p:defaultExecutorType</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">REUSE</span><span class="delimiter">&quot;</span></span> <span class="tag">/&gt;</span>
+    <span class="tag">&lt;/property&gt;</span>
+<span class="tag">&lt;/bean&gt;</span></code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">META-INF/spring/async-batch-daemon.xml</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"><span class="comment">&lt;!-- (5) --&gt;</span>
+<span class="tag">&lt;bean</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">adminSqlSessionFactory</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">org.mybatis.spring.SqlSessionFactoryBean</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">p:dataSource-ref</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">adminDataSource</span><span class="delimiter">&quot;</span></span> <span class="tag">&gt;</span>
+    <span class="tag">&lt;property</span> <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">configuration</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+        <span class="tag">&lt;bean</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">org.apache.ibatis.session.Configuration</span><span class="delimiter">&quot;</span></span>
+              <span class="attribute-name">p:localCacheScope</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">STATEMENT</span><span class="delimiter">&quot;</span></span>
+              <span class="attribute-name">p:lazyLoadingEnabled</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">true</span><span class="delimiter">&quot;</span></span>
+              <span class="attribute-name">p:aggressiveLazyLoading</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">false</span><span class="delimiter">&quot;</span></span>
+              <span class="attribute-name">p:defaultFetchSize</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">1000</span><span class="delimiter">&quot;</span></span>
+              <span class="attribute-name">p:defaultExecutorType</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">REUSE</span><span class="delimiter">&quot;</span></span> <span class="tag">/&gt;</span>
+    <span class="tag">&lt;/property&gt;</span>
+<span class="tag">&lt;/bean&gt;</span></code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all spread">
+<caption class="title">データベース関連の設定における各要素の説明</caption>
+<colgroup>
+<col style="width: 10%;">
+<col style="width: 90%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">pom.xmlでは利用するデータベースへの接続に使用するJDBCドライバの依存関係を定義する。<br>
+初期状態ではH2 Database(インメモリデータベース)とPostgreSQLが設定されているが、必要に応じて追加削除を行うこと。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(2)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">JDBCドライバの接続設定をする。<br>
+- <code>admin.jdbc.xxx</code>はSpring BatchやMacchinetta Batch 2.xが利用する<br>
+- <code>jdbc.xxx～</code>はジョブ個別が利用する<br></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(3)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Spring BatchやMacchinetta Batch 2.xが利用するデータベースの初期化処理を実行するか否か、および、利用するスクリプトを定義する。<br>
+Spring Batchは<strong>JobRepository</strong>にアクセスするため、データベースが必須となる。
+また、Macchinetta Batch 2.xは<strong>非同期実行(DBポーリング)</strong>にて<strong>ジョブ要求テーブル</strong>にアクセスするため、
+データベースが必須となる。<br>
+有効にするか否かは、以下を基準とするとよい。<br>
+- H2 Databaseを利用する場合は有効にする。無効にすると<strong>JobRepository</strong>や<strong>ジョブ要求テーブル</strong>にアクセスできずエラーになる。<br>
+- H2 Databaseを利用しない場合は事故を予防するために無効にする。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(4)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">データソースの設定をする。<br>
+必要に応じて接続数等をチューニングする。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(5)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">MyBatisの挙動を設定する。<br>
+必要に応じてフェッチサイズ等をチューニングする。</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="Ch03_CreateProject_CreateJob"><a class="anchor" href="#Ch03_CreateProject_CreateJob"></a>ジョブの作成</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>ジョブの作成方法は、以下を参照のこと。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="Ch03_CreateChunkJob.html#Ch03_CreateChunkJob">チャンクモデルジョブの作成</a></p>
+</li>
+<li>
+<p><a href="Ch03_CreateTaskletJob.html#Ch03_CreateTaskletJob">タスクレットモデルジョブの作成</a></p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="Ch03_CreateProject_BuildAndExec"><a class="anchor" href="#Ch03_CreateProject_BuildAndExec"></a>プロジェクトのビルドと実行</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>プロジェクトのビルドと実行について説明する。</p>
+</div>
+<div class="sect2">
+<h3 id="Ch03_CreateProject_BuildAndExec_Build"><a class="anchor" href="#Ch03_CreateProject_BuildAndExec_Build"></a>アプリケーションのビルド</h3>
+<div class="paragraph">
+<p>プロジェクトのルートディレクトリに移動し、以下のコマンドを発行する。</p>
+</div>
+<div class="listingblock">
+<div class="title">ビルド(Windows/Bash)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="console">$ mvn clean dependency:copy-dependencies -DoutputDirectory=lib package</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>これにより、以下が生成される。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>&lt;ルートディレクトリ&gt;/target/[artifactId]-[version].jar</p>
+<div class="ulist">
+<ul>
+<li>
+<p>作成したバッチアプリケーションのJarが生成される</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>&lt;ルートディレクトリ&gt;/lib/(依存Jarファイル)</p>
+<div class="ulist">
+<ul>
+<li>
+<p>依存するJarファイル一式がコピーされる</p>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>試験環境や商用環境へ配備する際は、これらのJarファイルを任意のディレクトリにコピーすればよい。</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="Ch03_CreateProject_BuildAndExec_BuildPerEnv"><a class="anchor" href="#Ch03_CreateProject_BuildAndExec_BuildPerEnv"></a>環境に応じた設定ファイルの切替</h3>
+<div class="paragraph">
+<p>プロジェクトのpom.xmlでは、初期値として以下のProfileを設定している。</p>
+</div>
+<div class="listingblock">
+<div class="title">pom.xmlのProfiles設定</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"><span class="tag">&lt;profiles&gt;</span>
+    <span class="comment">&lt;!-- Including application properties and log settings into package. (default) --&gt;</span>
+    <span class="tag">&lt;profile&gt;</span>
+        <span class="tag">&lt;id&gt;</span>IncludeSettings<span class="tag">&lt;/id&gt;</span>
+        <span class="tag">&lt;activation&gt;</span>
+            <span class="tag">&lt;activeByDefault&gt;</span>true<span class="tag">&lt;/activeByDefault&gt;</span>
+        <span class="tag">&lt;/activation&gt;</span>
+        <span class="tag">&lt;properties&gt;</span>
+            <span class="tag">&lt;exclude-property</span><span class="tag">/&gt;</span>
+            <span class="tag">&lt;exclude-log</span><span class="tag">/&gt;</span>
+        <span class="tag">&lt;/properties&gt;</span>
+    <span class="tag">&lt;/profile&gt;</span>
+
+    <span class="comment">&lt;!-- Excluding application properties and log settings into package. --&gt;</span>
+    <span class="tag">&lt;profile&gt;</span>
+        <span class="tag">&lt;id&gt;</span>ExcludeSettings<span class="tag">&lt;/id&gt;</span>
+        <span class="tag">&lt;activation&gt;</span>
+            <span class="tag">&lt;activeByDefault&gt;</span>false<span class="tag">&lt;/activeByDefault&gt;</span>
+        <span class="tag">&lt;/activation&gt;</span>
+        <span class="tag">&lt;properties&gt;</span>
+            <span class="tag">&lt;exclude-property&gt;</span>batch-application.properties<span class="tag">&lt;/exclude-property&gt;</span>
+            <span class="tag">&lt;exclude-log&gt;</span>logback.xml<span class="tag">&lt;/exclude-log&gt;</span>
+        <span class="tag">&lt;/properties&gt;</span>
+    <span class="tag">&lt;/profile&gt;</span>
+<span class="tag">&lt;/profiles&gt;</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>ここでは、<code>環境依存となる設定ファイルを含めるかどうか</code>を切替ている。
+この設定を活用して、環境配備の際に設定ファイルを別途配置することで環境差分を吸収することができる。
+また、これを応用して、試験環境と商用環境でJarに含める設定ファイルを変えることもできる。
+以下に、一例を示す。</p>
+</div>
+<div class="listingblock">
+<div class="title">環境ごとに設定ファイルを切替えるpom.xmlの記述例</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"><span class="tag">&lt;build&gt;</span>
+    <span class="tag">&lt;resources&gt;</span>
+        <span class="tag">&lt;resource&gt;</span>
+            <span class="tag">&lt;directory&gt;</span>src/main/resources<span class="tag">&lt;/directory&gt;</span>
+        <span class="tag">&lt;/resource&gt;</span>
+        <span class="tag">&lt;resource&gt;</span>
+            <span class="tag">&lt;directory&gt;</span>${project.root.basedir}/${project.config.resource.directory.rdbms}<span class="tag">&lt;/directory&gt;</span>
+        <span class="tag">&lt;/resource&gt;</span>
+    <span class="tag">&lt;/resources&gt;</span>
+<span class="tag">&lt;/build&gt;</span>
+
+<span class="tag">&lt;profiles&gt;</span>
+    <span class="tag">&lt;profile&gt;</span>
+        <span class="tag">&lt;id&gt;</span>postgresql9-local<span class="tag">&lt;/id&gt;</span>
+        <span class="tag">&lt;activation&gt;</span>
+            <span class="tag">&lt;activeByDefault&gt;</span>true<span class="tag">&lt;/activeByDefault&gt;</span>
+        <span class="tag">&lt;/activation&gt;</span>
+        <span class="tag">&lt;dependencies&gt;</span>
+            <span class="tag">&lt;dependency&gt;</span>
+                <span class="tag">&lt;groupId&gt;</span>org.postgresql<span class="tag">&lt;/groupId&gt;</span>
+                <span class="tag">&lt;artifactId&gt;</span>postgresql<span class="tag">&lt;/artifactId&gt;</span>
+                <span class="tag">&lt;scope&gt;</span>runtime<span class="tag">&lt;/scope&gt;</span>
+            <span class="tag">&lt;/dependency&gt;</span>
+        <span class="tag">&lt;/dependencies&gt;</span>
+        <span class="tag">&lt;properties&gt;</span>
+            <span class="tag">&lt;project.config.resource.directory.rdbms&gt;</span>config/rdbms/postgresql9/local<span class="tag">&lt;/project.config.resource.directory.rdbms&gt;</span>
+        <span class="tag">&lt;/properties&gt;</span>
+    <span class="tag">&lt;/profile&gt;</span>
+    <span class="tag">&lt;profile&gt;</span>
+        <span class="tag">&lt;id&gt;</span>postgresql9-it<span class="tag">&lt;/id&gt;</span>
+        <span class="tag">&lt;dependencies&gt;</span>
+            <span class="tag">&lt;dependency&gt;</span>
+                <span class="tag">&lt;groupId&gt;</span>org.postgresql<span class="tag">&lt;/groupId&gt;</span>
+                <span class="tag">&lt;artifactId&gt;</span>postgresql<span class="tag">&lt;/artifactId&gt;</span>
+                <span class="tag">&lt;scope&gt;</span>runtime<span class="tag">&lt;/scope&gt;</span>
+            <span class="tag">&lt;/dependency&gt;</span>
+        <span class="tag">&lt;/dependencies&gt;</span>
+        <span class="tag">&lt;properties&gt;</span>
+            <span class="tag">&lt;project.config.resource.directory.rdbms&gt;</span>config/rdbms/postgresql9/it<span class="tag">&lt;/project.config.resource.directory.rdbms&gt;</span>
+        <span class="tag">&lt;/properties&gt;</span>
+    <span class="tag">&lt;/profile&gt;</span>
+<span class="tag">&lt;/profiles&gt;</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>なお、MavenのProfileは以下の要領で、コマンド実行時に有効化することができる。<br>
+必要に応じて、複数Profileを有効化することもできる。必要に応じて、有効活用して欲しい。</p>
+</div>
+<div class="listingblock">
+<div class="title">MavenのProfileを有効化する例</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="console">$ mvn -P profile-1,profile-2</code></pre>
+</div>
+</div>
+<div class="sect3">
+<h4 id="Ch03_CreateProject_BuildAndExec_BuildPerEnv_AppExecution"><a class="anchor" href="#Ch03_CreateProject_BuildAndExec_BuildPerEnv_AppExecution"></a>アプリケーションの実行</h4>
+<div class="paragraph">
+<p>前段でビルドした結果を元に、ジョブを実行する例を示す。<br>
+<code>[artifactId]</code>と<code>[version]</code>は<a href="#Ch03_CreateProject_HowToCreate">プロジェクトの作成</a>にて設定したものに、ユーザに応じて読み替えて欲しい。</p>
+</div>
+<div class="listingblock">
+<div class="title">コマンドプロンプト(Windows)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="console">C:\xxx&gt;java -cp &quot;target\[artifactId]-[version].jar;lib\*&quot; ^
+org.springframework.batch.core.launch.support.CommandLineJobRunner ^
+META-INF/jobs/job01.xml job01</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">Bash(Unix, Linux, &#8230;&#8203;)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="console">$ java -cp 'target/[artifactId]-[version].jar:lib/*' \
+org.springframework.batch.core.launch.support.CommandLineJobRunner \
+META-INF/jobs/job01.xml job01</code></pre>
+</div>
+</div>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-important" title="Important"></i>
+</td>
+<td class="content">
+<div class="title">javaコマンドが返却する終了コードをハンドリングする必要性</div>
+<div class="paragraph">
+<p>実際のシステムでは、
+ジョブスケジューラからジョブを発行する際にjavaコマンドを直接発行するのではなく、
+java起動用のシェルスクリプトを挟んで起動することが一般的である。<br></p>
+</div>
+<div class="paragraph">
+<p>これはjavaコマンド起動前の環境変数を設定するためや、javaコマンドの終了コードをハンドリングするためである。
+この、<code>javaコマンドの終了コードのハンドリング</code>は、以下を理由に常に行うことを推奨する。<br></p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>javaコマンドの終了コードは正常:<code>0</code>、異常:<code>1</code>であるが、ジョブスケジューラはジョブの成功/失敗を終了コードの範囲で判断する。
+そのため、ジョブスケジューラの設定によっては、javaコマンドは異常終了したのにもかかわらずジョブスケジューラは正常終了したと判断してしまう。</p>
+</li>
+<li>
+<p>OSやジョブスケジューラが扱うことができる終了コードは有限の範囲である。</p>
+<div class="ulist">
+<ul>
+<li>
+<p>OSやジョブスケジューラの仕様に応じて、ユーザにて使用する終了コードの範囲を定義することが重要である。</p>
+</li>
+<li>
+<p>一般的に、POSIX標準で策定されている0から255の間に収めることが多い。</p>
+<div class="ulist">
+<ul>
+<li>
+<p>Macchinetta Batch 2.xでは、正常:<code>0</code>、それ以外:<code>255</code>として終了コードを返却するよう設定している。</p>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>以下に、終了コードのハンドリング例を示す。</p>
+</div>
+<div class="listingblock">
+<div class="title">終了コードのハンドリング例</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="bash">#!/bin/bash
+
+# ..omitted.
+
+java -cp ...
+RETURN_CODE=$?
+if [ $RETURN_CODE = 1 ]; then
+   return 255
+else
+   return $RETURN_CODE
+fi</code></pre>
+</div>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="container">
+
+  <div class="common-bg">
+    <div class="information">
+      Macchinetta Batch Framework (2.x) Development Guideline - version 2.0.2.RELEASE, 2019-4-19
+    </div>
+    <div class="index">
+      <a href="index.html">&gt; INDEX</a>
+    </div>
+  </div>
+
+  <div class="footer-bg">
+    <div class="copyright">
+      &copy; Copyright 2017 NTT Corporation.
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<!--[if IE]><meta http-equiv="X-UA-Compatible" content="IE=edge"><![endif]-->
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Asciidoctor 1.5.6.1">
+<title>作成するアプリケーションの説明</title>
+<link rel="stylesheet" href="./theme/css/readthedocs.css">
+<link rel="stylesheet" href="./theme/css/font-awesome.min.css">
+<link rel="stylesheet" href="./theme/css/coderay-asciidoctor.css">
+<link rel="stylesheet" href="./theme/css/header-footer.css">
+<title>Macchinetta Batch Framework (2.x) Development Guideline</title>
+
+<div class="common-bg">
+  <div class="information">
+    Macchinetta Batch Framework (2.x) Development Guideline - version 2.0.2.RELEASE, 2019-4-19
+  </div>
+  <div class="index">
+    <a href="index.html">&gt; INDEX</a>
+  </div>
+</div>
+</head>
+<body id="Ch09_TutorialApplication" class="book toc2 toc-left">
+<div id="header">
+<h1>作成するアプリケーションの説明</h1>
+<div id="toc" class="toc2">
+<div id="toctitle">Table of Contents</div>
+<ul class="sectlevel1">
+<li><a href="#Ch09_Application_Overview">背景</a></li>
+<li><a href="#Ch09_Application_ProcessingOverview">処理概要</a></li>
+<li><a href="#Ch09_Application_BusinessRequirements">業務仕様</a></li>
+<li><a href="#Ch09_Application_ImplementationMethod">学習コンテンツ</a></li>
+</ul>
+</div>
+</div>
+<div id="content">
+<div class="sect1">
+<h2 id="Ch09_Application_Overview"><a class="anchor" href="#Ch09_Application_Overview"></a>背景</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>とある量販店では会員に対してポイントカードを発行している。<br>
+会員には「ゴールド会員」「一般会員」の会員種別が存在し、会員種別に応じたサービスを提供している。<br>
+今回そのサービスの一環として、月内に商品を購入した会員のうち、 会員種別が「ゴールド会員」の場合は100ポイント、「一般会員」の場合は10ポイントを月末に加算することにした。</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="Ch09_Application_ProcessingOverview"><a class="anchor" href="#Ch09_Application_ProcessingOverview"></a>処理概要</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>会員種別に応じてポイント加算を行うアプリケーションを月次バッチ処理としてMacchinetta Batch 2.xを使用して実装する。</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="Ch09_Application_BusinessRequirements"><a class="anchor" href="#Ch09_Application_BusinessRequirements"></a>業務仕様</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>業務仕様を以下に示す。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>「月内に商品を購入した会員」は商品購入フラグで示す</p>
+<div class="ulist">
+<ul>
+<li>
+<p>商品購入フラグは、"0"の場合に初期状態、"1"の場合に処理対象を表す</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>商品購入フラグが"1"(処理対象)の場合に、会員種別に応じてポイントを加算する</p>
+<div class="ulist">
+<ul>
+<li>
+<p>会員種別が"G"(ゴールド会員)の場合は100ポイント、"N"(一般会員)の場合は10ポイントを加算する</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>商品購入フラグはポイント加算後に、"0"(初期状態)に更新する</p>
+</li>
+<li>
+<p>ポイントの上限値は1,000,000ポイントとする</p>
+</li>
+<li>
+<p>ポイント加算後に1,000,000ポイントを超えた場合は、1,000,000ポイントに補正する</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="Ch09_Application_ImplementationMethod"><a class="anchor" href="#Ch09_Application_ImplementationMethod"></a>学習コンテンツ</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>簡単な業務仕様のアプリケーション(ジョブ)の作成を通して、ジョブに関する様々な機能や処理方式を学習する。<br>
+なお、ジョブはタスクレットモデルとチャンクモデルをそれぞれ実装する。<br>
+各ジョブで主に学習することとそのジョブで利用する機能や処理方式を以下に示す。</p>
+</div>
+<table class="tableblock frame-all grid-all spread">
+<caption class="title">チュートリアルで作成するジョブ</caption>
+<colgroup>
+<col style="width: 5%;">
+<col style="width: 30%;">
+<col style="width: 65%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">ジョブ</th>
+<th class="tableblock halign-left valign-top">学習内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">A</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="Ch09_DBAccessJob.html#Ch09_Impl_DBAccessJob">データベースアクセスでデータ入出力を行うジョブ</a></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">MyBatis用のItemReaderおよびItemWriterを利用したデータベースアクセスの手法を学ぶ。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">B</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="Ch09_FileAccessJob.html#Ch09_Impl_FileAccessJob">ファイルアクセスでデータ入出力を行うジョブ</a></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">フラットファイルの入出力用のItemReaderおよびItemWriterを利用したファイルアクセスの手法を学ぶ。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">C</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="Ch09_ValidationJob.html#Ch09_Impl_ValidationJob">入力データの妥当性検証を行うジョブ</a></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Bean Validationを利用した入力チェックの手法を学ぶ。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">D</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="Ch09_ExceptionHandlingWithListenerJob.html#Ch09_Impl_ExceptionHandlingWithListenerJob">ChunkListenerで例外ハンドリングを行うジョブ</a></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">リスナーとしてChunkListenerを利用した例外ハンドリングの手法を学ぶ。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">E</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="Ch09_ExceptionHandlingWithTryCatchJob.html#Ch09_Impl_ExceptionHandlingWithTryCatchJob">try-catchで例外ハンドリングを行うジョブ</a></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">try-catchを利用した例外ハンドリングとスキップ、およびカスタマイズした終了コードを出力する手法を学ぶ。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">F</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="Ch09_AsyncExecutionJob.html#Ch09_Impl_AsyncExecutionJob">非同期実行方式のジョブ</a></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Macchinetta Batch 2.xが提供するDBポーリング機能を利用した非同期実行の手法を学ぶ。</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>A～Fのジョブで利用している機能や処理方式とMacchinetta Batch 2.x 開発ガイドラインの説明の対応表を以下に示す。</p>
+</div>
+<table class="tableblock frame-all grid-all spread">
+<caption class="title">A～FのジョブとMacchinetta Batch 2.x 開発ガイドラインの説明の対応表</caption>
+<colgroup>
+<col style="width: 5%;">
+<col style="width: 41%;">
+<col style="width: 9%;">
+<col style="width: 9%;">
+<col style="width: 9%;">
+<col style="width: 9%;">
+<col style="width: 9%;">
+<col style="width: 9%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">機能</th>
+<th class="tableblock halign-left valign-top">A</th>
+<th class="tableblock halign-left valign-top">B</th>
+<th class="tableblock halign-left valign-top">C</th>
+<th class="tableblock halign-left valign-top">D</th>
+<th class="tableblock halign-left valign-top">E</th>
+<th class="tableblock halign-left valign-top">F</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ジョブの起動 &gt; 起動方式 &gt; <a href="Ch04_SyncJob.html#Ch04_SyncJob">同期実行</a></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><span class="red">Chunk</span> <span class="blue">Tasklet</span></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><span class="red">Chunk</span> <span class="blue">Tasklet</span></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><span class="red">Chunk</span> <span class="blue">Tasklet</span></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><span class="red">Chunk</span> <span class="blue">Tasklet</span></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><span class="red">Chunk</span> <span class="blue">Tasklet</span></p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">2</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ジョブの起動 &gt; 起動方式 &gt; <a href="Ch04_AsyncJobWithDB.html#Ch04_AsyncJobWithDB">非同期実行(DBポーリング)</a></p></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><span class="red">Chunk</span> <span class="blue">Tasklet</span></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">3</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ジョブの起動 &gt; ジョブの起動パラメータ &gt; <a href="Ch04_JobParameter.html#Ch04_JobParameter_HowToUse_CLIArgs">コマンドライン引数から与える</a></p></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><span class="red">Chunk</span> <span class="blue">Tasklet</span></p></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">4</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ジョブの起動 &gt; <a href="Ch04_Listener.html#Ch04_Listener">リスナー</a></p></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><span class="red">Chunk</span> <span class="blue">Tasklet</span></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><span class="red">Chunk</span> <span class="blue">Tasklet</span></p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">5</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">データの入出力 &gt; トランザクション制御 &gt; <a href="Ch05_Transaction.html#Ch05_Transaction_Arch_UnderSpringBatch">Spring Batchにおけるトランザクション制御</a></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><span class="red">Chunk</span> <span class="blue">Tasklet</span></p></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">6</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">データの入出力 &gt; トランザクション制御 &gt; 単一データソースの場合 &gt; <a href="Ch05_Transaction.html#Ch05_Transaction_HowToUse_SingleDataSource_Tx">トランザクション制御の実施</a></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><span class="red">Chunk</span> <span class="blue">Tasklet</span></p></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">7</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">データの入出力 &gt; データベースアクセス &gt; <a href="Ch05_DBAccess.html#Ch05_DBAccess_HowToUse_Input">入力</a></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><span class="red">Chunk</span> <span class="blue">Tasklet</span></p></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">8</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">データの入出力 &gt; データベースアクセス &gt; <a href="Ch05_DBAccess.html#Ch05_DBAccess_HowToUse_Output">出力</a></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><span class="red">Chunk</span> <span class="blue">Tasklet</span></p></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">9</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">データの入出力 &gt; ファイルアクセス &gt; 可変長レコード &gt; <a href="Ch05_FileAccess.html#Ch05_FileAccess_HowToUse_FixedLength_Input">入力</a></p></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><span class="red">Chunk</span> <span class="blue">Tasklet</span></p></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">10</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">データの入出力 &gt; ファイルアクセス &gt; 可変長レコード &gt; <a href="Ch05_FileAccess.html#Ch05_FileAccess_HowToUse_FixedLength_Output">出力</a></p></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><span class="red">Chunk</span> <span class="blue">Tasklet</span></p></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">11</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">異常系への対応 &gt; <a href="Ch06_InputValidation.html#Ch06_InputValidation">入力チェック</a></p></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><span class="red">Chunk</span> <span class="blue">Tasklet</span></p></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><span class="red">Chunk</span> <span class="blue">Tasklet</span></p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">12</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">異常系への対応 &gt; 例外ハンドリング &gt; ステップ単位の例外ハンドリング &gt; <a href="Ch06_ExceptionHandling.html#Ch06_ExceptionHandling_HowToUse_StepExceptionHandling_ChunkListener">ChunkListenerインターフェースによる例外ハンドリング</a></p></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><span class="red">Chunk</span> <span class="blue">Tasklet</span></p></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">13</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">異常系への対応 &gt; 例外ハンドリング &gt; ステップ単位の例外ハンドリング &gt; <a href="Ch06_ExceptionHandling.html#Ch06_ExceptionHandling_HowToUse_StepExceptionHandling_Chunk">チャンクモデルにおける例外ハンドリング</a></p></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><span class="red">Chunk</span></p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">14</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">異常系への対応 &gt; 例外ハンドリング &gt; ステップ単位の例外ハンドリング &gt; <a href="Ch06_ExceptionHandling.html#Ch06_ExceptionHandling_HowToUse_StepExceptionHandling_Tasklet">タスクレットモデルにおける例外ハンドリング</a></p></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><span class="blue">Tasklet</span></p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">15</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">異常系への対応 &gt; 例外ハンドリング &gt; 処理継続可否の決定 &gt; <a href="Ch06_ExceptionHandling.html#Ch06_ExceptionHandling_Overview_Deal_Skip">スキップ</a></p></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><span class="red">Chunk</span> <span class="blue">Tasklet</span></p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">16</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ジョブの管理 &gt; ジョブの状態管理 &gt; <a href="Ch07_JobManagement.html#Ch07_JobManagement_HowToUse_JobStatusManagement_Retrieve">ジョブの状態・実行結果の確認</a></p></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><span class="red">Chunk</span> <span class="blue">Tasklet</span></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">17</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ジョブの管理 &gt; <a href="Ch07_JobManagement.html#Ch07_JobManagement_HowToUse_ExitCode">終了コードのカスタマイズ</a></p></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><span class="red">Chunk</span> <span class="blue">Tasklet</span></p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">18</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ジョブの管理 &gt; <a href="Ch07_JobManagement.html#Ch07_JobManagement_HowToUse_Logging">ロギング</a></p></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><span class="red">Chunk</span> <span class="blue">Tasklet</span></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><span class="red">Chunk</span> <span class="blue">Tasklet</span></p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">19</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ジョブの管理 &gt; <a href="Ch07_JobManagement.html#Ch07_JobManagement_HowToUse_MessageManagement">メッセージ管理</a></p></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><span class="red">Chunk</span> <span class="blue">Tasklet</span></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><span class="red">Chunk</span> <span class="blue">Tasklet</span></p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<div class="container">
+
+  <div class="common-bg">
+    <div class="information">
+      Macchinetta Batch Framework (2.x) Development Guideline - version 2.0.2.RELEASE, 2019-4-19
+    </div>
+    <div class="index">
+      <a href="index.html">&gt; INDEX</a>
+    </div>
+  </div>
+
+  <div class="footer-bg">
+    <div class="copyright">
+      &copy; Copyright 2017 NTT Corporation.
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

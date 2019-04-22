@@ -1,0 +1,1911 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<!--[if IE]><meta http-equiv="X-UA-Compatible" content="IE=edge"><![endif]-->
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Asciidoctor 1.5.6.1">
+<title>トランザクション制御</title>
+<link rel="stylesheet" href="./theme/css/readthedocs.css">
+<link rel="stylesheet" href="./theme/css/font-awesome.min.css">
+<link rel="stylesheet" href="./theme/css/coderay-asciidoctor.css">
+<link rel="stylesheet" href="./theme/css/header-footer.css">
+<title>Macchinetta Batch Framework (2.x) Development Guideline</title>
+
+<div class="common-bg">
+  <div class="information">
+    Macchinetta Batch Framework (2.x) Development Guideline - version 2.0.2.RELEASE, 2019-4-19
+  </div>
+  <div class="index">
+    <a href="index.html">&gt; INDEX</a>
+  </div>
+</div>
+</head>
+<body id="Ch05_Transaction" class="book toc2 toc-left">
+<div id="header">
+<h1>トランザクション制御</h1>
+<div id="toc" class="toc2">
+<div id="toctitle">Table of Contents</div>
+<ul class="sectlevel1">
+<li><a href="#Ch05_Transaction_Overview">Overview</a>
+<ul class="sectlevel2">
+<li><a href="#Ch05_Transaction_Overview_TxType">一般的なバッチ処理におけるトランザクション制御のパターンについて</a></li>
+</ul>
+</li>
+<li><a href="#Ch05_Transaction_Arch">Architecture</a>
+<ul class="sectlevel2">
+<li><a href="#Ch05_Transaction_Arch_UnderSpringBatch">Spring Batchにおけるトランザクション制御</a>
+<ul class="sectlevel3">
+<li><a href="#Ch05_Transaction_Arch_UnderSpringBatchChunkModel">チャンクモデルにおけるトランザクション制御の仕組み</a></li>
+<li><a href="#Ch05_Transaction_Arch_UnderSpringBatchTaskletModel">タスクレットモデルにおけるトランザクション制御の仕組み</a></li>
+<li><a href="#Ch05_Transaction_Arch_UnderSpringBatch_SelectionPolicy">モデル別トランザクション制御の選定方針</a></li>
+</ul>
+</li>
+<li><a href="#Ch05_Transaction_Overview_DiffLaunching">起動方式ごとのトランザクション制御の差</a>
+<ul class="sectlevel3">
+<li><a href="#Ch05_Transaction_Arch_DiffLaunching_DB">DBポーリングのトランザクションについて</a></li>
+<li><a href="#Ch05_Transaction_Arch_DiffLaunching_Web">WebAPサーバ処理のトランザクションについて</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="#Ch05_Transaction_HowToUse">How to use</a>
+<ul class="sectlevel2">
+<li><a href="#Ch05_Transaction_HowToUse_SingleDataSource">単一データソースの場合</a>
+<ul class="sectlevel3">
+<li><a href="#Ch05_Transaction_HowToUse_SingleDataSource_Tx">トランザクション制御の実施</a></li>
+<li><a href="#Ch05_Transaction_HowToUse_SingleDataSource_NonTx">非トランザクショナルなデータソースに対する補足</a></li>
+</ul>
+</li>
+<li><a href="#Ch05_Transaction_HowToUse_MultiDataSource">複数データソースの場合</a>
+<ul class="sectlevel3">
+<li><a href="#Ch05_Transaction_HowToUse_MultiDataSource_Input">複数データソースからの取得</a></li>
+<li><a href="#Ch05_Transaction_HowToUse_MultiDataSource_IndividualTx">複数データソースへの出力(複数ステップ)</a></li>
+<li><a href="#Ch05_Transaction_HowToUse_MultiDataSource_SingleTx">複数データソースへの出力(1ステップ)</a></li>
+</ul>
+</li>
+<li><a href="#Ch05_Transaction_HowToUse_Considerations">中間方式コミットでの注意点</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div id="content">
+<div class="sect1">
+<h2 id="Ch05_Transaction_Overview"><a class="anchor" href="#Ch05_Transaction_Overview"></a>Overview</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>本節では、ジョブにおけるトランザクション制御について以下の順序で説明する。</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p><a href="#Ch05_Transaction_Overview_TxType">一般的なバッチ処理におけるトランザクション制御のパターンについて</a></p>
+</li>
+<li>
+<p><a href="#Ch05_Transaction_Arch_UnderSpringBatch">Spring Batchにおけるトランザクション制御</a></p>
+</li>
+<li>
+<p><a href="#Ch05_Transaction_HowToUse">"データベースやファイルといったリソースをトランザクショナルに処理するための方法"</a></p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>本機能は、チャンクモデルとタスクレットモデルとで使い方が異なるため、それぞれについて説明する。</p>
+</div>
+<div class="sect2">
+<h3 id="Ch05_Transaction_Overview_TxType"><a class="anchor" href="#Ch05_Transaction_Overview_TxType"></a>一般的なバッチ処理におけるトランザクション制御のパターンについて</h3>
+<div class="paragraph">
+<p>一般的に、バッチ処理は大量件数を処理するため、処理の終盤で何かしらのエラーが発生した場合に全件処理しなおしとなってしまうと
+バッチシステムのスケジュールに悪影響を与えてしまう。<br>
+これを避けるために、1ジョブの処理内で一定件数ごとにトランザクションを確定しながら処理を進めていくことで、
+エラー発生時の影響を局所化することが多い。<br>
+(以降、一定件数ごとにトランザクションを確定する方式を「中間コミット方式」、コミット単位にデータをひとまとめにしたものを「チャンク」と呼ぶ。)</p>
+</div>
+<div class="paragraph">
+<p>中間コミット方式のポイントを以下にまとめる。</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>エラー発生時の影響を局所化する。</p>
+<div class="ulist">
+<ul>
+<li>
+<p>更新時にエラーが発生しても、エラー箇所直前のチャンクまでの処理が確定している。</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>リソースを一定量しか使わない。</p>
+<div class="ulist">
+<ul>
+<li>
+<p>処理対象データの大小問わず、チャンク分のリソースしか使用しないため安定する。</p>
+</li>
+</ul>
+</div>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>ただし、中間コミット方式があらゆる場面で有効な方法というわけではない。<br>
+システム内に一時的とはいえ処理済みデータと未処理データが混在することになる。
+その結果、リカバリ処理時に未処理データを識別することが必要となるため、リカバリが複雑になる可能性がある。
+これを避けるには、中間コミット方式ではなく、全件を1トランザクションで確定させるしかない。<br>
+(以降、全件を1トランザクションで確定する方式を「一括コミット方式」と呼ぶ。)</p>
+</div>
+<div class="paragraph">
+<p>とはいえ、何千万件というような大量件数を一括コミット方式で処理してしまうと、
+コミットを行った際に全件をデータベース反映しようとして高負荷をかけてしまうような事態が発生する。
+そのため、一括コミット方式は小規模なバッチ処理には向いているが、大規模バッチで採用するには注意が必要となる。
+よって、この方法も万能な方法というわけではない。</p>
+</div>
+<div class="paragraph">
+<p>つまり、「影響の局所化」と「リカバリの容易さ」はトレードオフの関係にある。
+「中間コミット方式」と「一括コミット方式」のどちらを使うかは、ジョブの性質に応じてどちらを優先すべきかを決定して欲しい。<br>
+もちろん、バッチシステム内のジョブすべてをどちらか一方で実現する必要はない。
+基本的には「中間コミット方式」を採用するが、特殊なジョブのみ「一括コミット方式」を採用する(または、その逆とする)ことは自然である。</p>
+</div>
+<div class="paragraph">
+<p>以下に、「中間コミット方式」と「一括コミット方式」のメリット・デメリット、採用ポイントをまとめる。</p>
+</div>
+<table class="tableblock frame-all grid-all spread">
+<caption class="title">方式別特徴一覧</caption>
+<colgroup>
+<col style="width: 25%;">
+<col style="width: 25%;">
+<col style="width: 25%;">
+<col style="width: 25%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">コミット方式</th>
+<th class="tableblock halign-left valign-top">メリット</th>
+<th class="tableblock halign-left valign-top">デメリット</th>
+<th class="tableblock halign-left valign-top">採用ポイント</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">中間コミット方式</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">エラー発生時の影響を局所化する</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">リカバリ処理が複雑になる可能性がある</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">大量データを一定のマシンリソースで処理したい場合</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">一括コミット方式</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">データの整合性を担保する</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">大量件数処理時に高負荷になる可能性がある</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">永続化リソースに対する処理結果をAll or Nothingとしたい場合<br>
+小規模のバッチ処理に向いている</p></td>
+</tr>
+</tbody>
+</table>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-warning" title="Warning"></i>
+</td>
+<td class="content">
+<div class="title">データベースの同一テーブルへ入出力する際の注意点</div>
+<div class="paragraph">
+<p>データベースの仕組み上、コミット方式を問わず、
+同一テーブルへ入出力する処理で大量データを取り扱う際に注意が必要な点がある。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>読み取り一貫性を担保するための情報が出力(UPDATEの発行)により失われた結果、
+入力(SELECT)にてエラーが発生することがある。</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>これを回避するには、以下の対策がある。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>情報を確保する領域を大きくする。</p>
+<div class="ulist">
+<ul>
+<li>
+<p>拡張する際には、リソース設計にて十分検討の上実施してほしい。</p>
+</li>
+<li>
+<p>拡張方法は使用するデータベースに依存するため、マニュアルを参照すること。</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>入力データを分割し多重処理を行う。</p>
+<div class="ulist">
+<ul>
+<li>
+<p>多重処理については、<a href="Ch08_ParallelAndMultiple.html#Ch08_ParallelAndMultiple_HowToUse_Partitioning">"Partitioning Step (多重処理)"</a>を参照。</p>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="Ch05_Transaction_Arch"><a class="anchor" href="#Ch05_Transaction_Arch"></a>Architecture</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="Ch05_Transaction_Arch_UnderSpringBatch"><a class="anchor" href="#Ch05_Transaction_Arch_UnderSpringBatch"></a>Spring Batchにおけるトランザクション制御</h3>
+<div class="paragraph">
+<p>ジョブのトランザクション制御はSpring Batchがもつ仕組みを活用する。</p>
+</div>
+<div class="paragraph">
+<p>以下に2種類のトランザクションを定義する。</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">フレームワークトランザクション</dt>
+<dd>
+<p>Spring Batchが制御するトランザクション</p>
+</dd>
+<dt class="hdlist1">ユーザトランザクション</dt>
+<dd>
+<p>ユーザが制御するトランザクション</p>
+</dd>
+</dl>
+</div>
+<div class="sect3">
+<h4 id="Ch05_Transaction_Arch_UnderSpringBatchChunkModel"><a class="anchor" href="#Ch05_Transaction_Arch_UnderSpringBatchChunkModel"></a>チャンクモデルにおけるトランザクション制御の仕組み</h4>
+<div class="paragraph">
+<p>チャンクモデルにおけるトランザクション制御は、中間コミット方式のみとなる。
+一括コミット方式は実現できない。</p>
+</div>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-warning" title="Warning"></i>
+</td>
+<td class="content">
+<div class="paragraph">
+<p>チャンクモデルにおける一括コミット方式についてはJIRAにレポートされている。<br>
+<a href="https://jira.spring.io/browse/BATCH-647" class="bare">https://jira.spring.io/browse/BATCH-647</a><br>
+結果、<code>chunk completion policy</code>をカスタマイズしてチャンクサイズを動的に変更することで解決している。
+しかし、この方法では全データを1チャンクに格納してしまいメモリを圧迫してしまうため、方式として採用することはできない。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>この方式の特徴は、チャンク単位にトランザクションが繰り返し行われることである。</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">正常系でのトランザクション制御</dt>
+<dd>
+<p>正常系でのトランザクション制御を説明する。</p>
+</dd>
+</dl>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/Ch05_transaction_TransactionControlChunkModel_commit.png" alt="Transaction Control Chunk Model Normal Process">
+</div>
+<div class="title">正常系のシーケンス図</div>
+</div>
+<div class="olist arabic">
+<div class="title">シーケンス図の説明</div>
+<ol class="arabic">
+<li>
+<p>ジョブからステップが実行される。</p>
+<div class="ulist">
+<ul>
+<li>
+<p>入力データがなくなるまで、以降の処理を繰り返す。</p>
+</li>
+<li>
+<p>チャンク単位で、フレームワークトランザクションを開始する。</p>
+</li>
+<li>
+<p>チャンクサイズに達するまで2から5までの処理を繰り返す。</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>ステップは、<code>ItemReader</code>から入力データを取得する。</p>
+</li>
+<li>
+<p><code>ItemReader</code>は、ステップに入力データを返却する。</p>
+</li>
+<li>
+<p>ステップは、<code>ItemProcessor</code>で入力データに対して処理を行う。</p>
+</li>
+<li>
+<p><code>ItemProcessor</code>は、ステップに処理結果を返却する。</p>
+</li>
+<li>
+<p>ステップはチャンクサイズ分のデータを<code>ItemWriter</code>で出力する。</p>
+</li>
+<li>
+<p><code>ItemWriter</code>は、対象となるリソースへ出力を行う。</p>
+</li>
+<li>
+<p>ステップはフレームワークトランザクションをコミットする。</p>
+</li>
+</ol>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">異常系でのトランザクション制御</dt>
+<dd>
+<p>異常系でのトランザクション制御を説明する。</p>
+</dd>
+</dl>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/Ch05_transaction_TransactionControlChunkModel_rollback.png" alt="Transaction Control Chunk Model Abnormal Process">
+</div>
+<div class="title">異常系のシーケンス図</div>
+</div>
+<div class="olist arabic">
+<div class="title">シーケンス図の説明</div>
+<ol class="arabic">
+<li>
+<p>ジョブからステップが実行される。</p>
+<div class="ulist">
+<ul>
+<li>
+<p>入力データがなくなるまで以降の処理を繰り返す。</p>
+</li>
+<li>
+<p>チャンク単位でのフレームワークトランザクションを開始する。</p>
+</li>
+<li>
+<p>チャンクサイズに達するまで2から5までの処理を繰り返す。</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>ステップは、<code>ItemReader</code>から入力データを取得する。</p>
+</li>
+<li>
+<p><code>ItemReader</code>は、ステップに入力データを返却する。</p>
+</li>
+<li>
+<p>ステップは、<code>ItemProcessor</code>で入力データに対して処理を行う。</p>
+</li>
+<li>
+<p><code>ItemProcessor</code>は、ステップに処理結果を返却する。</p>
+</li>
+<li>
+<p>ステップはチャンクサイズ分のデータを<code>ItemWriter</code>で出力する。</p>
+</li>
+<li>
+<p><code>ItemWriter</code>は、対象となるリソースへ出力を行う。</p>
+<div class="ulist">
+<ul>
+<li>
+<p>2から7までの処理過程で<strong>例外が発生</strong>すると、以降の処理を行う。</p>
+</li>
+</ul>
+</div>
+</li>
+</ol>
+</div>
+<div class="olist arabic">
+<ol class="arabic" start="8">
+<li>
+<p>ステップはフレームワークトランザクションをロールバックする。</p>
+</li>
+</ol>
+</div>
+</div>
+<div class="sect3">
+<h4 id="Ch05_Transaction_Arch_UnderSpringBatchTaskletModel"><a class="anchor" href="#Ch05_Transaction_Arch_UnderSpringBatchTaskletModel"></a>タスクレットモデルにおけるトランザクション制御の仕組み</h4>
+<div class="paragraph">
+<p>タスクレットモデルにおけるトランザクション制御は、
+一括コミット方式と中間コミット方式のいずれかを利用できる。</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">一括コミット方式</dt>
+<dd>
+<p>Spring Batchがもつトランザクション制御の仕組みを利用する</p>
+</dd>
+<dt class="hdlist1">中間コミット方式</dt>
+<dd>
+<p>ユーザにてトランザクションを直接操作する</p>
+</dd>
+</dl>
+</div>
+<div class="sect4">
+<h5 id="Ch05_Transaction_Arch_UnderSpringBatch_TaskletModel_SingleTransaction"><a class="anchor" href="#Ch05_Transaction_Arch_UnderSpringBatch_TaskletModel_SingleTransaction"></a>タスクレットモデルにおける一括コミット方式</h5>
+<div class="paragraph">
+<p>Spring Batchがもつトランザクション制御の仕組みについて説明する。</p>
+</div>
+<div class="paragraph">
+<p>この方式の特徴は、1つのトランザクション内で繰り返しデータ処理を行うことである。</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">正常系でのトランザクション制御</dt>
+<dd>
+<p>正常系でのトランザクション制御を説明する。</p>
+</dd>
+</dl>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/Ch05_transaction_TransactionControlTaskletModel_SingleTransaction_commit.png" alt="Single Transaction Control Tasklet Model Normal Process">
+</div>
+<div class="title">正常系のシーケンス図</div>
+</div>
+<div class="olist arabic">
+<div class="title">シーケンス図の説明</div>
+<ol class="arabic">
+<li>
+<p>ジョブからステップが実行される。</p>
+<div class="ulist">
+<ul>
+<li>
+<p>ステップはフレームワークトランザクションを開始する。</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>ステップはタスクレットを実行する。</p>
+<div class="ulist">
+<ul>
+<li>
+<p>入力データがなくなるまで3から7までの処理を繰り返す。</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>タスクレットは、<code>Repository</code>から入力データを取得する。</p>
+</li>
+<li>
+<p><code>Repository</code>は、タスクレットに入力データを返却する。</p>
+</li>
+<li>
+<p>タスクレットは、入力データを処理する。</p>
+</li>
+<li>
+<p>タスクレットは、<code>Repository</code>へ出力データを渡す。</p>
+</li>
+<li>
+<p><code>Repository</code>は、対象となるリソースへ出力を行う。</p>
+</li>
+<li>
+<p>タスクレットはステップへ処理終了を返却する。</p>
+</li>
+<li>
+<p>ステップはフレームワークトランザクションをコミットする。</p>
+</li>
+</ol>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">異常系でのトランザクション制御</dt>
+<dd>
+<p>異常系でのトランザクション制御を説明する。</p>
+</dd>
+</dl>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/Ch05_transaction_TransactionControlTaskletModel_SingleTransaction_rollback.png" alt="Single Transaction Control Tasklet Model Abormal Process">
+</div>
+<div class="title">異常系のシーケンス図</div>
+</div>
+<div class="olist arabic">
+<div class="title">シーケンス図の説明</div>
+<ol class="arabic">
+<li>
+<p>ジョブからステップが実行される。</p>
+<div class="ulist">
+<ul>
+<li>
+<p>ステップはフレームワークトランザクションを開始する。</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>ステップはタスクレットを実行する。</p>
+<div class="ulist">
+<ul>
+<li>
+<p>入力データがなくなるまで3から7までの処理を繰り返す。</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>タスクレットは、<code>Repository</code>から入力データを取得する。</p>
+</li>
+<li>
+<p><code>Repository</code>は、タスクレットに入力データを返却する。</p>
+</li>
+<li>
+<p>タスクレットは、入力データを処理する。</p>
+</li>
+<li>
+<p>タスクレットは、<code>Repository</code>へ出力データを渡す。</p>
+</li>
+<li>
+<p><code>Repository</code>は、対象となるリソースへ出力を行う。</p>
+<div class="ulist">
+<ul>
+<li>
+<p>2から7までの処理過程で<strong>例外が発生</strong>すると、以降の処理を行う。</p>
+</li>
+</ul>
+</div>
+</li>
+</ol>
+</div>
+<div class="olist arabic">
+<ol class="arabic" start="8">
+<li>
+<p>タスクレットはステップへ例外をスローする。</p>
+</li>
+<li>
+<p>ステップはフレームワークトランザクションをロールバックする。</p>
+</li>
+</ol>
+</div>
+</div>
+<div class="sect4">
+<h5 id="Ch05_Transaction_Arch_UnderSpringBatch_TaskletModel_ChunkTransaction"><a class="anchor" href="#Ch05_Transaction_Arch_UnderSpringBatch_TaskletModel_ChunkTransaction"></a>タスクレットモデルにおける中間コミット方式</h5>
+<div class="paragraph">
+<p>ユーザにてトランザクションを直接操作する仕組みについて説明する。</p>
+</div>
+<div class="paragraph">
+<p>この方式の特徴は、リソースの操作を行えないフレームワークトランザクションを利用することで、ユーザトランザクションのみにリソースの操作を行わせることである。<br>
+<code>transaction-manager</code>属性に、リソースが紐づかない<code>org.springframework.batch.support.transaction.ResourcelessTransactionManager</code>を指定する。</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">正常系でのトランザクション制御</dt>
+<dd>
+<p>正常系でのトランザクション制御を説明する。</p>
+</dd>
+</dl>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/Ch05_transaction_TransactionControlTaskletModel_ChunkTransaction_commit.png" alt="Chunk Transaction Control Tasklet Model Normal Process">
+</div>
+<div class="title">正常系のシーケンス図</div>
+</div>
+<div class="olist arabic">
+<div class="title">シーケンス図の説明</div>
+<ol class="arabic">
+<li>
+<p>ジョブからステップが実行される。</p>
+<div class="ulist">
+<ul>
+<li>
+<p>ステップは<strong>フレームワークトランザクション</strong>を開始する。</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>ステップはタスクレットを実行する。</p>
+<div class="ulist">
+<ul>
+<li>
+<p>入力データがなくなるまで3から10までの処理を繰り返す。</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>タスクレットは、<code>TransacitonManager</code>より<strong>ユーザトランザクション</strong>を開始する。</p>
+<div class="ulist">
+<ul>
+<li>
+<p>チャンクサイズに達するまで4から8までの処理を繰り返す。</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>タスクレットは、<code>Repository</code>から入力データを取得する。</p>
+</li>
+<li>
+<p><code>Repository</code>は、タスクレットに入力データを返却する。</p>
+</li>
+<li>
+<p>タスクレットは、入力データを処理する。</p>
+</li>
+<li>
+<p>タスクレットは、<code>Repository</code>へ出力データを渡す。</p>
+</li>
+<li>
+<p><code>Repository</code>は、対象となるリソースへ出力を行う。</p>
+</li>
+<li>
+<p>タスクレットは、<code>TransacitonManager</code>により<strong>ユーザトランザクション</strong>のコミットを実行する。</p>
+</li>
+<li>
+<p><code>TransacitonManager</code>は、対象となるリソースへコミットを発行する。</p>
+</li>
+<li>
+<p>タスクレットはステップへ処理終了を返却する。</p>
+</li>
+<li>
+<p>ステップは<strong>フレームワークトランザクション</strong>をコミットする。</p>
+</li>
+</ol>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+<div class="paragraph">
+<p>ここでは1件ごとにリソースへ出力しているが、
+チャンクモデルと同様に、チャンク単位で一括更新し処理スループットの向上を狙うことも可能である。
+その際に、<code>SqlSessionTemplate</code>の<code>executorType</code>を<code>BATCH</code>に設定することで、BatchUpdateを利用することもできる。
+これは、MyBatisのItemWriterを利用する場合と同様の動作になるため、MyBatisのItemWriterを利用して更新してもよい。
+MyBatisのItemWriterについて、詳細は
+<a href="Ch05_DBAccess.html#Ch05_DBAccess_HowToUse_Output_MyBatisItemWriter">MyBatisBatchItemWriter</a>を参照。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">異常系でのトランザクション制御</dt>
+<dd>
+<p>異常系でのトランザクション制御を説明する。</p>
+</dd>
+</dl>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/Ch05_transaction_TransactionControlTaskletModel_ChunkTransaction_rollback.png" alt="Chunk Transaction Control Tasklet Model Abormal Process">
+</div>
+<div class="title">異常系のシーケンス図</div>
+</div>
+<div class="olist arabic">
+<div class="title">シーケンス図の説明</div>
+<ol class="arabic">
+<li>
+<p>ジョブからステップが実行される。</p>
+<div class="ulist">
+<ul>
+<li>
+<p>ステップは<strong>フレームワークトランザクション</strong>を開始する。</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>ステップはタスクレットを実行する。</p>
+<div class="ulist">
+<ul>
+<li>
+<p>入力データがなくなるまで3から11までの処理を繰り返す。</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>タスクレットは、<code>TransacitonManager</code>より<strong>ユーザトランザクション</strong>を開始する。</p>
+<div class="ulist">
+<ul>
+<li>
+<p>チャンクサイズに達するまで4から8までの処理を繰り返す。</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>タスクレットは、<code>Repository</code>から入力データを取得する。</p>
+</li>
+<li>
+<p><code>Repository</code>は、タスクレットに入力データを返却する。</p>
+</li>
+<li>
+<p>タスクレットは、入力データを処理する。</p>
+</li>
+<li>
+<p>タスクレットは、<code>Repository</code>へ出力データを渡す。</p>
+</li>
+<li>
+<p><code>Repository</code>は、対象となるリソースへ出力を行う。</p>
+<div class="ulist">
+<ul>
+<li>
+<p>3から8までの処理過程で<strong>例外が発生</strong>すると、以降の処理を行う。</p>
+</li>
+</ul>
+</div>
+</li>
+</ol>
+</div>
+<div class="olist arabic">
+<ol class="arabic" start="9">
+<li>
+<p>タスクレットは、発生した例外に対する処理を行う。</p>
+</li>
+<li>
+<p>タスクレットは、<code>TransacitonManager</code>により<strong>ユーザトランザクション</strong>のロールバックを実行する。</p>
+</li>
+<li>
+<p><code>TransacitonManager</code>は、対象となるリソースへロールバックを発行する。</p>
+</li>
+<li>
+<p>タスクレットはステップへ例外をスローする。</p>
+</li>
+<li>
+<p>ステップは<strong>フレームワークトランザクション</strong>をロールバックする。</p>
+</li>
+</ol>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+<div class="title">処理の継続について</div>
+<div class="paragraph">
+<p>ここでは、例外をハンドリングして処理をロールバック後、処理を異常終了しているが、
+継続して次のチャンクを処理することも可能である。
+いずれの場合も、途中でエラーが発生したことをステップのステータス・終了コードを変更することで後続の処理に通知する必要がある。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+<div class="title">フレームワークトランザクションについて</div>
+<div class="paragraph">
+<p>ここでは、ユーザトランザクションをロールバック後に例外をスローしてジョブを異常終了させているが、
+ステップへ処理終了を返却しジョブを正常終了させることも出来る。
+この場合、フレームワークトランザクションは、<strong>コミット</strong>される。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="Ch05_Transaction_Arch_UnderSpringBatch_SelectionPolicy"><a class="anchor" href="#Ch05_Transaction_Arch_UnderSpringBatch_SelectionPolicy"></a>モデル別トランザクション制御の選定方針</h4>
+<div class="paragraph">
+<p>Macchinetta Batch 2.xの基盤となるSpring Batchでは、チャンクモデルでは中間コミット方式しか実現できない。
+しかし、タスクレットモデルでは、中間コミット方式、一括コミット方式のいずれも実現できる。</p>
+</div>
+<div class="paragraph">
+<p>よって、Macchinetta Batch 2.xでは、一括コミット方式が必要な際は、タスクレットモデルにて実装する。</p>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="Ch05_Transaction_Overview_DiffLaunching"><a class="anchor" href="#Ch05_Transaction_Overview_DiffLaunching"></a>起動方式ごとのトランザクション制御の差</h3>
+<div class="paragraph">
+<p>起動方式によってはジョブの起動前後にSpring Batchの管理外となるトランザクションが発生する。
+ここでは、2つの非同期実行処理方式におけるトランザクションについて説明する。</p>
+</div>
+<div class="sect3">
+<h4 id="Ch05_Transaction_Arch_DiffLaunching_DB"><a class="anchor" href="#Ch05_Transaction_Arch_DiffLaunching_DB"></a>DBポーリングのトランザクションについて</h4>
+<div class="paragraph">
+<p>DBポーリングが行うジョブ要求テーブルへの処理については、Spring Batch管理外のトランザクション処理が行われる。
+また、ジョブで発生した例外については、ジョブ内で対応が完結するため、<code>JobRequestPollTask</code>が行うトランザクションには影響を与えない。</p>
+</div>
+<div class="paragraph">
+<p>下図にトランザクションに焦点を当てた簡易的なシーケンス図を示す。</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/Ch05_transaction_AsyncWithDB_Transaction_Difference.png" alt="With Database polling transaction">
+</div>
+<div class="title">DBポーリング処理のトランザクション</div>
+</div>
+<div class="olist arabic">
+<div class="title">シーケンス図の説明</div>
+<ol class="arabic">
+<li>
+<p>非同期バッチデーモンで<code>JobRequestPollTask</code>が周期実行される。</p>
+</li>
+<li>
+<p><code>JobRequestPollTask</code>は、Spring Batch管理外のトランザクションを開始する。</p>
+</li>
+<li>
+<p><code>JobRequestPollTask</code>は、ジョブ要求テーブルから非同期実行対象ジョブを取得する。</p>
+</li>
+<li>
+<p><code>JobRequestPollTask</code>は、Spring Batch管理外のトランザクションをコミットする。</p>
+</li>
+<li>
+<p><code>JobRequestPollTask</code>は、Spring Batch管理外のトランザクションを開始する。</p>
+</li>
+<li>
+<p><code>JobRequestPollTask</code>は、ジョブ要求テーブルのポーリングステータスをINITからPOLLEDへ更新する。</p>
+</li>
+<li>
+<p><code>JobRequestPollTask</code>は、Spring Batch管理外のトランザクションをコミットする。</p>
+</li>
+<li>
+<p><code>JobRequestPollTask</code>は、ジョブを実行する。</p>
+</li>
+<li>
+<p>ジョブ内では、管理用データベース(<code>JobRepository</code>)へのトランザクション管理はSpring Batchが行う。</p>
+</li>
+<li>
+<p>ジョブ内では、ジョブ用データベースへのトランザクション管理はSpring Batchが行う。</p>
+</li>
+<li>
+<p><code>JobRequestPollTask</code>にjob_execution_idが返却される。</p>
+</li>
+<li>
+<p><code>JobRequestPollTask</code>は、Spring Batch管理外のトランザクションを開始する。</p>
+</li>
+<li>
+<p><code>JobRequestPollTask</code>は、ジョブ要求テーブルのポーリングステータスをPOLLEDからEXECUTEへ更新する。</p>
+</li>
+<li>
+<p><code>JobRequestPollTask</code>は、Spring Batch管理外のトランザクションをコミットする。</p>
+</li>
+</ol>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+<div class="title">SELECT発行時のコミットについて</div>
+<div class="paragraph">
+<p>データベースによっては、SELECT発行時に暗黙的にトランザクションを開始する場合がある。
+そのため、明示的にコミットを発行することでトランザクションを確定させ、他のトランザクションと明確に区別し影響を与えないようにしている。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect3">
+<h4 id="Ch05_Transaction_Arch_DiffLaunching_Web"><a class="anchor" href="#Ch05_Transaction_Arch_DiffLaunching_Web"></a>WebAPサーバ処理のトランザクションについて</h4>
+<div class="paragraph">
+<p>WebAPが対象とするリソースへの処理については、Spring Batch管理外のトランザクション処理が行われる。
+また、ジョブで発生した例外については、ジョブ内で対応が完結するため、WebAPが行うトランザクションには影響を与えない。</p>
+</div>
+<div class="paragraph">
+<p>下図にトランザクションに焦点を当てた簡易的なシーケンス図を示す。</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/Ch05_transaction_AsyncWithWeb_Transaction_Difference.png" alt="With Web Application transaction">
+</div>
+<div class="title">WebAPサーバ処理のトランザクション</div>
+</div>
+<div class="olist arabic">
+<div class="title">シーケンス図の説明</div>
+<ol class="arabic">
+<li>
+<p>クライアントからリクエストによりWebAPの処理が実行される。</p>
+</li>
+<li>
+<p>WebAPは、Spring Batch管理外のトランザクションを開始する。</p>
+</li>
+<li>
+<p>WebAPは、ジョブ実行前にWebAPでのリソースに対して読み書きを行う。</p>
+</li>
+<li>
+<p>WebAPは、ジョブを実行する。</p>
+</li>
+<li>
+<p>ジョブ内では、管理用データベース(<code>JobRepository</code>)へのトランザクション管理はSpring Batchが行う。</p>
+</li>
+<li>
+<p>ジョブ内では、ジョブ用データベースへのトランザクション管理はSpring Batchが行う。</p>
+</li>
+<li>
+<p>WebAPにjob_execution_idが返却される。</p>
+</li>
+<li>
+<p>WebAPは、ジョブ実行後にWebAPでのリソースに対して読み書きを行う。</p>
+</li>
+<li>
+<p>WebAPは、Spring Batch管理外のトランザクションをコミットする。</p>
+</li>
+<li>
+<p>WebAPは、クライアントにレスポンスを返す。</p>
+</li>
+</ol>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="Ch05_Transaction_HowToUse"><a class="anchor" href="#Ch05_Transaction_HowToUse"></a>How to use</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>ここでは、1ジョブにおけるトランザクション制御について、以下の場合に分けて説明する。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="#Ch05_Transaction_HowToUse_SingleDataSource">単一データソースの場合</a></p>
+</li>
+<li>
+<p><a href="#Ch05_Transaction_HowToUse_MultiDataSource">複数データソースの場合</a></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>データソースとは、データの格納先(データベース、ファイル等)を指す。
+単一データソースとは1つのデータソースを、複数データソースとは2つ以上のデータソースを指す。</p>
+</div>
+<div class="paragraph">
+<p>単一データソースを処理するケースは、データベースのデータを加工するケースが代表的である。<br>
+複数データソースを処理するケースは、以下のようにいくつかバリエーションがある。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>複数のデータベースの場合</p>
+</li>
+<li>
+<p>データベースとファイルの場合</p>
+</li>
+</ul>
+</div>
+<div class="sect2">
+<h3 id="Ch05_Transaction_HowToUse_SingleDataSource"><a class="anchor" href="#Ch05_Transaction_HowToUse_SingleDataSource"></a>単一データソースの場合</h3>
+<div class="paragraph">
+<p>1つのデータソースに対して入出力するジョブのトランザクション制御について説明する。</p>
+</div>
+<div class="paragraph">
+<p>以下にMacchinetta Batch 2.xでの設定例を示す。</p>
+</div>
+<div class="listingblock">
+<div class="title">データソースの設定(META-INF/spring/launch-context.xml)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"><span class="comment">&lt;!-- Job-common definitions --&gt;</span>
+<span class="tag">&lt;bean</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobDataSource</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">org.apache.commons.dbcp2.BasicDataSource</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">destroy-method</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">close</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">p:driverClassName</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">${jdbc.driver}</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">p:url</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">${jdbc.url}</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">p:username</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">${jdbc.username}</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">p:password</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">${jdbc.password}</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">p:maxTotal</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">10</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">p:minIdle</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">1</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">p:maxWaitMillis</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">5000</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">p:defaultAutoCommit</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">false</span><span class="delimiter">&quot;</span></span> <span class="tag">/&gt;</span></code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">トランザクションマネージャの設定(META-INF/spring/launch-context.xml)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"><span class="comment">&lt;!-- (1) --&gt;</span>
+<span class="tag">&lt;bean</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobTransactionManager</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">org.springframework.jdbc.datasource.DataSourceTransactionManager</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">p:dataSource-ref</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobDataSource</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">p:rollbackOnCommitFailure</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">true</span><span class="delimiter">&quot;</span></span> <span class="tag">/&gt;</span></code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all spread">
+<colgroup>
+<col style="width: 10%;">
+<col style="width: 90%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">トランザクションマネージャのBean定義<br>
+データソースは上記で定義した<code>jobDataSource</code>を設定する。<br>
+コミットに失敗した場合はロールバックをするように設定済み。</p></td>
+</tr>
+</tbody>
+</table>
+<div class="sect3">
+<h4 id="Ch05_Transaction_HowToUse_SingleDataSource_Tx"><a class="anchor" href="#Ch05_Transaction_HowToUse_SingleDataSource_Tx"></a>トランザクション制御の実施</h4>
+<div class="paragraph">
+<p>ジョブモデルおよびコミット方式により制御方法が異なる。</p>
+</div>
+<div class="sect4">
+<h5 id="Ch05_Transaction_HowToUse_SingleDataSource_Tx_Chunk"><a class="anchor" href="#Ch05_Transaction_HowToUse_SingleDataSource_Tx_Chunk"></a>チャンクモデルの場合</h5>
+<div class="paragraph">
+<p>チャンクモデルの場合は、中間コミット方式となり、Spring Batchにトランザクション制御を委ねる。
+ユーザにて制御することは一切行わないようにする。</p>
+</div>
+<div class="listingblock">
+<div class="title">設定例(ジョブ定義)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"><span class="tag">&lt;batch:job</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobSalesPlan01</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">job-repository</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobRepository</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+    <span class="tag">&lt;batch:step</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobSalesPlan01.step01</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+        <span class="tag">&lt;batch:tasklet</span> <span class="attribute-name">transaction-manager</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobTransactionManager</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span> <span class="comment">&lt;!-- (1) --&gt;</span>
+            <span class="tag">&lt;batch:chunk</span> <span class="attribute-name">reader</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">detailCSVReader</span><span class="delimiter">&quot;</span></span>
+                         <span class="attribute-name">writer</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">detailWriter</span><span class="delimiter">&quot;</span></span>
+                         <span class="attribute-name">commit-interval</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">10</span><span class="delimiter">&quot;</span></span> <span class="tag">/&gt;</span> <span class="comment">&lt;!-- (2) --&gt;</span>
+        <span class="tag">&lt;/batch:tasklet&gt;</span>
+    <span class="tag">&lt;/batch:step&gt;</span>
+<span class="tag">&lt;/batch:job&gt;</span></code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all spread">
+<colgroup>
+<col style="width: 10%;">
+<col style="width: 90%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>&lt;batch:tasklet&gt;</code>タグの<code>transaction-manager</code>属性に定義済みの<code>jobTransactionManager</code>を設定する。<br>
+ここに設定したトランザクションマネージャで中間コミット方式のトランザクションを制御する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(2)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>commit-interval</code>属性にチャンクサイズを設定する。この例では10件処理するごとに1回コミットが発行される。</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect4">
+<h5 id="Ch05_Transaction_HowToUse_SingleDataSource_Tx_Tasklet"><a class="anchor" href="#Ch05_Transaction_HowToUse_SingleDataSource_Tx_Tasklet"></a>タスクレットモデルの場合</h5>
+<div class="paragraph">
+<p>タスクレットモデルの場合は、一括コミット方式、中間コミット方式でトランザクション制御の方法が異なる。</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">一括コミット方式</dt>
+<dd>
+<p>Spring Batchにトランザクション制御を委ねる。</p>
+</dd>
+</dl>
+</div>
+<div class="listingblock">
+<div class="title">設定例(ジョブ定義)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"><span class="tag">&lt;batch:job</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobSalesPlan01</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">job-repository</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobRepository</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+    <span class="tag">&lt;batch:step</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobSalesPlan01.step01</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+        <span class="comment">&lt;!-- (1) --&gt;</span>
+        <span class="tag">&lt;batch:tasklet</span> <span class="attribute-name">transaction-manager</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobTransactionManager</span><span class="delimiter">&quot;</span></span>
+                       <span class="attribute-name">ref</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">salesPlanSingleTranTask</span><span class="delimiter">&quot;</span></span> <span class="tag">/&gt;</span>
+    <span class="tag">&lt;/batch:step&gt;</span>
+<span class="tag">&lt;/batch:job&gt;</span></code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all spread">
+<colgroup>
+<col style="width: 10%;">
+<col style="width: 90%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>&lt;batch:tasklet&gt;</code>タグの<code>transaction-manager</code>属性に定義済みの<code>jobTransactionManager</code>を設定する。<br>
+ここに設定したトランザクションマネージャで一括コミット方式のトランザクションを制御する。</p></td>
+</tr>
+</tbody>
+</table>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">中間コミット方式</dt>
+<dd>
+<p>ユーザにてトランザクション制御を行う。</p>
+<div class="ulist">
+<ul>
+<li>
+<p>処理の途中でコミットを発行する場合は、<code>TransacitonManager</code>をInjectして手動で行う。</p>
+</li>
+</ul>
+</div>
+</dd>
+</dl>
+</div>
+<div class="listingblock">
+<div class="title">設定例(ジョブ定義)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"><span class="tag">&lt;batch:job</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobSalesPlan01</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">job-repository</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobRepository</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+    <span class="tag">&lt;batch:step</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobSalesPlan01.step01</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+        <span class="comment">&lt;!-- (1) --&gt;</span>
+        <span class="tag">&lt;batch:tasklet</span> <span class="attribute-name">transaction-manager</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobResourcelessTransactionManager</span><span class="delimiter">&quot;</span></span>
+                       <span class="attribute-name">ref</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">salesPlanChunkTranTask</span><span class="delimiter">&quot;</span></span> <span class="tag">/&gt;</span>
+    <span class="tag">&lt;/batch:step&gt;</span>
+<span class="tag">&lt;/batch:job&gt;</span></code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">実装例</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="java"><span class="annotation">@Component</span>()
+<span class="directive">public</span> <span class="type">class</span> <span class="class">SalesPlanChunkTranTask</span> <span class="directive">implements</span> Tasklet {
+
+    <span class="annotation">@Inject</span>
+    ItemStreamReader&lt;SalesPlanDetail&gt; itemReader;
+
+     <span class="comment">// (2)</span>
+    <span class="annotation">@Inject</span>
+    <span class="annotation">@Named</span>(<span class="string"><span class="delimiter">&quot;</span><span class="content">jobTransactionManager</span><span class="delimiter">&quot;</span></span>)
+    PlatformTransactionManager transactionManager;
+
+    <span class="annotation">@Inject</span>
+    SalesPlanDetailRepository repository;
+
+    <span class="directive">private</span> <span class="directive">static</span> <span class="directive">final</span> <span class="type">int</span> CHUNK_SIZE = <span class="integer">10</span>;
+
+    <span class="annotation">@Override</span>
+    <span class="directive">public</span> RepeatStatus execute(StepContribution contribution,
+                                ChunkContext chunkContext) <span class="directive">throws</span> <span class="exception">Exception</span> {
+
+        DefaultTransactionDefinition definition = <span class="keyword">new</span> DefaultTransactionDefinition();
+        TransactionStatus status = <span class="predefined-constant">null</span>;
+
+        <span class="keyword">try</span> {
+            <span class="comment">// omitted.</span>
+
+            itemReader.open(executionContext);
+
+            <span class="keyword">while</span> ((item = itemReader.read()) != <span class="predefined-constant">null</span>) {
+
+                <span class="keyword">if</span> (count % CHUNK_SIZE == <span class="integer">0</span>) {
+                    status = transactionManager.getTransaction(definition); <span class="comment">// (3)</span>
+                }
+                count++;
+
+                <span class="comment">// omitted.</span>
+
+                repository.create(item);
+                <span class="keyword">if</span> (count % CHUNK_SIZE == <span class="integer">0</span>) {
+                    transactionManager.commit(status);  <span class="comment">// (4)</span>
+                }
+            }
+        } <span class="keyword">catch</span> (<span class="exception">Exception</span> e) {
+            logger.error(<span class="string"><span class="delimiter">&quot;</span><span class="content">Exception occurred while reading.</span><span class="delimiter">&quot;</span></span>, e);
+            transactionManager.rollback(status);    <span class="comment">// (5)</span>
+            <span class="keyword">throw</span> e;
+        } <span class="keyword">finally</span> {
+            <span class="keyword">if</span> (!status.isCompleted()) {
+                transactionManager.commit(status);   <span class="comment">// (6)</span>
+            }
+            itemReader.close();
+        }
+
+        <span class="keyword">return</span> RepeatStatus.FINISHED;
+    }
+}</code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all spread">
+<colgroup>
+<col style="width: 10%;">
+<col style="width: 90%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>&lt;batch:tasklet&gt;</code>タグの<code>transaction-manager</code>属性に定義済みの<code>jobResourcelessTransactionManager</code>を設定する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(2)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">トランザクションマネージャをInjectする。<br>
+@Namedアノテーションで<code>jobTransactionManager</code>を指定して利用するBeanを特定させる。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(3)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">チャンクの開始時にトランザクションを開始する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(4)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">チャンク終了時にトランザクションをコミットする。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(5)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">例外発生時にはトランザクションをロールバックする。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(6)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">最後のチャンクについて、トランザクションをコミットする。</p></td>
+</tr>
+</tbody>
+</table>
+<div class="admonitionblock tip">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+<div class="title">ItemWriterによる更新</div>
+<div class="paragraph">
+<p>上記の例では、Repositoryを使用しているが、ItemWriterを利用してデータを更新することもできる。
+ItemWriterを利用することで実装がシンプルになる効果があり、特にファイルを更新する場合はFlatFileItemWriterを利用するとよい。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="Ch05_Transaction_HowToUse_SingleDataSource_NonTx"><a class="anchor" href="#Ch05_Transaction_HowToUse_SingleDataSource_NonTx"></a>非トランザクショナルなデータソースに対する補足</h4>
+<div class="paragraph">
+<p>ファイルの場合はトランザクションの設定や操作は不要である。</p>
+</div>
+<div class="paragraph">
+<p><code>FlatFileItemWriter</code>を利用する場合、擬似的なトランザクション制御が行える。
+これは、リソースへの書き込みを遅延し、コミットタイミングで実際に書き出すことで実現している。
+正常時にはチャンクサイズに達したときに、実際のファイルにチャンク分データを出力し、例外が発生するとそのチャンクのデータ出力が行われない。</p>
+</div>
+<div class="paragraph">
+<p><code>FlatFileItemWriter</code>は、<code>transactional</code>プロパティでトランザクション制御の有無を切替えられる。デフォルトはtrueでトランザクション制御が有効になっている。
+<code>transactional</code>プロパティがfalseの場合、<code>FlatFileItemWriter</code>は、トランザクションとは無関係にデータの出力を行う。</p>
+</div>
+<div class="paragraph">
+<p>一括コミット方式を採用する場合、<code>transactional</code>プロパティをfalseにすることを推奨する。
+上記の説明にあるとおりコミットのタイミングでリソースへ書き出すため、それまではメモリ内に全出力分のデータを保持することになる。
+そのため、データ量が多い場合にはメモリ不足になりエラーとなる可能性が高くなる。</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+<div class="title">ファイルしか扱わないジョブにおけるTransacitonManagerの設定について</div>
+<div class="paragraph">
+<p>以下に示すジョブ定義のように、<code>batch:tasklet</code>の<code>transaction-manager</code>属性はxsdスキーマにおいて必須のため省略できない。</p>
+</div>
+<div class="listingblock">
+<div class="title">TransacitonManager設定箇所の抜粋</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"><span class="tag">&lt;batch:tasklet</span> <span class="attribute-name">transaction-manager</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobTransactionManager</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+<span class="tag">&lt;batch:chunk</span> <span class="attribute-name">reader</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">reader</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">writer</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">writer</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">commit-interval</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">100</span><span class="delimiter">&quot;</span></span> <span class="tag">/&gt;</span>
+<span class="tag">&lt;/batch:tasklet&gt;</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>そのため、<code>jobTransactionManager</code>を常に指定すること。この時、以下の挙動となる。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>transactional</code>がtrueの場合</p>
+<div class="ulist">
+<ul>
+<li>
+<p>指定したTransacitonManagerに同期してリソースに出力する。</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p><code>transactional</code>がfalseの場合</p>
+<div class="ulist">
+<ul>
+<li>
+<p>指定したTransacitonManagerのトランザクション処理は空振りし、トランザクションと関係なくリソースに出力する。</p>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>この時、<code>jobTransactionManager</code>が参照するリソース(たとえば、データベース)に対してトランザクションが発行されるが、
+テーブルアクセスは伴わないため実害がない。</p>
+</div>
+<div class="paragraph">
+<p>また、実害がある場合や空振りでも参照するトランザクションを発行したくない場合は、リソースを必要としない<code>ResourcelessTransactionManager</code>を使用することができる。
+<code>ResourcelessTransactionManager</code>は<code>launch-context.xml</code>に<code>jobResourcelessTransactionManager</code>として定義済みである。</p>
+</div>
+<div class="listingblock">
+<div class="title">ResourcelessTransactionManagerの使用例</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"><span class="tag">&lt;batch:tasklet</span> <span class="attribute-name">transaction-manager</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobResourcelessTransactionManager</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+    <span class="tag">&lt;batch:chunk</span> <span class="attribute-name">reader</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">reader</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">writer</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">writer</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">commit-interval</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">100</span><span class="delimiter">&quot;</span></span> <span class="tag">/&gt;</span>
+<span class="tag">&lt;/batch:tasklet&gt;</span></code></pre>
+</div>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="Ch05_Transaction_HowToUse_MultiDataSource"><a class="anchor" href="#Ch05_Transaction_HowToUse_MultiDataSource"></a>複数データソースの場合</h3>
+<div class="paragraph">
+<p>複数データソースに対して入出力するジョブのトランザクション制御について説明する。
+入力と出力で考慮点が異なるため、これらを分けて説明する。</p>
+</div>
+<div class="sect3">
+<h4 id="Ch05_Transaction_HowToUse_MultiDataSource_Input"><a class="anchor" href="#Ch05_Transaction_HowToUse_MultiDataSource_Input"></a>複数データソースからの取得</h4>
+<div class="paragraph">
+<p>複数データソースからのデータを取得する場合、処理の軸となるデータと、それに付随する追加データを分けて取得する。
+以降は、処理の軸となるデータを処理対象レコード、それに付随する追加データを付随データと呼ぶ。</p>
+</div>
+<div class="paragraph">
+<p>Spring Batchの構造上、ItemReaderは1つのリソースから処理対象レコードを取得することを前提としているためである。
+これは、リソースの種類を問わず同じ考え方となる。</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>処理対象レコードの取得</p>
+<div class="ulist">
+<ul>
+<li>
+<p>ItemReaderにて取得する。</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>付随データの取得</p>
+<div class="ulist">
+<ul>
+<li>
+<p>付随データは、そのデータに対す変更の有無と件数に応じて、以下の取得方法を選択する必要がある。これは、択一ではなく、併用してもよい。</p>
+<div class="ulist">
+<ul>
+<li>
+<p>ステップ実行前に一括取得</p>
+</li>
+<li>
+<p>処理対象レコードに応じて都度取得</p>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+</li>
+</ol>
+</div>
+<div class="sect4">
+<h5 id="Ch05_Transaction_HowToUse_MultiDataSource_Input_Bulk"><a class="anchor" href="#Ch05_Transaction_HowToUse_MultiDataSource_Input_Bulk"></a>ステップ実行前に一括取得する場合</h5>
+<div class="paragraph">
+<p>以下を行うListenerを実装し、以降のStepからデータを参照する。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>データを一括して取得する</p>
+</li>
+<li>
+<p>スコープが<code>Job</code>または<code>Step</code>のBeanに情報を格納する</p>
+<div class="ulist">
+<ul>
+<li>
+<p>Spring Batchの<code>ExecutionContext</code>を活用してもよいが、
+可読性や保守性のために別途データ格納用のクラスを作成してもよい。
+ここでは、簡単のため<code>ExecutionContext</code>を活用した例で説明する。</p>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>マスタデータなど、処理対象データに依存しないデータを読み込む場合にこの方法を採用する。
+ただし、マスタデータと言えど、メモリを圧迫するような大量件数が対象である場合は、都度取得したほうがよいかを検討すること。</p>
+</div>
+<div class="listingblock">
+<div class="title">一括取得するListenerの実装</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="java"><span class="annotation">@Component</span>
+<span class="comment">// (1)</span>
+<span class="directive">public</span> <span class="type">class</span> <span class="class">BranchMasterReadStepListener</span> <span class="directive">extends</span> StepExecutionListenerSupport {
+
+    <span class="annotation">@Inject</span>
+    BranchRepository branchRepository;
+
+    <span class="annotation">@Override</span>
+    <span class="directive">public</span> <span class="type">void</span> beforeStep(StepExecution stepExecution) {   <span class="comment">// (2)</span>
+
+        <span class="predefined-type">List</span>&lt;Branch&gt; branches = branchRepository.findAll(); <span class="comment">//(3)</span>
+
+        <span class="predefined-type">Map</span>&lt;<span class="predefined-type">String</span>, Branch&gt; map = branches.stream()
+                .collect(Collectors.toMap(Branch::getBranchId,
+                        UnaryOperator.identity()));  <span class="comment">// (4)</span>
+
+        stepExecution.getExecutionContext().put(<span class="string"><span class="delimiter">&quot;</span><span class="content">branches</span><span class="delimiter">&quot;</span></span>, map); <span class="comment">// (5)</span>
+    }
+}</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">一括取得するListenerの定義</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"><span class="tag">&lt;batch:job</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">outputAllCustomerList01</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">job-repository</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobRepository</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+    <span class="tag">&lt;batch:step</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">outputAllCustomerList01.step01</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+        <span class="tag">&lt;batch:tasklet</span> <span class="attribute-name">transaction-manager</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobTransactionManager</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+            <span class="tag">&lt;batch:chunk</span> <span class="attribute-name">reader</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">reader</span><span class="delimiter">&quot;</span></span>
+                         <span class="attribute-name">processor</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">retrieveBranchFromContextItemProcessor</span><span class="delimiter">&quot;</span></span>
+                         <span class="attribute-name">writer</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">writer</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">commit-interval</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">10</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+            <span class="tag">&lt;batch:listeners&gt;</span>
+                <span class="tag">&lt;batch:listener</span> <span class="attribute-name">ref</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">branchMasterReadStepListener</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span> <span class="comment">&lt;!-- (6) --&gt;</span>
+            <span class="tag">&lt;/batch:listeners&gt;</span>
+        <span class="tag">&lt;/batch:tasklet&gt;</span>
+    <span class="tag">&lt;/batch:step&gt;</span>
+<span class="tag">&lt;/batch:job&gt;</span></code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">一括取得したデータを後続ステップのItemProcessorで参照する例</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="java"><span class="annotation">@Component</span>
+<span class="directive">public</span> <span class="type">class</span> <span class="class">RetrieveBranchFromContextItemProcessor</span> <span class="directive">implements</span>
+        ItemProcessor&lt;Customer, CustomerWithBranch&gt; {
+
+    <span class="directive">private</span> <span class="predefined-type">Map</span>&lt;<span class="predefined-type">String</span>, Branch&gt; branches;
+
+    <span class="annotation">@BeforeStep</span>       <span class="comment">// (7)</span>
+    <span class="annotation">@SuppressWarnings</span>(<span class="string"><span class="delimiter">&quot;</span><span class="content">unchecked</span><span class="delimiter">&quot;</span></span>)
+    <span class="directive">public</span> <span class="type">void</span> beforeStep(StepExecution stepExecution) {
+        branches = (<span class="predefined-type">Map</span>&lt;<span class="predefined-type">String</span>, Branch&gt;) stepExecution.getExecutionContext()
+                .get(<span class="string"><span class="delimiter">&quot;</span><span class="content">branches</span><span class="delimiter">&quot;</span></span>); <span class="comment">// (8)</span>
+    }
+
+    <span class="annotation">@Override</span>
+    <span class="directive">public</span> CustomerWithBranch process(Customer item) <span class="directive">throws</span> <span class="exception">Exception</span> {
+        CustomerWithBranch newItem = <span class="keyword">new</span> CustomerWithBranch(item);
+        newItem.setBranch(branches.get(item.getChargeBranchId()));    <span class="comment">// (9)</span>
+        <span class="keyword">return</span> newItem;
+    }
+}</code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all spread">
+<colgroup>
+<col style="width: 10%;">
+<col style="width: 90%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>StepExecutionListener</code>インターフェースを実装する。<br>
+ここでは実装を簡易にするため、<code>StepExecutionListener</code>インターフェースを実装した<code>StepExecutionListenerSupport</code>からの拡張としている。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(2)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ステップ実行前にデータを取得するため、<code>beforeStep</code>メソッドを実装する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(3)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">マスタデータを取得する処理を実装する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(4)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">後続処理が利用しやすいようにList型からMap型へ変換を行う。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(5)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ステップのコンテキストに取得したマスタデータを<code>branches</code>という名前で設定する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(6)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">対象となるジョブへ作成したListenerを登録する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(7)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ItemProcessorのステップ実行前にマスタデータを取得するため、@BeforeStepアノテーションでListener設定を行う。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(8)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">@BeforeStepアノテーションが付与されたメソッド内で、ステップのコンテキストから(5)で設定されたマスタデータを取得する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(9)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ItemProcessorのprocessメソッド内で、マスタデータからデータ取得を行う。</p></td>
+</tr>
+</tbody>
+</table>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-warning" title="Warning"></i>
+</td>
+<td class="content">
+<div class="title">コンテキストへ格納するオブジェクト</div>
+<div class="paragraph">
+<p>コンテキスト(<code>ExecutionContext</code>)へ格納するオブジェクトは、<code>java.io.Serializable</code>を実装したクラスでなければならない。
+これは、<code>ExecutionContext</code>が<code>JobRepository</code>へ格納されるためである。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect4">
+<h5 id="Ch05_Transaction_HowToUse_MultiDataSource_Input_Sequential"><a class="anchor" href="#Ch05_Transaction_HowToUse_MultiDataSource_Input_Sequential"></a>処理対象レコードに応じて都度取得する場合</h5>
+<div class="paragraph">
+<p>業務処理のItemProcessorとは別に、都度取得専用のItemProcessorにて取得する。
+これにより、各ItemProcessorの処理を簡素化する。</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>都度取得用のItemProcessorを定義し、業務処理と分離する。</p>
+<div class="ulist">
+<ul>
+<li>
+<p>この際、テーブルアクセス時はMyBatisをそのまま使う。</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>複数のItemProcessorをCompositeItemProcessorを使用して連結する。</p>
+<div class="ulist">
+<ul>
+<li>
+<p>ItemProcessorはdelegates属性に指定した順番に処理されることに留意する。</p>
+</li>
+</ul>
+</div>
+</li>
+</ol>
+</div>
+<div class="listingblock">
+<div class="title">都度取得用のItemProcessorの実装例</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="java"><span class="annotation">@Component</span>
+<span class="directive">public</span> <span class="type">class</span> <span class="class">RetrieveBranchFromRepositoryItemProcessor</span> <span class="directive">implements</span>
+        ItemProcessor&lt;Customer, CustomerWithBranch&gt; {
+
+    <span class="annotation">@Inject</span>
+    BranchRepository branchRepository;  <span class="comment">// (1)</span>
+
+    <span class="annotation">@Override</span>
+    <span class="directive">public</span> CustomerWithBranch process(Customer item) <span class="directive">throws</span> <span class="exception">Exception</span> {
+        CustomerWithBranch newItem = <span class="keyword">new</span> CustomerWithBranch(item);
+        newItem.setBranch(branchRepository.findOne(
+                item.getChargeBranchId())); <span class="comment">// (2)</span>
+        <span class="keyword">return</span> newItem; <span class="comment">// (3)</span>
+    }
+}</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">都度取得用と業務処理用のItemProcessorの定義例</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"><span class="tag">&lt;bean</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">compositeItemProcessor</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">org.springframework.batch.item.support.CompositeItemProcessor</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+    <span class="tag">&lt;property</span> <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">delegates</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+        <span class="tag">&lt;list&gt;</span>
+            <span class="tag">&lt;ref</span> <span class="attribute-name">bean</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">retrieveBranchFromRepositoryItemProcessor</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span> <span class="comment">&lt;!-- (4) --&gt;</span>
+            <span class="tag">&lt;ref</span> <span class="attribute-name">bean</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">businessLogicItemProcessor</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>  <span class="comment">&lt;!-- (5) --&gt;</span>
+        <span class="tag">&lt;/list&gt;</span>
+    <span class="tag">&lt;/property&gt;</span>
+<span class="tag">&lt;/bean&gt;</span></code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all spread">
+<colgroup>
+<col style="width: 10%;">
+<col style="width: 90%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">MyBatisを利用した都度データ取得用のRepositoryをInjectする。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(2)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">入力データ(処理対象レコード)に対して、Repositoryから付随データを取得する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(3)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">処理対象レコードと付随データを一緒にしたデータを返却する。<br>
+このデータが次のItemProcessorへの入力データになることに注意する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(4)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">都度取得用のItemProcessorを設定する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(5)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ビジネスロジックのItemProcessorを設定する。</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="sect3">
+<h4 id="Ch05_Transaction_HowToUse_MultiDataSource_IndividualTx"><a class="anchor" href="#Ch05_Transaction_HowToUse_MultiDataSource_IndividualTx"></a>複数データソースへの出力(複数ステップ)</h4>
+<div class="paragraph">
+<p>データソースごとにステップを分割し、各ステップで単一データソースを処理することで、ジョブ全体で複数データソースを処理する。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>1ステップ目で加工したデータをテーブルに格納し、2ステップ目でファイルに出力する、といった要領となる。</p>
+</li>
+<li>
+<p>各ステップがシンプルになりリカバリしやすい反面、2度手間になる可能性がある。</p>
+<div class="ulist">
+<ul>
+<li>
+<p>この結果、以下のような弊害を生む場合は、1ステップで複数データソースを処理することを検討する。</p>
+<div class="ulist">
+<ul>
+<li>
+<p>処理時間が伸びてしまう</p>
+</li>
+<li>
+<p>ビジネスロジックが冗長となる</p>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="Ch05_Transaction_HowToUse_MultiDataSource_SingleTx"><a class="anchor" href="#Ch05_Transaction_HowToUse_MultiDataSource_SingleTx"></a>複数データソースへの出力(1ステップ)</h4>
+<div class="paragraph">
+<p>一般的に、複数のデータソースに対するトランザクションを1つにまとめる場合は、2phase-commitによる分散トランザクションを利用する。
+しかし、以下の様なデメリットがあることも同時に知られている。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>XAResourceなど分散トランザクションAPIにミドルウエアが対応している必要があり、それにもとづいた特殊な設定が必要になる</p>
+</li>
+<li>
+<p>バッチプログラムのようなスタンドアロンJavaで、分散トランザクションのJTA実装ライブラリを追加する必要がある</p>
+</li>
+<li>
+<p>障害時のリカバリが難しい</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Spring Batchでも分散トランザクションを活用することは可能だが、JTAによるグローバルトランザクションを使用する方法では、プロトコルの特性上、性能面のオーバーヘッドがかかる。
+より簡易に複数データソースをまとめて処理する方法として、<strong>Best Efforts 1PCパターン</strong>による実現手段を推奨する。</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">Best Efforts 1PCパターンとは</dt>
+<dd>
+<p>端的に言うと、複数データソースをローカルトランザクションで扱い、同じタイミングで逐次コミットを発行する、という手法を指す。
+下図に概念図を示す。</p>
+</dd>
+</dl>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/Ch05_transaction_Best_Efforts_1PC.png" alt="Best Efforts 1PC Overview">
+</div>
+<div class="title">Best Efforts 1PCパターンの概念図</div>
+</div>
+<div class="olist arabic">
+<div class="title">図の説明</div>
+<ol class="arabic">
+<li>
+<p>ユーザが<code>ChainedTransactionManager</code>にトランザクション開始を指示する。</p>
+</li>
+<li>
+<p><code>ChainedTransactionManager</code>は、登録されているトランザクションマネージャを逐次トランザクションを開始する。</p>
+</li>
+<li>
+<p>ユーザは各リソースへトランザクショナルな操作を行う。</p>
+</li>
+<li>
+<p>ユーザが<code>ChainedTransactionManager</code>にコミットを指示する。</p>
+</li>
+<li>
+<p><code>ChainedTransactionManager</code>は、登録されているトランザクションマネージャを逐次コミットを発行する。</p>
+<div class="ulist">
+<ul>
+<li>
+<p>トランザクション開始と逆順にコミット(またはロールバック)される</p>
+</li>
+</ul>
+</div>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>この方法は分散トランザクションではないため、2番目以降のトランザクションマネージャにおけるcommit/rollback時に障害(例外)が発生した場合に、
+データの整合性が保てない可能性がある。
+そのため、トランザクション境界で障害が発生した場合のリカバリ方法を設計する必要があるが、リカバリ頻度を低減し、リカバリ手順を簡素しやすくなる効果がある。</p>
+</div>
+<div class="sect4">
+<h5 id="Ch05_Transaction_HowToUse_MultiDataSource_SingleTx_MultiTxResource"><a class="anchor" href="#Ch05_Transaction_HowToUse_MultiDataSource_SingleTx_MultiTxResource"></a>複数のトランザクショナルリソースを同時に処理する場合</h5>
+<div class="paragraph">
+<p>複数のデータベースを同時に処理する場合や、データベースとMQを処理する場合などに活用する。</p>
+</div>
+<div class="paragraph">
+<p>以下のように、<code>ChainedTransactionManager</code>を使用して複数トランザクションマネージャを1つにまとめて定義することで1phase-commitとして処理する。
+なお、<code>ChainedTransactionManager</code>はSpring Dataが提供するクラスである。</p>
+</div>
+<div class="listingblock">
+<div class="title">pom.xml</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"><span class="tag">&lt;dependencies&gt;</span>
+    <span class="comment">&lt;!-- omitted --&gt;</span>
+    <span class="comment">&lt;!-- (1) --&gt;</span>
+    <span class="tag">&lt;dependency&gt;</span>
+        <span class="tag">&lt;groupId&gt;</span>org.springframework.data<span class="tag">&lt;/groupId&gt;</span>
+        <span class="tag">&lt;artifactId&gt;</span>spring-data-commons<span class="tag">&lt;/artifactId&gt;</span>
+    <span class="tag">&lt;/dependency&gt;</span>
+<span class="tag">&lt;dependencies&gt;</span></code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">chainedTransactionManagerの使用例</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"><span class="comment">&lt;!-- Chained Transaction Manager --&gt;</span>
+<span class="comment">&lt;!-- (2) --&gt;</span>
+<span class="tag">&lt;bean</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">chainedTransactionManager</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">org.springframework.data.transaction.ChainedTransactionManager</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+   <span class="tag">&lt;constructor-arg&gt;</span>
+        <span class="comment">&lt;!-- (3) --&gt;</span>
+        <span class="tag">&lt;list&gt;</span>
+            <span class="tag">&lt;ref</span> <span class="attribute-name">bean</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">transactionManager1</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+            <span class="tag">&lt;ref</span> <span class="attribute-name">bean</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">transactionManager2</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+        <span class="tag">&lt;/list&gt;</span>
+    <span class="tag">&lt;/constructor-arg&gt;</span>
+<span class="tag">&lt;/bean&gt;</span>
+
+<span class="tag">&lt;batch:job</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobSalesPlan01</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">job-repository</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobRepository</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+    <span class="tag">&lt;batch:step</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobSalesPlan01.step01</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+        <span class="comment">&lt;!-- (4) --&gt;</span>
+        <span class="tag">&lt;batch:tasklet</span> <span class="attribute-name">transaction-manager</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">chainedTransactionManager</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+            <span class="comment">&lt;!-- omitted --&gt;</span>
+        <span class="tag">&lt;/batch:tasklet&gt;</span>
+    <span class="tag">&lt;/batch:step&gt;</span>
+<span class="tag">&lt;/batch:job&gt;</span></code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all spread">
+<colgroup>
+<col style="width: 10%;">
+<col style="width: 90%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>ChainedTransactionManager</code>を利用するために、依存関係を追加する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(2)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>ChainedTransactionManager</code>のBean定義を行う。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(3)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">まとめたい複数のトランザクションマネージャをリストで定義する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(4)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ジョブが利用するトランザクションマネージャに(1)で定義したBeanIDを指定する。</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect4">
+<h5 id="Ch05_Transaction_HowToUse_MultiDataSource_SingleTx_TxResourceAndNonTx"><a class="anchor" href="#Ch05_Transaction_HowToUse_MultiDataSource_SingleTx_TxResourceAndNonTx"></a>トランザクショナルリソースと非トランザクショナルリソースを同時に処理する場合</h5>
+<div class="paragraph">
+<p>この方法は、データベースとファイルを同時に処理する場合に活用する。</p>
+</div>
+<div class="paragraph">
+<p>データベースについては<a href="#Ch05_Transaction_HowToUse_SingleDataSource">単一データソースの場合</a>と同様。</p>
+</div>
+<div class="paragraph">
+<p>ファイルについてはFlatFileItemWriterの<code>transactional</code>プロパティをtrueに設定することで、前述の「Best Efforts 1PCパターン」と同様の効果となる。<br>
+詳細は<a href="#Ch05_Transaction_HowToUse_SingleDataSource_NonTx">非トランザクショナルなデータソースに対する補足</a>を参照。</p>
+</div>
+<div class="paragraph">
+<p>この設定は、データベースのトランザクションをコミットする直前までファイルへの書き込みを遅延させるため、2つのデータソースで同期がとりやすくなる。
+ただし、この場合でもデータベースへのコミット後、ファイル出力処理中に異常が発生した場合はデータの整合性が保てない可能性があるため、
+リカバリ方法を設計する必要がある。</p>
+</div>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="Ch05_Transaction_HowToUse_Considerations"><a class="anchor" href="#Ch05_Transaction_HowToUse_Considerations"></a>中間方式コミットでの注意点</h3>
+<div class="paragraph">
+<p>非推奨ではあるがItemWriterで処理データをスキップする場合は、チャンクサイズの設定値が強制変更される。
+そのことがトランザクションに非常に大きく影響することに注意する。詳細は、
+<a href="Ch06_ExceptionHandling.html#Ch06_ExceptionHandling_HowToUse_ContinuationPropriety_Skip">スキップ</a>を参照。</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="container">
+
+  <div class="common-bg">
+    <div class="information">
+      Macchinetta Batch Framework (2.x) Development Guideline - version 2.0.2.RELEASE, 2019-4-19
+    </div>
+    <div class="index">
+      <a href="index.html">&gt; INDEX</a>
+    </div>
+  </div>
+
+  <div class="footer-bg">
+    <div class="copyright">
+      &copy; Copyright 2017 NTT Corporation.
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
