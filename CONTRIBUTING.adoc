@@ -35,7 +35,7 @@ In section 1.2.1 Purpose of guidelines, there is a mistake in the below sentence
 Modifying to `"This guideline provides best practices to develop highly maintainable Batch applications."`
 
 ## Affects Version/s
-* 2.0.0.RELEASE
+* 5.0.0.RELEASE
 
 ## Fix Version/s
 (To be written later by project member)

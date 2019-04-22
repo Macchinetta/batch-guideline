@@ -4,20 +4,22 @@ autonumber
 hide footbox
 
 participant "Batch Process A" as batchA #lightblue
+database "Lock File" as LockFile
 database "Target File" as File
 participant "Batch Process B" as batchB #DarkSalmon
 
+activate LockFile
 activate File
 activate batchA  #lightblue
 
-batchA -> File : Try to get lock
-File -[#green]> batchA : <b><font color="green">Lock success</font></b>
+batchA -> LockFile : Try to get lock
+LockFile -[#green]> batchA : <b><font color="green">Lock success</font></b>
 activate batchB  #DarkSalmon
-batchB -> File : Try to get lock
+batchB -> LockFile : Try to get lock
 batchA -> File : Write record
-File -[#red]> batchB : <b><font color="red">Lock failed</font></b>
+LockFile -[#red]> batchB : <b><font color="red">Lock failed</font></b>
 batchB ->] : Update failure processing
-batchA -> File : Release lock
+batchA -> LockFile : Release lock
 destroy batchB
 
 deactivate File

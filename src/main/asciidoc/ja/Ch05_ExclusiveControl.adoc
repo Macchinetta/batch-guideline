@@ -38,23 +38,23 @@ include::_include_all.adoc[]
 
 ファイルロックとは::
   ファイルロックとは、ファイルをあるプログラムで使用している間、ほかのプログラムからの読み書きを制限する仕組みである。
-  ファイルロックの処理概要を以下に示す。
+  ファイルロックの実施イメージを以下に示す。
 
 .シナリオ
   ** バッチ処理Aがファイルのロックを取得し、ファイルの更新処理を開始する。
   ** バッチ処理Bが同一のファイルの更新を試みファイルのロック取得を試みるが失敗する。
   ** バッチ処理Aが処理を終了し、ファイルのロックを解除する
 
-.ファイルロックの処理概要
+.ファイルロックの実施イメージ
 image::Ch05_ExclusiveControl_File_Senario.png[ExclusiveControl_File_Senario]
 
-. バッチ処理A(Batch ProcessA)が対象ファイル(TargetFile)のロック取得を試みる。
-. バッチ処理Aが、対象ファイルのロック取得に成功する
-. バッチ処理B(Batch ProcessB)が、対象ファイルのロック取得を試みる
-. バッチ処理Aが、対象ファイルに書き込みを行う
-. バッチ処理Bは、バッチ処理Aがロック中であるため、対象ファイルのロック取得に失敗する
+. バッチ処理A(Batch ProcessA)が排他対象ファイル(TargetFile)のロック取得を試みる。
+. バッチ処理Aが、排他対象ファイルのロック取得に成功する。
+. バッチ処理B(Batch ProcessB)が、排他対象ファイルのロック取得を試みる。
+. バッチ処理Aが、排他対象ファイルに書き込みを行う。
+. バッチ処理Bは、バッチ処理Aがロック中であるため、排他対象ファイルのロック取得に失敗する。
 . バッチ処理Bが、ファイル更新失敗の処理を行う。
-. バッチ処理Aが、対象ファイルのロックを開放する。
+. バッチ処理Aが、排他対象ファイルのロックを開放する。
 
 [IMPORTANT]
 .デッドロックの予防
@@ -159,8 +159,8 @@ SELECTで取得するデータは、ItemProcessorでデータを取得する条�
 
 |タスクレット
 |Tasklet
-|ItemStreamReaderでファイルをオープンした直後にファイルロックを取得する。 +
-ItemStreamWriterをクローズする直前にファイルロックを開放する。
+|ItemStreamReaderでファイルをオープンする直前にファイルロックを取得する。 +
+ItemStreamWriterをクローズした直後にファイルロックを開放する。
 |データ取得時にはSELECT FOR UPDATE文を発行するItemReaderかMapperインターフェースを直接利用する。 +
 データ更新時はItemWriterで説明した処理を実施する。Mapperインターフェースを直接利用する場合も考え方は同じである。
 
@@ -209,6 +209,66 @@ ItemProcessorでデータが取得できない場合は、他のトランザク�
 https://docs.oracle.com/javase/8/docs/api/java/nio/channels/FileChannel.html[Javadoc]を参照。
 ====
 
+ただし、{SB}において標準的なファイルの入出力機能を提供するFlatFileItemReader/FlatFileItemWriterから、java.nio.channels.FileChannelクラスを利用することはできない。
+そのため、排他対象のファイルと一対一に排他対象ファイルのロックを担当するファイル(以降、ロック用ファイル)を用意し、ロック用ファイルからのファイルロックを取得をもって、排他対象ファイルへの排他的な制御権を取得できたと見なすことで排他制御を実現する。
+ロック用ファイルを用いたファイルロックの実施イメージを以下に示す。
+
+.ロック用ファイルを用いたファイルロックの実施イメージ
+image::Ch05_ExclusiveControl_LockFile_Senario.png[ExclusiveControl_LockFile_Senario]
+
+. バッチ処理A(Batch ProcessA)がロック用ファイル(LockFile)のロック取得を試みる。
+. バッチ処理Aが、ロック用ファイルのロック取得に成功する。
+. バッチ処理B(Batch ProcessB)が、ロック用ファイルのロック取得を試みる。
+. バッチ処理Aが、排他対象ファイルに書き込みを行う。
+. バッチ処理Bは、バッチ処理Aがロック中であるため、ロック用ファイルのロック取得に失敗する。
+. バッチ処理Bが、ファイル更新失敗の処理を行う。
+. バッチ処理Aが、ロック用ファイルのロックを開放する。
+
+[IMPORTANT]
+.ロック用ファイルの削除タイミング
+====
+後述するTasklet実装の例では、ロック用ファイルの削除について表現していないが、そのタイミングについては注意が必要である。
+特にLinux環境では、ジョブの内部でロック用ファイルの削除を行うべきではない。
+
+Linux環境ではファイルロック中のファイルを削除できるため、複数のプロセスでバッチ処理が実行される場合、あるプロセスがファイルロックを取得しているロック用ファイルを、別プロセスが削除する可能性がある。
+このようなロック用ファイルの削除が起こると、また別のプロセスはロック用ファイルを作成し、作成したロック用ファイルからファイルロックを取得できる。
+
+結果として、排他対象ファイルに書き込めるプロセスが複数になり、排他制御として機能しなくなる。
+
+これを防ぐため、ロック用ファイルの削除は、排他制御を行うプロセスが存在しなくなったタイミングで行うなどの方法が考えられる。
+====
+
+ItemStreamWriterの``transactional``プロパティは``false``を設定する。
+``transactional``プロパティがデフォルトの``true``の場合、ファイル出力のタイミングがTransactionManagerと同期し、排他制御がされていない状態でのファイル出力が行われる。
+以下に、ItemStreamWriterの設定例を示す。
+
+[source,xml]
+.ItemStreamWriterの設定例
+----
+<bean id="writer" class="org.springframework.batch.item.file.FlatFileItemWriter" scope="step"
+      p:resource="file:#{jobParameters['outputFile']}"
+      p:transactional="false">  <!-- (1) -->
+    <property name="lineAggregator">
+        <bean class="org.springframework.batch.item.file.transform.DelimitedLineAggregator">
+            <property name="fieldExtractor">
+                <bean class="org.springframework.batch.item.file.transform.BeanWrapperFieldExtractor"
+                      p:names="processName,plan.branchId,plan.year,plan.month,plan.customerId,plan.amount"/>
+            </property>
+        </bean>
+    </property>
+</bean>
+----
+
+[cols="10,90", options="header"]
+.説明
+|===
+|項番
+|説明
+
+|(1)
+|``transactional``プロパティに``false``を設定する。
+|===
+
 ``FileChannel``クラスを使用しファイルのロックを取得する例を示す。
 
 [source,java]
@@ -232,28 +292,20 @@ public class FileExclusiveTasklet implements Tasklet {
 
         // omitted.
 
-        FileChannel fc = null;
-        FileLock fileLock = null;
+        File file = new File(targetPath);
+        try (FileChannel fc = FileChannel.open(file.toPath(),
+                StandardOpenOption.WRITE,
+                StandardOpenOption.CREATE,
+                StandardOpenOption.APPEND); // (2)
+                FileLock fileLock = fc.tryLock()) {  // (3)
 
-        try {
-            try {
-                File file = new File(targetPath);
-                fc = FileChannel.open(file.toPath(), StandardOpenOption.WRITE,
-                        StandardOpenOption.CREATE,
-                        StandardOpenOption.APPEND); // (2)
-                fileLock = fc.tryLock();  // (3)
-            } catch (IOException e) {
-                logger.error("Failure other than lock acquisition", e);
-                throw new FailedOtherAcquireLockException(
-                        "Failure other than lock acquisition", e);
-            }
             if (fileLock == null) {
                 logger.error("Failed to acquire lock. [processName={}]", processName);
                 throw new FailedAcquireLockException("Failed to acquire lock");
             }
 
-            reader.open(executionConetxt);
-            writer.open(executionConetxt);  // (4)
+            reader.open(executionContext);
+            writer.open(executionContext);  // (4)
 
             // (5)
             SalesPlanDetail item;
@@ -272,23 +324,13 @@ public class FileExclusiveTasklet implements Tasklet {
                 writer.write(items);
             }
 
+        } catch (IOException e) {
+            logger.error("Failure other than lock acquisition", e);
+            throw new FailedOtherAcquireLockException("Failure other than lock acquisition", e);
+
         } finally {
-            if (fileLock != null) {
-                try {
-                    fileLock.release();  // (6)
-                } catch (IOException e) {
-                    logger.warn("Lock release failed.", e);
-                }
-            }
-            if (fc != null) {
-                try {
-                    fc.close();
-                } catch (IOException e) {
-                    // do nothing.
-                }
-            }
             try {
-                writer.close(); // (7)
+                writer.close(); // (6)
             } catch (ItemStreamException e) {
                 // ignore
             }
@@ -298,11 +340,12 @@ public class FileExclusiveTasklet implements Tasklet {
                 // ignore
             }
         }
+
         return RepeatStatus.FINISHED;
     }
 
-    // (8)
-    @Value("#{jobParameters['outputFile']}")
+    // (7)
+    @Value("#{jobParameters['lockFile']}")
     public void setTargetPath(String targetPath) {
         this.targetPath = targetPath;
     }
@@ -316,36 +359,35 @@ public class FileExclusiveTasklet implements Tasklet {
 |説明
 
 |(1)
-|排他対象のファイルパス。
+|ロック用ファイルのパス。
 
 |(2)
-|ファイルチャネルを取得する。 +
+|ロック用ファイルのファイルチャネルを取得する。 +
 この例では、ファイルの新規作成・追記・書き込みに対するチャネルを取得している。
 
 |(3)
-|ファイルロックを取得する。
+|ロック用ファイルのファイルロックを取得する。
 
 |(4)
-|ファイロックの取得に成功した場合、排他対象のファイルをオープンする。
+|ロック用ファイルのファイルロック取得に成功した場合、排他対象のファイルをオープンする。 +
+この例では、排他対象のファイルはジョブ定義ファイルで設定している。 +
+設定方法は、<<Ch05_FileAccess.adoc#Ch05_FileAccess,ファイルアクセス>>を参照。
 
 |(5)
 |ファイル出力を伴うビジネスロジックを実行する。
 
 |(6)
-|ファイルロックを開放する。
-
-|(7)
 |排他対象のファイルをクローズする。
 
-|(8)
-|ファイルパスを設定する。 +
+|(7)
+|ロック用ファイルのパスを設定する。 +
 この例では、ジョブパラメータから受け取るようにしている。
 |===
 
 [NOTE]
 .ロック取得に用いるFileChannelのメソッドについて
 ====
-``lock()``メソッドは対象ファイルがロック済みの場合ロックが解除されるまで待機するため、待機されない``tryLock()``メソッドを使用することを推奨する。
+``lock()``メソッドは排他対象ファイルがロック済みの場合ロックが解除されるまで待機するため、待機されない``tryLock()``メソッドを使用することを推奨する。
 なおtrylock()は共有ロックと排他ロックが選択できるが、バッチ処理においては、通常は排他ロックを用いる。
 ====
 
@@ -357,14 +399,6 @@ public class FileExclusiveTasklet implements Tasklet {
 そのため、スレッド間での排他制御は機能しない。これを回避するには、ファイルへの書き込みを行う部分で同期化処理をすることでスレッド間の排他制御が行える。 +
 しかし、同期化を行うことで並列処理のメリットが薄れてしまい、単一スレッドで処理することと差異がなくなってしまう。
 結果、同一のファイルに対して異なるスレッドで排他制御をして処理することは適していないため、そのような処理設計・実装を行わないこと。
-====
-
-[TIP]
-.FlatFileItemWriterのappendAllowedプロパティについて
-====
-ファイルを新規作成(上書き)する場合は、``appendAllowed``プロパティを``false``(デフォルト)にすることで、排他制御が実現できる。
-これは、``FlatFileItemWriter``の内部で``FileChannel``を使って制御しているためである。
-しかし、ファイルの追記(``appendAllowed``プロパティが``true``)の場合は、開発者が``FileChannel``による排他制御を実装する必要がある。
 ====
 
 

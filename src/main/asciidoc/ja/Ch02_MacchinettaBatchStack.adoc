@@ -26,7 +26,7 @@ image::Ch02_MacchinettaBatchStack_Stack.png[{batch5_fullname} Stack]
 ====
 {batch5_fullname}で使用するOSSのバージョンは、原則として、Spring IO platformの定義に準じている。
 なお、バージョン{batch5_version}におけるSpring IO platformのバージョンは、
-https://docs.spring.io/platform/docs/Brussels-SR5/reference/htmlsingle/[Brussels-SR5]である。 +
+https://docs.spring.io/platform/docs/Brussels-SR17/reference/htmlsingle/[Brussels-SR17]である。 +
 Spring IO platformの詳細については、{server5_fullname}の
 {server5_url}/Overview/FrameworkStack.html#oss[利用するOSSのバージョン]を参照。
 ====
@@ -44,70 +44,77 @@ Spring IO platformの詳細については、{server5_fullname}の
 |Spring
 |org.springframework
 |spring-aop
-|4.3.14.RELEASE
+|4.3.23.RELEASE
+^|*
 |
-^|*2
 
 |Spring
 |org.springframework
 |spring-beans
-|4.3.14.RELEASE
+|4.3.23.RELEASE
+^|*
 |
-^|*2
 
 |Spring
 |org.springframework
 |spring-context
-|4.3.14.RELEASE
+|4.3.23.RELEASE
+^|*
 |
-^|*2
 
 |Spring
 |org.springframework
 |spring-expression
-|4.3.14.RELEASE
+|4.3.23.RELEASE
+^|*
 |
-^|*2
 
 |Spring
 |org.springframework
 |spring-core
-|4.3.14.RELEASE
+|4.3.23.RELEASE
+^|*
 |
-^|*2
 
 |Spring
 |org.springframework
 |spring-tx
-|4.3.14.RELEASE
+|4.3.23.RELEASE
+^|*
 |
-^|*2
 
 |Spring
 |org.springframework
 |spring-jdbc
-|4.3.14.RELEASE
+|4.3.23.RELEASE
+^|*
 |
-^|*2
+
+|Spring
+|org.springframework
+|spring-oxm
+|4.3.23.RELEASE
+^|*
+|
 
 |{SB}
 |org.springframework.batch
 |spring-batch-core
-|3.0.8.RELEASE
+|3.0.10.RELEASE
 ^|*
 |
 
 |{SB}
 |org.springframework.batch
 |spring-batch-infrastructure
-|3.0.8.RELEASE
+|3.0.10.RELEASE
 ^|*
 |
 
 |Spring Retry
 |org.springframework.retry
 |spring-retry
-|1.2.1.RELEASE
+|1.2.4.RELEASE
 ^|*
 |
 
@@ -128,21 +135,14 @@ Spring IO platformの詳細については、{server5_fullname}の
 |MyBatis3
 |org.mybatis
 |mybatis
-|3.4.5
+|3.4.6
 |
 |
 
 |MyBatis3
 |org.mybatis
 |mybatis-spring
-|1.3.1
-|
-|
-
-|MyBatis3
-|org.mybatis
-|mybatis-typehandlers-jsr310
-|1.0.2
+|1.3.2
 |
 |
 
@@ -161,23 +161,16 @@ Spring IO platformの詳細については、{server5_fullname}の
 |
 
 |ログ出力
-|ch.qos.logback
-|logback-core
-|1.1.11
-^|*
-^|*1
-
-|ログ出力
 |org.slf4j
 |jcl-over-slf4j
-|1.7.25
+|1.7.26
 ^|*
 |
 
 |ログ出力
 |org.slf4j
 |slf4j-api
-|1.7.25
+|1.7.26
 ^|*
 |
 
@@ -191,35 +184,14 @@ Spring IO platformの詳細については、{server5_fullname}の
 |入力チェック
 |org.hibernate
 |hibernate-validator
-|5.3.5.Final
+|5.3.6.Final
 ^|*
 |
-
-|入力チェック
-|org.jboss.logging
-|jboss-logging
-|3.3.1.Final
-^|*
-^|*1
-
-|入力チェック
-|com.fasterxml
-|classmate
-|1.3.4
-^|*
-^|*1
 
 |コネクションプール
 |org.apache.commons
 |commons-dbcp2
 |2.1.1
-^|*
-|
-
-|コネクションプール
-|org.apache.commons
-|commons-pool2
-|2.4.2
 ^|*
 |
 
@@ -233,15 +205,15 @@ Spring IO platformの詳細については、{server5_fullname}の
 |インメモリデータベース
 |com.h2database
 |h2
-|1.4.193
+|1.4.199
 ^|*
 |
 
-|XML
-|com.thoughtworks.xstream
-|xstream
-|1.4.10
-^|*
+|JDBCドライバ
+|org.postgresql
+|postgresql
+|42.2.5.jre7
+|
 ^|*1
 
 |JSON
@@ -249,12 +221,19 @@ Spring IO platformの詳細については、{server5_fullname}の
 |jettison
 |1.2
 ^|*
-^|*1
+|
+
+|XML
+|com.thoughtworks.xstream
+|xstream
+|1.4.11.1
+^|*
+|
 
 |TERASOLUNA Batch
 |org.terasoluna.batch
 |terasoluna-batch
-|5.1.1.RELEASE
+|5.1.2.RELEASE
 |
 |
 
@@ -262,24 +241,7 @@ Spring IO platformの詳細については、{server5_fullname}の
 
 .Remarksについて
 ====
-. Spring IO platformでサポートしているライブラリが個別に依存しているライブラリ
-. 脆弱性対応のため、Spring IO platformのバージョンとは異なるバージョンを設定
-====
-
-[WARNING]
-.xstreamの標準エラー出力について
-====
-xstreamのバージョンが1.4.10になり、{SB}がBean定義を読み込み、ジョブ実行する際に標準エラー出力で以下のメッセージが出力される。
-
-[source,console]
-----
-Security framework of XStream not initialized, XStream is probably vulnerable.
-----
-
-現時点では、{SB}でXStreamのセキュリティ設定ができないため、メッセージの出力は抑制できない。
-
-開発したジョブBean定義を読み込む以外でXStreamを使用する場合(データ連携など)は、信頼できる生成元のXML以外はXStreamで読み込みを行わないようにすること。
-
+. Spring IO platformのバージョンとは異なるバージョンを設定
 ====
 
 [[Ch02_MacchinettaBatchStack_Components]]
@@ -294,12 +256,12 @@ image::Ch02_MacchinettaBatchStack_Stack_Detail.png[{batch5_fullname} Components 
 基盤フレームワーク::
   フレームワークの基盤として、Spring Frameworkを利用する。DIコンテナをはじめ各種機能を活用する。
 
-  ** http://docs.spring.io/spring/docs/4.3.11.RELEASE/spring-framework-reference/htmlsingle/#spring-core[Spring Framework 4.3]
+  ** http://docs.spring.io/spring/docs/4.3.23.RELEASE/spring-framework-reference/htmlsingle/#spring-core[Spring Framework 4.3]
 
 バッチフレームワーク::
   バッチフレームワークとして、{SB}を利用する。
 
-  ** http://docs.spring.io/spring-batch/trunk/reference/html/index.html[{SB} 3.0]
+  ** https://docs.spring.io/spring-batch/3.0.x/reference/html/index.html[{SB} 3.0]
 
 非同期実行::
   非同期実行を実現する方法として、以下の機能を利用する。
@@ -312,16 +274,16 @@ image::Ch02_MacchinettaBatchStack_Stack_Detail.png[{batch5_fullname} Components 
   Webコンテナ起動:::
   Spring MVCを使用して、{SB}と連携をする。
 
-  *** http://docs.spring.io/spring/docs/4.3.11.RELEASE/spring-framework-reference/html/mvc.html[Spring MVC 4.3]
+  *** http://docs.spring.io/spring/docs/4.3.23.RELEASE/spring-framework-reference/html/mvc.html[Spring MVC 4.3]
 
 O/R Mapper::
   MyBatisを利用し、Spring Frameworkとの連携ライブラリとして、MyBatis-Springを使用する。
 
   ** http://www.mybatis.org/mybatis-3/[MyBatis 3.4]
-  ** http://www.mybatis.org/spring/[MyBatis-Spring]
+  ** http://www.mybatis.org/spring/[MyBatis-Spring 1.3]
 
 ファイルアクセス::
-  http://docs.spring.io/spring-batch/trunk/reference/html/readersAndWriters.html#flatFiles[{SB}から提供されている機能]
+  https://docs.spring.io/spring-batch/3.0.x/reference/html/readersAndWriters.html#flatFiles[{SB}から提供されている機能]
   に加えて、補助機能を{terasoluna_batch5_fullname}が提供する。
 
   ** <<Ch05_FileAccess.adoc#Ch05_FileAccess,"ファイルアクセス">>
@@ -342,10 +304,9 @@ O/R Mapper::
   相関チェック:::
     相関チェックにはBean Validation、もしくはSpring Validationを利用する。
 
-      *** http://docs.spring.io/spring/docs/4.3.11.RELEASE/spring-framework-reference/html/validation.html#validator[Spring Validation]
+      *** http://docs.spring.io/spring/docs/4.3.23.RELEASE/spring-framework-reference/html/validation.html#validator[Spring Validation]
 
 コネクションプール::
   コネクションプールには、DBCPを利用する。
 
   ** https://commons.apache.org/proper/commons-dbcp/[DBCP 2]
-  ** https://commons.apache.org/proper/commons-pool/[Commons Pool 2]
