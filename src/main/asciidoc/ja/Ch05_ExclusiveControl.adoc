@@ -21,7 +21,7 @@ include::_include_all.adoc[]
 ====
 
 排他制御に関する概念は、オンライン処理と同様であるため、{server5_guide}にある
-{server5_url}/ArchitectureInDetail/DataAccessDetail/ExclusionControl.html[排他制御]を参照してほしい。
+{server5_url}/ArchitectureInDetail/DataAccessDetail/ExclusionControl.html[排他制御]を参照。
 
 ここでは、{server5_shortname}では説明されていない部分を中心に説明をする。
 
@@ -38,23 +38,23 @@ include::_include_all.adoc[]
 
 ファイルロックとは::
   ファイルロックとは、ファイルをあるプログラムで使用している間、ほかのプログラムからの読み書きを制限する仕組みである。
-  ファイルロックの処理概要を以下に示す。
+  ファイルロックの実施イメージを以下に示す。
 
 .シナリオ
   ** バッチ処理Aがファイルのロックを取得し、ファイルの更新処理を開始する。
   ** バッチ処理Bが同一のファイルの更新を試みファイルのロック取得を試みるが失敗する。
   ** バッチ処理Aが処理を終了し、ファイルのロックを解除する
 
-.ファイルロックの処理概要
+.ファイルロックの実施イメージ
 image::Ch05_ExclusiveControl_File_Senario.png[ExclusiveControl_File_Senario]
 
-. バッチ処理A(Batch ProcessA)が対象ファイル(TargetFile)のロック取得を試みる。
-. バッチ処理Aが、対象ファイルのロック取得に成功する。
-. バッチ処理B(Batch ProcessB)が、対象ファイルのロック取得を試みる。
-. バッチ処理Aが、対象ファイルに書き込みを行う。
-. バッチ処理Bは、バッチ処理Aがロック中であるため、対象ファイルのロック取得に失敗する。
+. バッチ処理A(Batch ProcessA)が排他対象ファイル(TargetFile)のロック取得を試みる。
+. バッチ処理Aが、排他対象ファイルのロック取得に成功する。
+. バッチ処理B(Batch ProcessB)が、排他対象ファイルのロック取得を試みる。
+. バッチ処理Aが、排他対象ファイルに書き込みを行う。
+. バッチ処理Bは、バッチ処理Aがロック中であるため、排他対象ファイルのロック取得に失敗する。
 . バッチ処理Bが、ファイル更新失敗の処理を行う。
-. バッチ処理Aが、対象ファイルのロックを開放する。
+. バッチ処理Aが、排他対象ファイルのロックを開放する。
 
 [IMPORTANT]
 .デッドロックの予防
@@ -70,7 +70,7 @@ image::Ch05_ExclusiveControl_File_Senario.png[ExclusiveControl_File_Senario]
 === データベースの排他制御
 データベースの排他制御に関しては、{server5_guide}にある
 {server5_url}/ArchitectureInDetail/DataAccessDetail/ExclusionControl.html#id5[データベースのロック機能による排他制御]
-で詳しく説明されているため、そちらを参照のこと。
+で詳しく説明されているため、そちらを参照。
 
 
 [[Ch05_ExclusiveControl_Overview_Usecase]]
@@ -169,7 +169,7 @@ ItemStreamWriterをクローズした直後にファイルロックを開放す�
 [WARNING]
 .チャンクモデルでのデータベースでの悲観ロックによる注意事項
 ====
-ItemReaderで取得したデータ(キー情報)がItemProcessorへ渡される間は排他制御されず、他のトランザクションにより元のデータが更新されている可能性がある。
+ItemReaderで取得したデータ(キー情報)がItemProcessorへ渡される間は排他制御されず、他のトランザクションによりもとのデータが更新されている可能性がある。
 そのため、ItemProcessorがデータを取得する条件は、ItemReaderと同じデータ(キー情報)を取得する条件を含む必要がある。 +
 ItemProcessorでデータが取得できない場合は、他のトランザクションにより更新されている可能性を考慮して、処理の継続または中断を検討し実装する必要がある。
 ====
@@ -201,15 +201,73 @@ ItemProcessorでデータが取得できない場合は、他のトランザク�
 === ファイルの排他制御
 {batch5_shortname}におけるファイルの排他制御はタスクレットを実装することで実現する。
 排他の実現手段としては、``java.nio.channels.FileChannel``クラスを使用したファイルロック取得で排他制御を行う。
-ただし、ItemStreamReader/ItemStreamWriterには、ファイルロックを取得する機能がない。
-そのため、排他対象のファイルと一対一に、排他対象ファイルのロックを担当するファイル(以降、ロック用ファイル)を用意し、ロック用ファイルからファイルロックを取得する。
 
 [NOTE]
 .FileChannelクラスの詳細
 ====
 ``FileChannel``クラスの詳細、使用方法については
-https://docs.oracle.com/javase/8/docs/api/java/nio/channels/FileChannel.html[Javadoc]を参照。
+https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/nio/channels/FileChannel.html[Javadoc]を参照。
 ====
+
+ただし、{SB}において標準的なファイルの入出力機能を提供するFlatFileItemReader/FlatFileItemWriterから、java.nio.channels.FileChannelクラスを利用することはできない。
+そのため、排他対象のファイルと一対一に排他対象ファイルのロックを担当するファイル(以降、ロック用ファイル)を用意し、ロック用ファイルからのファイルロックを取得をもって、排他対象ファイルへの排他的な制御権を取得できたと見なすことで排他制御を実現する。
+ロック用ファイルを用いたファイルロックの実施イメージを以下に示す。
+
+.ロック用ファイルを用いたファイルロックの実施イメージ
+image::Ch05_ExclusiveControl_LockFile_Senario.png[ExclusiveControl_LockFile_Senario]
+
+. バッチ処理A(Batch ProcessA)がロック用ファイル(LockFile)のロック取得を試みる。
+. バッチ処理Aが、ロック用ファイルのロック取得に成功する。
+. バッチ処理B(Batch ProcessB)が、ロック用ファイルのロック取得を試みる。
+. バッチ処理Aが、排他対象ファイルに書き込みを行う。
+. バッチ処理Bは、バッチ処理Aがロック中であるため、ロック用ファイルのロック取得に失敗する。
+. バッチ処理Bが、ファイル更新失敗の処理を行う。
+. バッチ処理Aが、ロック用ファイルのロックを開放する。
+
+[IMPORTANT]
+.ロック用ファイルの削除タイミング
+====
+後述するTasklet実装の例では、ロック用ファイルの削除について表現していないが、そのタイミングについては注意が必要である。
+特にLinux環境では、ジョブの内部でロック用ファイルの削除を行うべきではない。
+
+Linux環境ではファイルロック中のファイルを削除できるため、複数のプロセスでバッチ処理が実行される場合、あるプロセスがファイルロックを取得しているロック用ファイルを、別プロセスが削除する可能性がある。
+このようなロック用ファイルの削除が起こると、また別のプロセスはロック用ファイルを作成し、作成したロック用ファイルからファイルロックを取得できる。
+
+結果として、排他対象ファイルに書き込めるプロセスが複数になり、排他制御として機能しなくなる。
+
+これを防ぐため、ロック用ファイルの削除は、排他制御を行うプロセスが存在しなくなったタイミングで行うなどの方法が考えられる。
+====
+
+ItemStreamWriterの``transactional``プロパティは``false``を設定する。
+``transactional``プロパティがデフォルトの``true``の場合、ファイル出力のタイミングがTransactionManagerと同期し、排他制御がされていない状態でのファイル出力が行われる。
+以下に、ItemStreamWriterの設定例を示す。
+
+[source,xml]
+.ItemStreamWriterの設定例
+----
+<bean id="writer" class="org.springframework.batch.item.file.FlatFileItemWriter" scope="step"
+      p:resource="file:#{jobParameters['outputFile']}"
+      p:transactional="false">  <!-- (1) -->
+    <property name="lineAggregator">
+        <bean class="org.springframework.batch.item.file.transform.DelimitedLineAggregator">
+            <property name="fieldExtractor">
+                <bean class="org.springframework.batch.item.file.transform.BeanWrapperFieldExtractor"
+                      p:names="processName,plan.branchId,plan.year,plan.month,plan.customerId,plan.amount"/>
+            </property>
+        </bean>
+    </property>
+</bean>
+----
+
+[cols="10,90", options="header"]
+.説明
+|===
+|項番
+|説明
+
+|(1)
+|``transactional``属性に``false``を設定する。
+|===
 
 ``FileChannel``クラスを使用しファイルのロックを取得する例を示す。
 
@@ -329,16 +387,8 @@ public class FileExclusiveTasklet implements Tasklet {
 [NOTE]
 .ロック取得に用いるFileChannelのメソッドについて
 ====
-``lock()``メソッドは対象ファイルがロック済みの場合ロックが解除されるまで待機するため、待機されない``tryLock()``メソッドを使用することを推奨する。
+``lock()``メソッドは排他対象ファイルがロック済みの場合ロックが解除されるまで待機するため、待機されない``tryLock()``メソッドを使用することを推奨する。
 なおtrylock()は共有ロックと排他ロックが選択できるが、バッチ処理においては、通常は排他ロックを用いる。
-====
-
-[NOTE]
-.ItemWriterのtransactionalプロパティについて
-====
-サンプルコードにおける、ItemStreamWriterの``transactional``プロパティは``false``を設定している。
-``transactional``プロパティが``true``の場合、TransactionManagerと同期してリソースを出力することに注意すること。
-詳細は、<<Ch05_Transaction.adoc#Ch05_Transaction,トランザクション制御>>を参照。
 ====
 
 [WARNING]
@@ -418,7 +468,7 @@ MyBatisBatchItemWriterがもつ``assertUpdates``プロパティの設定によ�
     </property>
 </bean>
 
-<!-- (2) --->
+<!-- (2) -->
 <bean id="writer"
       class="org.mybatis.spring.batch.MyBatisBatchItemWriter" scope="step"
       p:statementId="jp.co.ntt.fw.macchinetta.batch.functionaltest.ch05.exclusivecontrol.repository.ExclusiveControlRepository.branchExclusiveUpdate"
@@ -567,7 +617,7 @@ public class BranchEditWithkPessimisticLockItemProcessor implements ItemProcesso
 
 |(7)
 |悲観ロックによるデータ取得のメソッドを呼び出す。 +
-(2)の抽出条件と同じ条件を設定しているため、キー情報(id)の他にジョブ起動パラメータ``branchName`を引数に渡している。 +
+(2)の抽出条件と同じ条件を設定しているため、キー情報(id)の他にジョブ起動パラメータ``branchName``を引数に渡している。 +
 NO WAITやタイムアウトを設定して悲観ロックを行い、他のトランザクションにより排他された時は、ここで例外が発生する。
 
 |(8)

@@ -228,7 +228,7 @@ Webアプリケーションにより事前にリクエストに対する入力�
 |中断したジョブを中断した箇所から再実行する。
 |===
 
-中断したジョブの再実行方法についての詳細は、<<Ch06_ReProcessing.adoc#Ch06_RerunRestart,処理の再実行>>を参照してほしい。
+中断したジョブの再実行方法についての詳細は、<<Ch06_ReProcessing.adoc#Ch06_RerunRestart,処理の再実行>>を参照。
 
 
 [[Ch06_ExceptionHandling_Overview_Deal_Skip]]
@@ -1081,7 +1081,7 @@ LimitCheckingItemSkipPolicy::
 ``skip-policy``属性はデフォルトを使用ため省略。
 
 |(3)
-|``<batch:skippable-exception-classes>``を定義し、タグ内に対象となる例外を設定する。
+|``<batch:skippable-exception-classes>``を定義し、要素内に対象となる例外を設定する。
 
 |(4)
 |``ItemReaderException``をスキップ対象クラスとして設定を行う。
@@ -1133,7 +1133,7 @@ ExceptionClassifierSkipPolicy::
 |``ExceptionClassifierSkipPolicy``をBean定義する。
 
 |(2)
-|``policyMap``プロパティに、キーを例外クラス、値をスキップ方法にしたマップを設定する。 +
+|``policyMap``に、キーを例外クラス、値をスキップ方法にしたマップを設定する。 +
 この例では、``ItemReaderException``が発生したときに(3)で定義したスキップ方法になるように設定している。
 
 |(3)
@@ -1148,8 +1148,8 @@ ExceptionClassifierSkipPolicy::
 [[Ch06_ExceptionHandling_HowToUse_ContinuationPropriety_Skip_Chunk_ItemProcessor]]
 ItemProcessorでのスキップ::
     ItemProcessor内でtry～catchをして、nullを返却する。 +
-    ``skip-policy``によるスキップは、ItemProcessorで再処理が発生するため利用しない。
-    詳細は、<<Ch06_ExceptionHandling_Appendix_SkippableExceptionClasses>>を参照すること。
+    ``skip-policy``によるスキップは、ItemProcessorで再処理が発生するため利用しない。 +
+    詳細は、<<Ch06_ExceptionHandling_Appendix_SkippableExceptionClasses>>を参照。
 
 [IMPORTANT]
 .ItemProcessorにおける例外ハンドリンクの制約
@@ -1211,8 +1211,8 @@ public class AmountCheckProcessor implements
 [[Ch06_ExceptionHandling_HowToUse_ContinuationPropriety_Skip_Chunk_ItemWriter]]
 ItemWriterでのスキップ::
     ItemWriterにおいてスキップ処理は原則として行わない。 +
-    スキップが必要な場合でも、  ``skip-policy``によるスキップは、チャンクサイズが変動するので利用しない。
-    詳細は、<<Ch06_ExceptionHandling_Appendix_SkippableExceptionClasses>>を参照すること。
+    スキップが必要な場合でも、  ``skip-policy``によるスキップは、チャンクサイズが変動するので利用しない。 +
+    詳細は、<<Ch06_ExceptionHandling_Appendix_SkippableExceptionClasses>>を参照。
 
 
 [[Ch06_ExceptionHandling_HowToUse_ContinuationPropriety_Skip_Tasklet]]
@@ -1434,7 +1434,7 @@ public class RetryableAmountCheckProcessor implements
 
 ステップ実行を打ち切りたい場合、スキップ・リトライ対象以外のRuntimeExceptionもしくはそのサブクラスをスローする。
 
-スキップの実装例を<<Ch06_ExceptionHandling_HowToUse_ContinuationPropriety_Skip_Chunk_LimitCheckingItemSkipPolicy,LimitCheckingItemSkipPolicy>>を元に示す。
+<<Ch06_ExceptionHandling_HowToUse_ContinuationPropriety_Skip_Chunk_LimitCheckingItemSkipPolicy,LimitCheckingItemSkipPolicy>>をもとに、スキップの実装例を示す。
 
 
 [source,xml]
@@ -1468,7 +1468,7 @@ public class RetryableAmountCheckProcessor implements
 
 |===
 
-リトライの実装例を<<Ch06_ExceptionHandling_HowToUse_ContinuationPropriety_Retry>>を元に示す。
+<<Ch06_ExceptionHandling_HowToUse_ContinuationPropriety_Retry>>をもとに、リトライの実装例を示す。
 
 [source,xml]
 .Bean定義
@@ -1516,7 +1516,7 @@ public class RetryableAmountCheckProcessor implements
 
 {SB}では、ジョブ全体を対象としてスキップする例外を指定し、例外が発生したアイテムへの処理をスキップして処理を継続させる機能を提供している。
 
-その機能は、以下のように``<chunk>``タグ配下に``<skippable-exception-classes>``タグを設定し、スキップ対象の例外を指定する形で実装する。
+その機能は、以下のように``<chunk>``要素配下に``<skippable-exception-classes>``要素を設定し、スキップ対象の例外を指定する形で実装する。
 
 [source, xml]
 .<skippable-exception-classes>の使用例
@@ -1541,7 +1541,7 @@ public class RetryableAmountCheckProcessor implements
 この機能を利用することによって、入力チェックエラーが発生したレコードをスキップして後続データの処理を継続することは可能だが、
 {batch5_shortname}では以下の理由により使用しない。
 
-* ``<skippable-exception-classes>``タグを利用して例外をスキップした場合、
+* ``<skippable-exception-classes>``要素を利用して例外をスキップした場合、
   1つのチャンクに含まれるデータ件数が変動するため、性能劣化を引き起こす可能性がある。
 ** これは、例外の発生箇所(``ItemReader``/``ItemProcessor``/``ItemWriter``)によって変わる。詳細は後述する。
 

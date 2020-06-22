@@ -17,9 +17,8 @@ include::_include_all.adoc[]
 == 概要
 try-catchで例外ハンドリングを行うジョブを作成する。
 
-なお、本節は{batch5_guide}を元に説明しているため、
-詳細については<<Ch06_ExceptionHandling.adoc#Ch06_ExceptionHandling_HowToUse_StepExceptionHandling_Chunk_ItemProcessor_TryCatchExample,ItemProcessor内でtry～catchする方法>>および
-<<Ch06_ExceptionHandling.adoc#Ch06_ExceptionHandling_HowToUse_StepExceptionHandling_Tasklet,タスクレットモデルにおける例外ハンドリング>>を参照のこと。
+なお、詳細については{batch5_guide}の<<Ch06_ExceptionHandling.adoc#Ch06_ExceptionHandling_HowToUse_StepExceptionHandling_Chunk_ItemProcessor_TryCatchExample,ItemProcessor内でtry～catchする方法>>および
+<<Ch06_ExceptionHandling.adoc#Ch06_ExceptionHandling_HowToUse_StepExceptionHandling_Tasklet,タスクレットモデルにおける例外ハンドリング>>を参照。
 
 [NOTE]
 .終了コードの意味合いについて
@@ -64,7 +63,7 @@ try-catchで例外ハンドリングを行うジョブを作成する。
 === テーブル仕様
 入出力リソースとなる会員情報テーブルの仕様は以下のとおり。 +
 <<Ch09_Impl_ExceptionHandlingWithTryCatchJob_Prerequisite>>のとおりデータベースアクセスするジョブの場合の説明となるため、ファイルアクセスするジョブの場合の
-入出力のリソース仕様は<<Ch09_FileAccessJob.adoc#Ch09_Impl_FileAccessJob_Overview_FileSpecification,ファイル仕様>>を参照する。
+入出力のリソース仕様は<<Ch09_FileAccessJob.adoc#Ch09_Impl_FileAccessJob_Overview_FileSpecification,ファイル仕様>>を参照。
 
 [cols="3,15,10,4,12,8,45", options="header"]
 .会員情報テーブル(member_info)
@@ -159,8 +158,8 @@ image::Ch09_ExceptionHandlingWithTryCatchJob_ProcessSequence_ChunkModel.png[Proc
 . ステップは、チャンクサイズ分のデータを``MyBatisBatchItemWriter``で出力する。
 . ``MyBatisBatchItemWriter``は、member_infoテーブルに対して会員情報の更新(update文の発行)を行う。
 . ステップはフレームワークトランザクションをコミットする。
-. ステップは``ExitStatusChangeListener``を実行する。
-. ``ExitStatusChangeListener``は、入力データと出力データの件数が異なる場合に``StepExecution``に独自の終了コードとして``SKIPPED``を設定する。
+. ステップは``StepExitStatusChangeListener``を実行する。
+. ``StepExitStatusChangeListener``は、入力データと出力データの件数が異なる場合に``StepExecution``に独自の終了コードとして``SKIPPED``を設定する。
 . ステップはジョブに終了コード(ここでは正常終了:0)を返却する。
 . ジョブは``JobExitCodeChangeListener``を実行する。
 . ``JobExitCodeChangeListener``は``StepExecution``から終了コードを取得する。
@@ -212,10 +211,10 @@ image::Ch09_ExceptionHandlingWithTryCatchJob_ProcessSequence_TaskletModel.png[Pr
 
 チャンクモデル::
 ItemProcessor内でtry-catchを実装し、catchブロック内でnullを返却することでエラーデータをスキップする。
-ItemReader、ItemWriterでのスキップは<<Ch06_ExceptionHandling.adoc#Ch06_ExceptionHandling_HowToUse_ContinuationPropriety_Skip,スキップ>>を参照のこと。
+ItemReader、ItemWriterでのスキップは<<Ch06_ExceptionHandling.adoc#Ch06_ExceptionHandling_HowToUse_ContinuationPropriety_Skip,スキップ>>を参照。
 
 タスクレットモデル::
-ビジネスロジック内でtry-catchを実装し、catchブロック内でcontinueにより処理を継続することでエラーデータをスキップする。
+ビジネスロジック内でtry-catchを実装し、catchブロック内でcontinueなど以降の処理をせずに次のデータを取得するようにして処理を継続することでエラーデータをスキップする。
 ====
 
 以降で、チャンクモデル、タスクレットモデルそれぞれの実装方法を説明する。
@@ -240,7 +239,7 @@ ItemReader、ItemWriterでのスキップは<<Ch06_ExceptionHandling.adoc#Ch06_E
 チャンクモデル/タスクレットモデルで共通して利用するため、既に作成している場合は読み飛ばしてよい。
 
 ``application-messages.properties``および``launch-context.xml``を以下のとおり設定する。 +
-``launch-context.xml``は{batch5_shortname}では設定済みである。
+なお、``launch-context.xml``の設定はブランクプロジェクトに設定済みである。
 
 [source, xml]
 .src/main/resources/i18n/application-messages.properties
@@ -279,7 +278,7 @@ errors.maxInteger=The {0} exceeds {1}.
 [[Ch09_Impl_ExceptionHandlingWithTryCatchJob_Chunk_ExitCode]]
 === 終了コードのカスタマイズ
 ジョブ終了時のjavaプロセスの終了コードをカスタマイズする。 +
-詳細は<<Ch07_JobManagement.adoc#Ch07_JobManagement_HowToUse_ExitCode,終了コードのカスタマイズ>>を参照のこと。
+詳細は<<Ch07_JobManagement.adoc#Ch07_JobManagement_HowToUse_ExitCode,終了コードのカスタマイズ>>を参照。
 
 以下の作業を実施する。
 
@@ -298,7 +297,7 @@ errors.maxInteger=The {0} exceeds {1}.
 タスクレットモデルではTaskletの実装クラス内で``StepExecution``クラスに独自の終了コードを設定することができるためである。
 
 [source, java]
-.com.example.batch.tutorial.common.listener.ExitStatusChangeListener
+.com.example.batch.tutorial.common.listener.StepExitStatusChangeListener
 ----
 package com.example.batch.tutorial.common.listener;
 
@@ -308,7 +307,7 @@ import org.springframework.batch.core.StepExecutionListener;
 import org.springframework.stereotype.Component;
 
 @Component
-public class ExitStatusChangeListener implements StepExecutionListener {
+public class StepExitStatusChangeListener implements StepExecutionListener {
 
     @Override
     public void beforeStep(StepExecution stepExecution) {
@@ -414,9 +413,9 @@ public class JobExitCodeChangeListener implements JobExecutionListener {
        xmlns:batch="http://www.springframework.org/schema/batch"
        xmlns:p="http://www.springframework.org/schema/p"
        xmlns:mybatis="http://mybatis.org/schema/mybatis-spring"
-       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
-             http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
-             http://www.springframework.org/schema/batch http://www.springframework.org/schema/batch/spring-batch.xsd
+       xsi:schemaLocation="http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd
+             http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd
+             http://www.springframework.org/schema/batch https://www.springframework.org/schema/batch/spring-batch.xsd
              http://mybatis.org/schema/mybatis-spring http://mybatis.org/schema/mybatis-spring.xsd">
 
     <!-- omitted -->
@@ -434,7 +433,7 @@ public class JobExitCodeChangeListener implements JobExecutionListener {
                              writer="writer" commit-interval="10"/>
             </batch:tasklet>
             <batch:listeners>
-                <batch:listener ref="exitStatusChangeListener"/> <!-- (2) -->
+                <batch:listener ref="stepExitStatusChangeListener"/> <!-- (2) -->
             </batch:listeners>
         </batch:step>
         <batch:listeners>
@@ -458,7 +457,7 @@ public class JobExitCodeChangeListener implements JobExecutionListener {
 |(2)
 |``StepExecutionListener``の実装クラスを設定する。
 なお、``StepExecutionListener``は``StepListener``の拡張インタフェースである。 +
-ここでは、``StepExecutionListener``の実装クラスのBeanIDである``exitStatusChangeListener``を指定する。
+ここでは、``StepExecutionListener``の実装クラスのBeanIDである``stepExitStatusChangeListener``を指定する。
 
 |(3)
 |``JobExecutionListener``の実装クラスを設定する。 +
@@ -467,12 +466,12 @@ public class JobExitCodeChangeListener implements JobExecutionListener {
 |===
 
 [WARNING]
-.ExitStatusChangeListenerとJobExitCodeChangeListenerの設定箇所の違いについて
+.StepExitStatusChangeListenerとJobExitCodeChangeListenerの設定箇所の違いについて
 ====
-``ExitStatusChangeListener``はステップの実行前後に処理を割り込める``StepListener``に属するため、``<batch:tasklet>``タグ内に``<batch:listeners>``.``<batch:listener>``タグによって設定する。 +
-``JobExitCodeChangeListener``はジョブの実行前後に処理を割り込める``JobListener``に属するため、``<batch:job>``タグ内に``<batch:listeners>``.``<batch:listener>``タグによって設定する。
+``StepExitStatusChangeListener``はステップの実行前後に処理を割り込める``StepListener``に属するため、``<batch:tasklet>``要素内に``<batch:listeners>``.``<batch:listener>``要素によって設定する。 +
+``JobExitCodeChangeListener``はジョブの実行前後に処理を割り込める``JobListener``に属するため、``<batch:job>``要素内に``<batch:listeners>``.``<batch:listener>``要素によって設定する。
 
-詳細は<<Ch04_Listener.adoc#Ch04_Listener_HowToUse_Configuration,リスナーの設定>>を参照のこと。
+詳細は<<Ch04_Listener.adoc#Ch04_Listener_HowToUse_Configuration,リスナーの設定>>を参照。
 ====
 
 [[Ch09_Impl_ExceptionHandlingWithTryCatchJob_Chunk_ExitCode_Context]]
@@ -628,16 +627,20 @@ tutorial.insert-data.script=file:sqls/insert-member-info-error-data.sql
 ==== コンソールログの確認
 Console Viewを開き、以下の内容のログが出力されていることを確認する。
 
-* 例外が発生していないこと
-* WARNログとして次のメッセージを出力していること
-** 「The Point exceeds 1000000.」
+* 処理が完了(COMPLETED)し、例外が発生していないこと。
+* WARNログとして次のメッセージを出力していること。
+** 「The point exceeds 1000000.」
 
 [source, console]
 .コンソールログ出力例
 ----
-[2017/09/05 18:27:01] [main] [o.t.b.t.e.c.PointAddItemProcessor] [WARN ] The point exceeds 1000000.
-[2017/09/05 18:27:01] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=jobPointAddChunk]] completed with the following parameters: [{jsr_batch_run_id=450}] and the following status: [COMPLETED]
-[2017/09/05 18:27:01] [main] [o.s.c.s.ClassPathXmlApplicationContext] [INFO ] Closing org.springframework.context.support.ClassPathXmlApplicationContext@2145433b: startup date [Tue Sep 05 18:26:57 JST 2017]; root of context hierarchy
+(.. omitted)
+
+[2020/03/10 16:13:54] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=jobPointAddChunk]] launched with the following parameters: [{jsr_batch_run_id=148}]
+[2020/03/10 16:13:54] [main] [o.s.b.c.j.SimpleStepHandler] [INFO ] Executing step: [jobPointAddChunk.step01]
+[2020/03/10 16:13:54] [main] [c.e.b.t.d.c.PointAddItemProcessor] [WARN ] The point exceeds 1000000.
+[2020/03/10 16:13:54] [main] [o.s.b.c.s.AbstractStep] [INFO ] Step: [jobPointAddChunk.step01] executed in 237ms
+[2020/03/10 16:13:54] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=jobPointAddChunk]] completed with the following parameters: [{jsr_batch_run_id=148}] and the following status: [COMPLETED] in 304ms
 ----
 
 [[Ch09_Impl_ExceptionHandlingWithTryCatchJob_Chunk_Execution_Exitcode]]
@@ -658,20 +661,19 @@ image::ch09/ExceptionHandlingWithTryCatch/Ch09_ExceptionHandlingWithTryCatchJob_
 
 [[Ch09_Impl_ExceptionHandlingWithTryCatchJob_Chunk_Execution_Output_Table]]
 ===== 会員情報テーブルの確認
-Data Source Explorerを使用して会員情報テーブルの確認を行う。 +
 更新前後の会員情報テーブルの内容を比較し、確認内容のとおりとなっていることを確認する。 +
-確認手順は<<Ch09_EnvironmentConstruction.adoc#Ch09_EnvironmentConstruction_OperationCheck_RefDB,Data Source Explorerを使用してデータベースを参照する>>を参照。
+確認手順は<<Ch09_EnvironmentConstruction.adoc#Ch09_EnvironmentConstruction_OperationCheck_RefDB,DBeaverを使用してデータベースを参照する>>を参照。
 
 確認内容::
 * エラーレコード(会員番号が"000000013")を除くすべてのレコードについて
 ** statusカラム
-*** "0"(初期状態)のレコードが存在しないこと
+*** "1"(処理対象)から"0"(初期状態)に更新されていること
 ** pointカラム
 *** ポイント加算対象について、会員種別に応じたポイントが加算されていること
 **** typeカラムが"G"(ゴールド会員)の場合は100ポイント
 **** typeカラムが"N"(一般会員)の場合は10ポイント
 * エラーレコード(会員番号が"000000013")について
-** 更新されていないこと
+** 更新されていないこと(破線の赤枠で示した範囲)
 
 更新前後の会員情報テーブルの内容は以下のとおり。
 
@@ -686,13 +688,14 @@ image::ch09/ExceptionHandlingWithTryCatch/Ch09_ExceptionHandlingWithTryCatchJob_
 * 出力ディレクトリに会員情報ファイルが出力されていること
 ** 出力ファイル: files/output/output-member-info-data.csv
 * エラーレコード(会員番号が"00000013")を除くすべてのレコードについて
-** statusカラム
-*** "0"(初期状態)のレコードが存在しないこと
-** pointカラム
+** statusフィールド
+*** "1"(処理対象)から"0"(初期状態)に更新されていること
+** pointフィールド
 *** ポイント加算対象について、会員種別に応じたポイントが加算されていること
-**** typeカラムが"G"(ゴールド会員)の場合は100ポイント
-**** typeカラムが"N"(一般会員)の場合は10ポイント
-* エラーレコード(会員番号が"00000013")が出力されていないこと
+**** typeフィールドが"G"(ゴールド会員)の場合は100ポイント
+**** typeフィールドが"N"(一般会員)の場合は10ポイント
+* エラーレコード(会員番号が"00000013")について
+** 出力されていないこと(破線の赤枠で示した範囲)
 
 会員情報ファイルの入出力内容は以下のとおり。 +
 ファイルのフィールドはid(会員番号)、type(会員種別)、status(商品購入フラグ)、point(ポイント)の順で出力される。
@@ -717,7 +720,7 @@ image::ch09/ExceptionHandlingWithTryCatch/Ch09_ExceptionHandlingWithTryCatchJob_
 チャンクモデル/タスクレットモデルで共通して利用するため、既に作成している場合は読み飛ばしてよい。
 
 ``application-messages.properties``および``launch-context.xml``を以下のとおり設定する。 +
-``launch-context.xml``は{batch5_shortname}では設定済みである。
+なお、``launch-context.xml``の設定はブランクプロジェクトに設定済みである。
 
 [source, xml]
 .src/main/resources/i18n/application-messages.properties
@@ -756,7 +759,7 @@ errors.maxInteger=The {0} exceeds {1}.
 [[Ch09_Impl_ExceptionHandlingWithTryCatchJob_Tasklet_ExitCode]]
 === 終了コードのカスタマイズ
 ジョブ終了時のjavaプロセスの終了コードをカスタマイズする。 +
-詳細は<<Ch07_JobManagement.adoc#Ch07_JobManagement_HowToUse_ExitCode,終了コードのカスタマイズ>>を参照のこと。
+詳細は<<Ch07_JobManagement.adoc#Ch07_JobManagement_HowToUse_ExitCode,終了コードのカスタマイズ>>を参照。
 
 以下の作業を実施する。
 
@@ -831,9 +834,9 @@ public class JobExitCodeChangeListener implements JobExecutionListener {
        xmlns:batch="http://www.springframework.org/schema/batch"
        xmlns:p="http://www.springframework.org/schema/p"
        xmlns:mybatis="http://mybatis.org/schema/mybatis-spring"
-       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
-             http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
-             http://www.springframework.org/schema/batch http://www.springframework.org/schema/batch/spring-batch.xsd
+       xsi:schemaLocation="http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd
+             http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd
+             http://www.springframework.org/schema/batch https://www.springframework.org/schema/batch/spring-batch.xsd
              http://mybatis.org/schema/mybatis-spring http://mybatis.org/schema/mybatis-spring.xsd">
 
     <!-- omitted -->
@@ -1055,16 +1058,20 @@ tutorial.insert-data.script=file:sqls/insert-member-info-error-data.sql
 ==== コンソールログの確認
 Console Viewを開き、以下の内容のログが出力されていることを確認する。
 
-* 例外が発生していないこと
-* WARNログとして次のメッセージを出力していること
-** 「The Point exceeds 1000000.」
+* 処理が完了(COMPLETED)し、例外が発生していないこと。
+* WARNログとして次のメッセージを出力していること。
+** 「The point exceeds 1000000.」
 
 [source, console]
 .コンソールログ出力例
 ----
-[2017/09/11 15:36:29] [main] [o.t.b.t.e.t.PointAddTasklet] [WARN ] The point exceeds 1000000.
-[2017/09/11 15:36:29] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=jobPointAddTasklet]] completed with the following parameters: [{jsr_batch_run_id=468}] and the following status: [COMPLETED]
-[2017/09/11 15:36:29] [main] [o.s.c.s.ClassPathXmlApplicationContext] [INFO ] Closing org.springframework.context.support.ClassPathXmlApplicationContext@735f7ae5: startup date [Mon Sep 11 15:36:27 JST 2017]; root of context hierarchy
+(.. omitted)
+
+[2020/03/10 16:15:14] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=jobPointAddTasklet]] launched with the following parameters: [{jsr_batch_run_id=152}]
+[2020/03/10 16:15:14] [main] [o.s.b.c.j.SimpleStepHandler] [INFO ] Executing step: [jobPointAddTasklet.step01]
+[2020/03/10 16:15:14] [main] [c.e.b.t.d.t.PointAddTasklet] [WARN ] The point exceeds 1000000.
+[2020/03/10 16:15:14] [main] [o.s.b.c.s.AbstractStep] [INFO ] Step: [jobPointAddTasklet.step01] executed in 204ms
+[2020/03/10 16:15:14] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=jobPointAddTasklet]] completed with the following parameters: [{jsr_batch_run_id=152}] and the following status: [COMPLETED] in 271ms
 ----
 
 [[Ch09_Impl_ExceptionHandlingWithTryCatchJob_Tasklet_Execution_Exitcode]]
@@ -1085,20 +1092,19 @@ image::ch09/ExceptionHandlingWithTryCatch/Ch09_ExceptionHandlingWithTryCatchJob_
 
 [[Ch09_Impl_ExceptionHandlingWithTryCatchJob_Tasklet_Execution_Output_Table]]
 ===== 会員情報テーブルの確認
-Data Source Explorerを使用して会員情報テーブルの確認を行う。 +
 更新前後の会員情報テーブルの内容を比較し、確認内容のとおりとなっていることを確認する。 +
-確認手順は<<Ch09_EnvironmentConstruction.adoc#Ch09_EnvironmentConstruction_OperationCheck_RefDB,Data Source Explorerを使用してデータベースを参照する>>を参照。
+確認手順は<<Ch09_EnvironmentConstruction.adoc#Ch09_EnvironmentConstruction_OperationCheck_RefDB,DBeaverを使用してデータベースを参照する>>を参照。
 
 確認内容::
 * エラーレコード(会員番号が"000000013")を除くすべてのレコードについて
 ** statusカラム
-*** "0"(初期状態)のレコードが存在しないこと
+*** "1"(処理対象)から"0"(初期状態)に更新されていること
 ** pointカラム
 *** ポイント加算対象について、会員種別に応じたポイントが加算されていること
 **** typeカラムが"G"(ゴールド会員)の場合は100ポイント
 **** typeカラムが"N"(一般会員)の場合は10ポイント
 * エラーレコード(会員番号が"000000013")について
-** 更新されていないこと
+** 更新されていないこと(破線の赤枠で示した範囲)
 
 更新前後の会員情報テーブルの内容は以下のとおり。
 
@@ -1113,13 +1119,14 @@ image::ch09/ExceptionHandlingWithTryCatch/Ch09_ExceptionHandlingWithTryCatchJob_
 * 出力ディレクトリに会員情報ファイルが出力されていること
 ** 出力ファイル: files/output/output-member-info-data.csv
 * エラーレコード(会員番号が"00000013")を除くすべてのレコードについて
-** statusカラム
-*** "0"(初期状態)のレコードが存在しないこと
-** pointカラム
+** statusフィールド
+*** "1"(処理対象)から"0"(初期状態)に更新されていること
+** pointフィールド
 *** ポイント加算対象について、会員種別に応じたポイントが加算されていること
-**** typeカラムが"G"(ゴールド会員)の場合は100ポイント
-**** typeカラムが"N"(一般会員)の場合は10ポイント
-* エラーレコード(会員番号が"00000013")が出力されていないこと
+**** typeフィールドが"G"(ゴールド会員)の場合は100ポイント
+**** typeフィールドが"N"(一般会員)の場合は10ポイント
+* エラーレコード(会員番号が"00000013")について
+** 出力されていないこと(破線の赤枠で示した範囲)
 
 会員情報ファイルの入出力内容は以下のとおり。 +
 ファイルのフィールドはid(会員番号)、type(会員種別)、status(商品購入フラグ)、point(ポイント)の順で出力される。

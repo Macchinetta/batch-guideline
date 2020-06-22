@@ -54,7 +54,7 @@ include::_include_all.adoc[]
 . リラン前にデータの初期化などデータ回復の事前作業を実施する。
 . 失敗したジョブを同じ条件(同じパラメータ)で再度実行する。
 ** {SB}では同じパラメータでジョブを実行すると二重実行と扱われるが、{batch5_shortname}では別ジョブとして扱う。 +
-   詳細は、<<Ch04_JobParameter.adoc#Ch04_JobParameter_HowToUse_Converter,"パラメータ変換クラスについて">>を参照のこと。
+   詳細は、<<Ch04_JobParameter.adoc#Ch04_JobParameter_HowToUse_Converter,"パラメータ変換クラスについて">>を参照。
 
 [[Ch06_RerunRestart_HowToUse_Restart]]
 === ジョブのリスタート

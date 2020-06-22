@@ -98,7 +98,7 @@ image::ch08/FlowControl/Ch08_FlowControl_StepExecution.png[FlowControl]
 ====
 複数ジョブの並列化・多重化は、一般的にジョブスケジューラとジョブネットによって実現することが多い。 +
 しかし、{batch5_shortname}ではフロー制御の機能を応用し、複数ジョブの並列化、多重化を実現する方法を説明している。
-詳細は、<<Ch08_ParallelAndMultiple.adoc#Ch08_ParallelAndMultiple, "並列処理と多重処理">>を参照。
+詳細は、<<Ch08_ParallelAndMultiple.adoc#Ch08_ParallelAndMultiple, 並列処理と多重処理>>を参照。
 ====
 
 本機能は、チャンクモデルとタスクレットモデルとで同じ使い方になる。
@@ -118,7 +118,7 @@ Macchinetta Batch 2.xでのフロー制御方法を説明する。
 
 [TIP]
 ====
-ジョブのリスタート方法については<<Ch06_ReProcessing.adoc#Ch06_RerunRestart_HowToUse_Restart, "ジョブのリスタート">>を参照。
+ジョブのリスタート方法については<<Ch06_ReProcessing.adoc#Ch06_RerunRestart_HowToUse_Restart, ジョブのリスタート>>を参照。
 ====
 
 ここでは3つのステップからなるジョブのシーケンシャルフローを設定する。
@@ -191,7 +191,7 @@ Macchinetta Batch 2.xでのフロー制御方法を説明する。
 |説明
 
 |(1)
-|parent属性に(2)で定義したフローのidを設定する。
+|``parent``属性に(2)で定義したフローのidを設定する。
 
 |(2)
 |シーケンシャルフローを定義する。
@@ -331,8 +331,8 @@ public class ConfirmPromotionalTasklet implements Tasklet {
 |(3)
 |``ExecutionContextPromotionListener``を用い、
 ステップ実行コンテキストからジョブ実行コンテキストに受け渡しデータを移す。 +
-``keys``プロパティには(1)で指定した受け渡しキーを指定する。 +
-``strict=true``プロパティにより、ステップ実行コンテキストに存在しない場合は``IllegalArgumentException``がスローされる。
+``keys``属性には(1)で指定した受け渡しキーを指定する。 +
+``strict``属性に``true``を設定することにより、ステップ実行コンテキストに存在しない場合は``IllegalArgumentException``がスローされる。
 ``false``の場合は受け渡しデータがなくても処理が継続する。
 |===
 
@@ -452,7 +452,7 @@ public class PromotionTargetItemProcessor implements ItemProcessor<String, Strin
 ====
 以降の説明では「ステータス」と「終了コード」という言葉が頻繁に登場する。 +
 これらの判別がつかない場合混乱を招く恐れがあるため、
-まず<<Ch07_JobManagement.adoc#Ch07_JobManagement_HowToUse_ExitCode,"終了コードのカスタマイズ">>を参照してほしい。
+まず<<Ch07_JobManagement.adoc#Ch07_JobManagement_HowToUse_ExitCode,"終了コードのカスタマイズ">>を参照。
 ====
 
 [[Ch08_FlowControll_HowToExtend_ConditionFlow]]
@@ -603,6 +603,6 @@ public class PromotionTargetItemProcessor implements ItemProcessor<String, Strin
 これを回避するためには上述で示したように``exit-code``で""(空文字)を付与すること。
 
 不具合の詳細は
-https://jira.spring.io/browse/BATCH-2315[{SB}/BATCH-2315]
+https://github.com/spring-projects/spring-batch/issues/1287[{SB}/BATCH-2315]
 を参照。
 ====

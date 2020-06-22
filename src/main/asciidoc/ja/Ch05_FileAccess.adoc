@@ -108,7 +108,7 @@ XMLについて<<Ch05_FileAccess_HowToExtend>>で説明する。
 .ファイルフォーマット関連の名称について
 ====
 個々のシステムにおけるファイルフォーマットの定義によっては、
-フッタレコードをエンドレコードと呼ぶなど等ガイドラインとは異なる名称が使われている場合がある。 +
+フッタレコードをエンドレコードと呼ぶなど本ガイドラインとは異なる名称が使われている場合がある。 +
 適宜読み替えを行うこと。
 ====
 
@@ -211,15 +211,15 @@ F,3,9,4500000000  // (3)
 [IMPORTANT]
 .データ部のフォーマットに関する前提
 ====
-<<Ch05_FileAccess_HowToUse>>では、データ部のレイアウトは同一のフォーマットである事を前提して説明する。 +
-これは、データ部のレコードはすべて同じ変換対象クラスへマッピングされることを意味する。
+<<Ch05_FileAccess_HowToUse>>では、データ部のレコードが同一のフォーマットである事を前提として説明する。 +
+これは、データ部のレコードがすべて同じ変換対象クラスへマッピングされることを意味する。
 ====
 
 [IMPORTANT]
 .マルチフォーマットファイルの説明について
 ====
 * <<Ch05_FileAccess_HowToUse>>では、シングルフォーマットファイルについて説明する。
-* マルチフォーマットや上記の構造にフッタ部を含む構造をもつフラットファイルについては、<<Ch05_FileAccess_HowToExtend>>を参照すること
+* マルチフォーマットや上記の構造にフッタ部を含む構造をもつフラットファイルについては、<<Ch05_FileAccess_HowToExtend>>を参照。
 ====
 
 [[Ch05_FileAccess_Overview_FileAccessComponents]]
@@ -362,7 +362,7 @@ public class SalesPlanDetail {
 .設定内容の項目一覧
 |===
 |項番
-|プロパティ名
+|設定項目名
 |設定内容
 |必須
 |デフォルト値
@@ -426,7 +426,7 @@ CSV形式の一般的書式とされるRFC-4180の仕様に定義されている
 |(9)
 |fieldSetMapper
 |文字列や数字など特別な変換処理が不要な場合は、``org.springframework.batch.item.file.mapping.BeanWrapperFieldSetMapper``を利用し、
-プロパティ``targetType``に変換対象クラスを指定する。
+``targetType``属性に変換対象クラスを指定する。
 これにより、(5)で設定した各項目の名前と一致するフィールドに値を自動的に設定したインスタンスを生成する。 +
 変換処理が必要な場合は、``org.springframework.batch.item.file.mapping.FieldSetMapper``の実装クラスを設定する。
 |icon:check[]
@@ -436,7 +436,7 @@ CSV形式の一般的書式とされるRFC-4180の仕様に定義されている
 [NOTE]
 .FieldSetMapperの独自実装について
 ====
-FieldSetMapperを独自に実装する場合については、<<Ch05_FileAccess_HowToExtend>>を参照すること。
+FieldSetMapperを独自に実装する場合については、<<Ch05_FileAccess_HowToExtend>>を参照。
 ====
 
 [NOTE]
@@ -466,7 +466,7 @@ TSVファイルの読み込みを行う場合には、区切り文字にタブ�
 [WARNING]
 .BeanWrapperFieldSetMapperの留意事項
 ====
-`BeanWrapperFieldSetMapper`は、文字列を`trim`するため、先頭・末尾の空白と制御文字が削除されることに留意すること。
+``BeanWrapperFieldSetMapper``は、文字列を``trim``するため、先頭・末尾の空白と制御文字が削除されることに留意すること。
 
 ====
 
@@ -534,7 +534,7 @@ public class Customer {
 .設定内容の項目一覧
 |===
 |項番
-|プロパティ名
+|設定項目名
 |設定内容
 |必須
 |デフォルト値
@@ -568,7 +568,7 @@ icon:warning[] trueの場合、shouldDeleteIfExistsの設定値は無効化さ�
 
 |(5)
 |shouldDeleteIfExists
-|icon:warning[] appendAllowedがtrueの場合は、このプロパティは無効化されるため、プロパティを指定しないことを推奨する。 +
+|icon:warning[] appendAllowedがtrueの場合は、この設定は無効化されるため、値を指定しないことを推奨する。 +
 trueの場合、既にファイルが存在すれば削除する。 +
 falseの場合、既にファイルが存在すれば例外をスローする。
 |
@@ -577,13 +577,13 @@ falseの場合、既にファイルが存在すれば例外をスローする。
 |(6)
 |shouldDeleteIfEmpty
 |trueの場合、出力件数が0件であれば出力対象ファイルを削除する。 +
-icon:warning[] 他のプロパティとの組み合わせによって意図しない動作をする場合があるため、trueは設定しないことを推奨する。詳細は<<Ch05_FileAccess_HowToUse_VariableLength_Output_AboutShouldDeleteIfEmpty,後述>>する。
+icon:warning[] 他の設定との組み合わせによって意図しない動作をする場合があるため、trueは設定しないことを推奨する。詳細は<<Ch05_FileAccess_HowToUse_VariableLength_Output_AboutShouldDeleteIfEmpty,後述>>する。
 |
 |false
 
 |(7)
 |transactional
-|トランザクション制御を行うかを設定する。詳細は、<<Ch05_Transaction.adoc#Ch05_Transaction,トランザクション制御>>を参照のこと。
+|トランザクション制御を行うかを設定する。詳細は、<<Ch05_Transaction.adoc#Ch05_Transaction,トランザクション制御>>を参照。
 |
 |true
 
@@ -605,7 +605,7 @@ icon:warning[] 他のプロパティとの組み合わせによって意図し�
 |fieldExtractor
 |文字列や数字など特別な変換処理が不要な場合は、``org.springframework.batch.item.file.transform.BeanWrapperFieldExtractor``が利用できる。 +
 変換処理が必要な場合は、``org.springframework.batch.item.file.transform.FieldExtractor``の実装クラスを設定する。 +
-``FieldExtractor``の実装例は<<Ch05_FileAccess_HowToUse_FixedLength_Output,固定長レコードの出力>>にて、全角文字のフォーマットを例に説明しているためそちらを参照すること。
+``FieldExtractor``の実装例は<<Ch05_FileAccess_HowToUse_FixedLength_Output,固定長レコードの出力>>にて、全角文字のフォーマットを例に説明しているためそちらを参照。
 |icon:check[]
 |なし
 
@@ -618,7 +618,7 @@ icon:warning[] 他のプロパティとの組み合わせによって意図し�
 
 [IMPORTANT]
 [[Ch05_FileAccess_HowToUse_VariableLength_Output_AboutShouldDeleteIfEmpty]]
-.FlatFileItemWriterのプロパティshouldDeleteIfEmptyにはtrueは設定しないことを推奨する
+.FlatFileItemWriterのshouldDeleteIfEmptyプロパティにはtrueは設定しないことを推奨する
 ====
 FlatFileItemWriterは、以下のような組み合わせでプロパティ設定を行った場合に意図しないファイル削除が行われてしまう。
 
@@ -686,7 +686,7 @@ shouldDeleteIfEmptyにtrueを設定すると、出力件数が0件の場合に�
 .設定内容の項目一覧
 |===
 |項番
-|プロパティ名
+|設定項目名
 |設定内容
 |必須
 |デフォルト値
@@ -724,7 +724,7 @@ falseの場合フィールド内に行頭復帰(CR)、改行(LF)、区切り文�
 {terasoluna_batch5_shortname}では、RFC-4180の仕様を満たすことを目的として拡張クラス``org.terasoluna.batch.item.file.transform.EnclosableDelimitedLineAggregator``を提供している。
 
 {SB}が提供している``org.springframework.batch.item.file.transform.DelimitedLineAggregator``はフィールドを囲み文字で囲む処理に対応しておらず、RFC-4180の仕様を満たすことができないためである。
-https://jira.spring.io/browse/BATCH-2463[{SB}/BATCH-2463] を参照のこと。
+https://github.com/spring-projects/spring-batch/issues/1139[{SB}/BATCH-2463] を参照。
 
 CSV形式のフォーマットについて、CSV形式の一般的書式とされるRFC-4180では下記のように定義されている。
 
@@ -870,7 +870,7 @@ public class SalesPlanDetail {
 .設定内容の項目一覧
 |===
 |項番
-|プロパティ名
+|設定項目名
 |設定内容
 |必須
 |デフォルト値
@@ -947,7 +947,7 @@ icon:warning[] {SB}が提供するコンポーネントの文字コードのデ�
 |(10)
 |fieldSetMapper
 |文字列や数字など特別な変換処理が不要な場合は、``org.springframework.batch.item.file.mapping.BeanWrapperFieldSetMapper``を利用し、
-プロパティ``targetType``に変換対象クラスを指定する。
+``targetType``属性に変換対象クラスを指定する。
 これにより、(6)で設定した各項目の名前と一致するフィールドに値を自動的に設定したインスタンスを生成する。 +
 変換処理が必要な場合は、``org.springframework.batch.item.file.mapping.FieldSetMapper``の実装クラスを設定する。
 
@@ -960,7 +960,7 @@ icon:warning[] {SB}が提供するコンポーネントの文字コードのデ�
 [NOTE]
 .FieldSetMapperの独自実装について
 ====
-FieldSetMapperを独自に実装する場合については、<<Ch05_FileAccess_HowToExtend>>を参照すること。
+FieldSetMapperを独自に実装する場合については、<<Ch05_FileAccess_HowToExtend>>を参照。
 ====
 
 .FixedByteLengthBufferedReaderFactoryの使用方法
@@ -993,7 +993,7 @@ FieldSetMapperを独自に実装する場合については、<<Ch05_FileAccess_
 .設定内容の項目一覧
 |===
 |項番
-|プロパティ名
+|設定項目名
 |設定内容
 |必須
 |デフォルト値
@@ -1022,10 +1022,10 @@ FixedByteLengthLineTokenizer::
 ====
 マルチバイト文字列を含むレコードを処理する場合は、``FixedByteLengthLineTokenizer``を必ず利用する。 +
 {SB}が提供する``FixedLengthTokenizer``は、レコードをバイト数ではなく文字数で区切ってしまうため、期待どおりの項目切り出しが行われない恐れがある。
-この点についてはJIRAの https://jira.spring.io/browse/BATCH-2540[{SB}/BATCH-2540] で報告しているため、今後不要になる可能性がある。
+この点についてはlink:https://github.com/spring-projects/spring-batch/issues/1062[{SB}/BATCH-2540]で報告しているため、今後不要になる可能性がある。
 ====
 
-NOTE: FieldSetMapperの実装については、<<Ch05_FileAccess_HowToExtend>>を参照すること。
+NOTE: FieldSetMapperの実装については、<<Ch05_FileAccess_HowToExtend>>を参照。
 
 [[Ch05_FileAccess_HowToUse_FixedLength_Output]]
 ==== 出力
@@ -1138,7 +1138,7 @@ public class SalesPlanDetail {
 .設定内容の項目一覧
 |===
 |項番
-|プロパティ名
+|設定項目名
 |設定内容
 |必須
 |デフォルト値
@@ -1173,7 +1173,7 @@ icon:warning[] trueの場合、shouldDeleteIfExistsの設定値は無効化さ�
 
 |(5)
 |shouldDeleteIfExists
-|icon:warning[] appendAllowedがtrueの場合は、このプロパティは無効化されるため、プロパティを指定しないことを推奨する。 +
+|icon:warning[] appendAllowedがtrueの場合は、この設定は無効化されるため、値を指定しないことを推奨する。 +
 trueの場合、既にファイルが存在すれば削除する。 +
 falseの場合、既にファイルが存在すれば例外をスローする。
 |
@@ -1182,13 +1182,13 @@ falseの場合、既にファイルが存在すれば例外をスローする。
 |(6)
 |shouldDeleteIfEmpty
 |trueの場合、出力件数が0件であれば出力対象ファイルを削除する。 +
-icon:warning[] 他のプロパティとの組み合わせによって意図しない動作をする場合があるため、trueは設定しないことを推奨する。詳細は<<Ch05_FileAccess_HowToUse_VariableLength_Output_AboutShouldDeleteIfEmpty,可変長レコードの出力の注意書き>>を参照すること。
+icon:warning[] 他の設定との組み合わせによって意図しない動作をする場合があるため、trueは設定しないことを推奨する。詳細は<<Ch05_FileAccess_HowToUse_VariableLength_Output_AboutShouldDeleteIfEmpty,可変長レコードの出力の注意書き>>を参照。
 |
 |false
 
 |(7)
 |transactional
-|トランザクション制御を行うかを設定する。詳細は、<<Ch05_Transaction.adoc#Ch05_Transaction,トランザクション制御>>を参照
+|トランザクション制御を行うかを設定する。詳細は、<<Ch05_Transaction.adoc#Ch05_Transaction,トランザクション制御>>を参照。
 |
 |true
 
@@ -1223,9 +1223,9 @@ icon:warning[] 他のプロパティとの組み合わせによって意図し�
 [NOTE]
 .PassThroughFieldExtractorとは
 ====
-``FormatterLineAggregator``がもつプロパティ``fieldExtractor``のデフォルト値は``org.springframework.batch.item.file.transform.PassThroughFieldExtractor``である。
+``FormatterLineAggregator``がもつ``fieldExtractor``プロパティのデフォルト値は``org.springframework.batch.item.file.transform.PassThroughFieldExtractor``である。
 
-``PassThroughFieldExtractor``は、元のアイテムに対して処理を行わずに返すクラスであり、``FieldExtractor``にて何も処理を行わない場合に使用する。
+``PassThroughFieldExtractor``は、もとのアイテムに対して処理を行わずに返すクラスであり、``FieldExtractor``にて何も処理を行わない場合に使用する。
 
 アイテムが配列またはコレクションの場合はそのまま返されるが、それ以外の場合は、単一要素の配列にラップされる。
 ====
@@ -1244,7 +1244,7 @@ icon:warning[] 他のプロパティとの組み合わせによって意図し�
 ``FieldExtractor``の実装クラスで行う全角文字を含むフィールドのフォーマットは以下の要領で実装する。
 
 * 文字コードに対するバイト数を取得する
-* 取得したバイト数を元にパディング・トリム処理で整形する
+* 取得したバイト数をもとにパディング・トリム処理で整形する
 
 以下に全角文字を含むフィールドをフォーマットする場合の設定例を示す。
 
@@ -1275,7 +1275,7 @@ icon:warning[] 他のプロパティとの組み合わせによって意図し�
 .設定内容の項目一覧
 |===
 |項番
-|プロパティ名
+|設定項目名
 |設定内容
 |必須
 |デフォルト値
@@ -1385,7 +1385,7 @@ public class SalesPlanFixedLengthFieldExtractor implements FieldExtractor<SalesP
 
 |(4)
 |全角文字が含まれるフィールドに対してフォーマット処理を行う。 +
-フォーマット処理の詳細は(5)、(6)を参照すること。
+フォーマット処理の詳細は(5)、(6)を参照。
 
 |(5)
 |文字コードに対するバイト数を取得する。
@@ -1394,7 +1394,7 @@ public class SalesPlanFixedLengthFieldExtractor implements FieldExtractor<SalesP
 |取得したバイト数が最大長を超えている場合は、例外をスローする。
 
 |(7)
-|取得したバイト数を元にパディング・トリム処理で整形する。 +
+|取得したバイト数をもとにパディング・トリム処理で整形する。 +
 実装例では指定されたバイト数まで文字列の前に空白を付与している。
 
 |(8)
@@ -1440,7 +1440,7 @@ Summary3:6,000,000,000
 .設定内容の項目一覧
 |===
 |項番
-|プロパティ名
+|設定項目名
 |設定内容
 |必須
 |デフォルト値
@@ -1510,7 +1510,7 @@ Summary3:6,000,000,000
 .設定内容の項目一覧
 |===
 |項番
-|プロパティ名
+|設定項目名
 |設定内容
 |必須
 |デフォルト値
@@ -1544,7 +1544,7 @@ icon:warning[] trueの場合、shouldDeleteIfExistsの設定値は無効化さ�
 
 |(5)
 |shouldDeleteIfExists
-|icon:warning[] appendAllowedがtrueの場合は、このプロパティは無効化されるため、プロパティを指定しないことを推奨する。 +
+|icon:warning[] appendAllowedがtrueの場合は、この設定は無効化されるため、値を指定しないことを推奨する。 +
 trueの場合、既にファイルが存在すれば削除する。 +
 falseの場合、既にファイルが存在すれば例外をスローする。
 |
@@ -1553,7 +1553,7 @@ falseの場合、既にファイルが存在すれば例外をスローする。
 |(6)
 |shouldDeleteIfEmpty
 |trueの場合、出力件数が0件であれば出力対象ファイルを削除する。 +
-icon:warning[] 他のプロパティとの組み合わせによって意図しない動作をする場合があるため、trueは設定しないことを推奨する。詳細は<<Ch05_FileAccess_HowToUse_VariableLength_Output_AboutShouldDeleteIfEmpty,可変長レコードの出力の注意書き>>を参照すること。
+icon:warning[] 他の設定との組み合わせによって意図しない動作をする場合があるため、trueは設定しないことを推奨する。詳細は<<Ch05_FileAccess_HowToUse_VariableLength_Output_AboutShouldDeleteIfEmpty,可変長レコードの出力の注意書き>>を参照。
 |
 |false
 
@@ -1622,7 +1622,7 @@ branchId,year,month,customerId,amount
 .設定内容の項目一覧
 |===
 |項番
-|プロパティ名
+|設定項目名
 |設定内容
 |必須
 |デフォルト値
@@ -1763,7 +1763,7 @@ tail -n +`expr ${header} + 1` ${input} | head -n -${footer} > ${output}
 .設定内容の項目一覧
 |===
 |項番
-|プロパティ名
+|設定項目名
 |設定内容
 |必須
 |デフォルト値
@@ -1942,7 +1942,7 @@ public class LoggingHeaderRecordItemProcessor implements
 下記の例では1つのステップ内でヘッダ情報の取得および利用を行うため``StepExecution``の``ExecutionContext``へヘッダ情報を格納している。
 ヘッダ情報の取得および利用にてステップが分かれる場合は``JobExecution``の``ExecutionContext``を利用すること。
 
-Job/Stepの``ExecutionContext``に関する詳細は、<<Ch02_SpringBatchArchitecture.adoc#Ch02_SpringBatchArch,{SB}のアーキテクチャ>>を参照すること。
+Job/Stepの``ExecutionContext``に関する詳細は、<<Ch02_SpringBatchArchitecture.adoc#Ch02_SpringBatchArch,{SB}のアーキテクチャ>>を参照。
 ====
 
 [[Ch05_FileAccess_HowToUse_HeaderFooter_Input_SkipFooters]]
@@ -2049,7 +2049,7 @@ total of amounts,6000000000
 OSコマンドにて分割したフッタレコードからフッタ情報を取得、利用する方法を説明する。 +
 
 フッタレコードを読み込むステップを前処理として主処理とステップを分割している。 +
-ステップの分割に関する詳細は、<<Ch08_FlowControll.adoc#Ch08_FlowControll,フロー制御>>を参照すること。
+ステップの分割に関する詳細は、<<Ch08_FlowControll.adoc#Ch08_FlowControll,フロー制御>>を参照。
 
 下記の例ではフッタ情報を取得し、``jobExecutionContext``へフッタ情報を格納するまでの例を示す。 +
 ``jobExecutionContext``からフッタ情報を取得し利用する方法は<<Ch05_FileAccess_HowToUse_HeaderFooter_Input_AccessHeaders>>と同じ要領で実現可能である。
@@ -2186,7 +2186,7 @@ public class SalesPlanDetailFooter implements Serializable {
 |listeners
 |``readFooterTasklet``を設定する。 +
 この設定を行わないと``readFooterTasklet``内に実装する``JobExecutionListener#beforeJob()``が実行されない。 +
-詳しい理由は、<<Ch05_FileAccess_HowToUse_HeaderFooter_Input_AccessHeaders>>を参照すること。
+詳しい理由は、<<Ch05_FileAccess_HowToUse_HeaderFooter_Input_AccessHeaders>>を参照。
 |
 |なし
 |===
@@ -2249,7 +2249,7 @@ public class ReadFooterTasklet implements Tasklet {
 
 |(2)
 |``footerReader``を使用してフッタレコードを保持したファイルを読み込みフッタ情報を取得する。 +
-``Tasklet``の実装クラス内でBean定義した``ItemReader``を使用する方法は<<Ch03_CreateTaskletJob.adoc#Ch03_CreateTaskletJob_HowToUse_Impl,タスクレット指向ジョブの作成>>を参照すること。
+``Tasklet``の実装クラス内でBean定義した``ItemReader``を使用する方法は<<Ch03_CreateTaskletJob.adoc#Ch03_CreateTaskletJob_HowToUse_Impl,タスクレット指向ジョブの作成>>を参照。
 
 |(3)
 |``JobExecution``から``jobExecutionContext``を取得し、``footers``というキーを指定して``jobExecutionContext``へフッタ情報を格納する。
@@ -2323,7 +2323,7 @@ public class WriteHeaderFlatFileFooterCallback implements FlatFileHeaderCallback
 .設定内容の項目一覧
 |===
 |項番
-|プロパティ名
+|設定項目名
 |設定内容
 |必須
 |デフォルト値
@@ -2444,7 +2444,7 @@ public class WriteFooterFlatFileFooterCallback implements FlatFileFooterCallback
 .設定内容の項目一覧
 |===
 |項番
-|プロパティ名
+|設定項目名
 |設定内容
 |必須
 |デフォルト値
@@ -2470,9 +2470,9 @@ public class WriteFooterFlatFileFooterCallback implements FlatFileFooterCallback
 ``MultiResourceItemReader``は以下の要領で定義する。
 
 * ``MultiResourceItemReader``のBeanを定義する
-** プロパティ``resources``に読み込み対象のファイルを指定する
+** ``resources``プロパティに読み込み対象のファイルを指定する
 *** 正規表現で複数ファイルを指定する
-** プロパティ``delegate``にファイル読み込みに利用する``ItemReader``を指定する
+** ``delegate``プロパティにファイル読み込みに利用する``ItemReader``を指定する
 
 下記に示す複数のファイルを読み込む``MultiResourceItemReader``の定義例は以下のとおりである。
 
@@ -2507,7 +2507,7 @@ sales_plan_detail_03.csv
 .設定内容の項目一覧
 |===
 |項番
-|プロパティ名
+|設定項目名
 |設定内容
 |必須
 |デフォルト値
@@ -2526,7 +2526,7 @@ sales_plan_detail_03.csv
 
 |(3)
 |実際にファイルを読み込み処理する``ItemReader``
-|プロパティ``resource``は、``MultiResourceItemReader``から自動的に設定されるため、Bean定義に設定は不要である。
+|``resource``プロパティは、``MultiResourceItemReader``から自動的に設定されるため、Bean定義に設定は不要である。
 |icon:check[]
 |
 |===
@@ -2559,11 +2559,11 @@ sales_plan_detail_03.csv
 
 * ``ResourceSuffixCreator``の実装クラスを定義する
 * ``MultiResourceItemWriter``のBeanを定義する
-** プロパティ``resources``に出力対象のファイルを指定する
+** ``resources``プロパティに出力対象のファイルを指定する
 *** ``ResourceSuffixCreator``の実装クラスで付与するサフィックスまでを設定
-** プロパティ``resourceSuffixCreator``にサフィックスを生成する``ResourceSuffixCreator``の実装クラスを指定する
-** プロパティ``delegate``にファイル読み込みに利用する``ItemWriter``を指定する
-** プロパティ``itemCountLimitPerResource``に1ファイルあたりの出力件数を指定する
+** ``resourceSuffixCreator``プロパティにサフィックスを生成する``ResourceSuffixCreator``の実装クラスを指定する
+** ``delegate``プロパティにファイル読み込みに利用する``ItemWriter``を指定する
+** ``itemCountLimitPerResource``プロパティに1ファイルあたりの出力件数を指定する
 
 [source, xml]
 .Bean定義
@@ -2594,7 +2594,7 @@ sales_plan_detail_03.csv
 .設定内容の項目一覧
 |===
 |項番
-|プロパティ名
+|設定項目名
 |設定内容
 |必須
 |デフォルト値
@@ -2627,7 +2627,7 @@ sales_plan_detail_03.csv
 
 |(5)
 |実際にファイルを読み込み処理する``ItemWriter``
-|プロパティ``resource``は、``MultiResourceItemWriter``から自動的に設定されるため、Bean定義に設定は不要である。
+|``resource``プロパティは、``MultiResourceItemWriter``から自動的に設定されるため、Bean定義に設定は不要である。
 |icon:check[]
 |
 
@@ -2894,7 +2894,7 @@ public class ControlBreakTasklet implements Tasklet {
 |``SingleItemPeekableItemReader``をBean定義する。TaskletへのInject対象。
 
 |(2)
-|``delegate``プロパティに実際にファイルを読み込むItemReaderのBeanを指定する。
+|``delegate-ref``属性に実際にファイルを読み込むItemReaderのBeanを指定する。
 
 |(3)
 |実際にファイルを読み込むItemReaderのBeanを定義する。
@@ -2902,7 +2902,7 @@ public class ControlBreakTasklet implements Tasklet {
 
 
 [[Ch05_FileAccess_HowToExtend]]
-== How To Extend
+== How to extend
 
 ここでは、以下のケースについて説明する。
 
@@ -3100,15 +3100,15 @@ XMLファイルの入力には{SB}が提供する``org.springframework.batch.ite
 * XMLのルート要素となる変換対象クラスに``@XmlRootElement``を付与する
 
 * ``StaxEventItemReader``に以下のプロパティを設定する
-** プロパティ``resource``に読み込み対象ファイルを設定する
-** プロパティ``fragmentRootElementName``にルート要素の名前を設定する
-** プロパティ``unmarshaller``に``org.springframework.oxm.jaxb.Jaxb2Marshaller``を設定する
+** ``resource``プロパティに読み込み対象ファイルを設定する
+** ``fragmentRootElementName``プロパティにルート要素の名前を設定する
+** ``unmarshaller``プロパティに``org.springframework.oxm.jaxb.Jaxb2Marshaller``を設定する
 
 * ``Jaxb2Marshaller``には以下のプロパティを設定する
-** プロパティ``classesToBeBound``に変換対象のクラスをリスト形式で設定する
+** ``classesToBeBound``プロパティに変換対象のクラスをリスト形式で設定する
 ** スキーマファイルを用いたバリデーションを行う場合は、以下に示す2つのプロパティを設定する
-*** プロパティ``schema``にバリデーションにて使用するスキーマファイルを設定する
-*** プロパティ``validationEventHandler``にバリデーションにて発生したイベントを処理する``ValidationEventHandler``の実装クラスを設定する
+*** ``schema``プロパティにバリデーションにて使用するスキーマファイルを設定する
+*** ``validationEventHandler``プロパティにバリデーションにて発生したイベントを処理する``ValidationEventHandler``の実装クラスを設定する
 
 
 下記の入力ファイルを読み込むための設定例を示す。
@@ -3197,15 +3197,15 @@ public class PhoneNumber {
 |説明
 
 |(1)
-|``@XmlRootElement``アノテーションで``customer``要素をルート要素としてXML要素にマップする。 +
+|``@XmlRootElement``アノテーションで``<customer>``要素をルート要素としてXML要素にマップする。 +
 XML要素とクラス名が同じの場合、``name``属性での要素の指定は不要である。
 
 |(2)
-|``@XmlElement``アノテーションで``name``要素をXML要素にマップする。 +
+|``@XmlElement``アノテーションで``<name>``要素をXML要素にマップする。 +
 XML要素とJavaBeanプロパティが同じの場合、``name``属性での要素の指定は不要である。
 
 |(3)
-|``@XmlElement``アノテーションで``phone-number``要素をXML要素にマップする。 +
+|``@XmlElement``アノテーションで``<phone-number>``要素をXML要素にマップする。 +
 ``name``属性には、(4)の属性名でラップされる要素の名前を設定する。
 
 |(4)
@@ -3213,11 +3213,11 @@ XML要素とJavaBeanプロパティが同じの場合、``name``属性での要�
 ``name``属性には、ラッパー要素の名前を設定する。
 
 |(5)
-|``@XmlType``アノテーションで(3)の``phone-number``要素にクラスをマップする。 +
+|``@XmlType``アノテーションで(3)の``<phone-number>``要素にクラスをマップする。 +
 ``name``属性には、マップされる要素の名前を設定する。
 
 |(6)
-|``@XmlValue``アノテーションで(5)でマップされたクラスの``phone-number``要素にマップする。
+|``@XmlValue``アノテーションで(5)でマップされたクラスの``<phone-number>``要素にマップする。
 |===
 
 上記のファイルを読む込むための設定は以下のとおり。
@@ -3249,7 +3249,7 @@ XML要素とJavaBeanプロパティが同じの場合、``name``属性での要�
 .設定内容の項目一覧
 |===
 |項番
-|プロパティ名
+|設定項目名
 |設定内容
 |必須
 |デフォルト値
@@ -3449,11 +3449,11 @@ XMLファイルの出力には{SB}が提供する``org.springframework.batch.ite
 ** XMLへの変換対象外とするフィールドがある場合、対象フィールドのgetterに``@XmlTransient``アノテーションを付与する
 
 * ``StaxEventItemWriter``に以下のプロパティを設定する
-** プロパティ``resource``に出力対象ファイルを設定する
-** プロパティ``marshaller``に``org.springframework.oxm.jaxb.Jaxb2Marshaller``を設定する
+** ``resource``プロパティに出力対象ファイルを設定する
+** ``marshaller``プロパティに``org.springframework.oxm.jaxb.Jaxb2Marshaller``を設定する
 
 * ``Jaxb2Marshaller``には以下のプロパティを設定する
-** プロパティ``classesToBeBound``に変換対象のクラスをリスト形式で設定する
+** ``classesToBeBound``プロパティに変換対象のクラスをリスト形式で設定する
 
 下記の出力ファイルを書き出すための設定例を示す。
 
@@ -3551,7 +3551,7 @@ public class CustomerToJaxb {
 |説明
 
 |(1)
-|``@XmlRootElement``アノテーションで``Customer``要素をルート要素としてXML要素にマップする。 +
+|``@XmlRootElement``アノテーションで``<Customer>``要素をルート要素としてXML要素にマップする。 +
 ``name``属性には、``Customer``を設定する。
 
 |(2)
@@ -3592,7 +3592,7 @@ public class CustomerToJaxb {
 .設定内容の項目一覧
 |===
 |項番
-|プロパティ名
+|設定項目名
 |設定内容
 |必須
 |デフォルト値
@@ -3627,7 +3627,7 @@ falseの場合、既にファイルが存在すれば例外をスローする。
 |(5)
 |shouldDeleteIfEmpty
 |trueの場合、出力件数が0件であれば出力対象ファイルを削除する。 +
-icon:warning[] 他のプロパティとの組み合わせによって意図しない動作をする場合があるため、trueは設定しないことを推奨する。詳細は<<Ch05_FileAccess_HowToUse_VariableLength_Output_AboutShouldDeleteIfEmpty,可変長レコードの出力の注意書き>>を参照すること。
+icon:warning[] 他の設定との組み合わせによって意図しない動作をする場合があるため、trueは設定しないことを推奨する。詳細は<<Ch05_FileAccess_HowToUse_VariableLength_Output_AboutShouldDeleteIfEmpty,可変長レコードの出力の注意書き>>を参照。
 |
 |false
 
@@ -3711,7 +3711,7 @@ Spring Frameworkが提供するライブラリであるSpring Object/XML Marshal
 ====
 上記の出力ファイル例ではフォーマット処理(改行およびインデント)済みのXMLを例示しているが、実際にはフォーマットされていないファイルが出力される。
 
-詳細は、<<Ch05_FileAccess_HowToExtend_Xml_Output>>を参照すること。
+詳細は、<<Ch05_FileAccess_HowToExtend_Xml_Output>>を参照。
 ====
 
 上記のようなファイルを出力する設定を以下に示す。
@@ -3735,7 +3735,7 @@ Spring Frameworkが提供するライブラリであるSpring Object/XML Marshal
 .設定内容の項目一覧
 |===
 |項番
-|プロパティ名
+|設定項目名
 |設定内容
 |必須
 |デフォルト値
@@ -3817,18 +3817,18 @@ public class WriteHeaderStaxWriterCallback implements StaxWriterCallback { // (1
 
 マルチフォーマットファイルの読み込みには、{SB}が提供する``org.springframework.batch.item.file.mapping.PatternMatchingCompositeLineMapper``を使用する。 +
 マルチフォーマットファイルでは各レコードのフォーマットごとに異なるBeanにマッピングする必要がある。 +
-``PatternMatchingCompositeLineMapper``は、正規表現によってレコードに対して使用する``LineTokenizer``および``FieldSetMapper``を選択することができる。
+``PatternMatchingCompositeLineMapper``は、パターンマッチによってレコードに対して使用する``LineTokenizer``および``FieldSetMapper``を選択することができる。
 
-たとえば、以下のような形で使用する``LineTokenizers``を選択することが可能である。
+たとえば、以下のような形で使用する``LineTokenizer``を選択することが可能である。
 
-* 正規表現``USER*``(レコードの先頭が``USER``である)にマッチする場合は``userTokenizer``を使用する
-* 正規表現``LINEA*``(レコードの先頭が``LINEA``である)にマッチする場合は``lineATokenizer``を使用する
-
+* ``USER*``にマッチする(レコードの先頭が``USER``である)場合は``userTokenizer``を使用する
+* ``LINEA*``にマッチする(レコードの先頭が``LINEA``である)場合は``lineATokenizer``を使用する
 
 [IMPORTANT]
 .マルチフォーマットファイルを読み込む際のレコードにかかるフォーマットの制約
 ====
-マルチフォーマットファイルの読み込みを行うためには、正規表現でレコード区分を判別可能なフォーマットでなければならない。
+マルチフォーマットファイルを読み込むためには、レコード区分がAntPathMatcherによるパターンマッチで判別可能なフォーマットでなければならない。
+詳細は``https://docs.spring.io/spring-batch/docs/{spring_batch_version}/api/org/springframework/batch/support/PatternMatcher.html[PatternMatcher]``のAPIドキュメントを参照。
 ====
 
 ``PatternMatchingCompositeLineMapper``は以下の要領で実装する。
@@ -3836,8 +3836,8 @@ public class WriteHeaderStaxWriterCallback implements StaxWriterCallback { // (1
 * 変換対象クラスはレコード区分をもつクラスを定義し、各レコード区分のクラスに継承させる
 * 各レコードをBeanにマッピングするための``LineTokenizer``および``FieldSetMapper``を定義する
 * ``PatternMatchingCompositeLineMapper``を定義する
-** プロパティ``tokenizers``に各レコード区分に対応する``LineTokenizer``を設定する
-** プロパティ``fieldSetMappers``に各レコード区分に対応する``FieldSetMapper``を設定する
+** ``tokenizers``プロパティに各レコード区分に対応する``LineTokenizer``を設定する
+** ``fieldSetMappers``プロパティに各レコード区分に対応する``FieldSetMapper``を設定する
 
 [IMPORTANT]
 .変換対象クラスはレコード区分をもつクラスを定義し、各レコード区分のクラスに継承させる
@@ -3856,11 +3856,11 @@ image::Ch05_FileAccess_Conversion_target_class_with_inheritance_relationship.png
 [source, java]
 .ItemProcessorの定義例
 ----
-public class MultiLayoutItemProcessor implements
-        ItemProcessor<SalesPlanDetailMultiLayoutRecord, String> {
+public class MultiFormatItemProcessor implements
+        ItemProcessor<SalesPlanDetailMultiFormatRecord, String> {
     @Override
     // (1)
-    public String process(SalesPlanDetailMultiLayoutRecord item) throws Exception {
+    public String process(SalesPlanDetailMultiFormatRecord item) throws Exception {
         String record = item.getRecord();  // (2)
 
         switch (record) {  // (3)
@@ -3931,7 +3931,7 @@ E,3,9,4500000000
 /**
  * Model of record indicator of sales plan detail.
  */
-public class SalesPlanDetailMultiLayoutRecord {
+public class SalesPlanDetailMultiFormatRecord {
 
     protected String record;
 
@@ -3941,7 +3941,7 @@ public class SalesPlanDetailMultiLayoutRecord {
 /**
  * Model of sales plan detail header.
  */
-public class SalesPlanDetailHeader extends SalesPlanDetailMultiLayoutRecord {
+public class SalesPlanDetailHeader extends SalesPlanDetailMultiFormatRecord {
 
     private String description;
 
@@ -3951,7 +3951,7 @@ public class SalesPlanDetailHeader extends SalesPlanDetailMultiLayoutRecord {
 /**
  * Model of Sales plan Detail.
  */
-public class SalesPlanDetailData extends SalesPlanDetailMultiLayoutRecord {
+public class SalesPlanDetailData extends SalesPlanDetailMultiFormatRecord {
 
     private String branchId;
     private int year;
@@ -3965,7 +3965,7 @@ public class SalesPlanDetailData extends SalesPlanDetailMultiLayoutRecord {
 /**
  * Model of Sales plan Detail.
  */
-public class SalesPlanDetailTrailer extends SalesPlanDetailMultiLayoutRecord {
+public class SalesPlanDetailTrailer extends SalesPlanDetailMultiFormatRecord {
 
     private String branchId;
     private int number;
@@ -3977,7 +3977,7 @@ public class SalesPlanDetailTrailer extends SalesPlanDetailMultiLayoutRecord {
 /**
  * Model of Sales plan Detail.
  */
-public class SalesPlanDetailEnd extends SalesPlanDetailMultiLayoutRecord {
+public class SalesPlanDetailEnd extends SalesPlanDetailMultiFormatRecord {
     // omitted getter/setter
 
     private int headNum;
@@ -4057,7 +4057,7 @@ public class SalesPlanDetailEnd extends SalesPlanDetailMultiLayoutRecord {
 .設定内容の項目一覧
 |===
 |項番
-|プロパティ名
+|設定項目名
 |設定内容
 |必須
 |デフォルト値
@@ -4083,14 +4083,14 @@ public class SalesPlanDetailEnd extends SalesPlanDetailMultiLayoutRecord {
 |(4)
 |tokenizers
 |map形式で各レコード区分に対応する``LineTokenizer``を設定する。 +
-``key``にレコードを判別する正規表現を設定し、``value-ref``に使用する``LineTokenizer``を設定する。
+``key``にレコードを判別するパターンを設定し、``value-ref``に使用する``LineTokenizer``を設定する。
 |icon:check[]
 |なし
 
 |(5)
 |fieldSetMappers
 |map形式で各レコード区分に対応する``FieldSetMapper``を設定する。 +
-``key``にレコードを判別する正規表現を設定し、``value-ref``に使用する``FieldSetMapper``を設定する。
+``key``にレコードを判別するパターンを設定し、``value-ref``に使用する``FieldSetMapper``を設定する。
 |icon:check[]
 |なし
 |===
@@ -4110,7 +4110,7 @@ public class SalesPlanDetailEnd extends SalesPlanDetailMultiLayoutRecord {
 * ``ItemProcessor``にて変換対象クラスをレコード(文字列)に変換して``ItemWriter``に渡す
 ** 例では、各レコード区分ごとの``LineAggregator``および``FieldExtractor``を定義し、``ItemProcessor``でインジェクトして使用する
 * ``ItemWriter``では受け取った文字列をそのままファイルへ書き込みを行う
-** ``ItemWriter``のプロパティ``lineAggregator``に``PassThroughLineAggregator``を設定する
+** ``ItemWriter``の``lineAggregator``プロパティに``PassThroughLineAggregator``を設定する
 ** ``PassThroughLineAggregator``は受け取ったitemの``item.toString()``した結果を返す``LineAggregator``である
 
 以下に下記の出力ファイルを書き出すための設定例を示す。実装例を示す。
@@ -4190,7 +4190,7 @@ E,3,9,4500000000
 .設定内容の項目一覧
 |===
 |項番
-|プロパティ名
+|設定項目名
 |設定内容
 |必須
 |デフォルト値
@@ -4215,29 +4215,29 @@ E,3,9,4500000000
 [source, java]
 .ItemProcessorの定義例
 ----
-public class MultiLayoutItemProcessor implements
-        ItemProcessor<SalesPlanDetailMultiLayoutRecord, String> {
+public class MultiFormatItemProcessor implements
+        ItemProcessor<SalesPlanDetailMultiFormatRecord, String> {
 
     // (1)
     @Inject
     @Named("headerDelimitedLineAggregator")
-    DelimitedLineAggregator<SalesPlanDetailMultiLayoutRecord> headerDelimitedLineAggregator;
+    DelimitedLineAggregator<SalesPlanDetailMultiFormatRecord> headerDelimitedLineAggregator;
 
     @Inject
     @Named("dataDelimitedLineAggregator")
-    DelimitedLineAggregator<SalesPlanDetailMultiLayoutRecord> dataDelimitedLineAggregator;
+    DelimitedLineAggregator<SalesPlanDetailMultiFormatRecord> dataDelimitedLineAggregator;
 
     @Inject
     @Named("trailerDelimitedLineAggregator")
-    DelimitedLineAggregator<SalesPlanDetailMultiLayoutRecord> trailerDelimitedLineAggregator;
+    DelimitedLineAggregator<SalesPlanDetailMultiFormatRecord> trailerDelimitedLineAggregator;
 
     @Inject
     @Named("endDelimitedLineAggregator")
-    DelimitedLineAggregator<SalesPlanDetailMultiLayoutRecord> endDelimitedLineAggregator;
+    DelimitedLineAggregator<SalesPlanDetailMultiFormatRecord> endDelimitedLineAggregator;
 
     @Override
     // (2)
-    public String process(SalesPlanDetailMultiLayoutRecord item) throws Exception {
+    public String process(SalesPlanDetailMultiFormatRecord item) throws Exception {
         String record = item.getRecord();  // (3)
 
         switch (record) {  // (4)

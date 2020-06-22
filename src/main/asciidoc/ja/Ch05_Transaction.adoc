@@ -41,7 +41,7 @@ include::_include_all.adoc[]
 
 
 つまり、「影響の局所化」と「リカバリの容易さ」はトレードオフの関係にある。
-「中間コミット方式」と「一括コミット方式」のどちらを使うかは、ジョブの性質に応じてどちらを優先すべきかを決定して欲しい。 +
+「中間コミット方式」と「一括コミット方式」のどちらを使うかは、ジョブの性質に応じてどちらを優先すべきかを決定してほしい。 +
 もちろん、バッチシステム内のジョブすべてをどちらか一方で実現する必要はない。
 基本的には「中間コミット方式」を採用するが、特殊なジョブのみ「一括コミット方式」を採用する(または、その逆とする)ことは自然である。
 
@@ -82,7 +82,7 @@ include::_include_all.adoc[]
 
 * 情報を確保する領域を大きくする。
 ** 拡張する際には、リソース設計にて十分検討の上実施してほしい。
-** 拡張方法は使用するデータベースに依存するため、マニュアルを参照すること。
+** 拡張方法は使用するデータベースに依存するため、マニュアルを参照。
 * 入力データを分割し多重処理を行う。
 ** 多重処理については、<<Ch08_ParallelAndMultiple.adoc#Ch08_ParallelAndMultiple_HowToUse_Partitioning,"Partitioning Step (多重処理)">>を参照。
 ====
@@ -109,7 +109,7 @@ include::_include_all.adoc[]
 [WARNING]
 ====
 チャンクモデルにおける一括コミット方式についてはJIRAにレポートされている。 +
-https://jira.spring.io/browse/BATCH-647 +
+https://github.com/spring-projects/spring-batch/issues/2930[{SB}/BATCH-647] +
 結果、``chunk completion policy``をカスタマイズしてチャンクサイズを動的に変更することで解決している。
 しかし、この方法では全データを1チャンクに格納してしまいメモリを圧迫してしまうため、方式として採用することはできない。
 ====
@@ -463,7 +463,7 @@ image::Ch05_transaction_AsyncWithWeb_Transaction_Difference.png[With Web Applica
 |説明
 
 |(1)
-|``<batch:tasklet>``タグの``transaction-manager``属性に定義済みの``jobTransactionManager``を設定する。 +
+|``<batch:tasklet>``要素の``transaction-manager``属性に定義済みの``jobTransactionManager``を設定する。 +
 ここに設定したトランザクションマネージャで中間コミット方式のトランザクションを制御する。
 
 |(2)
@@ -495,7 +495,7 @@ image::Ch05_transaction_AsyncWithWeb_Transaction_Difference.png[With Web Applica
 |説明
 
 |(1)
-|``<batch:tasklet>``タグの``transaction-manager``属性に定義済みの``jobTransactionManager``を設定する。 +
+|``<batch:tasklet>``要素の``transaction-manager``属性に定義済みの``jobTransactionManager``を設定する。 +
 ここに設定したトランザクションマネージャで一括コミット方式のトランザクションを制御する。
 
 |===
@@ -518,7 +518,7 @@ image::Ch05_transaction_AsyncWithWeb_Transaction_Difference.png[With Web Applica
 [source,java]
 .実装例
 ----
-@Component()
+@Component
 public class SalesPlanChunkTranTask implements Tasklet {
 
     @Inject
@@ -583,7 +583,7 @@ public class SalesPlanChunkTranTask implements Tasklet {
 |説明
 
 |(1)
-|``<batch:tasklet>``タグの``transaction-manager``属性に定義済みの``jobResourcelessTransactionManager``を設定する。
+|``<batch:tasklet>``要素の``transaction-manager``属性に定義済みの``jobResourcelessTransactionManager``を設定する。
 
 |(2)
 |トランザクションマネージャをInjectする。 +
@@ -811,7 +811,7 @@ public class RetrieveBranchFromContextItemProcessor implements
 . 都度取得用のItemProcessorを定義し、業務処理と分離する。
 ** この際、テーブルアクセス時はMyBatisをそのまま使う。
 . 複数のItemProcessorをCompositeItemProcessorを使用して連結する。
-** ItemProcessorはdelegates属性に指定した順番に処理されることに留意する。
+** ItemProcessorは``delegates``属性に指定した順番に処理されることに留意する。
 
 [source,java]
 .都度取得用のItemProcessorの実装例

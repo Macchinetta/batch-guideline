@@ -4,17 +4,17 @@ start
   note
     Partitioning Step Job
   end Note
-  partition "Master step phase" {
-    :Master Step\nPartitioner\n(generate partition keys);
+  partition "Manager step phase" {
+    :Manager Step\nPartitioner\n(generate partition keys);
   }
 
-  partition "Slave step phase" {
+  partition "Worker step phase" {
     fork
-      :Slave Step1\nProcess partition data #1;
+      :Worker Step1\nProcess partition data #1;
     fork again
-      :Slave Step2\nProcess partition data #2;
+      :Worker Step2\nProcess partition data #2;
     fork again
-      :Slave Step3\nProcess partition data #3;
+      :Worker Step3\nProcess partition data #3;
     end fork
   }
 stop

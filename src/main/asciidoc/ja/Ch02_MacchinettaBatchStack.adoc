@@ -10,7 +10,7 @@ include::_include_all.adoc[]
 [[Ch02_MacchinettaBatchStack_Stack]]
 == {batch5_fullname}のスタック
 {batch5_fullname}で使用するSoftware Frameworkは、
-http://spring.io/projects/spring-framework[Spring Framework] (https://spring.io/projects/spring-batch[{SB}])
+https://spring.io/projects/spring-framework[Spring Framework] (https://spring.io/projects/spring-batch[{SB}])
 を中心としたOSSの組み合わせである。以下に{batch5_fullname}のスタック概略図を示す。
 
 .{batch5_fullname}のスタック概略図
@@ -26,7 +26,7 @@ image::Ch02_MacchinettaBatchStack_Stack.png[{batch5_fullname} Stack]
 ====
 {batch5_fullname}で使用するOSSのバージョンは、原則として、Spring Boot Dependenciesの定義に準じている。
 なお、バージョン{batch5_version}におけるSpring Boot Dependenciesのバージョンは、
-https://docs.spring.io/spring-boot/docs/2.1.2.RELEASE/reference/htmlsingle/[2.1.2.RELEASE]である。
+https://docs.spring.io/spring-boot/docs/2.2.4.RELEASE/reference/htmlsingle/[2.2.4.RELEASE]である。
 ====
 
 [cols="25,25,25,15,5,5", options="header"]
@@ -42,77 +42,77 @@ https://docs.spring.io/spring-boot/docs/2.1.2.RELEASE/reference/htmlsingle/[2.1.
 |Spring
 |org.springframework
 |spring-aop
-|5.1.4.RELEASE
+|{spring_fw_version}
 ^|*
 |
 
 |Spring
 |org.springframework
 |spring-beans
-|5.1.4.RELEASE
+|{spring_fw_version}
 ^|*
 |
 
 |Spring
 |org.springframework
 |spring-context
-|5.1.4.RELEASE
+|{spring_fw_version}
 ^|*
 |
 
 |Spring
 |org.springframework
 |spring-expression
-|5.1.4.RELEASE
+|{spring_fw_version}
 ^|*
 |
 
 |Spring
 |org.springframework
 |spring-core
-|5.1.4.RELEASE
+|{spring_fw_version}
 ^|*
 |
 
 |Spring
 |org.springframework
 |spring-tx
-|5.1.4.RELEASE
+|{spring_fw_version}
 ^|*
 |
 
 |Spring
 |org.springframework
 |spring-jdbc
-|5.1.4.RELEASE
+|{spring_fw_version}
 ^|*
 |
 
 |Spring
 |org.springframework
 |spring-oxm
-|5.1.4.RELEASE
+|{spring_fw_version}
 ^|*
 |
 
 |{SB}
 |org.springframework.batch
 |spring-batch-core
-|4.1.1.RELEASE
+|{spring_batch_version}
 ^|*
 |
 
 |{SB}
 |org.springframework.batch
 |spring-batch-infrastructure
-|4.1.1.RELEASE
+|{spring_batch_version}
 ^|*
 |
 
 |Spring Retry
 |org.springframework.retry
 |spring-retry
-|1.2.3.RELEASE
+|1.2.5.RELEASE
 ^|*
 |
 
@@ -121,19 +121,19 @@ https://docs.spring.io/spring-boot/docs/2.1.2.RELEASE/reference/htmlsingle/[2.1.
 |javax.batch-api
 |1.0
 ^|
-|
+^|*1
 
 |MyBatis3
 |org.mybatis
 |mybatis
-|3.5.0
+|3.5.3
 |
 |
 
 |MyBatis3
 |org.mybatis
 |mybatis-spring
-|2.0.0
+|2.0.3
 |
 |
 
@@ -154,14 +154,14 @@ https://docs.spring.io/spring-boot/docs/2.1.2.RELEASE/reference/htmlsingle/[2.1.
 |ログ出力
 |org.slf4j
 |jcl-over-slf4j
-|1.7.25
+|1.7.30
 ^|*
 |
 
 |ログ出力
 |org.slf4j
 |slf4j-api
-|1.7.25
+|1.7.30
 ^|*
 |
 
@@ -175,14 +175,14 @@ https://docs.spring.io/spring-boot/docs/2.1.2.RELEASE/reference/htmlsingle/[2.1.
 |入力チェック
 |org.hibernate.validator
 |hibernate-validator
-|6.0.14.Final
+|6.0.18.Final
 ^|*
 |
 
 |コネクションプール
 |org.apache.commons
 |commons-dbcp2
-|2.5.0
+|2.7.0
 ^|*
 |
 
@@ -190,29 +190,36 @@ https://docs.spring.io/spring-boot/docs/2.1.2.RELEASE/reference/htmlsingle/[2.1.
 |org.glassfish
 |javax.el
 |3.0.0
-^|*
+^|
 |
 
 |インメモリデータベース
 |com.h2database
 |h2
-|1.4.197
+|1.4.200
 ^|*
 |
 
 |JDBCドライバ
 |org.postgresql
 |postgresql
-|42.2.5
-^|
+|42.2.9
+^|*
 |
+
+|JSON
+|com.fasterxml.jackson.core
+|jackson-databind
+|2.10.2
+^|
+^|*1
 
 |JSON
 |org.codehaus.jettison
 |jettison
 |1.2
-^|*
-|
+^|
+^|*1
 
 |XML
 |javax.xml.bind
@@ -238,11 +245,16 @@ https://docs.spring.io/spring-boot/docs/2.1.2.RELEASE/reference/htmlsingle/[2.1.
 |TERASOLUNA Batch
 |org.terasoluna.batch
 |terasoluna-batch
-|5.2.1.RELEASE
+|5.3.0.RELEASE
 |
 |
 
 |===
+
+.Remarksについて
+====
+. Spring Boot Dependenciesが定義するライブラリで個別に依存しているライブラリ
+====
 
 [[Ch02_MacchinettaBatchStack_Components]]
 == {batch5_fullname}の構成要素
@@ -257,12 +269,12 @@ image::Ch02_MacchinettaBatchStack_Stack_Detail.png[{batch5_fullname} Components 
 基盤フレームワーク::
   フレームワークの基盤として、Spring Frameworkを利用する。DIコンテナをはじめ各種機能を活用する。
 
-  ** https://docs.spring.io/spring/docs/5.0.8.RELEASE/spring-framework-reference/core.html#spring-core[Spring Framework 5.0]
+  ** https://docs.spring.io/spring/docs/{spring_fw_version}/spring-framework-reference/core.html#spring-core[Spring Framework 5.2]
 
 バッチフレームワーク::
-  バッチフレームワークとして、{SB}を利用する。
+  バッチフレームワークとして、{SB}を利用する。同期実行には{SB}が提供するCommandLineJobRunnerを利用する。
 
-  ** https://docs.spring.io/spring-batch/4.0.x/reference/html/index.html[{SB} 4.0]
+  ** https://docs.spring.io/spring-batch/docs/{spring_batch_version}/reference/html/index.html[{SB} 4.2]
 
 非同期実行::
   非同期実行を実現する方法として、以下の機能を利用する。
@@ -275,16 +287,16 @@ image::Ch02_MacchinettaBatchStack_Stack_Detail.png[{batch5_fullname} Components 
   Webコンテナ起動:::
   Spring MVCを使用して、{SB}と連携をする。
 
-  *** https://docs.spring.io/spring/docs/5.0.8.RELEASE/spring-framework-reference/web.html#mvc[Spring MVC 5.0]
+  *** https://docs.spring.io/spring/docs/{spring_fw_version}/spring-framework-reference/web.html#mvc[Spring MVC 5.2]
 
 O/R Mapper::
   MyBatisを利用し、Spring Frameworkとの連携ライブラリとして、MyBatis-Springを使用する。
 
-  ** http://www.mybatis.org/mybatis-3/[MyBatis 3.4]
-  ** http://www.mybatis.org/spring/[MyBatis-Spring 1.3]
+  ** https://mybatis.org/mybatis-3/[MyBatis 3.5]
+  ** https://mybatis.org/spring/[MyBatis-Spring 2.0]
 
 ファイルアクセス::
-  https://docs.spring.io/spring-batch/4.0.x/reference/html/readersAndWriters.html#flatFiles[{SB}から提供されている機能]
+  https://docs.spring.io/spring-batch/docs/{spring_batch_version}/reference/html/readersAndWriters.html#flatFiles[{SB}から提供されている機能]
   に加えて、補助機能を{terasoluna_batch5_fullname}が提供する。
 
   ** <<Ch05_FileAccess.adoc#Ch05_FileAccess,"ファイルアクセス">>
@@ -292,20 +304,20 @@ O/R Mapper::
 ロギング::
   ロガーはAPIにSLF4J、実装にLogbackを利用する。
 
-  ** https://www.slf4j.org/[SLF4J]
-  ** https://logback.qos.ch/[Logback]
+  ** http://www.slf4j.org/[SLF4J]
+  ** http://logback.qos.ch/[Logback]
 
 バリデーション::
   単項目チェック:::
     単項目チェックにはBean Validationを利用し、実装はHibernate Validatorを使用する。
 
       *** https://beanvalidation.org/2.0/spec/[Bean Validation 2.0]
-      *** http://docs.jboss.org/hibernate/validator/5.4/reference/en-US/html_single/[Hibernate Validator 5.4]
+      *** https://docs.jboss.org/hibernate/validator/6.0/reference/en-US/html_single/[Hibernate Validator 6.0]
 
   相関チェック:::
     相関チェックにはBean Validation、もしくはSpring Validationを利用する。
 
-      *** https://docs.spring.io/spring/docs/5.0.8.RELEASE/spring-framework-reference/core.html#validator[Spring Validation 5.0]
+      *** https://docs.spring.io/spring/docs/{spring_fw_version}/spring-framework-reference/core.html#validator[Spring Validation 5.2]
 
 コネクションプール::
   コネクションプールには、DBCPを利用する。

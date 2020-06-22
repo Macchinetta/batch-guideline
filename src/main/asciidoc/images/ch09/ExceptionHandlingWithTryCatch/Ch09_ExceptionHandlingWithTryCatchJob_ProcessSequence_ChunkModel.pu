@@ -10,7 +10,7 @@ participant PointAddItemProcessor #Orange
 participant MyBatisBatchItemWriter
 end box
 participant SpringValidator
-participant ExitStatusChangeListener #Orange
+participant StepExitStatusChangeListener #Orange
 participant JobExitCodeChangeListener #Orange
 participant StepExecution
 database "member_info" as db
@@ -51,10 +51,10 @@ loop until exhausted read data
         Step [#blue]-> db : <font color="blue"><b>commit</b></font>
     end
 end
-Step -> ExitStatusChangeListener : afterStep()
-activate ExitStatusChangeListener #Orange
-ExitStatusChangeListener -> StepExecution : setExitStatus(ExitStatus)
-deactivate ExitStatusChangeListener
+Step -> StepExitStatusChangeListener : afterStep()
+activate StepExitStatusChangeListener #Orange
+StepExitStatusChangeListener -> StepExecution : setExitStatus(ExitStatus)
+deactivate StepExitStatusChangeListener
 note right of SpringValidator: If the current number of items read and the current number of items written are not match, this listener set ExitStatus
 activate StepExecution
 Step-->[ : ExitStatus

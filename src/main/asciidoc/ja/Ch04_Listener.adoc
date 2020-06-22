@@ -249,7 +249,7 @@ public class JobExecutionLoggingListener implements JobExecutionListener { // (1
 この例では、ジョブ終了ログを出力する。
 
 |(4)
-|Bean定義の``<listeners>``タグで、(1)で実装したリスナーを設定する。 +
+|Bean定義の``<batch:listeners>``要素で、(1)で実装したリスナーを設定する。 +
 設定方法の詳細は、<<Ch04_Listener_HowToUse_Configuration>>で説明する。
 |===
 
@@ -382,8 +382,8 @@ public class AnnotationAmountCheckProcessor implements
 この例では発生した例外をログを出力している。
 
 |(4)
-|アノテーションでリスナー実装がされているItemProcessを``<chunk>``タグに設定する。 +
-リスナーインタフェースとは異なり、``<listener>``タグで設定しなくても、自動的にリスナーが登録される。
+|アノテーションでリスナー実装がされているItemProcessを``<batch:chunk>``要素に設定する。 +
+リスナーインタフェースとは異なり、``<batch:listener>``要素で設定しなくても、自動的にリスナーが登録される。
 
 |===
 
@@ -400,7 +400,7 @@ public class AnnotationAmountCheckProcessor implements
 .JobExecutionListenerをアノテーションで実装したときの注意
 ====
 JobExecutionListenerは、他のリスナーとスコープが異なるため、上記の設定では自動的にリスナー登録がされない。
-そのため、``<listener>``タグで明示的に設定する必要がある。詳細は、<<Ch04_Listener_HowToUse_Configuration>>を参照。
+そのため、``<batch:listener>``要素で明示的に設定する必要がある。詳細は、<<Ch04_Listener_HowToUse_Configuration>>を参照。
 ====
 
 [WARNING]
@@ -424,7 +424,7 @@ Tasklet実装へのアノテーションによるリスナー実装した場合�
 
 [[Ch04_Listener_HowToUse_Configuration]]
 === リスナーの設定
-リスナーは、Bean定義の``<listeners>``.``<listener>``タグによって設定する。
+リスナーは、Bean定義の``<batch:listeners>``.``<batch:listener>``要素によって設定する。
 XMLスキーマ定義では様々な箇所に記述できるが、インタフェースの種類によっては意図とおり動作しないものが存在するため、
 以下の位置に設定すること。
 
@@ -485,7 +485,7 @@ XMLスキーマ定義では様々な箇所に記述できるが、インタフ�
 
 [[Ch04_Listener_HowToUse_MultipleConfiguration]]
 ==== 複数リスナーの設定
-``<batch:listeners>``タグには複数のリスナーを設定することができる。
+``<batch:listeners>``要素には複数のリスナーを設定することができる。
 
 複数のリスナーを登録したときに、リスナーがどのような順番で起動されるかを以下に示す。
 
@@ -557,7 +557,7 @@ image::Ch04_Listener_composite.png[Listener execution order]
 . 起動パラメータのいずれかが未指定の場合、例外をスローする。
 
 しかし、{batch5_shortname}では起動パラメータの妥当性検証は、``JobParametersValidator``の使用を推奨している。
-ここでは、あくまでも前処理中断のサンプルとしてわかりやすい妥当性検証を利用しているため、実際に起動パラメータの妥当性検証を行う場合は<<Ch04_JobParameter.adoc#Ch04_JobParameter_HowToUse_ParamsValidation,"パラメータの妥当性検証">>を参照すること。
+ここでは、あくまでも前処理中断のサンプルとしてわかりやすい妥当性検証を利用しているため、実際に起動パラメータの妥当性検証を行う場合は<<Ch04_JobParameter.adoc#Ch04_JobParameter_HowToUse_ParamsValidation,"パラメータの妥当性検証">>を参照。
 
 以下に実装例を示す。
 

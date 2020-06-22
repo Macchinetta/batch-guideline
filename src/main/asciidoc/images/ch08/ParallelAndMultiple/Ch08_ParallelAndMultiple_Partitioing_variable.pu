@@ -1,6 +1,6 @@
 @startuml
 
-artifact "Master Step" as master
+artifact "Manager Step" as manager
 database dbm [
 master data
 ====
@@ -22,11 +22,11 @@ transaction data
 ====
 ]
 
-frame "Thread Size = 4 (Slave Step active)" {
-  artifact "Slave Step #4" as slave4
-  artifact "Slave Step #3" as slave3
-  artifact "Slave Step #2" as slave2
-  artifact "Slave Step #1" as slave1
+frame "Thread Size = 4 (Worker Step active)" {
+  artifact "Worker Step #4" as worker4
+  artifact "Worker Step #3" as worker3
+  artifact "Worker Step #2" as worker2
+  artifact "Worker Step #1" as worker1
 
 database db1 [
 transaction data
@@ -54,9 +54,9 @@ branch_id : 0004
 
 }
 
-cloud  "Slave step waiting" #gray {
-  artifact "Slave Step #6" as slave6 #lightgray
-  artifact "Slave Step #5" as slave5 #lightgray
+cloud  "Worker step waiting" #gray {
+  artifact "Worker Step #6" as worker6 #lightgray
+  artifact "Worker Step #5" as worker5 #lightgray
   database db5  #lightgray [
   transaction data
   ====
@@ -70,24 +70,24 @@ cloud  "Slave step waiting" #gray {
 
 }
 
-master .up. dbm
-master .up. db0
+manager .up. dbm
+manager .up. db0
 
-master -down-> slave1
-master -down-> slave2
-master -down-> slave3
-master -down-> slave4
+manager -down-> worker1
+manager -down-> worker2
+manager -down-> worker3
+manager -down-> worker4
 
-master ~down~ slave5 #white
-master ~down~ slave6 #white
+manager ~down~ worker5 #white
+manager ~down~ worker6 #white
 
-slave1 ~down~ db1
-slave2 ~down~ db2
-slave3 ~down~ db3
-slave4 ~down~ db4
+worker1 ~down~ db1
+worker2 ~down~ db2
+worker3 ~down~ db3
+worker4 ~down~ db4
 
-slave5 ~down~ db5
-slave6 ~down~ db6
+worker5 ~down~ db5
+worker6 ~down~ db6
 
 
 'Set styles such as format and color of each figure

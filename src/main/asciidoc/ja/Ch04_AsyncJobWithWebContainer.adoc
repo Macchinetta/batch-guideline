@@ -12,7 +12,7 @@ Webコンテナ内でジョブを非同期で実行するための方法につ�
 
 .Webコンテナによるジョブの非同期実行とは
 ジョブを含めたWebアプリケーションをWebコンテナにデプロイし、
-送信されたリクエストの情報を元にジョブを実行することを指す。 +
+送信されたリクエストの情報をもとにジョブを実行することを指す。 +
 ジョブの実行ごとに1つのスレッドを割り当てた上で並列に動作するため、
 他のジョブやリクエストに対する処理とは独立して実行できる。
 
@@ -25,9 +25,8 @@ Webコンテナ内でジョブを非同期で実行するための方法につ�
 .利用前提
 * アプリケーションの他にWebコンテナが必要となる。
 * ジョブの実装以外に必要となる、Webアプリケーション、クライアントは動作要件に合わせて別途実装する。
-* ジョブの実行状況および結果は``JobRepository``に委ねる。
-  また、Webコンテナ停止後にも``JobRepository``からジョブの実行状況および結果を参照可能とするため、
-  インメモリデータベースではなく、永続性が担保されているデータベースを使用する。
+* ジョブの実行状況および結果は``JobRepository``に委ねる。 +
+また、Webコンテナ停止後にも``JobRepository``からジョブの実行状況および結果を参照可能とするため、インメモリデータベースではなく、永続性が担保されているデータベースを使用する。
 
 .活用シーン
 <<Ch04_AsyncJobWithDB.adoc#Ch04_AsyncJobWithDB_Overview,"非同期実行(DBポーリング) - Overview">>と同様である。
@@ -81,7 +80,7 @@ Webコンテナによるリクエスト受信後、ジョブ実行ID払い出し
 [TIP]
 ====
 ``JobRepository``、``JobExplorer``を使用して直接RDBMSを参照し、ジョブの実行状態を確認することもできる。
-ジョブの実行状態・結果を参照する機能の詳細については、<<Ch07_JobManagement.adoc#Ch07_JobManagement,ジョブの管理>>を参照のこと。
+ジョブの実行状態・結果を参照する機能の詳細については、<<Ch07_JobManagement.adoc#Ch07_JobManagement,ジョブの管理>>を参照。
 ====
 
 [WARNING]
@@ -109,11 +108,11 @@ Webクライアントからジョブの起動リクエストを送信後、ジ�
 ====
 「ジョブ起動時の異常」は Spring MVCコントローラ内で発生する例外として検知できる。
 ここでは説明を割愛するので、別途 {server5_guide}の
-{server5_url}/ArchitectureInDetail/WebServiceDetail/REST.html#resthowtouseexceptionhandling[例外のハンドリングの実装]を参照のこと。
+{server5_url}/ArchitectureInDetail/WebServiceDetail/REST.html#resthowtouseexceptionhandling[例外のハンドリングの実装]を参照。
 
 また、ジョブパラメータとして利用するリクエストの入力チェックは必要に応じて Spring MVC のコントローラ内で行うこと。 +
 具体的な実装方法については、{server5_guide}の
-{server5_url}/ArchitectureInDetail/WebApplicationDetail/Validation.html[入力チェック]を参照のこと。
+{server5_url}/ArchitectureInDetail/WebApplicationDetail/Validation.html[入力チェック]を参照。
 ====
 
 [TIP]
@@ -219,14 +218,12 @@ Spring MVCコントローラが、``JobOperator``によりジョブを起動す�
 * {server5_shortname}によるWebアプリケーションプロジェクト
 
 バッチアプリケーションプロジェクトの作成および具体的なジョブの実装方法については、
-<<Ch03_CreateProject.adoc#Ch03_CreateProject_HowToCreate,"プロジェクトの作成">>、
-<<Ch03_CreateTaskletJob.adoc#Ch03_CreateTaskletJob,"タスクレットモデルジョブの作成">>、
-<<Ch03_CreateChunkJob.adoc#Ch03_CreateChunkJob, "チャンクモデルジョブの作成">>
-を参照のこと。
+<<Ch03_CreateProject.adoc#Ch03_CreateProject_HowToCreate,プロジェクトの作成>>、
+<<Ch03_CreateChunkJob.adoc#Ch03_CreateChunkJob,チャンクモデルジョブの作成>>、
+<<Ch03_CreateTaskletJob.adoc#Ch03_CreateTaskletJob,タスクレットモデルジョブの作成>>を参照。
 ここでは、Webアプリケーションからバッチアプリケーションを起動することに終始する。
 
-ここでは Maven archetype:generate を用い、
-以下のバッチアプリケーションプロジェクトを作成しているものとして説明する。
+以下のバッチアプリケーションプロジェクトは、Maven archetype:generate を用いてを作成しているものとして説明する。
 
 [cols="20,80", options="header"]
 .ジョブプロジェクト作成例
@@ -277,9 +274,8 @@ Spring MVCコントローラが、``JobOperator``によりジョブを起動す�
 
 .Webアプリケーションの実装
 {server5_shortname}が提供するブランクプロジェクトを用い、Webアプリケーションの実装方法を説明する。
-詳細は、{server5_guide}
-{server5_url}/ImplementationAtEachLayer/CreateWebApplicationProject.html[Webアプリケーション向け開発プロジェクトの作成]
-を参照。
+詳細は、{server5_guide}の
+{server5_url}/ImplementationAtEachLayer/CreateWebApplicationProject.html[Webアプリケーション向け開発プロジェクトの作成]を参照。
 
 ここでは非同期実行アプリケーションプロジェクトと同様、以下の名称で作成したものとして説明する。
 
@@ -654,8 +650,8 @@ REST APIで使用するリクエストの例として、
 
 JSON電文としてRESTクライアントに返却される以下3クラスを作成する。
 
-* ジョブ起動操作 ```JobOperationResource```
-* ジョブの実行状態 ```JobExecutionResource```
+* ジョブ起動操作 ``JobOperationResource``
+* ジョブの実行状態 ``JobExecutionResource``
 * ステップの実行状態 ``StepExecutionResource``
 
 これらクラスは``JobOperationResource``のジョブ実行ID(``job execution id``)を除きあくまで参考実装であり、フィールドの実装は任意である。
@@ -849,7 +845,7 @@ REST APIの基底パスは``_contextName_/api/v1/job/``となる。
 返り値としてジョブ実行IDを受け取り、REST クライアントに返却する。
 
 |(4)
-|``JobExplorer`` を使用し、ジョブ実行IDを基にジョブの実行状態(``JobExecution``)を取得する。 +
+|``JobExplorer`` を使用し、ジョブ実行IDをもとにジョブの実行状態(``JobExecution``)を取得する。 +
 あらかじめ設計された電文フォーマットに変換した上でRESTクライアントに返却する。
 
 |====

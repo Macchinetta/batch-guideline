@@ -28,26 +28,27 @@ include::_include_all.adoc[]
 |製品名
 
 |OS
-|Windows 7 Professional SP1 (64bit)
+|Microsoft Windows 10 Enterprise 2016 LTSB (64bit)
 
 |JDK
-|openjdk-1.8.0.131.x86_64
+|RedHat OpenJDK 8u232 Windows 64-bit/ +
+RedHat OpenJDK 11.0.5 Windows 64-bit
 
 |IDE
-|Spring Tool Suite 3.8.2 released
+|Spring Tool Suite 3.9.11 released
 
 |Build Tool
 |Apache Maven 3.3.9
 
 |RDBMS
-|H2 Database 1.4.193
+|H2 Database 1.4.200
 
 |===
 
 [[Ch09_Introduction_AboutFrameWork]]
 == フレームワークの概要
 ここでは、フレームワークの概要として処理モデルの概要およびアーキテクチャの違いについて説明する。 +
-{SB}について、詳細は{batch5_guide}の<<Ch02_SpringBatchArchitecture.adoc#Ch02_SpringBatchArch,{SB}のアーキテクチャ>>を参照のこと。
+{SB}について、詳細は{batch5_guide}の<<Ch02_SpringBatchArchitecture.adoc#Ch02_SpringBatchArch,{SB}のアーキテクチャ>>を参照。
 
 {batch5_shortname}が提供する処理モデルには、チャンクモデルとタスクレットモデルがある。 +
 それぞれの特徴について以下に示す。
@@ -56,19 +57,19 @@ include::_include_all.adoc[]
 一定件数のデータごとにまとめて入力／加工／出力する方式。このデータのまとまりをチャンクと呼ぶ。
 データの入力／加工／出力といった処理の流れを定型化し、一部を実装するだけでジョブが実装できる。
 大量データを効率よく処理する場合に用いる。 +
-詳細は<<Ch02_SpringBatchArchitecture.adoc#Ch02_SpringBatchArch_Arch_BusinessLogic_Chunk,チャンクモデル>>を参照のこと。
+詳細は<<Ch02_SpringBatchArchitecture.adoc#Ch02_SpringBatchArch_Arch_BusinessLogic_Chunk,チャンクモデル>>を参照。
 
 タスクレットモデル::
 自由に処理を記述する方式。SQLを1回発行するだけ、コマンドを発行するだけ、といった簡素なケースや
 複数のデータベースやファイルにアクセスしながら処理するような複雑で定型化しにくい場合に用いる。 +
-詳細は<<Ch02_SpringBatchArchitecture.adoc#Ch02_SpringBatchArch_Arch_BusinessLogic_Tasklet,タスクレットモデル>>を参照のこと。
+詳細は<<Ch02_SpringBatchArchitecture.adoc#Ch02_SpringBatchArch_Arch_BusinessLogic_Tasklet,タスクレットモデル>>を参照。
 
 処理モデルについて、構成要素や機能的な差異を下表に示す。
 
 [cols="24,38,38", options="header"]
-.処理モデルの機能差
+.処理モデルの対比表
 |===
-|機能
+|項目
 |チャンクモデル
 |タスクレットモデル
 
@@ -76,18 +77,18 @@ include::_include_all.adoc[]
 |ItemReader、ItemProcessor、ItemWriter、ChunkOrientedTaskletで構成される。
 |Taksletのみで構成される。
 
-|トランザクション
-|チャンク単位にトランザクションが発生する。トランザクション制御は中間コミットのみ。
-|1トランザクションで処理する。トランザクション制御は、一括コミット方式と中間コミット方式のいずれかを利用可能。
+|<<Ch05_Transaction.adoc#Ch05_Transaction,トランザクション制御>>
+|チャンク単位にトランザクションが発生する。トランザクション制御は一定件数ごとにトランザクションを確定する中間コミット方式のみ。
+|1トランザクションで処理する。トランザクション制御は、全件を1トランザクションで確定する一括コミット方式と中間コミット方式のいずれかを利用可能
 前者は{SB}が持つトランザクション制御の仕組みを利用するが、後者はユーザにてトランザクションを直接操作する。
 
-|推奨する再処理方式
-|リラン、リスタートを利用できる。
-|リランのみ利用することを原則とする。
+|<<Ch06_ReProcessing.adoc#Ch06_RerunRestart,処理の再実行>>
+|リランおよび、ステートレスリスタート(件数ベースリスタート)、ステートフルリスタート(処理状態を判断したリスタート)が利用できる。
+|リランのみ利用することを原則とする。処理状態を判断したリスタートが利用できる。
 
-|例外ハンドリング
-|リスナーを使うことでハンドリング処理が容易になっている。try-catchによる独自実装も可能。
-|try-catchによる独自実装が必要。
+|<<Ch06_ExceptionHandling.adoc#Ch06_ExceptionHandling,例外ハンドリング>>
+|{SB}提供の各種Listenerインタフェースを使うことでハンドリング処理が容易になっている。try-catchによる独自実装も可能。
+|タスクレット実装内にて独自にtry-catchを実装することが基本。ChunkListenerインタフェースの利用も可能。
 
 |===
 
@@ -113,6 +114,6 @@ image::ch09/Introduction/Ch09_Introduction_HowToProceed.png[How to Proceed with 
 .ファイルアクセスでデータ入出力を行うジョブへの追加実装について
 ====
 <<Ch09_FileAccessJob.adoc#Ch09_Impl_FileAccessJob,ファイルアクセスでデータ入出力を行うジョブ>>の説明以外は、
-<<Ch09_DBAccessJob.adoc#Ch09_Impl_DBAccessJob,データベースアクセスでデータ入出力を行うジョブ>>を元に実装を追加したり、実行例を表示させている。
-ファイルアクセスでデータ入出力を行うジョブを元に実装を追加する場合は、読み替える必要があるため留意すること。
+<<Ch09_DBAccessJob.adoc#Ch09_Impl_DBAccessJob,データベースアクセスでデータ入出力を行うジョブ>>をもとに実装を追加したり、実行例を表示させている。
+ファイルアクセスでデータ入出力を行うジョブをもとに実装を追加する場合は、読み替える必要があるため留意すること。
 ====

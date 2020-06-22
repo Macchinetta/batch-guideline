@@ -88,7 +88,7 @@ ItemWriter
 
 タスクレットモデルでは、ItemReader/ItemProcessor/ItemWriterが、1つのTaskletインタフェース実装に置き換わる。Tasklet内に入出力、入力チェック、ビジネスロジックのすべてを実装する必要がある。
 |JobRepository
-|JobやStepの状況を管理する機構。これらの管理情報は、{SB}が規定するテーブルスキーマを元にデータベース上に永続化される。
+|JobやStepの状況を管理する機構。これらの管理情報は、{SB}が規定するテーブルスキーマをもとにデータベース上に永続化される。
 |===
 
 [[Ch02_SpringBatchArch_Arch]]
@@ -168,7 +168,7 @@ StepExecutionContextに格納するオブジェクトは、``java.io.Serializabl
 一般的なバッチアプリケーションはJavaプロセスを起動することで処理が開始し、処理の終了とともにJavaプロセスも終了させるケースが多い。
 そのためこれらのデータはJavaプロセスを跨いで参照される可能性があることから、揮発性なメモリ上だけではなくデータベースなどの永続層へ格納する。
 データベースに格納する場合は、JobExecutionやStepExecutionを格納するためのテーブルやシーケンスなどのデータベースオブジェクトが必要になる。 +
-{SB} が提供するスキーマ情報を元にデータベースオブジェクトを生成する必要がある。
+{SB} が提供するスキーマ情報をもとにデータベースオブジェクトを生成する必要がある。
 
 |===
 
@@ -202,7 +202,7 @@ Javaプロセス起動からバッチ処理開始までの流れについて説�
 本ガイドラインで推奨している方法については<<Ch04_JobParameter.adoc#Ch04_JobParameter_HowToUse_Converter,パラメータ変換クラスについて>>を参照。
 . JobLauncherはJobExecutionを生成する。
 . JobLauncherはExecutionContextおよびJobParametersを登録する。
-* CommandLineJobRunnerに渡されたすべての引数はCommandLineJobRunnerおよびJobLauncherが解釈とチェックを行なったうえで、JobExecutionへJobParametersに変換して格納される。詳細は<<Ch04_JobParameter.adoc#Ch04_JobParameter,ジョブの起動パラメータ>>を参照のこと。
+* CommandLineJobRunnerに渡されたすべての引数はCommandLineJobRunnerおよびJobLauncherが解釈とチェックを行なったうえで、JobExecutionへJobParametersに変換して格納される。詳細は<<Ch04_JobParameter.adoc#Ch04_JobParameter,ジョブの起動パラメータ>>を参照。
 . JobLauncherはjobを実行する。
 
 CommandLineJobRunnerを使用したジョブの起動コマンドは以下のとおりである。
@@ -251,7 +251,7 @@ image::Ch02_SpringBatchArchitecture_Architecture_Sequence_ChunkOrientedTasklet.p
 
 ChunkOrientedTaskletは、チャンク数分だけItemReaderおよびItemProcessor、すなわちデータの読み込みと加工を繰り返し実行する。
 チャンク数分のデータすべての読み込みが完了してから、ItemWriterのデータ書き込み処理が1回だけ呼び出され、チャンクに含まれるすべての加工済みデータが渡される。
-データの更新処理がチャンクに対して1回呼び出されるように設計されているのは、JDBCのaddBatch、executeBatchのようにI/Oをまとめやすくするためである。
+データの更新処理がチャンクに対して1回呼び出されるように設計されているのは、JDBCのaddBatch、executeBatchのように入出力をまとめやすくするためである。
 
 次に、チャンク処理において実際の処理を担うItemReader、ItemProcessor、ItemWriterについて紹介する。
 各インタフェースともユーザが独自に実装を行うことが想定されているが、{SB}が提供する汎用的な具象クラスでまかなうことができる場合がある。
@@ -432,7 +432,7 @@ XMLでジョブを定義する場合は、ItemProcessorの設定を省略する�
 
 |SystemCommandTasklet
 |非同期にシステムコマンドを実行するためのTasklet。commandプロパティに実行したいコマンドを指定する。 +
-システムコマンドは呼び出し元のスレッドと別スレッドで実行されるため、タイムアウトを設定したり、処理中にシステムコマンドの実行スレッドをキャンセルすることも可能である。
+システムコマンドは呼び出しもとのスレッドと別スレッドで実行されるため、タイムアウトを設定したり、処理中にシステムコマンドの実行スレッドをキャンセルすることも可能である。
 
 |MethodInvokingTaskletAdapter
 |POJOクラスに定義された特定のメソッドを実行するためのTasklet。targetObjectプロパティに対象クラスのBeanを、targetMethodプロパティに実行させたいメソッド名を指定する。 +
@@ -445,7 +445,7 @@ POJOクラスはバッチ処理の終了した状態をメソッドの返り値�
 JobRepositoryのメタデータスキーマについて説明する。
 
 なお、{SB}のリファレンス
-http://docs.spring.io/spring-batch/trunk/reference/html/metaDataSchema.html[Appendix B. Meta-Data Schema]
+https://docs.spring.io/spring-batch/docs/{spring_batch_version}/reference/html/schema-appendix.html[Appendix B. Meta-Data Schema]
 にて説明されている内容も含めて、全体像を説明する。
 
 {SB}メタデータテーブルは、Javaでそれらを表すドメインオブジェクト(Entityオブジェクト)に対応している。
@@ -494,7 +494,7 @@ JobRepositoryは、各Javaオブジェクトに保存された内容を、テー
 
 {SB}が提供する``Oracle Schema``は、データベースの文字データ型はバイト数定義がデフォルト設定となるため、
 {batch5_shortname}では、明示的に文字データ型を文字数定義に設定するOracle用のDDLを提供する。 +
-提供するDDLは、{batch5_shortname}のjarに同梱されているorg.terasoluna.batchパッケージに含まれている。
+提供するDDLは、{terasoluna_batch5_shortname}のjarに同梱されているorg.terasoluna.batchパッケージに含まれている。
 ====
 
 6つの全テーブルと相互関係のERDモデルはを以下に示す。

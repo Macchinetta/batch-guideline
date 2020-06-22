@@ -7,7 +7,7 @@ include::_include_all.adoc[]
 == Overview
 
 タスクレットモデルジョブの作成方法について説明する。
-タスクレットモデルのアーキテクチャについては、<<Ch02_SpringBatchArchitecture.adoc#Ch02_SpringBatchArch,{SB}のアーキテクチャ>>を参照のこと。
+タスクレットモデルのアーキテクチャについては、<<Ch02_SpringBatchArchitecture.adoc#Ch02_SpringBatchArch,{SB}のアーキテクチャ>>を参照。
 
 [[Ch03_CreateTaskletJob_Overview_Components]]
 === 構成要素
@@ -38,9 +38,9 @@ Bean定義ファイルにて、タスクレットモデルジョブを定義す�
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
        xmlns:context="http://www.springframework.org/schema/context"
        xmlns:batch="http://www.springframework.org/schema/batch"
-       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
-             http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
-             http://www.springframework.org/schema/batch http://www.springframework.org/schema/batch/spring-batch.xsd">
+       xsi:schemaLocation="http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd
+             http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd
+             http://www.springframework.org/schema/batch https://www.springframework.org/schema/batch/spring-batch.xsd">
 
     <!-- (1) -->
     <import resource="classpath:META-INF/spring/job-base-context.xml"/>
@@ -50,10 +50,14 @@ Bean定義ファイルにて、タスクレットモデルジョブを定義す�
           base-package="jp.co.ntt.fw.macchinetta.batch.functionaltest.app.common"/>
 
     <!-- (3) -->
-    <batch:job id="simpleJob" job-repository="jobRepository"> <!-- (4) -->
-        <batch:step id="simpleJob.step01"> <!-- (5) -->
+    <!-- Tasklet -->
+    <!-- Tasklet in order that based on the Bean defined by the annotations, not defined here -->
+
+    <!-- (4) -->
+    <batch:job id="simpleJob" job-repository="jobRepository"> <!-- (5) -->
+        <batch:step id="simpleJob.step01"> <!-- (6) -->
             <batch:tasklet transaction-manager="jobTransactionManager"
-                           ref="simpleJobTasklet"/> <!-- (6) -->
+                           ref="simpleJobTasklet"/> <!-- (7) -->
         </batch:step>
     </batch:job>
 
@@ -84,25 +88,28 @@ public class SimpleJobTasklet implements Tasklet {
 タスクレットモデルはアノテーションによるBean定義を基本とし、Tasklet実装クラスのBean定義はXML上では不要とする。
 
 |(3)
+|Taskletは、(2)によりアノテーションにて定義することができ、Bean定義ファイルで定義する必要がない。
+
+|(4)
 |ジョブの設定。 +
 ``id``属性は、1つのバッチアプリケーションに含まれる全ジョブの範囲内で一意とする必要がある。
 
-|(4)
+|(5)
 |``JobRepository``の設定。 +
 ``job-repository``属性に設定する値は、特別な理由がない限り``jobRepository``固定とすること。 +
 これにより、すべてのジョブが1つの``JobRepository``で管理できる。
 ``jobRepository``のBean定義は、(1)により解決する。
 
-|(5)
+|(6)
 |ステップの設定。 +
 ``id``属性は、1つのバッチアプリケーションに含まれる全ジョブの範囲内で一意とする必要はないが、障害発生時に追跡しやすくなる等の様々なメリットがあるため一意とする。 +
- 特別な理由がない限り、(3)で指定したid属性に[step+連番]を付加する形式とする。
+ 特別な理由がない限り、(3)で指定した``id``属性に[step+連番]を付加する形式とする。
 
-|(6)
+|(7)
 |タスクレットの設定。 +
 ``transaction-manager``属性に設定する値は、特別な理由がない限り``jobTransactionManager``固定とすること。 +
 これにより、タスクレット全体の処理が1つのトランザクションで管理される。
-詳細については、<<Ch05_Transaction.adoc#Ch05_Transaction,トランザクション制御>>を参照のこと。 +
+詳細については、<<Ch05_Transaction.adoc#Ch05_Transaction,トランザクション制御>>を参照。 +
 ``jobTransactionManager``のBean定義は、(1)により解決する。 +
 
 また、``ref``属性は、(2)により解決するTaskletの実装クラスのBeanIDを指定する。 +
@@ -114,7 +121,7 @@ public class SimpleJobTasklet implements Tasklet {
 ====
 ``@Component``アノテーション利用時のBean名は、デフォルトでは
 ``org.springframework.context.annotation.AnnotationBeanNameGenerator``
-を通じて生成される。命名ルールを確認したいときは、本クラスのJavadocを参照するとよい。
+を通じて生成されるため、命名ルールについては本クラスのJavadocを参照。
 ====
 
 [[Ch03_CreateTaskletJob_HowToUse_Impl]]
@@ -196,7 +203,7 @@ public class SimpleJobTasklet implements Tasklet { // (1)
 
 |1件
 |データを1件ずつ、入力、処理、出力しているため、処理のイメージがしやすい。 +
-大量データの場合はI/Oの多発により性能劣化を引き起こす可能性があるので留意が必要である。
+大量データの場合は入出力の多発により性能劣化を引き起こす可能性があるので留意が必要である。
 
 |全件
 |データを1件ずつ、入力、処理してメモリ上に貯めておき、最後に全件一括で出力する。 +
@@ -218,7 +225,7 @@ public class SimpleJobTasklet implements Tasklet { // (1)
 [source,java]
 .チャンクモデルのコンポーネントを利用するTasklet実装例1
 ----
-@Component()
+@Component
 @Scope("step") // (1)
 public class SalesPlanChunkTranTask implements Tasklet {
 
@@ -337,7 +344,7 @@ public class SalesPlanChunkTranTask implements Tasklet {
 
 |(9)
 |MyBatis-Springの設定。 +
-MyBatis-Springの設定の詳細は、<<Ch05_DBAccess.adoc#Ch05_DBAccess,データベースアクセス>>を参照のこと。
+MyBatis-Springの設定の詳細は、<<Ch05_DBAccess.adoc#Ch05_DBAccess,データベースアクセス>>を参照。
 
 |(10)
 |ファイルから入力するため、``FlatFileItemReader``のBean定義を追加する。詳細はここでは割愛する。
@@ -511,5 +518,5 @@ read->process->read->process->...->writeとなるようにする。
 |===
 
 ``ItemReader``や``ItemWriter``の実装クラスを利用するかどうかは都度判断してほしいが、
-ファイルアクセスは``ItemReader``や``ItemWriter``の実装クラスを利用するとよいだろう。
+ファイルアクセスは``ItemReader``や``ItemWriter``の実装クラスを利用するとよい。
 それ以外のデータベースアクセス等は無理に使う必要はない。性能向上のために使えばよい。

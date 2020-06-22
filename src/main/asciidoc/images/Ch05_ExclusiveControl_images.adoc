@@ -2,3 +2,4 @@
 == Images
 
 plantuml::ch05/ExclusiveControl/Ch05_ExclusiveControl_File_Senario.pu[]
+plantuml::ch05/ExclusiveControl/Ch05_ExclusiveControl_LockFile_Senario.pu[]

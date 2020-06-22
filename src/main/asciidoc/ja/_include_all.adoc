@@ -2,8 +2,8 @@
 
 // Table, Exampleブロックのキャプションを無効にする
 :example-caption!:
-:table-caption!:
-:figure-caption!:
+:table-caption: 表
+:figure-caption: 図
 
 // indexページへのリンク先を定義する
 :index_ref: "index.html"
@@ -14,7 +14,7 @@
 
 :server5_fullname: Macchinetta Server Framework (1.x)
 :server5_shortname: Macchinetta Server 1.x
-:server5_url: https://macchinetta.github.io/server-guideline/current/ja/
+:server5_url: https://macchinetta.github.io/server-guideline/1.7.0.RELEASE/ja
 :server5_guide: Macchinetta Server 1.x 開発ガイドライン
 
 :batch5_fullname: Macchinetta Batch Framework (2.x)
@@ -24,3 +24,6 @@
 
 :terasoluna_batch5_fullname: TERASOLUNA Batch Framework for Java (5.x)
 :terasoluna_batch5_shortname: TERASOLUNA Batch 5.x
+
+:spring_fw_version: 5.2.3.RELEASE
+:spring_batch_version: 4.2.1.RELEASE

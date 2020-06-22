@@ -44,9 +44,9 @@ image::Ch08_ParallelAndMultiple_Overview_Multiple.png[Partition Step]
 ステップ単位で並列処理を行う。 +
 各ステップは同じ処理である必要はなく、データベースとファイルというような種類が異なるリソースに対して並列で処理を行う事も可能である。
 |<<Ch08_ParallelAndMultiple_HowToUse_Partitioning>> +
-マスタステップでは対象データを分割するためのキーを取得し、
-スレーブステップではこのキーにもとづいて分割したデータを処理する。 +
-Parallel Stepとは異なりスレーブステップの処理は同一処理となる。
+Managerステップでは対象データを分割するためのキーを取得し、
+Workerステップではこのキーにもとづいて分割したデータを処理する。 +
+Parallel Stepとは異なりWorkerステップの処理は同一処理となる。
 |===
 
 ジョブスケジューラを使用する場合::
@@ -96,7 +96,7 @@ Multi Thread Stepとは::
 === ジョブスケジューラによる並列処理と多重処理
 ここでは、ジョブスケジューラによる並列処理と多重処理の概念について説明を行う。
 
-ジョブ登録、スケジュール設定などについては、使用するジョブスケジューラのマニュアルを参照してほしい。
+ジョブ登録、スケジュール設定などについては、使用するジョブスケジューラのマニュアルを参照。
 
 [[Ch08_ParallelAndMultiple_Overview_Scheduler_ParallelJob]]
 ==== ジョブスケジューラによるジョブの並列化
@@ -187,7 +187,7 @@ Parallel Stepの概要図を例にしたParallel Stepの定義方法を以下に
 |並列処理のために、各スレッドに割り当てるためのスレッドプールを定義する。
 
 |(2)
-|``<batch:split>``タグ内に並列実行するステップを``<batch:flow>``タグを使用した形式で定義をする。 +
+|``<batch:split>``要素内に並列実行するステップを``<batch:flow>``要素を使用した形式で定義をする。 +
 ``task-executor``属性に(1)で定義したスレッドプールのBeanを設定する
 
 |(3)
@@ -283,11 +283,11 @@ image::Ch08_ParallelAndMultiple_Partitioing_Step.png[Partitioning Step]
 
 
 .概要図の説明
-Partitioning Stepでは、MasterステップとSlaveステップの処理フェーズに分割される。
+Partitioning Stepでは、ManagerステップとWorkerステップの処理フェーズに分割される。
 
-. Masterステップでは、``Partitioner``により各Slaveステップが処理するデータ範囲を特定するための``Parition Key``を生成する。
+. Managerステップでは、``Partitioner``により各Workerステップが処理するデータ範囲を特定するための``Parition Key``を生成する。
 ``Parition Key``はステップコンテキストに格納される。
-. Slaveステップでは、ステップコンテキストから自身に割り当てられた``Parition Key``を取得し、それを使い処理対象データを特定する。
+. Workerステップでは、ステップコンテキストから自身に割り当てられた``Parition Key``を取得し、それを使い処理対象データを特定する。
 特定した処理対象データに対して定義したステップの処理を実行する。
 
 Partitioning Stepでは処理データを分割必要があるが、分割数については可変数と固定数のどちらにも対応できる。
@@ -309,8 +309,8 @@ Partitioning Stepでは、分割数をスレッドサイズより大きくする
 .Partitioning Stepのユースケース
 |===
 |ユースケース
-|Master(Patitioner)
-|Slave
+|Manager(Patitioner)
+|Worker
 |分割数
 
 |マスタ情報からトランザクション情報を分割・多重化するケース +
@@ -443,10 +443,10 @@ public class BranchPartitioner implements Partitioner {
 
 <batch:job id="multipleInvoiceSummarizeJob" job-repository="jobRepository">
     <!-- (9) -->
-    <batch:step id="multipleInvoiceSummarizeJob.master">
+    <batch:step id="multipleInvoiceSummarizeJob.manager">
         <!-- (10) -->
         <batch:partition partitioner="branchPartitioner"
-                         step="multipleInvoiceSummarizeJob.slave">
+                         step="multipleInvoiceSummarizeJob.worker">
             <!-- (11) -->
             <batch:handler grid-size="0" task-executor="parallelTaskExecutor" />
         </batch:partition>
@@ -454,7 +454,7 @@ public class BranchPartitioner implements Partitioner {
 </batch:job>
 
 <!-- (12) -->
-<batch:step id="multipleInvoiceSummarizeJob.slave">
+<batch:step id="multipleInvoiceSummarizeJob.worker">
     <batch:tasklet transaction-manager="jobTransactionManager">
         <batch:chunk reader="reader" writer="writer" commit-interval="10"/>
     </batch:tasklet>
@@ -477,14 +477,14 @@ public class BranchPartitioner implements Partitioner {
 |定義したRepository(SQLMapper)をInjectする。
 
 |(4)
-|1つのSlaveステップが処理するマスタ値をステップコンテキストに格納する。
+|1つのWorkerステップが処理するマスタ値をステップコンテキストに格納する。
 
 |(5)
-|各Slaveが該当するコンテキストを取得できるようMapに格納する。
+|各Workerが該当するコンテキストを取得できるようMapに格納する。
 
 |(6)
-|多重処理でSlaveステップの各スレッドに割り当てるためのスレッドプールを定義する。 +
-Masterステップはメインスレッドで処理される。
+|多重処理でWorkerステップの各スレッドに割り当てるためのスレッドプールを定義する。 +
+Managerステップはメインスレッドで処理される。
 
 |(7)
 |マスタ値によるデータ取得のItemReaderを定義する。
@@ -493,19 +493,19 @@ Masterステップはメインスレッドで処理される。
 |(4)で設定したマスタ値をステップコンテキストから取得し、検索条件に追加する。
 
 |(9)
-|Masterステップを定義する。
+|Managerステップを定義する。
 
 |(10)
 |データの分割条件を生成する処理を定義する。 +
 ``partitioner``属性には、``Partitioner``インタフェース実装を設定する。 +
-``step``属性には、(12)で定義するSlaveステップのBeanIDを設定する。
+``step``属性には、(12)で定義するWorkerステップのBeanIDを設定する。
 
 |(11)
 |``partitioner``では``grid-size``を使用しないため、``grid-size``属性には任意の値を設定する。
 ``task-executor``属性に(6)で定義したスレッドプールのBeanIDを設定する。
 
 |(12)
-|Slaveステップを定義する。 +
+|Workerステップを定義する。 +
 ``reader``属性に(7)で定義したItemReaderを設定する。
 
 |===
@@ -523,39 +523,41 @@ Masterステップはメインスレッドで処理される。
 <task:executor id="parallelTaskExecutor" pool-size="10" queue-capacity="200"/>
 
 <!-- (2) -->
-<bean id="reader"
-      class="org.springframework.batch.item.file.FlatFileItemReader" scope="step"
+<bean id="reader" class="org.springframework.batch.item.file.FlatFileItemReader" scope="step"
       p:resource="#{stepExecutionContext['fileName']}"> <!-- (3) -->
     <property name="lineMapper">
-        <bean class="org.springframework.batch.item.file.mapping.DefaultLineMapper"
-            p:fieldSetMapper-ref="invoiceFieldSetMapper">
+        <bean class="org.springframework.batch.item.file.mapping.DefaultLineMapper">
             <property name="lineTokenizer">
                 <bean class="org.springframework.batch.item.file.transform.DelimitedLineTokenizer"
-                      p:names="invoiceNo,salesDate,productId,customerId,quant,price"/>
+                      p:names="branchId,year,month,customerId,amount"/>
+            </property>
+            <property name="fieldSetMapper">
+                <bean class="org.springframework.batch.item.file.mapping.BeanWrapperFieldSetMapper"
+                      p:targetType="jp.co.ntt.fw.macchinetta.batch.functionaltest.app.model.plan.SalesPlanDetail"/>
             </property>
         </bean>
     </property>
 </bean>
 
 <!-- (4) -->
-<bean id="patitioner"
+<bean id="partitioner"
       class="org.springframework.batch.core.partition.support.MultiResourcePartitioner"
       scope="step"
-      p:resources="file:#{jobParameters['basedir']}/input/invoice-*.csv"/> <!-- (5) -->
+      p:resources="file:#{jobParameters['inputdir']}/salesPlanDetail_*.csv"/> <!-- (5) -->
 
 <!--(6) -->
-<batch:job id="inspectPartitioninglStepFileJob" job-repository="jobRepository">
-    <batch:step id="inspectPartitioninglStepFileJob.step.master">
-        <batch:partition partitioner="patitioner"
-                         step="inspectPartitioninglStepFileJob.step.slave">
+<batch:job id="multiplePartitioninglStepFileJob" job-repository="jobRepository">
+    <batch:step id="multiplePartitioninglStepFileJob.step.manager">
+        <batch:partition partitioner="partitioner"
+                         step="multiplePartitioninglStepFileJob.step.worker">
             <batch:handler grid-size="0" task-executor="parallelTaskExecutor"/>
         </batch:partition>
     </batch:step>
 </batch:job>
 
 <!-- (7) -->
-<batch:step id="inspectPartitioninglStepFileJob.step.slave">
-    <batch:tasklet>
+<batch:step id="multiplePartitioninglStepFileJob.step.worker">
+    <batch:tasklet transaction-manager="jobTransactionManager">
         <batch:chunk reader="reader" writer="writer" commit-interval="20"/>
     </batch:tasklet>
 </batch:step>
@@ -568,29 +570,29 @@ Masterステップはメインスレッドで処理される。
 |説明
 
 |(1)
-|多重処理でSlaveステップの各スレッドに割り当てるためのスレッドプールを定義する。 +
-Masterステップはメインスレッドで処理される。
+|多重処理でWorkerステップの各スレッドに割り当てるためのスレッドプールを定義する。 +
+Managerステップはメインスレッドで処理される。
 
 |(2)
 |1つのファイルを読み込むためのItemReaderを定義する。
 
 |(3)
-|``resouce``プロパティに、``MultiResourcePartitioner``で分割されたファイルを入力ファイルに指定する。 +
+|``resouce``属性に、``MultiResourcePartitioner``で分割されたファイルを入力ファイルに指定する。 +
 ``MultiResourcePartitioner``は、"fileName"というキーでステップコンテキストにファイルパスを格納している。
 
 |(4)
-|``MultiResourcePartitioner``を``Partitioner``として定義する。
+|``MultiResourcePartitioner``を``partitioner``として定義する。
 
 |(5)
-|*を用いたパターンを使用することで、複数ファイルを対象にすることができる。
+|``*``を用いたパターンを使用することで、複数ファイルを対象にすることができる。
 
 |(6)
-|Masterステップを定義する。 +
+|Managerステップを定義する。 +
 定義内容は上記で説明したPartitioning Stepの内容と同じ。
 
 
 |(7)
-|Slaveステップを定義する。 +
+|Workerステップを定義する。 +
 ``reader``属性に(2)で定義したItemReaderを設定する。
 
 |===
@@ -703,10 +705,10 @@ public class SalesDataPartitioner implements Partitioner {
 
 <batch:job id="multipleCreateSalesPlanSummaryJob" job-repository="jobRepository">
     <!-- (12) -->
-    <batch:step id="multipleCreateSalesPlanSummaryJob.master">
+    <batch:step id="multipleCreateSalesPlanSummaryJob.manager">
         <!-- (13) -->
         <batch:partition partitioner="salesDataPartitioner"
-              step="multipleCreateSalesPlanSummaryJob.slave">
+              step="multipleCreateSalesPlanSummaryJob.worker">
             <!-- (14) -->
             <batch:handler grid-size="4" task-executor="parallelTaskExecutor" />
         </batch:partition>
@@ -714,7 +716,7 @@ public class SalesDataPartitioner implements Partitioner {
 </batch:job>
 
 <!-- (15) -->
-<batch:step id="multipleCreateSalesPlanSummaryJob.slave">
+<batch:step id="multipleCreateSalesPlanSummaryJob.worker">
     <batch:tasklet transaction-manager="jobTransactionManager">
         <batch:chunk reader="reader" processor="addProfitsItemProcessor"
               writer="writer" commit-interval="10"/>
@@ -740,20 +742,20 @@ public class SalesDataPartitioner implements Partitioner {
 |定義したRepository(SQLMapper)をInjectする。
 
 |(4)
-|1つのSlaveステップが処理するデータ件数を算出する。
+|1つのWorkerステップが処理するデータ件数を算出する。
 
 |(5)
 |(4)のデータ件数をステップコンテキストに格納する。
 
 |(6)
-|各Slaveステップの検索開始位置をステップコンテキストに格納する。
+|各Workerステップの検索開始位置をステップコンテキストに格納する。
 
 |(7)
-|各Slaveが該当するコンテキストを取得できるようMapに格納する。
+|各Workerが該当するコンテキストを取得できるようMapに格納する。
 
 |(8)
-|多重処理でSlaveステップの各スレッドに割り当てるためのスレッドプールを定義する。 +
-Masterステップはメインスレッドで処理される。
+|多重処理でWorkerステップの各スレッドに割り当てるためのスレッドプールを定義する。 +
+Managerステップはメインスレッドで処理される。
 
 |(9)
 |ページネーション検索(SQL絞り込み方式)によるデータ取得のItemReaderを定義する。
@@ -765,19 +767,19 @@ Masterステップはメインスレッドで処理される。
 |(6)で設定した検索開始位置をステップコンテキストから取得し、検索条件に追加する。
 
 |(12)
-|Masterステップを定義する。
+|Managerステップを定義する。
 
 |(13)
 |データの分割条件を生成する処理を定義する。 +
 ``partitioner``属性には、``Partitioner``インタフェース実装を設定する。 +
-``step``属性には、(15)で定義するSlaveステップのBeanIDを設定する。
+``step``属性には、(15)で定義するWorkerステップのBeanIDを設定する。
 
 |(14)
 |``grid-size``属性に分割数(固定値)を設定する。 +
 ``task-executor``属性に(8)で定義したスレッドプールのBeanIDを設定する。
 
 |(15)
-|Slaveステップを定義する。 +
+|Workerステップを定義する。 +
 ``reader``属性に(9)で定義したItemReaderを設定する。
 
 |===

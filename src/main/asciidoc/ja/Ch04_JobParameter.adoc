@@ -47,7 +47,7 @@ include::_include_all.adoc[]
 *** RUN_IDは、ジョブが実行される都度増加する。増加は、データベースのSEQUENCE(名称は``JOB_SEQ``となる)を利用するため、重複することがない。
 *** {SB}では、同じパラメータで起動したジョブは同一ジョブとして認識され、同一ジョブは1度しか実行できない、という仕様がある。
     これに対し、``jsr_batch_run_id``という名称のパラメータを一意な値で付加することにより、別のジョブと認識する仕組みとなっている。
-    詳細は、<<Ch02_SpringBatchArchitecture.adoc#Ch02_SpringBatchArch, {SB}のアーキテクチャ>>を参照すること。
+    詳細は、<<Ch02_SpringBatchArchitecture.adoc#Ch02_SpringBatchArch, {SB}のアーキテクチャ>>を参照。
 
 {SB}ではBean定義で使用する``JobParametersConverter``の実装クラスを指定しない場合、``DefaultJobParametersConverter``が使用される。 +
 しかし、{batch5_shortname}では以下の理由により``DefaultJobParametersConverter``は採用しない。
@@ -61,7 +61,7 @@ include::_include_all.adoc[]
 
 .パラメータ変換クラスの設定について
 
-{batch5_shortname}では、予め``launch-context.xml``にて``JsrJobParametersConverter``を使用するように設定している。 +
+ブランクプロジェクトでは、あらかじめ``launch-context.xml``にて``JsrJobParametersConverter``を使用するように設定している。 +
 そのため{batch5_shortname}を推奨設定で使用する場合は``JobParametersConverter``の設定を行う必要はない。
 
 [source, xml]
@@ -94,7 +94,7 @@ include::_include_all.adoc[]
 パラメータの個数や長さは、{SB}や{batch5_shortname}においては制限がない。
 しかし、OSにはコマンド引数の長さに制限がある。 +
 そのため、あまりに大量の引数が必要な場合は、<<Ch04_JobParameter_HowToUse_FromFile>>や
-<<Ch04_JobParameter_HowToExtends_PropertyConbination>>などの方法を活用すること。
+<<Ch04_JobParameter_HowToExtend_PropertyConbination>>などの方法を活用すること。
 
 [source, console]
 .コマンドライン引数としてパラメータを設定する例
@@ -131,17 +131,23 @@ Spring Frameworkの``ApplicationContext``は、デフォルトでは各種Bean�
 ====
 
 [IMPORTANT]
-.Stepスコープの指定では@StepScopeアノテーションは使用できない
+.{batch5_shortname}では、Stepスコープの指定に@StepScopeを使用しない
 ====
-{SB}では、``Step``スコープを指定するアノテーションとして``@StepScope``が提供されているが、
-これはJavaConfigにおいてのみ使用できるアノテーションである。
+``Step``スコープの指定は以下のいずれかの方法で行える。
 
-そのため、{batch5_shortname}における``Step``スコープの指定は以下のいずれかの方法で行う。
+* XMLでのBean定義で、``<bean>``要素に``scope="step"``を設定する
+* アノテーションでのBean定義で、``@Component``を付与するクラスに``@Scope("step")``を付与する
+* JavaConfigでのBean定義で、``@Bean``を付与するメソッドに``@StepScope``を付与する
 
-. Bean定義では、Beanに``scope="step"``を付与する。
-. Javaでは、クラスに``@Scope("step")``を付与する。
+しかし{batch5_shortname}では、以下二つの前提によってStepスコープの指定にはlink:https://docs.spring.io/spring-batch/docs/{spring_batch_version}/api/org/springframework/batch/core/configuration/annotation/StepScope.html[``@StepScope``]ではなく、``scope="step"``か``@Scope("step")``を使用する。
+
+* ジョブの定義は、XMLによるBean定義ファイルに記述する
+* チャンクモデル/タスクレットモデルの構成要素を実装したクラスは、``@Component``を付与してBean定義する
+
+``scope="step"``の実装例は<<Ch04_JobParameter_HowToUse_CLIArgs_RefByXML>>を参照し、``@Scope("step")``の実装例は<<Ch04_JobParameter_HowToUse_CLIArgs_RefByJava>>を参照。
 ====
 
+[[Ch04_JobParameter_HowToUse_CLIArgs_RefByXML]]
 [source, xml]
 .コマンドライン引数で与えたパラメータをBean定義で参照する例
 ----
@@ -163,13 +169,14 @@ Spring Frameworkの``ApplicationContext``は、デフォルトでは各種Bean�
 |説明
 
 |(1)
-|beanタグにscope属性としてスコープを指定する。
+|``<bean>``要素の``scope``属性でスコープを指定する。
 
 |(2)
 |参照するパラメータを指定する。
 
 |===
 
+[[Ch04_JobParameter_HowToUse_CLIArgs_RefByJava]]
 [source, java]
 .コマンドライン引数で与えたパラメータをJavaで参照する例
 ----
@@ -243,7 +250,7 @@ $ java org.springframework.batch.core.launch.support.CommandLineJobRunner \
 ただし、パラメータを使用して値を設定している項目であるということは、デフォルト値もパラメータと同様に環境や実行タイミングによって異なる可能性がある。
 
 まずは、デフォルト値をソースコード上にハードコードをする方法を説明する。
-しかし、後述の<<Ch04_JobParameter_HowToExtends_PropertyConbination>>を活用する方が適切なケースが多いため、合わせて参照すること。
+しかし、後述の<<Ch04_JobParameter_HowToExtend_PropertyConbination>>を活用する方が適切なケースが多いため、合わせて参照。
 
 .デフォルト値を設定したパラメータの参照
 
@@ -271,7 +278,7 @@ $ java org.springframework.batch.core.launch.support.CommandLineJobRunner \
 |説明
 
 |(1)
-|beanタグにscope属性としてスコープを指定する。
+|``<bean>``要素の``scope``属性でスコープを指定する。
 
 |(2)
 |参照するパラメータを指定する。 +
@@ -388,8 +395,8 @@ public class ParamRefInJavaTasklet implements Tasklet {
 |``DefaultJobParametersValidator``のBeanを定義する。
 
 |(2)
-|必須パラメータはプロパティ``requiredKeys``に設定する。 +
-listタグを使用して必須パラメータのパラメータ名を複数指定できる。
+|必須パラメータは``requiredKeys``に設定する。 +
+``<list>``要素を使用して必須パラメータのパラメータ名を複数指定できる。
 
 |(3)
 |必須パラメータに``jsr_batch_run_id``を設定する。 +
@@ -397,11 +404,11 @@ listタグを使用して必須パラメータのパラメータ名を複数指�
 必須となる理由は後述する。
 
 |(4)
-|任意パラメータはプロパティ``optionalKeys``に設定する。 +
-listタグを使用して任意パラメータのパラメータ名を複数指定できる。
+|任意パラメータは``optionalKeys``に設定する。 +
+``<list>``要素を使用して任意パラメータのパラメータ名を複数指定できる。
 
 |(5)
-|jobタグ内にvalidatorタグを使用してジョブにバリデータを適用する。
+|``<batch:job>``要素内に``<batch:validator>``要素を使用してジョブにバリデータを適用する。
 |===
 
 [IMPORTANT]
@@ -412,7 +419,7 @@ listタグを使用して任意パラメータのパラメータ名を複数指�
 * ``jsr_batch_run_id``
 
 そのため、``requiredKeys``には、``jsr_batch_run_id``を必ず含めること。 +
-詳細な説明は、<<Ch04_JobParameter_HowToUse_Converter>>を参照すること。
+詳細な説明は、<<Ch04_JobParameter_HowToUse_Converter>>を参照。
 
 [source, xml]
 .パラメータの定義例
@@ -569,7 +576,7 @@ public class ComplexJobParametersValidator implements JobParametersValidator {  
 |説明
 
 |(1)
-|jobタグ内にvalidatorタグを使用してジョブにバリデータを適用する。
+|``<batch:job>``要素内に``<batch:validator>``要素を使用してジョブにバリデータを適用する。
 |===
 
 [WARNING]
@@ -592,16 +599,16 @@ public class ComplexJobParametersValidator implements JobParametersValidator {  
 ``JobParametersValidator``を使用するためだけに{SB}に依存することは避けた方がよい。
 ====
 
-[[Ch04_JobParameter_HowToExtends]]
-== How to extends
+[[Ch04_JobParameter_HowToExtend]]
+== How to extend
 
-[[Ch04_JobParameter_HowToExtends_PropertyConbination]]
+[[Ch04_JobParameter_HowToExtend_PropertyConbination]]
 === パラメータとプロパティの併用
 
 {SB}のベースであるSpring Frameworkには、プロパティ管理の機能が備わっており、
 環境変数やプロパティファイルに設定した値を扱うことができる。
 詳細は、{server5_guide}の
-{server5_url}/ArchitectureInDetail/GeneralFuncDetail/PropertyManagement.html[プロパティ管理] を参照すること。
+{server5_url}/ArchitectureInDetail/GeneralFuncDetail/PropertyManagement.html[プロパティ管理] を参照。
 
 プロパティとパラメータを組み合わせることで、大部分のジョブに共通的な設定をプロパティファイルに行ったうえで、一部をパラメータで上書きするといったことが可能になる。
 

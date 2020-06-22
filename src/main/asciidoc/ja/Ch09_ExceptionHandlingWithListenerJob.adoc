@@ -17,15 +17,14 @@ include::_include_all.adoc[]
 == 概要
 ChunkListenerで例外ハンドリングを行うジョブを作成する。
 
-なお、本節は{batch5_guide}を元に説明しているため、
-詳細については<<Ch06_ExceptionHandling.adoc#Ch06_ExceptionHandling_HowToUse_StepExceptionHandling_ChunkListener,ChunkListenerインタフェースによる例外ハンドリング>>を参照のこと。
+なお、詳細については{batch5_guide}の<<Ch06_ExceptionHandling.adoc#Ch06_ExceptionHandling_HowToUse_StepExceptionHandling_ChunkListener,ChunkListenerインタフェースによる例外ハンドリング>>を参照。
 
 [NOTE]
 .リスナーの用途について
 ====
 ここでは、リスナーによりステップの実行後に例外発生の有無をチェックすることで例外ハンドリングを実現するが、
 リスナーの用途は例外ハンドリングに限定されてはいないため、
-詳細については<<Ch04_Listener.adoc#Ch04_Listener,リスナー>>を参照のこと。
+詳細については<<Ch04_Listener.adoc#Ch04_Listener,リスナー>>を参照。
 ====
 
 <<Ch09_TutorialApplication.adoc#Ch09_TutorialApplication,作成するアプリケーションの説明>>の
@@ -52,7 +51,7 @@ ChunkListenerで例外ハンドリングを行うジョブを作成する。
 * 入力データのポイントが1,000,000ポイントを超過していないことをチェックする
 ** チェックエラーとなる場合は、エラーメッセージをログに出力して処理を異常終了する
 ** エラーメッセージはリスナーによる後処理で実現する
-** メッセージ内容は「The Point exceeds 1000000.」(ポイントが1,000,000を超えています)とする
+** メッセージ内容は「The point exceeds 1000000.」(ポイントが1,000,000を超えています)とする
 * 商品購入フラグが"1"(処理対象)の場合に、会員種別に応じてポイントを加算する
 ** 会員種別が"G"(ゴールド会員)の場合は100ポイント、"N"(一般会員)の場合は10ポイント加算する
 * 商品購入フラグはポイント加算後に"0"(初期状態)に更新する
@@ -63,7 +62,7 @@ ChunkListenerで例外ハンドリングを行うジョブを作成する。
 === テーブル仕様
 入出力リソースとなる会員情報テーブルの仕様は以下のとおり。 +
 <<Ch09_Impl_ExceptionHandlingWithListenerJob_Prerequisite>>のとおりデータベースアクセスするジョブの場合の説明となるため、ファイルアクセスするジョブの場合の
-入出力のリソース仕様は<<Ch09_FileAccessJob.adoc#Ch09_Impl_FileAccessJob_Overview_FileSpecification,ファイル仕様>>を参照する。
+入出力のリソース仕様は<<Ch09_FileAccessJob.adoc#Ch09_Impl_FileAccessJob_Overview_FileSpecification,ファイル仕様>>を参照。
 
 [cols="3,15,10,4,12,8,45", options="header"]
 .会員情報テーブル(member_info)
@@ -130,8 +129,6 @@ image::ch09/ExceptionHandlingWithListener/Ch09_ExceptionHandlingWithListenerJob_
 
 //^
 チャンクモデルの場合の処理シーケンス::
-チャンクモデルの場合の処理シーケンスを説明する。
-
 チャンクモデルの場合の処理シーケンスを説明する。 +
 本ジョブは異常系データを利用することを前提として説明しているため、
 このシーケンス図は入力チェックでエラー(異常終了)となった場合を示している。 +
@@ -232,7 +229,7 @@ image::Ch09_ExceptionHandlingWithListenerJob_ProcessSequence_TaskletModel.png[Pr
 チャンクモデル/タスクレットモデルで共通して利用するため、既に作成している場合は読み飛ばしてよい。
 
 ``application-messages.properties``および``launch-context.xml``を以下のとおり設定する。 +
-``launch-context.xml``は{batch5_shortname}では設定済みである。
+なお、``launch-context.xml``の設定はブランクプロジェクトに設定済みである。
 
 [source, xml]
 .src/main/resources/i18n/application-messages.properties
@@ -320,7 +317,7 @@ public class ChunkErrorLoggingListener implements ChunkListener {
         Exception e = (Exception) chunkContext.getAttribute(ChunkListener.ROLLBACK_EXCEPTION_KEY); // (2)
         if (e instanceof ValidationException) {
             logger.error(messageSource
-                    .getMessage("errors.maxInteger", new String[] { "Point", "1000000" }, Locale.getDefault())); // (3)
+                    .getMessage("errors.maxInteger", new String[] { "point", "1000000" }, Locale.getDefault())); // (3)
         }
     }
 }
@@ -357,9 +354,9 @@ public class ChunkErrorLoggingListener implements ChunkListener {
        xmlns:batch="http://www.springframework.org/schema/batch"
        xmlns:p="http://www.springframework.org/schema/p"
        xmlns:mybatis="http://mybatis.org/schema/mybatis-spring"
-       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
-             http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
-             http://www.springframework.org/schema/batch http://www.springframework.org/schema/batch/spring-batch.xsd
+       xsi:schemaLocation="http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd
+             http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd
+             http://www.springframework.org/schema/batch https://www.springframework.org/schema/batch/spring-batch.xsd
              http://mybatis.org/schema/mybatis-spring http://mybatis.org/schema/mybatis-spring.xsd">
 
     <!-- omitted -->
@@ -443,24 +440,31 @@ tutorial.insert-data.script=file:sqls/insert-member-info-error-data.sql
 ==== コンソールログの確認
 Console Viewを開き、以下の内容のログが出力されていることを確認する。
 
-* 処理が異常終了(FAILED)していること
-* ``org.springframework.batch.item.validator.ValidationException``が発生していること
-* ``com.example.batch.tutorial.common.listener.ChunkErrorLoggingListener``が次のERRORログとして次のメッセージを出力していること
-** 「The Point exceeds 1000000.」
+* 処理が異常終了(FAILED)していること。
+* ``org.springframework.batch.item.validator.ValidationException``が発生していること。
+* ``com.example.batch.tutorial.common.listener.ChunkErrorLoggingListener``がERRORログとして次のメッセージを出力していること。
+** 「The point exceeds 1000000.」
 
 [source, console]
 .コンソールログ出力例
 ----
-[2017/09/12 11:13:52] [main] [o.t.b.t.c.l.ChunkErrorLoggingListener] [ERROR] The Point exceeds 1000000.
-[2017/09/12 11:13:52] [main] [o.s.b.c.s.AbstractStep] [ERROR] Encountered an error executing step jobPointAddChunk.step01 in job jobPointAddChunk
-org.springframework.batch.item.validator.ValidationException: Validation failed for com.example.batch.tutorial.common.dto.MemberInfoDto@6c8a68c1:
+(.. omitted)
+
+[2020/03/10 16:08:08] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=jobPointAddChunk]] launched with the following parameters: [{jsr_batch_run_id=144}]
+[2020/03/10 16:08:08] [main] [o.s.b.c.j.SimpleStepHandler] [INFO ] Executing step: [jobPointAddChunk.step01]
+[2020/03/10 16:08:08] [main] [c.e.b.t.c.l.ChunkErrorLoggingListener] [ERROR] The point exceeds 1000000.
+[2020/03/10 16:08:08] [main] [o.s.b.c.s.AbstractStep] [ERROR] Encountered an error executing step jobPointAddChunk.step01 in job jobPointAddChunk
+org.springframework.batch.item.validator.ValidationException: Validation failed for com.example.batch.tutorial.common.dto.MemberInfoDto@65fe2691:
 Field error in object 'item' on field 'point': rejected value [1000001]; codes [Max.item.point,Max.point,Max.int,Max]; arguments [org.springframework.context.support.DefaultMessageSourceResolvable: codes [item.point,point]; arguments []; default message [point],1000000]; default message [must be less than or equal to 1000000]
 	at org.springframework.batch.item.validator.SpringValidator.validate(SpringValidator.java:54)
 
 (.. omitted)
 
-[2017/09/12 11:13:52] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=jobPointAddChunk]] completed with the following parameters: [{jsr_batch_run_id=480}] and the following status: [FAILED]
-[2017/09/12 11:13:52] [main] [o.s.c.s.ClassPathXmlApplicationContext] [INFO ] Closing org.springframework.context.support.ClassPathXmlApplicationContext@735f7ae5: startup date [Tue Sep 12 11:13:50 JST 2017]; root of context hierarchy
+Caused by: org.springframework.validation.BindException: org.springframework.validation.BeanPropertyBindingResult: 1 errors
+Field error in object 'item' on field 'point': rejected value [1000001]; codes [Max.item.point,Max.point,Max.int,Max]; arguments [org.springframework.context.support.DefaultMessageSourceResolvable: codes [item.point,point]; arguments []; default message [point],1000000]; default message [must be less than or equal to 1000000]
+	... 29 common frames omitted
+[2020/03/10 16:08:08] [main] [o.s.b.c.s.AbstractStep] [INFO ] Step: [jobPointAddChunk.step01] executed in 235ms
+[2020/03/10 16:08:08] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=jobPointAddChunk]] completed with the following parameters: [{jsr_batch_run_id=144}] and the following status: [FAILED] in 297ms
 ----
 
 [[Ch09_Impl_ExceptionHandlingWithListenerJob_Chunk_Execution_Exitcode]]
@@ -480,20 +484,19 @@ image::ch09/ExceptionHandlingWithListener/Ch09_ExceptionHandlingWithListenerJob_
 
 [[Ch09_Impl_ExceptionHandlingWithListenerJob_Chunk_Execution_Output_Table]]
 ===== 会員情報テーブルの確認
-Data Source Explorerを使用して会員情報テーブルの確認を行う。 +
 更新前後の会員情報テーブルの内容を比較し、確認内容のとおりとなっていることを確認する。 +
-確認手順は<<Ch09_EnvironmentConstruction.adoc#Ch09_EnvironmentConstruction_OperationCheck_RefDB,Data Source Explorerを使用してデータベースを参照する>>を参照。
+確認手順は<<Ch09_EnvironmentConstruction.adoc#Ch09_EnvironmentConstruction_OperationCheck_RefDB,DBeaverを使用してデータベースを参照する>>を参照。
 
 確認内容::
 * 1から10番目のレコード(会員番号が"00000001"から"00000010"のレコード)について
 ** statusカラム
-*** "0"(初期状態)のレコードが存在しないこと
+*** "1"(処理対象)から"0"(初期状態)に更新されていること
 ** pointカラム
 *** ポイント加算対象について、会員種別に応じたポイントが加算されていること
 **** typeカラムが"G"(ゴールド会員)の場合は100ポイント
 **** typeカラムが"N"(一般会員)の場合は10ポイント
 * 11から15番目のレコード(会員番号が"00000011"から"00000015"のレコード)について
-** 更新されていないこと
+** 更新されていないこと(破線の赤枠で示した範囲)
 
 更新前後の会員情報テーブルの内容は以下のとおり。
 
@@ -507,14 +510,15 @@ image::ch09/ExceptionHandlingWithListener/Ch09_ExceptionHandlingWithListenerJob_
 確認内容::
 * 出力ディレクトリに会員情報ファイルが出力されていること
 ** 出力ファイル: files/output/output-member-info-data.csv
-* 出力されたレコードは、1から10番目のレコード(会員番号が"00000001"から"00000010"のレコード)のみであること
-* 出力されたレコードについて
-** statusカラム
-*** "0"(初期状態)のレコードが存在しないこと
-** pointカラム
+* 1から10番目のレコード(会員番号が"00000001"から"00000010"のレコード)について
+** statusフィールド
+*** "1"(処理対象)から"0"(初期状態)に更新されていること
+** pointフィールド
 *** ポイント加算対象について、会員種別に応じたポイントが加算されていること
-**** typeカラムが"G"(ゴールド会員)の場合は100ポイント
-**** typeカラムが"N"(一般会員)の場合は10ポイント
+**** typeフィールドが"G"(ゴールド会員)の場合は100ポイント
+**** typeフィールドが"N"(一般会員)の場合は10ポイント
+* 11から15番目のレコード(会員番号が"00000011"から"00000015"のレコード)について
+** 出力されていないこと(破線の赤枠で示した範囲)
 
 会員情報ファイルの入出力内容は以下のとおり。 +
 ファイルのフィールドはid(会員番号)、type(会員種別)、status(商品購入フラグ)、point(ポイント)の順で出力される。
@@ -538,7 +542,7 @@ image::ch09/ExceptionHandlingWithListener/Ch09_ExceptionHandlingWithListenerJob_
 チャンクモデル/タスクレットモデルで共通して利用するため、既に作成している場合は読み飛ばしてよい。
 
 ``application-messages.properties``および``launch-context.xml``を以下のとおり設定する。 +
-``launch-context.xml``は{batch5_shortname}では設定済みである。
+なお、``launch-context.xml``の設定はブランクプロジェクトに設定済みである。
 
 [source, xml]
 .src/main/resources/i18n/application-messages.properties
@@ -626,7 +630,7 @@ public class ChunkErrorLoggingListener implements ChunkListener {
         Exception e = (Exception) chunkContext.getAttribute(ChunkListener.ROLLBACK_EXCEPTION_KEY); // (2)
         if (e instanceof ValidationException) {
             logger.error(messageSource
-                    .getMessage("errors.maxInteger", new String[] { "Point", "1000000" }, Locale.getDefault())); // (3)
+                    .getMessage("errors.maxInteger", new String[] { "point", "1000000" }, Locale.getDefault())); // (3)
         }
     }
 }
@@ -663,9 +667,9 @@ public class ChunkErrorLoggingListener implements ChunkListener {
        xmlns:batch="http://www.springframework.org/schema/batch"
        xmlns:p="http://www.springframework.org/schema/p"
        xmlns:mybatis="http://mybatis.org/schema/mybatis-spring"
-       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
-             http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
-             http://www.springframework.org/schema/batch http://www.springframework.org/schema/batch/spring-batch.xsd
+       xsi:schemaLocation="http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd
+             http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd
+             http://www.springframework.org/schema/batch https://www.springframework.org/schema/batch/spring-batch.xsd
              http://mybatis.org/schema/mybatis-spring http://mybatis.org/schema/mybatis-spring.xsd">
 
     <!-- omitted -->
@@ -747,24 +751,31 @@ tutorial.insert-data.script=file:sqls/insert-member-info-error-data.sql
 ==== コンソールログの確認
 Console Viewを開き、以下の内容のログが出力されていることを確認する。
 
-* 処理が異常終了(FAILED)していること
-* ``org.springframework.batch.item.validator.ValidationException``が発生していること
-* ``com.example.batch.tutorial.common.listener.ChunkErrorLoggingListener``が次のERRORログとして次のメッセージを出力していること
-** 「The Point exceeds 1000000.」
+* 処理が異常終了(FAILED)していること。
+* ``org.springframework.batch.item.validator.ValidationException``が発生していること。
+* ``com.example.batch.tutorial.common.listener.ChunkErrorLoggingListener``がERRORログとして次のメッセージを出力していること。
+** 「The point exceeds 1000000.」
 
 [source, console]
 .コンソールログ出力例
 ----
-[2017/09/12 10:22:22] [main] [o.t.b.t.c.l.ChunkErrorLoggingListener] [ERROR] The Point exceeds 1000000.
-[2017/09/12 10:22:22] [main] [o.s.b.c.s.AbstractStep] [ERROR] Encountered an error executing step jobPointAddTasklet.step01 in job jobPointAddTasklet
-org.springframework.batch.item.validator.ValidationException: Validation failed for com.example.batch.tutorial.common.dto.MemberInfoDto@6e4ea0bd:
+(.. omitted)
+
+[2020/03/10 16:09:34] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=jobPointAddTasklet]] launched with the following parameters: [{jsr_batch_run_id=146}]
+[2020/03/10 16:09:34] [main] [o.s.b.c.j.SimpleStepHandler] [INFO ] Executing step: [jobPointAddTasklet.step01]
+[2020/03/10 16:09:35] [main] [c.e.b.t.c.l.ChunkErrorLoggingListener] [ERROR] The point exceeds 1000000.
+[2020/03/10 16:09:35] [main] [o.s.b.c.s.AbstractStep] [ERROR] Encountered an error executing step jobPointAddTasklet.step01 in job jobPointAddTasklet
+org.springframework.batch.item.validator.ValidationException: Validation failed for com.example.batch.tutorial.common.dto.MemberInfoDto@61514735:
 Field error in object 'item' on field 'point': rejected value [1000001]; codes [Max.item.point,Max.point,Max.int,Max]; arguments [org.springframework.context.support.DefaultMessageSourceResolvable: codes [item.point,point]; arguments []; default message [point],1000000]; default message [must be less than or equal to 1000000]
 	at org.springframework.batch.item.validator.SpringValidator.validate(SpringValidator.java:54)
 
 (.. omitted)
 
-[2017/09/12 10:22:22] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=jobPointAddTasklet]] completed with the following parameters: [{jsr_batch_run_id=478}] and the following status: [FAILED]
-[2017/09/12 10:22:22] [main] [o.s.c.s.ClassPathXmlApplicationContext] [INFO ] Closing org.springframework.context.support.ClassPathXmlApplicationContext@735f7ae5: startup date [Tue Sep 12 10:22:20 JST 2017]; root of context hierarchy
+Caused by: org.springframework.validation.BindException: org.springframework.validation.BeanPropertyBindingResult: 1 errors
+Field error in object 'item' on field 'point': rejected value [1000001]; codes [Max.item.point,Max.point,Max.int,Max]; arguments [org.springframework.context.support.DefaultMessageSourceResolvable: codes [item.point,point]; arguments []; default message [point],1000000]; default message [must be less than or equal to 1000000]
+	... 24 common frames omitted
+[2020/03/10 16:09:35] [main] [o.s.b.c.s.AbstractStep] [INFO ] Step: [jobPointAddTasklet.step01] executed in 193ms
+[2020/03/10 16:09:35] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=jobPointAddTasklet]] completed with the following parameters: [{jsr_batch_run_id=146}] and the following status: [FAILED] in 273ms
 ----
 
 [[Ch09_Impl_ExceptionHandlingWithListenerJob_Tasklet_Execution_Exitcode]]
@@ -784,9 +795,8 @@ image::ch09/ExceptionHandlingWithListener/Ch09_ExceptionHandlingWithListenerJob_
 
 [[Ch09_Impl_ExceptionHandlingWithListenerJob_Tasklet_Execution_Output_Table]]
 ===== 会員情報テーブルの確認
-Data Source Explorerを使用して会員情報テーブルの確認を行う。 +
 更新前後の会員情報テーブルの内容を比較し、確認内容のとおりとなっていることを確認する。 +
-確認手順は<<Ch09_EnvironmentConstruction.adoc#Ch09_EnvironmentConstruction_OperationCheck_RefDB,Data Source Explorerを使用してデータベースを参照する>>を参照。
+確認手順は<<Ch09_EnvironmentConstruction.adoc#Ch09_EnvironmentConstruction_OperationCheck_RefDB,DBeaverを使用してデータベースを参照する>>を参照。
 
 確認内容::
 * すべてのレコードについて、データが更新されていないこと

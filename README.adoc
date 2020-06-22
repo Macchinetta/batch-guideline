@@ -7,7 +7,7 @@ This guideline helps to proceed with the software development (mainly coding) sm
 [NOTE]
 .Stable guidelines
 ====
-**GitHub contents is under construction**. Stable guidelines refer tohttps://macchinetta.github.io/batch-guideline/current/ja/[here].
+**GitHub contents is under construction**. Stable guidelines refer to https://macchinetta.github.io/batch-guideline/current/ja/[here].
 ====
 
 == How to contribute
@@ -19,16 +19,18 @@ This guideline helps to proceed with the software development (mainly coding) sm
 Source files of this guideline are stored into following directories.
 
 * Japanese version : ``{repository root}/src/main/asciidoc/ja/``
-* English version  : ``{repository root}/src/main/asciidoc/en/``
 
 == Source file format
 
 This guideline is written by the Asciidoctor format(``.adoc``).
-About the Asciidoctor format, refer to the http://asciidoctor.org/docs/[Asciidoctor documentation contents].
+About the Asciidoctor format, refer to the https://asciidoctor.org/docs/[Asciidoctor documentation contents].
 
 == How to build
 
-We build to HTML and PDF files using the https://github.com/asciidoctor/asciidoctor-maven-plugin[Asciidoctor Maven Plugin].
+We build to Diagram, HTML, and PDF files using the https://github.com/asciidoctor/asciidoctor-maven-plugin[Asciidoctor Maven Plugin].
+
+Diagram build requires https://graphviz.gitlab.io/[Graphviz]'s dot command tool.
+Please download https://graphviz.gitlab.io/download/[here] and set system path.
 
 === Clone a repository
 
@@ -49,7 +51,7 @@ $ git clone https://github.com/{your account}/batch-guideline.git
 === Build HTML and PDF files for the Japanese
 
 Please execute the two ``mvn`` command.
-If build is successful, HTML files generate to the directory below.
+If build is successful, HTML and PDF files generate to the directory below.
 
 * HTML : ``{your repository}/target/generated-docs/html``
 * PDF  : ``{your repository}/target/generated-docs/pdf``
@@ -60,20 +62,19 @@ $ mvn -f image_pom.xml
 $ mvn
 ----
 
-=== Build HTML and PDF files for the English
+=== Build HTML files for the Japanese
 
 Please execute the two ``mvn`` command with profile specification.
 If build is successful, HTML files generate to the directory below.
 
 * HTML : ``{your repository}/target/generated-docs/html``
-* PDF  : ``{your repository}/target/generated-docs/pdf``
 
 [source, text]
 ----
 $ mvn -f image_pom.xml
-$ mvn -P en
+$ mvn -P ja-html-only
 ----
 
 == Terms of use
 
-Terms of use refer to link:/src/main/asciidoc/ja/Ch01_TermsOfUse.adoc[here(Japanese)] or link:/src/main/asciidoc/en/Ch01_TermsOfUse.adoc[here(English)].
+Terms of use refer to link:/src/main/asciidoc/ja/Ch01_TermsOfUse.adoc[here(Japanese)].

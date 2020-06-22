@@ -11,7 +11,7 @@ DBポーリングによるジョブ起動について説明をする。
 
 [[Ch04_AsyncJobWithDB_Overview_AboutAsync]]
 === DBポーリングによるジョブの非同期実行とは
-非同期実行させたいジョブを登録する専用のテーブル(以降、ジョブ要求テーブル)を一定周期で監視し、登録された情報を元にジョブを非同期実行することをいう。 +
+非同期実行させたいジョブを登録する専用のテーブル(以降、ジョブ要求テーブル)を一定周期で監視し、登録された情報をもとにジョブを非同期実行することをいう。 +
 {batch5_shortname}では、テーブルを監視しジョブを起動するモジュールを非同期バッチデーモンという名称で定義する。
 非同期バッチデーモンは1つのJavaプロセスとして稼働し、1ジョブごとにプロセス内のスレッドを割り当てて実行する。
 
@@ -121,7 +121,7 @@ image::Ch04_AsyncJobWithDB_Sequence_db_polling.png[sequence of DB polling]
 . ``TaskScheduler``は、``JobRequestPollTask``(ジョブ要求テーブルをポーリングする処理)を起動する。
 . ``JobRequestPollTask``は、ジョブ要求テーブルからポーリングステータスが未実行(INIT)のレコードを取得する。
 * 一定件数をまとめて取得する。デフォルトは3件。
-* 対象のレコードが存在しない場合は、一定間隔を空けて再度ポーリングを行う。デフォルトは5秒間隔。
+* 対象のレコードが存在しない場合は、一定間隔を空けて再度ポーリングを行う。デフォルトは10秒間隔。
 . ``JobRequestPollTask``は、レコードの情報にもとづいて、ジョブをスレッドに割り当てて実行する。
 . ``JobRequestPollTask``は、ジョブ要求テーブルのポーリングステータスをポーリング済み(POLLED)へ更新する。
 * ジョブの同時実行数に達している場合は、取得したレコードから起動できないレコードを破棄し、次回ポーリング処理時にレコードを再取得する。
@@ -155,7 +155,7 @@ image::Ch04_AsyncJobWithDB_Sequence_db_polling.png[sequence of DB polling]
 [[Ch04_AsyncJobWithDB_Arch_RequireTable_TableStructure]]
 ==== ジョブ要求テーブルの構造
 以下に、{terasoluna_batch5_shortname}が対応しているデータベース製品のうち、PostgreSQLの場合を示す。
-その他のデータベースについては、{terasoluna_batch5_shortname}のjarに同梱されているDDLを参照してほしい。
+その他のデータベースについては、{terasoluna_batch5_shortname}のjarに同梱されているDDLを参照。
 
 [IMPORTANT]
 .ジョブ要求テーブルへ格納する文字列について
@@ -240,7 +240,7 @@ CREATE TABLE IF NOT EXISTS batch_job_request (
 ==== ジョブ要求シーケンスの構造
 データベースがカラムの自動採番に対応していない場合は、シーケンスによる採番が必要になる。 +
 以下に、{terasoluna_batch5_shortname}が対応しているデータベース製品のうち、PostgreSQLの場合を示す。 +
-その他のデータベースについては、{terasoluna_batch5_shortname}のjarに同梱されているDDLを参照してほしい。
+その他のデータベースについては、{terasoluna_batch5_shortname}のjarに同梱されているDDLを参照。
 
 DDLは以下のとおり。
 [source, sql]
@@ -291,7 +291,7 @@ CREATE SEQUENCE batch_job_request_seq MAXVALUE 9223372036854775807 NO CYCLE;
 そのため、{terasoluna_batch5_shortname}が提供しているSQLでは対応できない場合がある。 +
 その場合は<<Ch04_AsyncJobWithDB_HowToExtend_CustomTable>>を参考に、
 ``BatchJobRequestMapper.xml``のSQLMapを再定義する必要がある。 +
-提供しているSQLについては、{terasoluna_batch5_shortname}のjarに同梱されている``BatchJobRequestMapper.xml``を参照のこと。
+提供しているSQLについては、{terasoluna_batch5_shortname}のjarに同梱されている``BatchJobRequestMapper.xml``を参照。
 
 [[Ch04_AsyncJobWithDB_Arch_JobLaunching]]
 === ジョブの起動について
@@ -420,10 +420,12 @@ async-batch-daemon.schema.script=classpath:org/terasoluna/batch/async/db/schema-
 # (4)
 async-batch-daemon.job-concurrency-num=3
 # (5)
-async-batch-daemon.polling-interval=5000
+async-batch-daemon.job-await-termination-seconds=600
 # (6)
-async-batch-daemon.polling-initial-delay=1000
+async-batch-daemon.polling-interval=10000
 # (7)
+async-batch-daemon.polling-initial-delay=1000
+# (8)
 async-batch-daemon.polling-stop-file-path=/tmp/stop-async-batch-daemon
 ----
 
@@ -441,14 +443,14 @@ async-batch-daemon.polling-stop-file-path=/tmp/stop-async-batch-daemon
 |(2)
 |DBポーリング処理で起動される``TaskScheduler``のスレッドプールサイズ設定。 +
 デフォルトは1(シングルスレッド)。 +
-(5)の説明にあるように、前のポーリング処理の完了から、次のポーリング処理の開始まで待ち時間を設けるようにしているため、ここで``TaskScheduler``のスレッド数を上げても並列には実行されない。そのため、基本的にはデフォルトのままとするほうが良い。
+(6)の説明にあるように、前のポーリング処理の完了から、次のポーリング処理の開始まで待ち時間を設けるようにしているため、ここで``TaskScheduler``のスレッド数を上げても並列には実行されない。そのため、基本的にはデフォルトのままとするほうが良い。
 
 |(3)
 |ジョブ要求テーブルを定義するDDLのパス。 +
 非同期バッチデーモン起動時にジョブ要求テーブルがない場合は、自動生成される。 +
 これは主に試験用機能であり、``batch-application.properties``内の +
 ``data-source.initialize.enabled``で実行可否を設定できる。 +
-詳細な定義は``async-batch-daemon.xml``内の``<jdbc:initialize-database>``を参照のこと。
+詳細な定義は``async-batch-daemon.xml``内の``<jdbc:initialize-database>``を参照。
 
 |(4)
 |ポーリング時に一括で取得する件数の設定。 +
@@ -456,13 +458,17 @@ async-batch-daemon.polling-stop-file-path=/tmp/stop-async-batch-daemon
 動作するマシンのコア数に応じて適切に設定しないと、性能問題等を引き起こす可能性がある。
 
 |(5)
+|非同期バッチデーモンの停止要求からジョブが終了(コンテナの破棄)するまで待機する最大秒数の設定。 +
+実行中の非同期実行ジョブがなければ即時終了となる。
+
+|(6)
 |ポーリング周期の設定。単位はミリ秒。 +
 前回タスクの実行完了時点から指定時間後にタスクを実行する。
 
-|(6)
+|(7)
 |ポーリング初回起動遅延時間の設定。単位はミリ秒。
 
-|(7)
+|(8)
 |終了ファイルパスの設定。
 
 |===
@@ -471,7 +477,7 @@ async-batch-daemon.polling-stop-file-path=/tmp/stop-async-batch-daemon
 .環境変数による設定値の変更
 ====
 ``batch-application.properties``の設定値は、同名の環境変数を定義することで設定の変更が可能である。 +
-環境変数が設定された場合は、プロパティ値より優先して使用される。 +
+環境変数が設定された場合は、プロパティファイルの値より優先して使用される。 +
 これは、以下のBean定義に起因する。
 
 [source,xml]
@@ -566,7 +572,7 @@ async-batch-daemon.polling-stop-file-path=/tmp/stop-async-batch-daemon
 ジョブ名が誤っていると、ジョブを起動するが見つからず、例外が発生してしまう。 +
 ジョブパラメータが誤っていると、ジョブは起動するが誤動作してしまう。 +
 ジョブパラメータに限っては、ジョブ起動後に検証を行うことができる。ジョブパラメータの検証については、
-<<Ch04_JobParameter.adoc#Ch04_JobParameter_HowToUse_ParamsValidation,"パラメータの妥当性検証">>を参照のこと。
+<<Ch04_JobParameter.adoc#Ch04_JobParameter_HowToUse_ParamsValidation,"パラメータの妥当性検証">>を参照。
 ====
 
 [IMPORTANT]
@@ -645,7 +651,7 @@ $ touch /tmp/stop-async-batch-daemon
 ジョブの状態管理は{SB}から提供される``JobRepository``で行い、ジョブ要求テーブルではジョブのステータスを管理しない。
 ジョブ要求テーブルでは``job_execution_id``のカラムをもち、このカラムに格納される値により個々の要求に対するジョブのステータスを確認できるようにしている。
 ここでは、SQLを直接発行してジョブのステータスを確認する簡単な例を示す。
-ジョブステータス確認の詳細は、<<Ch07_JobManagement.adoc#Ch07_JobManagement_HowToUse_JobStatusManagement_Retrieve,"状態の確認">>を参照のこと。
+ジョブステータス確認の詳細は、<<Ch07_JobManagement.adoc#Ch07_JobManagement_HowToUse_JobStatusManagement_Retrieve,"状態の確認">>を参照。
 
 [source,sql]
 .PostgreSQLの場合
@@ -669,7 +675,8 @@ ocation
 
 [[Ch04_AsyncJobWithDB_HowToUse_Recovery]]
 === ジョブが異常終了した後のリカバリ
-異常終了したジョブのリカバリに関する基本事項は、<<Ch06_ReProcessing.adoc#Ch06_RerunRestart,"処理の再実行">>を参照のこと。ここでは、非同期実行特有の事項について説明をする。
+異常終了したジョブのリカバリに関する基本事項は、<<Ch06_ReProcessing.adoc#Ch06_RerunRestart,"処理の再実行">>を参照。
+ここでは、非同期実行特有の事項について説明をする。
 
 [[Ch04_AsyncJobWithDB_HowToUse_Recovery_Rerun]]
 ==== リラン
@@ -679,12 +686,12 @@ ocation
 ==== リスタート
 異常終了したジョブをリスタートする場合は、コマンドラインから同期実行ジョブとして実行する。
 コマンドラインからの実行する理由は、「意図したリスタート実行なのか意図しない重複実行であるかの判断が難しいため、運用で混乱をきたす可能性がある」ためである。 +
-リスタート方法は<<Ch06_ReProcessing.adoc#Ch06_RerunRestart_HowToUse_Restart,"ジョブのリスタート">>を参照のこと。
+リスタート方法は<<Ch06_ReProcessing.adoc#Ch06_RerunRestart_HowToUse_Restart,"ジョブのリスタート">>を参照。
 
 [[Ch04_AsyncJobWithDB_HowToUse_Recovery_Stop]]
 ==== 停止
 . 処理時間が想定を超えて停止していない場合は、コマンドラインからの停止を試みる。
-停止方法は<<Ch07_JobManagement.adoc#Ch07_JobManagement_HowToUse_JobStatusManagement_JobStop,"ジョブの停止">>を参照のこと。
+停止方法は<<Ch07_JobManagement.adoc#Ch07_JobManagement_HowToUse_JobStatusManagement_JobStop,"ジョブの停止">>を参照。
 . コマンドラインからの停止も受け付けない場合は、<<Ch04_AsyncJobWithDB_HowToUse_Daemon_Stop>>により、非同期バッチデーモンを終了させる。
 . 非同期バッチデーモンも終了できない状態になっている場合は、非同期バッチデーモンのプロセスを強制終了させる。
 
@@ -704,8 +711,8 @@ ocation
 * 膨大なデータ量に対してデータを検索/更新する際の性能劣化
 * IDの採番用シーケンスが周回することによるIDの重複
 
-テーブルデータの退避やシーケンスのリセットについては、利用するデータベースのマニュアルを参照してほしい。
-また、``JobRepository``への検索/更新で性能劣化を懸念している場合は、<<Ch07_JobManagement.adoc#Ch07_JobManagement_Overview_JobExecutionManagement_PerformanceImprovement,"IndexによるJobRepositoryの性能改善">>を参照のこと。
+テーブルデータの退避やシーケンスのリセットについては、利用するデータベースのマニュアルを参照。
+また、``JobRepository``への検索/更新で性能劣化を懸念している場合は、<<Ch07_JobManagement.adoc#Ch07_JobManagement_Overview_JobExecutionManagement_PerformanceImprovement,"IndexによるJobRepositoryの性能改善">>を参照。
 
 以下に退避対象のテーブルおよびシーケンスの一覧を示す。
 
@@ -918,7 +925,7 @@ public interface CustomizedBatchJobRequestRepository extends BatchJobRequestRepo
 |説明
 
 |(1)
-|``BatchJobRequestRepository``の拡張インタフェースをFQCNで``mapperInterface``プロパティに設定する。
+|``BatchJobRequestRepository``の拡張インタフェースをFQCNで``mapperInterface``属性に設定する。
 
 |===
 
@@ -1043,10 +1050,10 @@ CREATE TABLE IF NOT EXISTS batch_job_request (
 |説明
 
 |(1)
-|``BatchJobRequestRepository``の拡張インタフェースをFQCNで``mapperInterface``プロパティに設定する。
+|``BatchJobRequestRepository``の拡張インタフェースをFQCNで``mapperInterface``属性に設定する。
 
 |(2)
-|``JobRequestPollTask``の``optionalPollingQueryParams``プロパティに(3)で定義するMapを設定する。
+|``JobRequestPollTask``の``optionalPollingQueryParams-ref``属性に(3)で定義するMapを設定する。
 
 |(3)
 |環境変数で与えれらたグループID(GROUP_ID)をクエリパラメータのグループID(groupId)に設定する。
@@ -1078,7 +1085,7 @@ $ java -cp dependency/* org.terasoluna.batch.async.db.AsyncBatchDaemon
 . ファイル名を``customized-async-batch-daemon.xml``に変更
 . ``customized-async-batch-daemon.xml``のBean定義を修正
 . カスタマイズしたAsyncBatchDaemonを起動 +
-詳細は、<<Ch04_AsyncJobWithDB_HowToUse_Daemon_Launch>>を参照
+詳細は、<<Ch04_AsyncJobWithDB_HowToUse_Daemon_Launch>>を参照。
 
 下記に日時を固定し、タイムゾーンを変更するための設定例を示す。
 
@@ -1107,7 +1114,7 @@ $ java -cp dependency/* org.terasoluna.batch.async.db.AsyncBatchDaemon
 |説明
 
 |(1)
-|``JobRequestPollTask``の``clock``プロパティに(2)で定義するBeanを設定する。
+|``JobRequestPollTask``の``clock-ref``属性に(2)で定義するBeanを設定する。
 
 |(2)
 |日時を2016年12月31日16時0分0秒に固定し、タイムゾーンをロサンゼルス時間とした``java.time.Clock``のBeanを定義する。 +

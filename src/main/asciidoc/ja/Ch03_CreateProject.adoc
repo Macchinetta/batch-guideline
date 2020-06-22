@@ -3,22 +3,13 @@ include::_include_all.adoc[]
 [[Ch03_CreateProject]]
 = バッチアプリケーションの開発
 
-バッチアプリケーションの開発について、以下の流れで説明する。
-
-* <<Ch03_CreateProject_blank>>
-* <<Ch03_CreateProject_HowToCreate>>
-* <<Ch03_CreateProject_ProjectStructure>>
-* <<Ch03_CreateProject_Make>>
-* <<Ch03_CreateProject_BuildAndExec_Build>>
-
-
 [[Ch03_CreateProject_blank]]
 == ブランクプロジェクトとは
 
-ブランクプロジェクトとは、{SB}やMyBatis3をはじめとする各種設定を予め行った開発プロジェクトの雛形であり、
+ブランクプロジェクトとは、{SB}やMyBatis3をはじめとする各種設定をあらかじめ行った開発プロジェクトの雛形であり、
 アプリケーション開発のスタート地点である。 +
 本ガイドラインでは、シングルプロジェクト構成のブランクプロジェクトを提供する。 +
-構成の説明については、<<Ch03_CreateProject_ProjectStructure>>を参照のこと。
+構成の説明については、<<Ch03_CreateProject_ProjectStructure>>を参照。
 
 [NOTE]
 .{server5_shortname}との違い
@@ -143,9 +134,9 @@ package: com.example.batch
 [INFO] ------------------------------------------------------------------------
 [INFO] BUILD SUCCESS
 [INFO] ------------------------------------------------------------------------
-[INFO] Total time: 36.952 s
-[INFO] Finished at: 2017-07-25T14:23:42+09:00
-[INFO] Final Memory: 14M/129M
+[INFO] Total time: 02:02 min
+[INFO] Finished at: 2019-09-03T09:24:55+09:00
+[INFO] Final Memory: 13M/89M
 [INFO] ------------------------------------------------------------------------
 ----
 
@@ -190,9 +181,9 @@ package: com.example.batch
 [INFO] ------------------------------------------------------------------------
 [INFO] BUILD SUCCESS
 [INFO] ------------------------------------------------------------------------
-[INFO] Total time: 01:19 min
-[INFO] Finished at: 2017-07-25T14:20:09+09:00
-[INFO] Final Memory: 17M/201M
+[INFO] Total time: 01:46 min
+[INFO] Finished at: 2019-09-03T02:39:57+00:00
+[INFO] Final Memory: 15M/179M
 [INFO] ------------------------------------------------------------------------
 ----
 
@@ -220,7 +211,7 @@ org.springframework.batch.core.launch.support.CommandLineJobRunner \
 META-INF/jobs/job01.xml job01
 ----
 
-以下の出力が得られれば正しく作成できている。
+以下の出力が得られ、``C:\xxx\batch\target``配下に``output.csv``が作成されていれば、プロジェクトは正しく作成できている。
 
 .コマンドプロンプトでの出力例
 [source,console]
@@ -237,9 +228,9 @@ C:\xxx\batch>mvn clean dependency:copy-dependencies -DoutputDirectory=lib packag
 [INFO] ------------------------------------------------------------------------
 [INFO] BUILD SUCCESS
 [INFO] ------------------------------------------------------------------------
-[INFO] Total time: 11.007 s
-[INFO] Finished at: 2017-07-25T14:24:36+09:00
-[INFO] Final Memory: 23M/165M
+[INFO] Total time: 56.497 s
+[INFO] Finished at: 2019-09-03T10:39:59+09:00
+[INFO] Final Memory: 25M/145M
 [INFO] ------------------------------------------------------------------------
 
 C:\xxx\batch>java -cp "lib/*;target/*" ^
@@ -248,10 +239,9 @@ More? META-INF/jobs/job01.xml job01
 
 (.. omitted)
 
-[2017/07/25 14:25:22] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=job01]] launched with the following parameters: [{jsr_batch_run_id=1}]
-[2017/07/25 14:25:22] [main] [o.s.b.c.j.SimpleStepHandler] [INFO ] Executing step: [job01.step01]
-[2017/07/25 14:25:23] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=job01]] completed with the following parameters: [{jsr_batch_run_id=1}] and the following status: [COMPLETED]
-[2017/07/25 14:25:23] [main] [o.s.c.s.ClassPathXmlApplicationContext] [INFO ] Closing org.springframework.context.support.ClassPathXmlApplicationContext@62043840: startup date [Tue Jul 25 14:25:20 JST 2017]; root of context hierarchy
+[2019/09/03 10:41:24] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=job01]] launched with the following parameters: [{jsr_batch_run_id=1}]
+[2019/09/03 10:41:24] [main] [o.s.b.c.j.SimpleStepHandler] [INFO ] Executing step: [job01.step01]
+[2019/09/03 10:41:24] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=job01]] completed with the following parameters: [{jsr_batch_run_id=1}] and the following status: [COMPLETED]
 ----
 
 .Bashでの出力例
@@ -269,22 +259,20 @@ $ mvn clean dependency:copy-dependencies -DoutputDirectory=lib package
 [INFO] ------------------------------------------------------------------------
 [INFO] BUILD SUCCESS
 [INFO] ------------------------------------------------------------------------
-[INFO] Total time: 10.827 s
-[INFO] Finished at: 2017-07-25T14:21:19+09:00
-[INFO] Final Memory: 27M/276M
+[INFO] Total time: 02:39 min
+[INFO] Finished at: 2019-09-03T02:43:01+00:00
+[INFO] Final Memory: 27M/189M
 [INFO] ------------------------------------------------------------------------
 
 $ java -cp 'lib/*:target/*' \
 > org.springframework.batch.core.launch.support.CommandLineJobRunner \
 > META-INF/jobs/job01.xml job01
-[2017/07/25 14:21:49] [main] [o.s.c.s.ClassPathXmlApplicationContext] [INFO ] Refreshing org.springframework.context.support.ClassPathXmlApplicationContext@62043840: startup date [Tue Jul 25 14:21:49 JST 2017]; root of context hierarchy
 
 (.. omitted)
 
-[2017/07/25 14:21:52] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=job01]] launched with the following parameters: [{jsr_batch_run_id=1}]
-[2017/07/25 14:21:52] [main] [o.s.b.c.j.SimpleStepHandler] [INFO ] Executing step: [job01.step01]
-[2017/07/25 14:21:52] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=job01]] completed with the following parameters: [{jsr_batch_run_id=1}] and the following status: [COMPLETED]
-[2017/07/25 14:21:52] [main] [o.s.c.s.ClassPathXmlApplicationContext] [INFO ] Closing org.springframework.context.support.ClassPathXmlApplicationContext@62043840: startup date [Tue Jul 25 14:21:49 JST 2017]; root of context hierarchy
+[2019/09/03 02:43:11] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=job01]] launched with the following parameters: [{jsr_batch_run_id=1}]
+[2019/09/03 02:43:11] [main] [o.s.b.c.j.SimpleStepHandler] [INFO ] Executing step: [job01.step01]
+[2019/09/03 02:43:11] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=job01]] completed with the following parameters: [{jsr_batch_run_id=1}] and the following status: [COMPLETED]
 ----
 
 [[Ch03_CreateProject_ProjectStructure]]
@@ -298,7 +286,7 @@ $ java -cp 'lib/*:target/*' \
 * 環境依存の切替を容易にする
 
 以下に構成を示し、各要素について説明する。 +
-(わかりやすさのため、前述の``mvn archetype:generate``実行時の出力を元に説明する。)
+(わかりやすさのため、前述の``mvn archetype:generate``実行時の出力をもとに説明する。)
 
 .プロジェクトのディレクトリ構造
 image::Ch03_CreateProject_BlankProjectDir.png[BlankProject Structure]
@@ -548,7 +536,7 @@ terasoluna-batch.commit.script=classpath:org/terasoluna/batch/async/db/schema-co
 
 [[Ch03_CreateProject_CreateJob]]
 == ジョブの作成
-ジョブの作成方法は、以下を参照のこと。
+ジョブの作成方法は、以下を参照。
 
 * <<Ch03_CreateChunkJob.adoc#Ch03_CreateChunkJob,チャンクモデルジョブの作成>>
 * <<Ch03_CreateTaskletJob.adoc#Ch03_CreateTaskletJob,タスクレットモデルジョブの作成>>
@@ -565,6 +553,21 @@ terasoluna-batch.commit.script=classpath:org/terasoluna/batch/async/db/schema-co
 [source,console]
 ----
 $ mvn clean dependency:copy-dependencies -DoutputDirectory=lib package
+[INFO] Scanning for projects...
+[INFO]
+[INFO] ------------------------------------------------------------------------
+[INFO] Building Macchinetta Batch Framework (2.x) Blank Project 1.0.0-SNAPSHOT
+[INFO] ------------------------------------------------------------------------
+
+(.. omitted)
+
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time: 02:39 min
+[INFO] Finished at: 2019-09-03T02:43:01+00:00
+[INFO] Final Memory: 27M/189M
+[INFO] ------------------------------------------------------------------------
 ----
 
 これにより、以下が生成される。
@@ -576,8 +579,8 @@ $ mvn clean dependency:copy-dependencies -DoutputDirectory=lib package
 
 試験環境や商用環境へ配備する際は、これらのJarファイルを任意のディレクトリにコピーすればよい。
 
-[[Ch03_CreateProject_BuildAndExec_BuildPerEnv]]
-=== 環境に応じた設定ファイルの切替
+[[Ch03_CreateProject_BuildAndExec_Build_BuildPerEnv]]
+==== 環境に応じた設定ファイルの切替
 
 プロジェクトのpom.xmlでは、初期値として以下のProfileを設定している。
 
@@ -664,7 +667,7 @@ $ mvn clean dependency:copy-dependencies -DoutputDirectory=lib package
 ----
 
 なお、MavenのProfileは以下の要領で、コマンド実行時に有効化することができる。 +
-必要に応じて、複数Profileを有効化することもできる。必要に応じて、有効活用して欲しい。
+必要に応じて、複数Profileを有効化することもできる。必要に応じて、有効活用してほしい。
 
 .MavenのProfileを有効化する例
 [source,console]
@@ -672,10 +675,10 @@ $ mvn clean dependency:copy-dependencies -DoutputDirectory=lib package
 $ mvn -P profile-1,profile-2
 ----
 
-[[Ch03_CreateProject_BuildAndExec_BuildPerEnv_AppExecution]]
-==== アプリケーションの実行
-前段でビルドした結果を元に、ジョブを実行する例を示す。 +
-``[artifactId]``と``[version]``は<<Ch03_CreateProject_HowToCreate>>にて設定したものに、ユーザに応じて読み替えて欲しい。
+[[Ch03_CreateProject_BuildAndExec_AppExecution]]
+=== アプリケーションの実行
+前段でビルドした結果をもとに、ジョブを実行する例を示す。 +
+``[artifactId]``と``[version]``は<<Ch03_CreateProject_HowToCreate>>にて設定したものに、ユーザに応じて読み替えてほしい。
 
 .コマンドプロンプト(Windows)
 [source,console]
@@ -683,6 +686,11 @@ $ mvn -P profile-1,profile-2
 C:\xxx>java -cp "target\[artifactId]-[version].jar;lib\*" ^
 org.springframework.batch.core.launch.support.CommandLineJobRunner ^
 META-INF/jobs/job01.xml job01
+
+(.. omitted)
+[2019/09/03 10:41:24] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=job01]] launched with the following parameters: [{jsr_batch_run_id=1}]
+[2019/09/03 10:41:24] [main] [o.s.b.c.j.SimpleStepHandler] [INFO ] Executing step: [job01.step01]
+[2019/09/03 10:41:24] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=job01]] completed with the following parameters: [{jsr_batch_run_id=1}] and the following status: [COMPLETED]
 ----
 
 .Bash(Unix, Linux, ...)
@@ -691,7 +699,14 @@ META-INF/jobs/job01.xml job01
 $ java -cp 'target/[artifactId]-[version].jar:lib/*' \
 org.springframework.batch.core.launch.support.CommandLineJobRunner \
 META-INF/jobs/job01.xml job01
+
+(.. omitted)
+[2019/09/03 02:43:11] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=job01]] launched with the following parameters: [{jsr_batch_run_id=1}]
+[2019/09/03 02:43:11] [main] [o.s.b.c.j.SimpleStepHandler] [INFO ] Executing step: [job01.step01]
+[2019/09/03 02:43:11] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=job01]] completed with the following parameters: [{jsr_batch_run_id=1}] and the following status: [COMPLETED]
 ----
+
+これにより、<ルートディレクトリ>/target/output.csvが生成される。
 
 [IMPORTANT]
 .javaコマンドが返却する終了コードをハンドリングする必要性
@@ -708,7 +723,7 @@ java起動用のシェルスクリプトを挟んで起動することが一般�
 * OSやジョブスケジューラが扱うことができる終了コードは有限の範囲である。
 ** OSやジョブスケジューラの仕様に応じて、ユーザにて使用する終了コードの範囲を定義することが重要である。
 ** 一般的に、POSIX標準で策定されている0から255の間に収めることが多い。
-*** {batch5_shortname}では、正常:``0``、それ以外:``255``として終了コードを返却するよう設定している。
+*** ブランクプロジェクトでは、正常:``0``、それ以外:``255``として終了コードを返却するよう設定している。
 
 以下に、終了コードのハンドリング例を示す。
 [source, bash]

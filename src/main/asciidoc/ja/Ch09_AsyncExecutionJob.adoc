@@ -9,18 +9,22 @@ include::_include_all.adoc[]
 ====
 <<Ch09_Introduction.adoc#Ch09_Introduction_HowToProceed,チュートリアルの進め方>>で説明しているとおり、
 既に作成済みのジョブに対して、非同期実行していく形式とする。
-なお、非同期実行方式には<<Ch04_AsyncJobWithDB.adoc#Ch04_AsyncJobWithDB,DBポーリングを利用する方式>>と
-<<Ch04_AsyncJobWithWebContainer.adoc#Ch04_AsyncJobWithWeb,Webコンテナを利用する方式>>がある。 +
-ただし、記述はDBポーリングを利用してジョブを非同期実行する場合の説明としているため留意すること。
+非同期実行方式には<<Ch04_AsyncJobWithDB.adoc#Ch04_AsyncJobWithDB,DBポーリングを利用する方式>>と
+<<Ch04_AsyncJobWithWebContainer.adoc#Ch04_AsyncJobWithWeb,Webコンテナを利用する方式>>があるが、
+チュートリアルではDBポーリングを利用する方式の説明を行う。
 ====
 
 [[Ch09_Impl_AsyncExecutionJob_Overview]]
 == 概要
 DBポーリングを利用してジョブを非同期実行する。
 
-なお、本節は{batch5_guide}を元に説明しているため、
-詳細については<<Ch04_AsyncJobWithDB.adoc#Ch04_AsyncJobWithDB,非同期実行(DBポーリング)>>を参照のこと。 +
-<<Ch09_Impl_AsyncExecutionJob_Prerequisite>>のとおり既に作成済みのジョブがあるため、作成するアプリケーションの背景、処理概要、業務仕様は説明は割愛する。
+なお、詳細については{batch5_guide}の<<Ch04_AsyncJobWithDB.adoc#Ch04_AsyncJobWithDB,非同期実行(DBポーリング)>>を参照。 +
+ifeval::["{docname}" != "single_index"]
+また、アプリケーションの背景、処理概要、業務仕様は、<<Ch09_Impl_index.adoc#Ch09_Impl,バッチジョブの実装>>の各節を参照。
+endif::[]
+ifeval::["{docname}" == "single_index"]
+また、アプリケーションの背景、処理概要、業務仕様は、<<_Ch09_Impl_single_index.adoc#Ch09_Impl,バッチジョブの実装>>の各チュートリアルジョブを参照。
+endif::[]
 
 以降では、DBポーリングによるジョブの非同期実行方法を以下の手順で説明する。
 
@@ -44,20 +48,23 @@ DBポーリングを利用してジョブを非同期実行する。
 [[Ch09_Impl_AsyncExecutionJob_Preparation_Properties]]
 === ポーリング処理の設定
 非同期実行に必要な設定は、``batch-application.properties``で行う。 +
-{batch5_shortname}では既に設定済みであるため、詳細な説明は割愛する。
-各項目の説明は<<Ch04_AsyncJobWithDB.adoc#Ch04_AsyncJobWithDB_HowToUse_Config,各種設定>>のポーリング処理の設定を参照のこと。
+ブランクプロジェクトには設定済みであるため、詳細な説明は割愛する。
+各項目の説明は<<Ch04_AsyncJobWithDB.adoc#Ch04_AsyncJobWithDB_HowToUse_Config,各種設定>>のポーリング処理の設定を参照。
 
 [source, properties]
 .src/main/resources/batch-application.properties
 ----
 # TERASOLUNA AsyncBatchDaemon settings.
+# (1)
 async-batch-daemon.scheduler.size=1
 async-batch-daemon.schema.script=classpath:org/terasoluna/batch/async/db/schema-h2.sql
-async-batch-daemon.job-concurrency-num=3
-# (1)
-async-batch-daemon.polling-interval=5000
-async-batch-daemon.polling-initial-delay=1000
 # (2)
+async-batch-daemon.job-concurrency-num=3
+# (3)
+async-batch-daemon.polling-interval=10000
+# (4)
+async-batch-daemon.polling-initial-delay=1000
+# (5)
 async-batch-daemon.polling-stop-file-path=/tmp/stop-async-batch-daemon
 ----
 
@@ -68,10 +75,22 @@ async-batch-daemon.polling-stop-file-path=/tmp/stop-async-batch-daemon
 |説明
 
 |(1)
-|ポーリング周期(ミリ秒単位)を設定する。 +
-ここでは、5000ミリ秒(5秒)を指定する。
+|DBポーリング処理で起動される``TaskScheduler``のスレッドプールサイズを設定する。
 
 |(2)
+|ポーリング時に一括で取得する件数を設定する。
+
+|(3)
+|ポーリング周期(ミリ秒単位)を設定する。 +
+前回タスクの実行完了時点から指定時間後にタスクを実行する。 +
+ここでは、10000ミリ秒(10秒)を指定する。
+
+|(4)
+|ポーリング初回起動遅延時間(ミリ秒単位)を設定する。 +
+アプリケーションの起動から指定時間後にポーリングを初回実行する。 +
+ここでは、1000ミリ秒(1秒)を指定する。
+
+|(5)
 |非同期バッチデーモンを停止させるための終了ファイルパスを設定する。 +
 本チュートリアルは、Windows環境で実施することを前提としているため、
 この設定の場合はC:\tmp配下にstop-async-batch-daemonファイルを置くことになる。
@@ -95,10 +114,10 @@ async-batch-daemon.polling-stop-file-path=/tmp/stop-async-batch-daemon
        xmlns:p="http://www.springframework.org/schema/p"
        xmlns:task="http://www.springframework.org/schema/task"
        xmlns:context="http://www.springframework.org/schema/context"
-       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
-            http://www.springframework.org/schema/jdbc http://www.springframework.org/schema/jdbc/spring-jdbc.xsd
-            http://www.springframework.org/schema/task http://www.springframework.org/schema/task/spring-task.xsd
-            http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd">
+       xsi:schemaLocation="http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd
+            http://www.springframework.org/schema/jdbc https://www.springframework.org/schema/jdbc/spring-jdbc.xsd
+            http://www.springframework.org/schema/task https://www.springframework.org/schema/task/spring-task.xsd
+            http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd">
 
     <!-- omitted -->
 
@@ -126,9 +145,8 @@ async-batch-daemon.polling-stop-file-path=/tmp/stop-async-batch-daemon
 
 |(1)
 |非同期実行する対象ジョブのBean定義ファイルを指定する。 +
-ワイルドカード(\**/*)の利用も可能である。ジョブの指定に際しては
-<<Ch04_AsyncJobWithDB.adoc#Ch04_AsyncJobWithDB_HowToUse_Config_Job,ジョブの設定>>に
-注意事項等の記載があるため参照してほしい。
+ワイルドカード(\**/*)の利用も可能である。
+ジョブの指定に際しては<<Ch04_AsyncJobWithDB.adoc#Ch04_AsyncJobWithDB_HowToUse_Config_Job,ジョブの設定>>に記載してある注意事項を参照。
 
 |===
 
@@ -205,48 +223,49 @@ tutorial.insert-data.script=file:sqls/insert-member-info-data.sql
 |org.terasoluna.batch.async.db.AsyncBatchDaemon
 |===
 
-非同期バッチデーモンを起動すると、ポーリングプロセスが5秒間隔(``batch-application.properties``の``async-batch-daemon.polling-interval``に指定したミリ秒)で実行される。 +
+非同期バッチデーモンを起動すると、ポーリングプロセスが10秒間隔(``batch-application.properties``の``async-batch-daemon.polling-interval``に指定したミリ秒)で実行される。 +
 ログの出力例を以下に示す。 +
 このログではポーリングプロセスが3回実行されたことがわかる。
 
 [source, console]
 .コンソールログの出力例
 ----
-[2017/09/06 18:53:23][main] [o.t.b.a.d.AsyncBatchDaemon] [INFO ] Async Batch Daemon start.
+[2020/03/10 17:26:03] [main] [o.t.b.a.d.AsyncBatchDaemon] [INFO ] Async Batch Daemon start.
 
 (.. omitted)
 
-[2017/09/06 18:53:27] [main] [o.t.b.a.d.AsyncBatchDaemon] [INFO ] Async Batch Daemon will start watching the creation of a polling stop file. [Path:\tmp\stop-async-batch-daemon]
-[2017/09/06 18:53:27] [daemonTaskScheduler-1] [o.t.b.a.d.JobRequestPollTask] [INFO ] Polling processing.
-[2017/09/06 18:53:33] [daemonTaskScheduler-1] [o.t.b.a.d.JobRequestPollTask] [INFO ] Polling processing.
-[2017/09/06 18:53:38] [daemonTaskScheduler-1] [o.t.b.a.d.JobRequestPollTask] [INFO ] Polling processing.
+[2020/03/10 17:26:05] [main] [o.s.s.c.ThreadPoolTaskExecutor] [INFO ] Initializing ExecutorService
+[2020/03/10 17:26:05] [main] [o.s.s.c.ThreadPoolTaskScheduler] [INFO ] Initializing ExecutorService 'daemonTaskScheduler'
+[2020/03/10 17:26:05] [main] [o.t.b.a.d.AsyncBatchDaemon] [INFO ] Async Batch Daemon will start watching the creation of a polling stop file. [Path:\tmp\stop-async-batch-daemon]
+[2020/03/10 17:26:06] [daemonTaskScheduler-1] [o.t.b.a.d.JobRequestPollTask] [INFO ] Polling processing.
+[2020/03/10 17:26:16] [daemonTaskScheduler-1] [o.t.b.a.d.JobRequestPollTask] [INFO ] Polling processing.
+[2020/03/10 17:26:26] [daemonTaskScheduler-1] [o.t.b.a.d.JobRequestPollTask] [INFO ] Polling processing.
 ----
 
 [[Ch09_Impl_AsyncExecutionJob_JobRegistration]]
-== ジョブ要求テーブルにジョブ情報を登録
-ジョブ要求テーブル(batch_job_request)にジョブを実行するための情報を登録するため、
-SQL(INSERT文)を発行する。
+== ジョブ情報をジョブ要求テーブルに登録
+ジョブを実行するための情報をジョブ要求テーブル(batch_job_request)に登録するSQL(INSERT文)を発行する。
 
-ジョブ要求テーブルのテーブル仕様は<<Ch04_AsyncJobWithDB.adoc#Ch04_AsyncJobWithDB_Arch_RequireTable,ポーリングするテーブルについて>>のジョブ要求テーブルの構造を参照のこと。
+ジョブ要求テーブルのテーブル仕様は<<Ch04_AsyncJobWithDB.adoc#Ch04_AsyncJobWithDB_Arch_RequireTable_TableStructure,ジョブ要求テーブルの構造>>を参照。
 
 STS上でSQLを実行する方法を以下に記す。
 
 .SQL実行手順
-. Data Source Explorer Viewを表示 +
-Viewの表示手順は<<Ch09_EnvironmentConstruction.adoc#Ch09_EnvironmentConstruction_DataSourceExplorer,STSからデータベースを参照する準備>>を参照。
+. Database Browserを表示する。 +
+Database Browserの表示手順は<<Ch09_EnvironmentConstruction.adoc#Ch09_EnvironmentConstruction_OperationCheck_RefDB,DBeaverを使用してデータベースを参照する>>を参照。
 
 .Data Source Explorer View
 image::ch09/AsyncExecution/Ch09_AsyncExecutionJob_DataSourceExplorer.png[Data Source Explorer View]
 
 [start=2]
-. SQL Scrapbookを開く +
-データソースを右クリックし、「Open SQL Scrapbook」を押下する。
+. SQLエディタを開く。 +
+[H2 Embedded]を右クリックし、[最近のSQLエディタ]をクリックする。
 
-.SQL Scrapbook
-image::ch09/AsyncExecution/Ch09_AsyncExecutionJob_SQLScrapbook.png[Open SQL Scrapbook]
+.SQL Editor
+image::ch09/AsyncExecution/Ch09_AsyncExecutionJob_SQLEditor.png[Open SQL Editor]
 
 [start=3]
-. SQLを記述する +
+. SQLを記述する。 +
 データベースアクセスするジョブとファイルアクセスするジョブを実行するためのSQLをチャンクモデルの例で以下に示す。
 
 //^
@@ -274,28 +293,16 @@ VALUES ('jobPointAddChunk', 'inputFile=files/input/input-member-info-data.csv,ou
 SQL記述後のイメージを以下に記す。 +
 ここでは、データベースアクセスするジョブの実行要求用SQLを記述している。
 
-.SQL入力
-image::ch09/AsyncExecution/Ch09_AsyncExecutionJob_EnteringSQL.png[Entering SQL]
-
 [start=4]
-. SQLを実行する +
-下図のとおり、SQL ScrapbookのConnection Profileを設定し、
-余白部分を右クリック → [Execute All]を押下する。 +
-Connection Profileの内容は、
-<<Ch09_EnvironmentConstruction.adoc#Ch09_EnvironmentConstruction_DataSourceExplorer,STSからデータベースを参照する準備>>で設定した内容を元にしている。
+. ジョブの実行要求用SQLを入力し、[Ctrl]キー + [S]キーで保存する。
+. [Ctrl]キー + [Enter]キーでSQLを実行する。
+. [Statistics]に更新したRowカウント、実行したクエリ、クエリが完了した時間が出力される。
 
-.SQL実行
+.Execute SQL
 image::ch09/AsyncExecution/Ch09_AsyncExecutionJob_ExecuteSQL.png[Execute SQL]
 
-[start=5]
-. SQLの実行結果を確認する +
-下図のとおり、SQL Results Viewで実行したSQLの``Status``が``Succeeded``となっていることを確認する。
-
-.SQL実行結果確認
-image::ch09/AsyncExecution/Ch09_AsyncExecutionJob_SQLResults.png[Confirm SQL Results]
-
-[start=6]
-. ジョブ要求テーブルを確認する +
+[start=7]
+. ジョブ要求テーブルを確認する。 +
 下図のとおり、ジョブ要求テーブルにジョブを実行するための情報が登録されていることを確認する。 +
 ``POLLING_STATUS``は``INIT``で登録したが、既にポーリングが行われた場合は、``POLLING_STATUS``が``POLLED``もしくは``EXECUTED``となっている。 +
 ``POLLING_STATUS``の詳細については<<Ch04_AsyncJobWithDB.adoc#Ch04_AsyncJobWithDB_Arch_RequireTable_PollingStatus,ポーリングステータス(polling_status)の遷移パターン>>を参照。
@@ -309,28 +316,28 @@ image::ch09/AsyncExecution/Ch09_AsyncExecutionJob_BatchJobRequestTable.png[Confr
 
 [[Ch09_Impl_AsyncExecutionJob_ExecutionResultCheck_Console]]
 === コンソールログの確認
-Console Viewを開き、以下の内容のログが出力されていることを確認する。 +
-ここでは、処理が完了(COMPLETED)し、例外が発生しないことを確認する。
+Console Viewを開き、以下の内容のログが出力されていることを確認する。
+
+* 処理が完了(COMPLETED)し、例外が発生していないこと。
 
 [source, console]
 .コンソールログ出力例
 ----
 (.. omitted)
 
-[2017/09/06 18:59:50] [daemonTaskScheduler-1] [o.t.b.a.d.JobRequestPollTask] [INFO ] Polling processing.
-[2017/09/06 18:59:55] [daemonTaskScheduler-1] [o.t.b.a.d.JobRequestPollTask] [INFO ] Polling processing.
-[2017/09/06 18:59:55] [daemonTaskExecutor-1] [o.s.b.c.l.s.SimpleJobOperator] [INFO ] Checking status of job with name=jobPointAddChunk
-[2017/09/06 18:59:55] [daemonTaskExecutor-1] [o.s.b.c.l.s.SimpleJobOperator] [INFO ] Attempting to launch job with name=jobPointAddChunk and parameters=
-[2017/09/06 18:59:55] [daemonTaskExecutor-1] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=jobPointAddChunk]] launched with the following parameters: [{jsr_batch_run_id=117}]
-[2017/09/06 18:59:55] [daemonTaskExecutor-1] [o.s.b.c.j.SimpleStepHandler] [INFO ] Executing step: [jobPointAddChunk.step01]
-[2017/09/06 18:59:55] [daemonTaskExecutor-1] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=jobPointAddChunk]] completed with the following parameters: [{jsr_batch_run_id=117}] and the following status: [COMPLETED]
-[2017/09/06 19:00:00] [daemonTaskScheduler-1] [o.t.b.a.d.JobRequestPollTask] [INFO ] Polling processing.
-[2017/09/06 19:00:05] [daemonTaskScheduler-1] [o.t.b.a.d.JobRequestPollTask] [INFO ] Polling processing
+[2020/03/10 17:27:06] [daemonTaskScheduler-1] [o.t.b.a.d.JobRequestPollTask] [INFO ] Polling processing.
+[2020/03/10 17:27:06] [daemonTaskExecutor-1] [o.s.b.c.l.s.SimpleJobOperator] [INFO ] Checking status of job with name=jobPointAddChunk
+[2020/03/10 17:27:06] [daemonTaskExecutor-1] [o.s.b.c.l.s.SimpleJobOperator] [INFO ] Attempting to launch job with name=jobPointAddChunk and parameters=
+[2020/03/10 17:27:06] [daemonTaskExecutor-1] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=jobPointAddChunk]] launched with the following parameters: [{jsr_batch_run_id=158}]
+[2020/03/10 17:27:07] [daemonTaskExecutor-1] [o.s.b.c.j.SimpleStepHandler] [INFO ] Executing step: [jobPointAddChunk.step01]
+[2020/03/10 17:27:07] [daemonTaskExecutor-1] [o.s.b.c.s.AbstractStep] [INFO ] Step: [jobPointAddChunk.step01] executed in 191ms
+[2020/03/10 17:27:07] [daemonTaskExecutor-1] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=jobPointAddChunk]] completed with the following parameters: [{jsr_batch_run_id=158}] and the following status: [COMPLETED] in 246ms
+[2020/03/10 17:27:16] [daemonTaskScheduler-1] [o.t.b.a.d.JobRequestPollTask] [INFO ] Polling processing.
 ----
 
 [[Ch09_Impl_AsyncExecutionJob_ExecutionResultCheck_ExitCode]]
 === 終了コードの確認
-非同期実行の場合、STS上で実行対象ジョブの終了コードを確認することはできない。 +
+非同期実行の場合、STSのDebug Viewで実行対象ジョブの終了コードを確認することはできない。 +
 ジョブの実行状態は<<Ch09_Impl_AsyncExecutionJob_ExecutionStatusCheck>>で確認する。
 
 [[Ch09_Impl_AsyncExecutionJob_ExecutionResultCheck_Output]]
@@ -344,7 +351,7 @@ Console Viewを開き、以下の内容のログが出力されていること�
 
 確認内容::
 * statusカラム
-** "0"(初期状態)のレコードが存在しないこと
+** "1"(処理対象)から"0"(初期状態)に更新されていること
 * pointカラム
 ** ポイント加算対象について、会員種別に応じたポイントが加算されていること
 *** typeカラムが"G"(ゴールド会員)の場合は100ポイント
@@ -364,7 +371,7 @@ image::ch09/AsyncExecution/Ch09_AsyncExecutionJob_Result_MemberInfoTable.png[Tab
 * 出力ディレクトリに会員情報ファイルが出力されていること
 ** 出力ファイル: files/output/output-member-info-data.csv
 * statusフィールド
-** "0"(初期状態)のレコードが存在しないこと
+** "1"(処理対象)から"0"(初期状態)に更新されていること
 * pointフィールド
 ** ポイント加算対象について、会員種別に応じたポイントが加算されていること
 *** typeフィールドが"G"(ゴールド会員)の場合は100ポイント
@@ -394,15 +401,14 @@ STSのコンソールで以下のとおり非同期バッチデーモンが停�
 ----
 (.. omitted)
 
-[2017/09/08 21:41:41] [daemonTaskScheduler-1] [o.t.b.a.d.JobRequestPollTask] [INFO ] Polling processing.
-[2017/09/08 21:41:44] [main] [o.t.b.a.d.AsyncBatchDaemon] [INFO ] Async Batch Daemon has detected the polling stop file, and then shutdown now!
-[2017/09/08 21:41:44] [main] [o.s.c.s.ClassPathXmlApplicationContext] [INFO ] Closing org.springframework.context.support.ClassPathXmlApplicationContext@6b2fad11: startup date [Fri Sep 08 21:41:01 JST 2017]; root of context hierarchy
-[2017/09/08 21:41:44] [main] [o.s.b.c.c.s.GenericApplicationContextFactory$ResourceXmlApplicationContext] [INFO ] Closing ResourceXmlApplicationContext:file:/C:/dev/workspace/tutorial/macchinetta-batch-tutorial/target/classes/META-INF/jobs/dbaccess/jobPointAddChunk.xml
-[2017/09/08 21:41:44] [main] [o.s.c.s.DefaultLifecycleProcessor] [INFO ] Stopping beans in phase 0
-[2017/09/08 21:41:44] [main] [o.t.b.a.d.JobRequestPollTask] [INFO ] JobRequestPollTask is called shutdown.
-[2017/09/08 21:41:44] [main] [o.s.s.c.ThreadPoolTaskScheduler] [INFO ] Shutting down ExecutorService 'daemonTaskScheduler'
-[2017/09/08 21:41:44] [main] [o.s.s.c.ThreadPoolTaskExecutor] [INFO ] Shutting down ExecutorService
-[2017/09/08 21:41:44] [main] [o.t.b.a.d.AsyncBatchDaemon] [INFO ] Async Batch Daemon stopped after all jobs completed.
+[2020/03/10 17:32:17] [daemonTaskScheduler-1] [o.t.b.a.d.JobRequestPollTask] [INFO ] Polling processing.
+[2020/03/10 17:32:26] [main] [o.t.b.a.d.AsyncBatchDaemon] [INFO ] Async Batch Daemon has detected the polling stop file, and then shutdown now!
+[2020/03/10 17:32:26] [main] [o.s.s.c.ThreadPoolTaskScheduler] [INFO ] Shutting down ExecutorService 'daemonTaskScheduler'
+[2020/03/10 17:32:26] [main] [o.s.s.c.ThreadPoolTaskExecutor] [INFO ] Shutting down ExecutorService
+[2020/03/10 17:32:26] [main] [o.t.b.a.d.JobRequestPollTask] [INFO ] JobRequestPollTask is called shutdown.
+[2020/03/10 17:32:26] [main] [o.s.s.c.ThreadPoolTaskScheduler] [INFO ] Shutting down ExecutorService 'daemonTaskScheduler'
+[2020/03/10 17:32:26] [main] [o.s.s.c.ThreadPoolTaskExecutor] [INFO ] Shutting down ExecutorService
+[2020/03/10 17:32:26] [main] [o.t.b.a.d.AsyncBatchDaemon] [INFO ] Async Batch Daemon stopped after all jobs completed.
 ----
 
 [[Ch09_Impl_AsyncExecutionJob_ExecutionStatusCheck]]
@@ -421,7 +427,8 @@ SELECT job_execution_id,start_time,end_time,exit_code FROM batch_job_execution W
 このSQLでは、最後に実行されたジョブの実行状態を取得するようにしている。
 
 SQLの実行結果は、STS上でSQL実行後に表示されるSQL Results Viewにて確認できる。 +
-下図のとおり、``EXIT_CODE``が``COMPLETED``となっていることを確認する。
+下図のとおり、終了コード(EXIT_CODE)がCOMPLETED(正常終了)となっていることを確認する。 +
+なお、ジョブの終了コードとプロセスの終了コードのマッピングについては、<<Ch07_JobManagement.adoc#Ch07_JobManagement_HowToUse_ExitCode_Mapping,終了コードのマッピング>>を参照。
 
 .ジョブの状態確認
 image::ch09/AsyncExecution/Ch09_AsyncExecutionJob_Confirm_JobStatus.png[SQL Results View]

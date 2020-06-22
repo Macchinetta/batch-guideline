@@ -17,8 +17,7 @@ include::_include_all.adoc[]
 == 概要
 入力データの妥当性検証(以降、入力チェックと呼ぶ)を行うジョブを作成する。
 
-なお、本節は{batch5_guide}を元に説明しているため、詳細については
-<<Ch06_InputValidation.adoc#Ch06_InputValidation,入力チェック>>を参照のこと。
+なお、詳細については{batch5_guide}の<<Ch06_InputValidation.adoc#Ch06_InputValidation,入力チェック>>を参照。
 
 <<Ch09_TutorialApplication.adoc#Ch09_TutorialApplication,作成するアプリケーションの説明>>の
 背景、処理概要、業務仕様を以下に再掲する。
@@ -52,7 +51,7 @@ include::_include_all.adoc[]
 === テーブル仕様
 入出力リソースとなる会員情報テーブルの仕様は以下のとおり。 +
 <<Ch09_Impl_ValidationJob_Prerequisite>>のとおりデータベースアクセスするジョブの場合の説明となるため、ファイルアクセスするジョブの場合の
-入出力のリソース仕様は<<Ch09_FileAccessJob.adoc#Ch09_Impl_FileAccessJob_Overview_FileSpecification,ファイル仕様>>を参照する。
+入出力のリソース仕様は<<Ch09_FileAccessJob.adoc#Ch09_Impl_FileAccessJob_Overview_FileSpecification,ファイル仕様>>を参照。
 
 [cols="3,15,10,4,12,8,45", options="header"]
 .会員情報テーブル(member_info)
@@ -112,7 +111,7 @@ include::_include_all.adoc[]
 
 入力チェックは、単項目チェック、相関項目チェックに分類されるが、ここでは単項目チェックのみを扱う。 +
 単項目チェックは、Bean Validationを利用する。
-詳細は<<Ch06_InputValidation.adoc#Ch06_InputValidation_Overview_Category,入力チェックの分類>>を参照のこと。
+詳細は<<Ch06_InputValidation.adoc#Ch06_InputValidation_Overview_Category,入力チェックの分類>>を参照。
 
 //^
 処理フロー概要::
@@ -205,7 +204,7 @@ image::Ch09_ValidationJob_ProcessSequence_TaskletModel.png[ProcessSequence of Va
 [NOTE]
 .入力チェック処理を実装するための設定
 ====
-入力チェックにはHibernate Validatorを使用する。{batch5_shortname}では既に設定済みであるが、
+入力チェックにはHibernate Validatorを使用する。ブランクプロジェクトには既に設定済みであるが、
 ライブラリの依存関係にHibernate Validatorの定義、およびBean定義が必要となる。
 
 [source, xml]
@@ -244,15 +243,15 @@ image::Ch09_ValidationJob_ProcessSequence_TaskletModel.png[ProcessSequence of Va
 [[Ch09_Impl_ValidationJob_Chunk_ValidationRulesDefinition]]
 === 入力チェックルールの定義
 入力チェックを行うために、DTOクラスのチェック対象のフィールドにBean Validationのアノテーションを付与する。 +
-入力チェック用のアノテーションについては、{server5_guide}のlink:{server5_url}/ArchitectureInDetail/WebApplicationDetail/Validation.html#validation-jsr303-doc[Bean Validationのチェックルール]
-およびlink:{server5_url}/ArchitectureInDetail/WebApplicationDetail/Validation.html#validation-validator-list[Hibernate Validatorのチェックルール]を参照のこと。
+入力チェック用のアノテーションについては、{server5_guide}のlink:{server5_url}/ArchitectureInDetail/WebApplicationDetail/Validation.html#validation-jsr380-doc[Bean Validationのチェックルール]
+およびlink:{server5_url}/ArchitectureInDetail/WebApplicationDetail/Validation.html#validation-validator-list[Hibernate Validatorのチェックルール]を参照。
 
 チャンクモデル/タスクレットモデルで共通して利用するため、既に実施している場合は読み飛ばしてよい。
 
 ここでは、ポイントが1,000,000(上限値)を超過していないかチェックするためのチェックルールを定義する。
 
 [source, java]
-.com.example.batch.tutorial.common.dto.MemberInfoDTO
+.com.example.batch.tutorial.common.dto.MemberInfoDto
 ----
 package com.example.batch.tutorial.common.dto;
 
@@ -297,6 +296,7 @@ public class MemberInfoDto {
 // Package and the other import are omitted.
 
 import javax.inject.Inject;
+import org.springframework.batch.item.validator.Validator;
 
 @Component
 public class PointAddItemProcessor implements ItemProcessor<MemberInfoDto, MemberInfoDto> {
@@ -330,7 +330,7 @@ public class PointAddItemProcessor implements ItemProcessor<MemberInfoDto, Membe
 |(3)
 |``ItemReader``を通じて取得するDTOを引数として``Validator#validate()``を実行する。 +
 本来、``validate()``を実行する際は入力チェックエラーをハンドリングするためにtry-catchを実装して例外を捕捉するが、
-try-catchを利用した例外ハンドリングは<<Ch09_ExceptionHandlingWithTryCatchJob.adoc#Ch09_ExceptionHandlingWithTryCatchJob, try-catchで例外ハンドリングを行うジョブ>>で説明するため、
+try-catchを利用した例外ハンドリングは<<Ch09_ExceptionHandlingWithTryCatchJob.adoc#Ch09_Impl_ExceptionHandlingWithTryCatchJob, try-catchで例外ハンドリングを行うジョブ>>で説明するため、
 ここでは、例外ハンドリングは実装しない。
 
 |===
@@ -374,15 +374,20 @@ tutorial.insert-data.script=file:sqls/insert-member-info-error-data.sql
 
 [[Ch09_Impl_ValidationJob_Chunk_Execution_Console]]
 ==== コンソールログの確認
-Console Viewを開き、以下の内容のログが出力されていることを確認する。 +
-ここでは、処理が異常終了(FAILED)し、
-``org.springframework.batch.item.validator.ValidationException``が発生していることを確認する。
+Console Viewを開き、以下の内容のログが出力されていることを確認する。
+
+* 処理が異常終了(FAILED)していること。
+* ``org.springframework.batch.item.validator.ValidationException``が発生していること。
 
 [source, console]
 .コンソールログ出力例
 ----
-[2017/08/28 10:53:21] [main] [o.s.b.c.s.AbstractStep] [ERROR] Encountered an error executing step jobPointAddChunk.step01 in job jobPointAddChunk
-org.springframework.batch.item.validator.ValidationException: Validation failed for com.example.batch.tutorial.common.dto.MemberInfoDto@1fde4f40:
+(.. omitted)
+
+[2020/03/10 16:04:18] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=jobPointAddChunk]] launched with the following parameters: [{jsr_batch_run_id=140}]
+[2020/03/10 16:04:18] [main] [o.s.b.c.j.SimpleStepHandler] [INFO ] Executing step: [jobPointAddChunk.step01]
+[2020/03/10 16:04:18] [main] [o.s.b.c.s.AbstractStep] [ERROR] Encountered an error executing step jobPointAddChunk.step01 in job jobPointAddChunk
+org.springframework.batch.item.validator.ValidationException: Validation failed for com.example.batch.tutorial.common.dto.MemberInfoDto@2b1cd7bc:
 Field error in object 'item' on field 'point': rejected value [1000001]; codes [Max.item.point,Max.point,Max.int,Max]; arguments [org.springframework.context.support.DefaultMessageSourceResolvable: codes [item.point,point]; arguments []; default message [point],1000000]; default message [must be less than or equal to 1000000]
 	at org.springframework.batch.item.validator.SpringValidator.validate(SpringValidator.java:54)
 
@@ -391,8 +396,8 @@ Field error in object 'item' on field 'point': rejected value [1000001]; codes [
 Caused by: org.springframework.validation.BindException: org.springframework.validation.BeanPropertyBindingResult: 1 errors
 Field error in object 'item' on field 'point': rejected value [1000001]; codes [Max.item.point,Max.point,Max.int,Max]; arguments [org.springframework.context.support.DefaultMessageSourceResolvable: codes [item.point,point]; arguments []; default message [point],1000000]; default message [must be less than or equal to 1000000]
 	... 29 common frames omitted
-[2017/08/28 10:53:21] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=jobPointAddChunk]] completed with the following parameters: [{jsr_batch_run_id=408}] and the following status: [FAILED]
-[2017/08/28 10:53:21] [main] [o.s.c.s.ClassPathXmlApplicationContext] [INFO ] Closing org.springframework.context.support.ClassPathXmlApplicationContext@2145433b: startup date [Mon Aug 28 10:53:18 JST 2017]; root of context hierarchy
+[2020/03/10 16:04:18] [main] [o.s.b.c.s.AbstractStep] [INFO ] Step: [jobPointAddChunk.step01] executed in 243ms
+[2020/03/10 16:04:18] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=jobPointAddChunk]] completed with the following parameters: [{jsr_batch_run_id=140}] and the following status: [FAILED] in 319ms
 ----
 
 [[Ch09_Impl_ValidationJob_Chunk_Execution_Exitcode]]
@@ -412,20 +417,20 @@ image::ch09/Validation/Ch09_ValidationJob_Confirm_ExitCode_ChunkModel.png[Confi�
 
 [[Ch09_Impl_ValidationJob_Chunk_Execution_Output_Table]]
 ===== 会員情報テーブルの確認
-Data Source Explorerを使用して会員情報テーブルの確認を行う。 +
+DBeaverを使用して会員情報テーブルの確認を行う。 +
 更新前後の会員情報テーブルの内容を比較し、確認内容のとおりとなっていることを確認する。 +
-確認手順は<<Ch09_EnvironmentConstruction.adoc#Ch09_EnvironmentConstruction_OperationCheck_RefDB,Data Source Explorerを使用してデータベースを参照する>>を参照。
+確認手順は<<Ch09_EnvironmentConstruction.adoc#Ch09_EnvironmentConstruction_OperationCheck_RefDB,DBeaverを使用してデータベースを参照する>>を参照。
 
 確認内容::
 * 1から10番目のレコード(会員番号が"00000001"から"00000010"のレコード)について
 ** statusカラム
-*** "0"(初期状態)のレコードが存在しないこと
+*** "1"(処理対象)から"0"(初期状態)に更新されていること
 ** pointカラム
 *** ポイント加算対象について、会員種別に応じたポイントが加算されていること
 **** typeカラムが"G"(ゴールド会員)の場合は100ポイント
 **** typeカラムが"N"(一般会員)の場合は10ポイント
 * 11から15番目のレコード(会員番号が"00000011"から"00000015"のレコード)について
-** 更新されていないこと
+** 更新されていないこと(破線の赤枠で示した範囲)
 
 更新前後の会員情報テーブルの内容を以下に示す。
 
@@ -439,14 +444,15 @@ image::ch09/Validation/Ch09_ValidationJob_Result_MemberInfoTable.png[Table of me
 確認内容::
 * 出力ディレクトリに会員情報ファイルが出力されていること
 ** 出力ファイル: files/output/output-member-info-data.csv
-* 出力されたレコードは、1から10番目のレコード(会員番号が"00000001"から"00000010"のレコード)のみであること
-* 出力されたレコードについて
-** statusカラム
-*** "0"(初期状態)のレコードが存在しないこと
-** pointカラム
+* 1から10番目のレコード(会員番号が"00000001"から"00000010"のレコード)について
+** statusフィールド
+*** "1"(処理対象)から"0"(初期状態)に更新されていること
+** pointフィールド
 *** ポイント加算対象について、会員種別に応じたポイントが加算されていること
-**** typeカラムが"G"(ゴールド会員)の場合は100ポイント
-**** typeカラムが"N"(一般会員)の場合は10ポイント
+**** typeフィールドが"G"(ゴールド会員)の場合は100ポイント
+**** typeフィールドが"N"(一般会員)の場合は10ポイント
+* 11から15番目のレコード(会員番号が"00000011"から"00000015"のレコード)について
+** 出力されていないこと(破線の赤枠で示した範囲)
 
 会員情報ファイルの入出力内容を以下に示す。 +
 ファイルのフィールドはid(会員番号)、type(会員種別)、status(商品購入フラグ)、point(ポイント)の順で出力される。
@@ -465,15 +471,15 @@ image::ch09/Validation/Ch09_ValidationJob_Result_MemberInfoFile.png[File of memb
 [[Ch09_Impl_ValidationJob_Tasklet_ValidationRulesDefinition]]
 === 入力チェックルールの定義
 入力チェックを行うために、DTOクラスのチェック対象のフィールドにBean Validationのアノテーションを付与する。 +
-入力チェック用のアノテーションについては、{server5_guide}のlink:{server5_url}/ArchitectureInDetail/WebApplicationDetail/Validation.html#validation-jsr303-doc[Bean Validationのチェックルール]
-およびlink:{server5_url}/ArchitectureInDetail/WebApplicationDetail/Validation.html#validation-validator-list[Hibernate Validatorのチェックルール]を参照のこと。
+入力チェック用のアノテーションについては、{server5_guide}のlink:{server5_url}/ArchitectureInDetail/WebApplicationDetail/Validation.html#validation-jsr380-doc[Bean Validationのチェックルール]
+およびlink:{server5_url}/ArchitectureInDetail/WebApplicationDetail/Validation.html#validation-validator-list[Hibernate Validatorのチェックルール]を参照。
 
 チャンクモデル/タスクレットモデルで共通して利用するため、既に実施している場合は読み飛ばしてよい。
 
 ここでは、ポイントが1,000,000(上限値)を超過していないかチェックするためのチェックルールを定義する。
 
 [source, java]
-.com.example.batch.tutorial.common.dto.MemberInfoDTO
+.com.example.batch.tutorial.common.dto.MemberInfoDto
 ----
 package com.example.batch.tutorial.common.dto;
 
@@ -518,6 +524,7 @@ public class MemberInfoDto {
 // Package and the other import are omitted.
 
 import javax.inject.Inject;
+import org.springframework.batch.item.validator.Validator;
 
 @Component
 public class PointAddTasklet implements Tasklet {
@@ -567,7 +574,7 @@ public class PointAddTasklet implements Tasklet {
 |(3)
 |``ItemReader``を通じて取得するDTOを引数として``Validator#validate()``を実行する。 +
 本来、``validate()``を実行する際は入力チェックエラーをハンドリングするためにtry-catchを実装して例外を捕捉するが、
-try-catchを利用した例外ハンドリングは<<Ch09_ExceptionHandlingWithTryCatchJob.adoc#Ch09_ExceptionHandlingWithTryCatchJob, try-catchで例外ハンドリングを行うジョブ>>で説明するため、
+try-catchを利用した例外ハンドリングは<<Ch09_ExceptionHandlingWithTryCatchJob.adoc#Ch09_Impl_ExceptionHandlingWithTryCatchJob, try-catchで例外ハンドリングを行うジョブ>>で説明するため、
 ここでは、例外ハンドリングは実装しない。
 
 |===
@@ -611,15 +618,20 @@ tutorial.insert-data.script=file:sqls/insert-member-info-error-data.sql
 
 [[Ch09_Impl_ValidationJob_Tasklet_Execution_Console]]
 ==== コンソールログの確認
-Console Viewを開き、以下の内容のログが出力されていることを確認する。 +
-ここでは、処理が異常終了(FAILED)し、
-``org.springframework.batch.item.validator.ValidationException``が発生していることを確認する。
+Console Viewを開き、以下の内容のログが出力されていることを確認する。
+
+* 処理が異常終了(FAILED)していること。
+* ``org.springframework.batch.item.validator.ValidationException``が発生していること
 
 [source, console]
 .コンソールログ出力例
 ----
-[2017/09/12 10:18:49] [main] [o.s.b.c.s.AbstractStep] [ERROR] Encountered an error executing step jobPointAddTasklet.step01 in job jobPointAddTasklet
-org.springframework.batch.item.validator.ValidationException: Validation failed for com.example.batch.tutorial.common.dto.MemberInfoDto@2c383e33:
+(.. omitted)
+
+[2020/03/10 16:05:44] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=jobPointAddTasklet]] launched with the following parameters: [{jsr_batch_run_id=142}]
+[2020/03/10 16:05:44] [main] [o.s.b.c.j.SimpleStepHandler] [INFO ] Executing step: [jobPointAddTasklet.step01]
+[2020/03/10 16:05:44] [main] [o.s.b.c.s.AbstractStep] [ERROR] Encountered an error executing step jobPointAddTasklet.step01 in job jobPointAddTasklet
+org.springframework.batch.item.validator.ValidationException: Validation failed for com.example.batch.tutorial.common.dto.MemberInfoDto@3811510:
 Field error in object 'item' on field 'point': rejected value [1000001]; codes [Max.item.point,Max.point,Max.int,Max]; arguments [org.springframework.context.support.DefaultMessageSourceResolvable: codes [item.point,point]; arguments []; default message [point],1000000]; default message [must be less than or equal to 1000000]
 	at org.springframework.batch.item.validator.SpringValidator.validate(SpringValidator.java:54)
 
@@ -628,8 +640,8 @@ Field error in object 'item' on field 'point': rejected value [1000001]; codes [
 Caused by: org.springframework.validation.BindException: org.springframework.validation.BeanPropertyBindingResult: 1 errors
 Field error in object 'item' on field 'point': rejected value [1000001]; codes [Max.item.point,Max.point,Max.int,Max]; arguments [org.springframework.context.support.DefaultMessageSourceResolvable: codes [item.point,point]; arguments []; default message [point],1000000]; default message [must be less than or equal to 1000000]
 	... 24 common frames omitted
-[2017/09/12 10:18:49] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=jobPointAddTasklet]] completed with the following parameters: [{jsr_batch_run_id=476}] and the following status: [FAILED]
-[2017/09/12 10:18:49] [main] [o.s.c.s.ClassPathXmlApplicationContext] [INFO ] Closing org.springframework.context.support.ClassPathXmlApplicationContext@735f7ae5: startup date [Tue Sep 12 10:18:47 JST 2017]; root of context hierarchy
+[2020/03/10 16:05:44] [main] [o.s.b.c.s.AbstractStep] [INFO ] Step: [jobPointAddTasklet.step01] executed in 178ms
+[2020/03/10 16:05:44] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=jobPointAddTasklet]] completed with the following parameters: [{jsr_batch_run_id=142}] and the following status: [FAILED] in 244ms
 ----
 
 [[Ch09_Impl_ValidationJob_Tasklet_Execution_Exitcode]]
@@ -649,9 +661,9 @@ image::ch09/Validation/Ch09_ValidationJob_Confirm_ExitCode_TaskletModel.png[Conf
 
 [[Ch09_Impl_ValidationJob_Tasklet_Execution_Output_Table]]
 ===== 会員情報テーブルの確認
-Data Source Explorerを使用して会員情報テーブルの確認を行う。 +
+DBeaverを使用して会員情報テーブルの確認を行う。 +
 更新前後の会員情報テーブルの内容を比較し、確認内容のとおりとなっていることを確認する。 +
-確認手順は<<Ch09_EnvironmentConstruction.adoc#Ch09_EnvironmentConstruction_OperationCheck_RefDB,Data Source Explorerを使用してデータベースを参照する>>を参照。
+確認手順は<<Ch09_EnvironmentConstruction.adoc#Ch09_EnvironmentConstruction_OperationCheck_RefDB,DBeaverを使用してデータベースを参照する>>を参照。
 
 確認内容::
 * すべてのレコードについて、データが更新されていないこと

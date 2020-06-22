@@ -7,7 +7,7 @@ include::_include_all.adoc[]
 == Overview
 
 チャンクモデルジョブの作成方法について説明する。
-チャンクモデルのアーキテクチャについては、<<Ch02_SpringBatchArchitecture.adoc#Ch02_SpringBatchArch,{SB}のアーキテクチャ>>を参照のこと。
+チャンクモデルのアーキテクチャについては、<<Ch02_SpringBatchArchitecture.adoc#Ch02_SpringBatchArch,{SB}のアーキテクチャ>>を参照。
 
 ここでは、チャンクモデルジョブの構成要素について説明する。
 
@@ -73,6 +73,7 @@ include::_include_all.adoc[]
 Bean定義ファイルにて、チャンクモデルジョブを構成する要素の組み合わせ方を定義する。
 以下に例を示し、構成要素の繋がりを説明する。
 
+[[Ch03_CreateChunkJob_HowToUse_JobConfig_exmaple]]
 [source,xml]
 .Bean定義ファイルの例(チャンクモデル)
 ----
@@ -83,9 +84,9 @@ Bean定義ファイルにて、チャンクモデルジョブを構成する要�
        xmlns:batch="http://www.springframework.org/schema/batch"
        xmlns:p="http://www.springframework.org/schema/p"
        xmlns:mybatis="http://mybatis.org/schema/mybatis-spring"
-       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
-             http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
-             http://www.springframework.org/schema/batch http://www.springframework.org/schema/batch/spring-batch.xsd
+       xsi:schemaLocation="http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd
+             http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd
+             http://www.springframework.org/schema/batch https://www.springframework.org/schema/batch/spring-batch.xsd
              http://mybatis.org/schema/mybatis-spring http://mybatis.org/schema/mybatis-spring.xsd">
 
     <!-- (1) -->
@@ -139,6 +140,7 @@ Bean定義ファイルにて、チャンクモデルジョブを構成する要�
 </beans>
 ----
 
+[[Ch03_CreateChunkJob_HowToUse_Components_exmaple]]
 [source,java]
 .ItemProcessor実装クラスの設定
 ----
@@ -158,28 +160,22 @@ public class CustomerProcessor implements ItemProcessor<Customer, Customer> {
 
 |(2)
 |コンポーネントスキャン対象のベースパッケージを設定する。 +
-icon:warning[] コンポーネントスキャンを使用したアノテーションベースのBean定義を行わない場合、かつアノテーションを使用してBeanの依存性解決を行う場合は、``<context:annotation-config/>``タグの定義が必要となる。
+icon:warning[] コンポーネントスキャンを使用したアノテーションベースのBean定義を行わない場合、かつアノテーションを使用してBeanの依存性解決を行う場合は、``<context:annotation-config/>``要素の定義が必要となる。
 
 |(3)
 |MyBatis-Springの設定。 +
-MyBatis-Springの設定の詳細は、<<Ch05_DBAccess.adoc#Ch05_DBAccess,データベースアクセス>>を参照のこと。
+MyBatis-Springの設定の詳細は、<<Ch05_DBAccess.adoc#Ch05_DBAccess,データベースアクセス>>を参照。
 
 |(4)
 |ItemReaderの設定。 +
-ItemReaderの詳細は、
-<<Ch05_DBAccess.adoc#Ch05_DBAccess,データベースアクセス>>、
-<<Ch05_FileAccess.adoc#Ch05_FileAccess,ファイルアクセス>>
-を参照のこと。
+ItemReaderの詳細は、<<Ch05_DBAccess.adoc#Ch05_DBAccess,データベースアクセス>>、<<Ch05_FileAccess.adoc#Ch05_FileAccess,ファイルアクセス>>を参照。
 
 |(5)
 |ItemProcessorは、(2)によりアノテーションにて定義することができ、Bean定義ファイルで定義する必要がない。
 
 |(6)
 |ItemWriterの設定。 +
-ItemWriterの詳細は、
-<<Ch05_DBAccess.adoc#Ch05_DBAccess,データベースアクセス>>、
-<<Ch05_FileAccess.adoc#Ch05_FileAccess,ファイルアクセス>>
-を参照のこと。
+ItemWriterの詳細は、<<Ch05_DBAccess.adoc#Ch05_DBAccess,データベースアクセス>>、<<Ch05_FileAccess.adoc#Ch05_FileAccess,ファイルアクセス>>を参照。
 
 |(7)
 |ジョブの設定。 +
@@ -194,13 +190,13 @@ ItemWriterの詳細は、
 |(9)
 |ステップの設定。 +
 ``id``属性は、1つのバッチアプリケーションに含まれる全ジョブの範囲内で一意とする必要はないが、障害発生時に追跡しやすくなる等の様々なメリットがあるため一意とする。 +
-特別な理由がない限り、(7)で指定したid属性に[step+連番]を付加する形式とする。
+特別な理由がない限り、(7)で指定した``id``属性に[step+連番]を付加する形式とする。
 
 |(10)
 |タスクレットの設定。 +
 ``transaction-manager``属性に設定する値は、特別な理由がない限り``jobTransactionManager``固定とすること。 +
 これにより、(11)の``commit-interval``ごとにトランザクションが管理される。
-詳細については、<<Ch05_Transaction.adoc#Ch05_Transaction,トランザクション制御>>を参照のこと。 +
+詳細については、<<Ch05_Transaction.adoc#Ch05_Transaction,トランザクション制御>>を参照。 +
 ``jobTransactionManager``のBean定義は、(1)により解決する。
 
 |(11)
@@ -228,7 +224,7 @@ ItemWriterの詳細は、
 
 ここでは主に、ItemProcessorを実装する方法について説明する。
 
-他のコンポーネントについては、以下を参照のこと。
+他のコンポーネントについては、以下を参照。
 
 * ItemReader、ItemWriter
 ** <<Ch05_DBAccess.adoc#Ch05_DBAccess,データベースアクセス>>、
@@ -243,7 +239,7 @@ ItemWriterの詳細は、
 
 ItemProcessorの実装方法を説明する。
 
-ItemProcessorは、以下のインタフェースが示すとおり、入力リソースから取得したデータ**1件**を元に、
+ItemProcessorは、以下のインタフェースが示すとおり、入力リソースから取得したデータ**1件**をもとに、
 出力リソースに向けたデータ**1件**を作成する役目を担う。
 つまり、ItemProcessorはデータ**1件**に対するビジネスロジックを実装する箇所、と言える。
 
@@ -257,7 +253,7 @@ public interface ItemProcessor<I, O> {
 
 なお、インタフェースが示す``I``と``O``は以下のとおり同じ型でも異なる型でもよい。
 同じ型であれば入力データを一部修正することを意味し、
-異なる型であれば入力データを元に出力データを生成することを意味する。
+異なる型であれば入力データをもとに出力データを生成することを意味する。
 
 [source,java]
 .ItemProcessor実装例(入出力が同じ型)
@@ -306,20 +302,20 @@ public class UpdateItemFromDBProcessor implements
 ItemProcessorからnullを返却することは、当該データを後続処理(Writer)に渡さないことを意味し、
 言い換えるとデータをフィルタすることになる。
 これは、入力データの妥当性検証を実施する上で有効活用できる。
-詳細については、<<Ch06_InputValidation.adoc#Ch06_InputValidation,入力チェック>>を参照のこと。
+詳細については、<<Ch06_InputValidation.adoc#Ch06_InputValidation,入力チェック>>を参照。
 ====
 
 [IMPORTANT]
 .ItemProcessorの処理スループットをあげるには
 ====
 前述した実装例のように、ItemProcessorの実装クラスではデータベースやファイルを始めとしたリソースにアクセスしなければならないことがある。
-ItemProcessorは入力データ1件ごとに実行されるため、I/Oが少しでも発生するとジョブ全体では大量のI/Oが発生することになる。
-そのため、極力I/Oを抑えることが処理スループットをあげる上で重要となる。
+ItemProcessorは入力データ1件ごとに実行されるため、入出力が少しでも発生するとジョブ全体では大量の入出力が発生することになる。
+そのため、極力入出力を抑えることが処理スループットをあげる上で重要となる。
 
 1つの方法として、後述のListenerを活用することで事前に必要なデータをメモリ上に確保しておき、
 ItemProcessorにおける処理の大半を、CPU/メモリ間で完結するように実装する手段がある。
 ただし、1ジョブあたりのメモリを大量に消費することにも繋がるので、何でもメモリ上に確保すればよいわけではない。
-I/O回数やデータサイズを元に、メモリに格納するデータを検討すること。
+入出力回数やデータサイズをもとに、メモリに格納するデータを検討すること。
 
 ifeval::["{docname}" != "single_index"]
 
@@ -354,5 +350,5 @@ endif::[]
 </bean>
 ----
 
-delegates属性に指定した順番に処理されることに留意すること。
+``delegates``属性に指定した順番に処理されることに留意すること。
 ====

@@ -7,8 +7,7 @@ include::_include_all.adoc[]
 == 概要
 データベースアクセスを行うジョブを作成する。
 
-なお、本節は{batch5_guide}を元に説明しているため、
-詳細については<<Ch05_DBAccess.adoc#Ch05_DBAccess,データベースアクセス>>を参照のこと。
+なお、詳細については{batch5_guide}の<<Ch05_DBAccess.adoc#Ch05_DBAccess,データベースアクセス>>を参照。
 
 <<Ch09_TutorialApplication.adoc#Ch09_TutorialApplication,作成するアプリケーションの説明>>の
 背景、処理概要、業務仕様を以下に再掲する。
@@ -101,7 +100,7 @@ include::_include_all.adoc[]
 
 処理シーケンスではトランザクション制御の範囲について触れている。
 ジョブのトランザクション制御はSpring Batchがもつ仕組みを利用しており、これをフレームワークトランザクションと定義して説明する。
-トランザクション制御の詳細は<<Ch05_Transaction.adoc#Ch05_Transaction,トランザクション制御>>を参照のこと。
+トランザクション制御の詳細は<<Ch05_Transaction.adoc#Ch05_Transaction,トランザクション制御>>を参照。
 
 //^
 処理フロー概要::
@@ -143,7 +142,8 @@ image::Ch09_DBAccessJob_ProcessSequence_ChunkModel.png[ProcessSequence of DBAcce
 タスクレットモデルの場合の処理シーケンスについて説明する。
 
 このチュートリアルでは、タスクレットモデルでもチャンクモデルのように一定件数のデータをまとめて処理する方式としている。
-大量データを効率的に処理できるなどのメリットがある。詳細は<<Ch03_CreateTaskletJob.adoc#Ch03_CreateTaskletJob_HowToUse_InOutImpl,チャンクモデルのコンポーネントを利用するTasklet実装>>を参照のこと。
+大量データを効率的に処理できるなどのメリットがある。
+詳細は<<Ch03_CreateTaskletJob.adoc#Ch03_CreateTaskletJob_HowToUse_InOutImpl,チャンクモデルのコンポーネントを利用するTasklet実装>>を参照。
 
 橙色のオブジェクトは今回実装するクラスを表す。
 
@@ -199,9 +199,9 @@ Bean定義ファイルにて、チャンクモデルでデータベースアク�
        xmlns:batch="http://www.springframework.org/schema/batch"
        xmlns:p="http://www.springframework.org/schema/p"
        xmlns:mybatis="http://mybatis.org/schema/mybatis-spring"
-       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
-             http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
-             http://www.springframework.org/schema/batch http://www.springframework.org/schema/batch/spring-batch.xsd
+       xsi:schemaLocation="http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd
+             http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd
+             http://www.springframework.org/schema/batch https://www.springframework.org/schema/batch/spring-batch.xsd
              http://mybatis.org/schema/mybatis-spring http://mybatis.org/schema/mybatis-spring.xsd">
 
     <!-- (1) -->
@@ -400,7 +400,7 @@ MapperXMLファイルを自動的に読み込ませるために、Repositoryイ�
 |説明
 
 |(1)
-|mapper要素のnamespace属性に、Repositoryインタフェースの完全修飾クラス名(FQCN)を指定する。
+|``<mapper>``要素の``namespace``属性に、Repositoryインタフェースの完全修飾クラス名(FQCN)を指定する。
 
 |(2)
 |参照系のSQLの設定を行う。 +
@@ -427,9 +427,9 @@ MyBatisによるデータベースアクセスするための設定として、�
        xmlns:batch="http://www.springframework.org/schema/batch"
        xmlns:p="http://www.springframework.org/schema/p"
        xmlns:mybatis="http://mybatis.org/schema/mybatis-spring"
-       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
-             http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
-             http://www.springframework.org/schema/batch http://www.springframework.org/schema/batch/spring-batch.xsd
+       xsi:schemaLocation="http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd
+             http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd
+             http://www.springframework.org/schema/batch https://www.springframework.org/schema/batch/spring-batch.xsd
              http://mybatis.org/schema/mybatis-spring http://mybatis.org/schema/mybatis-spring.xsd">
 
     <import resource="classpath:META-INF/spring/job-base-context.xml"/>
@@ -467,7 +467,7 @@ MyBatisによるデータベースアクセスするための設定として、�
 |ItemReaderの設定を行う。 +
 ``class``属性に、MyBatisが提供しているSpring連携ライブラリであるMyBatis-Springから提供されている``org.mybatis.spring.batch.MyBatisCursorItemReader``を指定する。
 データベースから大量データを取得する際は、この``MyBatisCursorItemReader``を使用する。
-詳細は<<Ch05_DBAccess.adoc#Ch05_DBAccess_HowToUse_Input,入力>>を参照のこと。 +
+詳細は<<Ch05_DBAccess.adoc#Ch05_DBAccess_HowToUse_Input,入力>>を参照。 +
 ``queryId``属性に、MapperXMLファイルに設定するSQLの``namespace``+``id``を指定する。
 
 |(3)
@@ -484,7 +484,7 @@ ItemReader・ItemWriter以外でデータベースアクセスする方法とし
 Mapperインタフェースを利用するにあたっては、{batch5_shortname}として制約を設けているため、
 <<Ch05_DBAccess.adoc#Ch05_DBAccess_HowToUse_Input_MapperInterface,Mapperインタフェース(入力)>>、<<Ch05_DBAccess.adoc#Ch05_DBAccess_HowToUse_Output_MapperInterface,Mapperインタフェース(出力)>>を参照してほしい。
 ItemProcessorの実装例は、<<Ch05_DBAccess.adoc#Ch05_DBAccess_HowToUse_Input_MapperInterface_Chunk,チャンクモデルにおける利用方法>>(入力)、
-<<Ch05_DBAccess.adoc#Ch05_DBAccess_HowToUse_Output_MapperInterface_Chunk,チャンクモデルにおける利用方法>>(出力)を参照のこと。
+<<Ch05_DBAccess.adoc#Ch05_DBAccess_HowToUse_Output_MapperInterface_Chunk,チャンクモデルにおける利用方法>>(出力)を参照。
 ====
 
 [[Ch09_Impl_DBAccessJob_Chunk_Logic]]
@@ -600,9 +600,9 @@ public class PointAddItemProcessor implements ItemProcessor<MemberInfoDto, Membe
        xmlns:batch="http://www.springframework.org/schema/batch"
        xmlns:p="http://www.springframework.org/schema/p"
        xmlns:mybatis="http://mybatis.org/schema/mybatis-spring"
-       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
-             http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
-             http://www.springframework.org/schema/batch http://www.springframework.org/schema/batch/spring-batch.xsd
+       xsi:schemaLocation="http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd
+             http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd
+             http://www.springframework.org/schema/batch https://www.springframework.org/schema/batch/spring-batch.xsd
              http://mybatis.org/schema/mybatis-spring http://mybatis.org/schema/mybatis-spring.xsd">
 
     <import resource="classpath:META-INF/spring/job-base-context.xml"/>
@@ -647,7 +647,7 @@ public class PointAddItemProcessor implements ItemProcessor<MemberInfoDto, Membe
 |(2)
 |ステップの設定を行う。 +
 ``id``属性は、1つのバッチアプリケーションに含まれる全ジョブの範囲内で一意とする必要はないが、障害発生時に追跡しやすくなる等の様々なメリットがあるため一意とする。 +
-特別な理由がない限り、(1)で指定したid属性に[step+連番]を付加する形式とする。 +
+特別な理由がない限り、(1)で指定した``id``属性に[step+連番]を付加する形式とする。 +
 ここでは、チャンクモデルのジョブのステップ名として``jobPointAddChunk.step01``を指定する。
 
 |(3)
@@ -689,13 +689,19 @@ commit-intervalはチャンクモデルジョブにおける、性能上のチ�
 
 [[Ch09_Impl_DBAccessJob_Chunk_Execution_Console]]
 ==== コンソールログの確認
-Consoleに以下の内容のログが出力されていることを確認する。
+Console Viewを開き、以下の内容のログが出力されていることを確認する。
+
+* 処理が完了(COMPLETED)し、例外が発生していないこと。
 
 [source, console]
 .コンソールログ出力例
 ----
-[2017/09/12 13:32:32] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=jobPointAddChunk]] completed with the following parameters: [{jsr_batch_run_id=484}] and the following status: [COMPLETED]
-[2017/09/12 13:32:32] [main] [o.s.c.s.ClassPathXmlApplicationContext] [INFO ] Closing org.springframework.context.support.ClassPathXmlApplicationContext@735f7ae5: startup date [Tue Sep 12 13:32:29 JST 2017]; root of context hierarchy
+(.. omitted)
+
+[2020/03/10 13:07:50] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=jobPointAddChunk]] launched with the following parameters: [{jsr_batch_run_id=112}]
+[2020/03/10 13:07:50] [main] [o.s.b.c.j.SimpleStepHandler] [INFO ] Executing step: [jobPointAddChunk.step01]
+[2020/03/10 13:07:50] [main] [o.s.b.c.s.AbstractStep] [INFO ] Step: [jobPointAddChunk.step01] executed in 173ms
+[2020/03/10 13:07:50] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=jobPointAddChunk]] completed with the following parameters: [{jsr_batch_run_id=112}] and the following status: [COMPLETED] in 330ms
 ----
 
 [[Ch09_Impl_DBAccessJob_Chunk_Execution_Exitcode]]
@@ -710,11 +716,11 @@ image::ch09/DBAccess/Ch09_DBAccessJob_Confirm_ExitCode_ChunkModel.png[Confiｒm 
 [[Ch09_Impl_DBAccessJob_Chunk_Execution_Table]]
 ==== 会員情報テーブルの確認
 更新前後の会員情報テーブルの内容を比較し、確認内容のとおりとなっていることを確認する。 +
-確認手順は<<Ch09_EnvironmentConstruction.adoc#Ch09_EnvironmentConstruction_OperationCheck_RefDB,Data Source Explorerを使用してデータベースを参照する>>を参照。
+確認手順は<<Ch09_EnvironmentConstruction.adoc#Ch09_EnvironmentConstruction_OperationCheck_RefDB,DBeaverを使用してデータベースを参照する>>を参照。
 
 確認内容::
 * statusカラム
-** "0"(初期状態)のレコードが存在しないこと
+** "1"(処理対象)から"0"(初期状態)に更新されていること
 * pointカラム
 ** ポイント加算対象について、会員種別に応じたポイントが加算されていること
 *** typeカラムが"G"(ゴールド会員)の場合は100ポイント
@@ -751,9 +757,9 @@ Bean定義ファイルにて、タスクレットモデルでデータベース�
        xmlns:batch="http://www.springframework.org/schema/batch"
        xmlns:p="http://www.springframework.org/schema/p"
        xmlns:mybatis="http://mybatis.org/schema/mybatis-spring"
-       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
-             http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
-             http://www.springframework.org/schema/batch http://www.springframework.org/schema/batch/spring-batch.xsd
+       xsi:schemaLocation="http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd
+             http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd
+             http://www.springframework.org/schema/batch https://www.springframework.org/schema/batch/spring-batch.xsd
              http://mybatis.org/schema/mybatis-spring http://mybatis.org/schema/mybatis-spring.xsd">
 
     <!-- (1) -->
@@ -952,7 +958,7 @@ MapperXMLファイルを自動的に読み込ませるために、Repositoryイ�
 |説明
 
 |(1)
-|mapper要素のnamespace属性に、Repositoryインタフェースの完全修飾クラス名(FQCN)を指定する。
+|``<mapper>``要素の``namespace``属性に、Repositoryインタフェースの完全修飾クラス名(FQCN)を指定する。
 
 |(2)
 |参照系のSQLの定義を行う。 +
@@ -979,9 +985,9 @@ MyBatisによるデータベースアクセスするための設定として、�
        xmlns:batch="http://www.springframework.org/schema/batch"
        xmlns:p="http://www.springframework.org/schema/p"
        xmlns:mybatis="http://mybatis.org/schema/mybatis-spring"
-       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
-             http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
-             http://www.springframework.org/schema/batch http://www.springframework.org/schema/batch/spring-batch.xsd
+       xsi:schemaLocation="http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd
+             http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd
+             http://www.springframework.org/schema/batch https://www.springframework.org/schema/batch/spring-batch.xsd
              http://mybatis.org/schema/mybatis-spring http://mybatis.org/schema/mybatis-spring.xsd">
 
     <import resource="classpath:META-INF/spring/job-base-context.xml"/>
@@ -1044,7 +1050,7 @@ ItemReader・ItemWriter以外でデータベースアクセスする方法とし
 Mapperインタフェースを利用するにあたっては、{batch5_shortname}として制約を設けているため、
 <<Ch05_DBAccess.adoc#Ch05_DBAccess_HowToUse_Input_MapperInterface,Mapperインタフェース(入力)>>、<<Ch05_DBAccess.adoc#Ch05_DBAccess_HowToUse_Output_MapperInterface,Mapperインタフェース(出力)>>を参照してほしい。
 Taskletの実装例は、<<Ch05_DBAccess.adoc#Ch05_DBAccess_HowToUse_Input_MapperInterface_Tasklet,タスクレットモデルにおける利用方法>>(入力)、
-<<Ch05_DBAccess.adoc#Ch05_DBAccess_HowToUse_Output_MapperInterface_Tasklet,タスクレットモデルにおける利用方法>>(出力)を参照のこと。
+<<Ch05_DBAccess.adoc#Ch05_DBAccess_HowToUse_Output_MapperInterface_Tasklet,タスクレットモデルにおける利用方法>>(出力)を参照。
 ====
 
 [[Ch09_Impl_DBAccessJob_Tasklet_Logic]]
@@ -1232,9 +1238,9 @@ public class PointAddTasklet implements Tasklet {
        xmlns:batch="http://www.springframework.org/schema/batch"
        xmlns:p="http://www.springframework.org/schema/p"
        xmlns:mybatis="http://mybatis.org/schema/mybatis-spring"
-       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
-             http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
-             http://www.springframework.org/schema/batch http://www.springframework.org/schema/batch/spring-batch.xsd
+       xsi:schemaLocation="http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd
+             http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd
+             http://www.springframework.org/schema/batch https://www.springframework.org/schema/batch/spring-batch.xsd
              http://mybatis.org/schema/mybatis-spring http://mybatis.org/schema/mybatis-spring.xsd">
 
     <import resource="classpath:META-INF/spring/job-base-context.xml"/>
@@ -1276,7 +1282,7 @@ public class PointAddTasklet implements Tasklet {
 |(2)
 |ステップの設定を行う。 +
 ``id``属性は、1つのバッチアプリケーションに含まれる全ジョブの範囲内で一意とする必要はないが、障害発生時に追跡しやすくなる等の様々なメリットがあるため一意とする。 +
- 特別な理由がない限り、(1)で指定したid属性に[step+連番]を付加する形式とする。 +
+ 特別な理由がない限り、(1)で指定した``id``属性に[step+連番]を付加する形式とする。 +
 ここでは、タスクレットモデルのジョブのステップ名として``jobPointAddTasklet.step01``を指定する。
 
 |(3)
@@ -1304,13 +1310,19 @@ public class PointAddTasklet implements Tasklet {
 
 [[Ch09_Impl_DBAccessJob_Tasklet_Execution_Console]]
 ==== コンソールログの確認
-Consoleに以下の内容のログが出力されていることを確認する。
+Console Viewを開き、以下の内容のログが出力されていることを確認する。
+
+* 処理が完了(COMPLETED)し、例外が発生していないこと。
 
 [source, console]
 .コンソールログ出力例
 ----
-[2017/09/12 10:09:56] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=jobPointAddTasklet]] completed with the following parameters: [{jsr_batch_run_id=472}] and the following status: [COMPLETED]
-[2017/09/12 10:09:56] [main] [o.s.c.s.ClassPathXmlApplicationContext] [INFO ] Closing org.springframework.context.support.ClassPathXmlApplicationContext@735f7ae5: startup date [Tue Sep 12 10:09:54 JST 2017]; root of context hierarchy
+(.. omitted)
+
+[2020/03/10 13:10:12] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=jobPointAddTasklet]] launched with the following parameters: [{jsr_batch_run_id=114}]
+[2020/03/10 13:10:12] [main] [o.s.b.c.j.SimpleStepHandler] [INFO ] Executing step: [jobPointAddTasklet.step01]
+[2020/03/10 13:10:12] [main] [o.s.b.c.s.AbstractStep] [INFO ] Step: [jobPointAddTasklet.step01] executed in 94ms
+[2020/03/10 13:10:12] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=jobPointAddTasklet]] completed with the following parameters: [{jsr_batch_run_id=114}] and the following status: [COMPLETED] in 168ms
 ----
 
 [[Ch09_Impl_DBAccessJob_Tasklet_Execution_Exitcode]]
@@ -1325,11 +1337,11 @@ image::ch09/DBAccess/Ch09_DBAccessJob_Confirm_ExitCode_TaskletModel.png[Confiｒ
 [[Ch09_Impl_DBAccessJob_Tasklet_Execution_Table]]
 ==== 会員情報テーブルの確認
 更新前後の会員情報テーブルの内容を比較し、確認内容のとおりとなっていることを確認する。 +
-確認手順は<<Ch09_EnvironmentConstruction.adoc#Ch09_EnvironmentConstruction_OperationCheck_RefDB,Data Source Explorerを使用してデータベースを参照する>>を参照。
+確認手順は<<Ch09_EnvironmentConstruction.adoc#Ch09_EnvironmentConstruction_OperationCheck_RefDB,DBeaverを使用してデータベースを参照する>>を参照。
 
 確認内容::
 * statusカラム
-** "0"(初期状態)のレコードが存在しないこと
+** "1"(処理対象)から"0"(初期状態)に更新されていること
 * pointカラム
 ** ポイント加算対象について、会員種別に応じたポイントが加算されていること
 *** typeカラムが"G"(ゴールド会員)の場合は100ポイント

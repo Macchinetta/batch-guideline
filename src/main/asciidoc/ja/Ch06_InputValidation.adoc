@@ -16,8 +16,7 @@ include::_include_all.adoc[]
 入力チェックを実施することは不要と言える。
 
 入力チェックは{server5_shortname}の内容と重複するため、{server5_guide}の
-{server5_url}/ArchitectureInDetail/WebApplicationDetail/Validation.html[入力チェック]
-も合わせて参照すること。
+{server5_url}/ArchitectureInDetail/WebApplicationDetail/Validation.html[入力チェック]も合わせて参照。
 以下に、主な比較について示す。
 
 [cols="30,35,35", options="header"]
@@ -50,7 +49,7 @@ include::_include_all.adoc[]
 |===
 
 なお、本節で説明対象とする入力チェックは、主にステップが処理する入力データを対象とする。 +
-ジョブパラメータのチェックについては<<Ch04_JobParameter.adoc#Ch04_JobParameter_HowToUse_ParamsValidation,パラメータの妥当性検証>>を参照のこと。
+ジョブパラメータのチェックについては<<Ch04_JobParameter.adoc#Ch04_JobParameter_HowToUse_ParamsValidation,パラメータの妥当性検証>>を参照。
 
 [[Ch06_InputValidation_Overview_Category]]
 === 入力チェックの分類
@@ -192,8 +191,7 @@ image::Ch06_InputValidation_Architecture_classes.png[InputValidation architectur
 .エラーメッセージの設定
 
 先にも述べたが、エラーメッセージの設定については、
-{server5_guide}の {server5_url}/ArchitectureInDetail/WebApplicationDetail/Validation.html#validation-message-def[エラーメッセージの定義]
-を参照すること。
+{server5_guide}の {server5_url}/ArchitectureInDetail/WebApplicationDetail/Validation.html#validation-message-def[エラーメッセージの定義]を参照。
 
 [[Ch06_InputValidation_HowToUse_defRules]]
 === 入力チェックルールの定義
@@ -270,7 +268,7 @@ public class VerificationSalesPlanDetail implements ItemCountAware {  // (1)
 
 * ``ItemProcessor``の実装にて、``org.springframework.batch.item.validator.Validator#validate()``を実行する。
 ** ``Validator``には``SpringValidator``のインスタンスをインジェクトして使用する。
-* 入力チェックエラーをハンドリングする。詳細は<<Ch06_InputValidation_HowToUse_ErrorHandling>>を参照すること。
+* 入力チェックエラーをハンドリングする。詳細は<<Ch06_InputValidation_HowToUse_ErrorHandling>>を参照。
 
 入力チェックの実施例を以下に示す。
 
@@ -311,7 +309,7 @@ public class ValidateAndContinueItemProcessor implements ItemProcessor<Verificat
 |(2)
 |入力チェックエラーをハンドリングする。 +
 例では例外をtry/catchで捕捉する方法で処理している。 +
-詳細は<<Ch06_InputValidation_HowToUse_ErrorHandling>>を参照すること。
+詳細は<<Ch06_InputValidation_HowToUse_ErrorHandling>>を参照。
 
 |(3)
 |``ItemReader``を通じて取得するDTOを引数として``Validator#validate()``を実行する。
@@ -335,7 +333,7 @@ public class ValidateAndContinueItemProcessor implements ItemProcessor<Verificat
 . 例外をtry/catchで捕捉し、例外をスローする前に行う。
 . 例外をtry/catchで捕捉せず、``ItemProcessListener``を実装しonProcessErrorメソッドにて行う。
 ** ``ItemProcessListener#onProcessError()``は``@OnProcessError``アノテーションを使用して実装してもよい。
-   詳細は、<<Ch04_Listener.adoc#Ch04_Listener,リスナー>>を参照のこと。
+   詳細は、<<Ch04_Listener.adoc#Ch04_Listener,リスナー>>を参照。
 
 例外発生時に、例外情報をログ出力し、処理を異常終了する例を以下に示す。
 
@@ -520,15 +518,15 @@ public class ValidateAndContinueItemProcessor implements ItemProcessor<Verificat
 入力チェックエラーが発生した場合、入力チェックエラーが発生しなかった場合とジョブの状態を区別するために必ず正常終了ではない終了コードを設定すること。 +
 入力チェックエラーが発生したデータをスキップした場合、異常終了した場合においても終了コードの設定は必須である。
 
-終了コードの設定方法については、<<Ch07_JobManagement.adoc#Ch07_JobManagement,ジョブの管理>>を参照すること。
+終了コードの設定方法については、<<Ch07_JobManagement.adoc#Ch07_JobManagement,ジョブの管理>>を参照。
 
 [[Ch06_InputValidation_HowToUse_ErrorHandling_ErrorMessage]]
 ==== エラーメッセージの出力
 
 入力チェックエラーが発生した場合にMessageSourceを使用することで、任意のエラーメッセージを出力することができる。
-エラーメッセージの設定については、
-{server5_guide}の {server5_url}/ArchitectureInDetail/WebApplicationDetail/Validation.html#validation-message-def[エラーメッセージの定義]
-を参照すること。エラーメッセージを出力する場合は以下の要領で実装する。
+エラーメッセージの設定については、{server5_guide}の
+{server5_url}/ArchitectureInDetail/WebApplicationDetail/Validation.html#validation-message-def[エラーメッセージの定義]を参照。
+エラーメッセージを出力する場合は以下の要領で実装する。
 
 エラーメッセージを出力する方法としては、以下の2とおりがある。
 
@@ -586,7 +584,7 @@ public class ValidateAndMessageItemProcessor implements ItemProcessor<Verificati
 
 |(1)
 |``ResourceBundleMessageSource``のインスタンスをインジェクトする。 +
-``MassageSorce``のBean定義は<<Ch07_JobManagement.adoc#Ch07_JobManagement_HowToUse_MessageManagement,メッセージ管理>>を参照すること。
+``MassageSorce``のBean定義は<<Ch07_JobManagement.adoc#Ch07_JobManagement_HowToUse_MessageManagement,メッセージ管理>>を参照。
 
 |(2)
 |try/catchにて例外を捕捉する。

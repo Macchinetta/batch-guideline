@@ -3,28 +3,18 @@ include::_include_all.adoc[]
 [[Ch09_EnvironmentConstruction]]
 = 環境構築
 
-以下の流れでチュートリアルを実施するための環境構築を行う。
-
-. <<Ch09_EnvironmentConstruction_BlankProject>>
-. <<Ch09_EnvironmentConstruction_Import>>
-. <<Ch09_EnvironmentConstruction_BlankProjectConstruction>>
-. <<Ch09_EnvironmentConstruction_Setting>>
-. <<Ch09_EnvironmentConstruction_InputDataPreparation>>
-. <<Ch09_EnvironmentConstruction_DataSourceExplorer>>
-. <<Ch09_EnvironmentConstruction_OperationCheck>>
-
 [[Ch09_EnvironmentConstruction_BlankProject]]
 == プロジェクトの作成
 
 まず、``Maven Archetype Plugin``の``mvn archetype:generate``を利用して、プロジェクトを作成する。 +
 ここでは、Windowsのコマンドプロンプトを使用してプロジェクトを作成する手順となっている。
 
-``mvn archetype:generate``を利用してプロジェクトを作成する方法の詳細については、<<Ch03_CreateProject.adoc#Ch03_CreateProject_HowToCreate,プロジェクトの作成>>を参照すること。
+``mvn archetype:generate``を利用してプロジェクトを作成する方法の詳細については、<<Ch03_CreateProject.adoc#Ch03_CreateProject_HowToCreate,プロジェクトの作成>>を参照。
 
 [NOTE]
 .プロキシサーバの経由について
 ====
-インターネット接続するためにプロキシサーバを経由する必要がある場合、STSのProxy設定と http://maven.apache.org/guides/mini/guide-proxies.html[MavenのProxy設定]をする。
+インターネット接続するためにプロキシサーバを経由する必要がある場合、STSのProxy設定と https://maven.apache.org/guides/mini/guide-proxies.html[MavenのProxy設定]をする。
 ====
 
 プロジェクトを作成するディレクトリにて、以下のコマンドを実行する。
@@ -47,7 +37,7 @@ C:\xxx>mvn archetype:generate ^
 |設定例
 
 |groupId
-|com.example.batch.
+|com.example.batch
 
 |artifactId
 |macchinetta-batch-tutorial
@@ -64,8 +54,10 @@ C:\xxx>mvn archetype:generate ^
 .実行例
 [source, console,subs="normal,attributes"]
 ----
-C:\xxx>mvn archetype:generate -DarchetypeGroupId=com.github.macchinetta.blank -Darchetyp
-eArtifactId=macchinetta-batch-archetype -DarchetypeVersion={batch5_version}
+C:\xxx>mvn archetype:generate ^
+More?   -DarchetypeGroupId=com.github.macchinetta.blank ^
+More?   -DarchetypeArtifactId=macchinetta-batch-archetype ^
+More?   -DarchetypeVersion={batch5_version}
 [INFO] Scanning for projects...
 [INFO]
 [INFO] ------------------------------------------------------------------------
@@ -77,34 +69,31 @@ eArtifactId=macchinetta-batch-archetype -DarchetypeVersion={batch5_version}
 Define value for property 'groupId': com.example.batch
 Define value for property 'artifactId': macchinetta-batch-tutorial
 Define value for property 'version' 1.0-SNAPSHOT: : 1.0.0-SNAPSHOT
-Define value for property 'package':  com.example.batch: : com.example.batch.tutorial
+Define value for property 'package' com.example.batch: : com.example.batch.tutorial
 Confirm properties configuration:
 groupId: com.example.batch
 artifactId: macchinetta-batch-tutorial
 version: 1.0.0-SNAPSHOT
 package: com.example.batch.tutorial
  Y: : y
-[INFO] -------------------------------------------------------------------------
----
-[INFO] Using following parameters for creating project from Archetype: macchinet
-ta-batch-archetype:{batch5_version}
-[INFO] -------------------------------------------------------------------------
----
+[INFO] ----------------------------------------------------------------------------
+[INFO] Using following parameters for creating project from Archetype: macchinetta-batch-archetype:{batch5_version}
+[INFO] ----------------------------------------------------------------------------
 [INFO] Parameter: groupId, Value: com.example.batch
 [INFO] Parameter: artifactId, Value: macchinetta-batch-tutorial
 [INFO] Parameter: version, Value: 1.0.0-SNAPSHOT
 [INFO] Parameter: package, Value: com.example.batch.tutorial
 [INFO] Parameter: packageInPathFormat, Value: com/example/batch/tutorial
 [INFO] Parameter: package, Value: com.example.batch.tutorial
-[INFO] Parameter: version, Value: 1.0.0-SNAPSHOT
 [INFO] Parameter: groupId, Value: com.example.batch
 [INFO] Parameter: artifactId, Value: macchinetta-batch-tutorial
+[INFO] Parameter: version, Value: 1.0.0-SNAPSHOT
 [INFO] Project created from Archetype in dir: C:\xxx\macchinetta-batch-tutorial
 [INFO] ------------------------------------------------------------------------
 [INFO] BUILD SUCCESS
 [INFO] ------------------------------------------------------------------------
 [INFO] Total time: 45.293 s
-[INFO] Finished at: 2017-08-22T09:03:01+09:00
+[INFO] Finished at: 2020-03-04T16:48:55+09:00
 [INFO] Final Memory: 16M/197M
 [INFO] ------------------------------------------------------------------------
 ----
@@ -144,29 +133,21 @@ APSHOT
 [INFO] BUILD SUCCESS
 [INFO] ------------------------------------------------------------------------
 [INFO] Total time: 9.462 s
-[INFO] Finished at: 2017-08-22T09:12:22+09:00
+[INFO] Finished at: 2020-03-04T16:53:06+09:00
 [INFO] Final Memory: 26M/211M
 [INFO] ------------------------------------------------------------------------
 
-C:\xxx\macchinetta-batch-tutorial>java -cp "lib/*;target/*" org.springframework.b
-atch.core.launch.support.CommandLineJobRunner META-INF/jobs/job01.xml job01
-[2017/08/22 09:17:32] [main] [o.s.c.s.ClassPathXmlApplicationContext] [INFO ] Re
-freshing org.springframework.context.support.ClassPathXmlApplicationContext@6204
-3840: startup date [Tue Aug 22 09:17:32 JST 2017]; root of context hierarchy
+C:\xxx\macchinetta-batch-tutorial>java -cp "lib/*;target/*" ^
+More? org.springframework.batch.core.launch.support.CommandLineJobRunner ^
+More? META-INF/jobs/job01.xml job01
+[2020/03/04 16:58:46] [main] [o.s.c.s.PostProcessorRegistrationDelegate$BeanPostProcessorChecker] [INFO ] Bean 'jobRegistry' of type [org.springframework.batch.core.configuration.support.MapJobRegistry] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
 
 (.. ommited)
 
-[2017/08/22 09:17:35] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJ
-ob: [name=job01]] launched with the following parameters: [{jsr_batch_run_id=1}]
-
-[2017/08/22 09:17:35] [main] [o.s.b.c.j.SimpleStepHandler] [INFO ] Executing ste
-p: [job01.step01]
-[2017/08/22 09:17:35] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJ
-ob: [name=job01]] completed with the following parameters: [{jsr_batch_run_id=1}
-] and the following status: [COMPLETED]
-[2017/08/22 09:17:35] [main] [o.s.c.s.ClassPathXmlApplicationContext] [INFO ] Cl
-osing org.springframework.context.support.ClassPathXmlApplicationContext@6204384
-0: startup date [Tue Aug 22 09:17:32 JST 2017]; root of context hierarchy
+[2020/03/04 16:58:50] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=job01]] launched with the following parameters: [{jsr_batch_run_id=1}]
+[2020/03/04 16:58:50] [main] [o.s.b.c.j.SimpleStepHandler] [INFO ] Executing step: [job01.step01]
+[2020/03/04 16:58:50] [main] [o.s.b.c.s.AbstractStep] [INFO ] Step: [job01.step01] executed in 100ms
+[2020/03/04 16:58:50] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=job01]] completed with the following parameters: [{jsr_batch_run_id=1}] and the following status: [COMPLETED] in 228ms
 ----
 
 [[Ch09_EnvironmentConstruction_Import]]
@@ -175,14 +156,17 @@ osing org.springframework.context.support.ClassPathXmlApplicationContext@6204384
 作成したプロジェクトをSTSへインポートする。 +
 STSのメニューから、[File] -> [Import] -> [Maven] -> [Existing Maven Projects] -> [Next]を選択し、archetypeで作成したプロジェクトを選択する。
 
+.Import Existing Maven Projects
 image::ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_Import_ImportMavenProjects.png[Import Existing Maven Projects]
 
 Root Directoryに``C:\xxx\macchinetta-batch-tutorial``を設定し、Projectsにcom.example.batchのpom.xmlが選択された状態で、 [Finish]を押下する。
 
+.Select Maven Projects
 image::ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_Import_Import.png[Select Maven Projects]
 
 インポートが完了すると、Package Explorerに次のようなプロジェクトが表示される。
 
+.Package Explorer
 image::ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_Import_PackageExplorer.png[Package Explorer]
 
 [NOTE]
@@ -201,7 +185,7 @@ Package Explorerの「View Menu」 (右端の下矢印)をクリックし、「P
 [[Ch09_EnvironmentConstruction_BlankProjectConstruction]]
 == プロジェクトの構成
 
-プロジェクトの構成については、<<Ch03_CreateProject.adoc#Ch03_CreateProject_ProjectStructure,プロジェクトの構成>>を参照すること。
+プロジェクトの構成については、{batch5_guide}本編の<<Ch03_CreateProject.adoc#Ch03_CreateProject_ProjectStructure,プロジェクトの構成>>を参照。
 
 [[Ch09_EnvironmentConstruction_Setting]]
 == 設定ファイルの確認・編集
@@ -210,13 +194,13 @@ Package Explorerの「View Menu」 (右端の下矢印)をクリックし、「P
 === 設定ファイルの確認
 
 作成したプロジェクトにはSpring BatchやMyBatisなどの設定のほとんどが既に設定済みである。 +
-作成したプロジェクトの設定ファイルについては<<Ch03_CreateProject.adoc#Ch03_CreateProject_ProjectStructure,プロジェクトの構成>>を参照のこと。
+作成したプロジェクトの設定ファイルについては<<Ch03_CreateProject.adoc#Ch03_CreateProject_ProjectStructure,プロジェクトの構成>>を参照。
 
 [NOTE]
 .設定値のカスタマイズについて
 ====
 チュートリアルを実施する場合にユーザの状況に応じてカスタマイズが必要な設定値について理解する必要はないが、チュートリアルを実施する前または後に一読するとよい。
-詳細については<<Ch03_CreateProject.adoc#Ch03_CreateProject_Make_Setting,アプリケーション全体の設定>>を参照のこと。
+詳細については<<Ch03_CreateProject.adoc#Ch03_CreateProject_Make_Setting,アプリケーション全体の設定>>を参照。
 ====
 
 [[Ch09_EnvironmentConstruction_Setting_Edit]]
@@ -227,7 +211,7 @@ Package Explorerの「View Menu」 (右端の下矢印)をクリックし、「P
 * 手動でサーバを起動することなく複数のバッチアプリケーションのプロセスからデータベースへ接続可能とする。
 * バッチアプリケーションのプロセスの終了後でもデータを保持した状態のデータベースへ接続可能とする。
 
-なお、H2 Databaseの設定の詳細については http://www.h2database.com/html/features.html[H2の公式ドキュメントのFeatures] を参照すること。
+なお、H2 Databaseの設定の詳細については https://www.h2database.com/html/features.html[H2の公式ドキュメントのFeatures] を参照。
 
 具体的な編集内容を以下に示す。
 
@@ -362,12 +346,12 @@ COMMIT;
 [[Ch09_EnvironmentConstruction_InputDataPreparation_DB_Setting]]
 ==== ジョブ実行時にスクリプトを自動実行する設定の追加
 
-ジョブ実行時(ApplicationContext生成時)にスクリプトを実行し、データベースの初期化を行うため、``<jdbc:initialize-database>``タグの定義を追加する。 +
+ジョブ実行時(ApplicationContext生成時)にスクリプトを実行し、データベースの初期化を行うため、``<jdbc:initialize-database>``要素の定義を追加する。 +
 
 以下の2つのファイルの編集を実施する。
 
 * batch-application.propertiesに実行対象スクリプトのパスの設定を追加する
-* launch-context.xmlに``<jdbc:initialize-database>``タグの定義を追加する
+* launch-context.xmlに``<jdbc:initialize-database>``要素の定義を追加する
 
 具体的な設定内容を以下に示す。
 
@@ -387,7 +371,7 @@ tutorial.insert-data.script=file:sqls/insert-member-info-data.sql
 #tutorial.insert-data.script=file:sqls/insert-member-info-error-data.sql
 ----
 
-launch-context.xmlを開き、``<beans>``タグ内に``<jdbc:initialize-database>``タグの定義を追加する。
+launch-context.xmlを開き、``<beans>``要素内に``<jdbc:initialize-database>``要素の定義を追加する。
 
 [source, xml]
 .src/main/resources/META-INF/spring/launch-context.xml
@@ -476,41 +460,72 @@ launch-context.xmlを開き、``<beans>``タグ内に``<jdbc:initialize-database
 00000015,G,1,999901
 ----
 
-[[Ch09_EnvironmentConstruction_DataSourceExplorer]]
+[[Ch09_EnvironmentConstruction_DBeaver]]
 == STSからデータベースを参照する準備
 
-チュートリアルではデータベースを参照するためにData Source Explorerを使用するため、Data Source Explorerの設定を実施する。 +
-Data Source Explorerを使用することでSTS上でデータベースの参照やSQL実行が可能となる。
+チュートリアルでは、STS上でデータベースの参照やSQL実行を行うためにlink:https://dbeaver.com/eclipse/[DBeaver]を使用する。  +
+DBeaverでデータベースへ接続するまでの手順は以下のとおり。
+
+. <<Ch09_EnvironmentConstruction_DBeaver_Install>>
+. <<Ch09_EnvironmentConstruction_DBeaver_Connection_Config>>
 
 チュートリアルで参照するデータベースの対象は以下のとおり。
 
 * JobRepositoryに永続化されているバッチアプリケーション実行結果や状態を管理するためのデータ
 * <<Ch09_DBAccessJob.adoc#Ch09_Impl_DBAccessJob,データベースアクセスでデータ入出力を行うジョブ>>が使用するデータ
 
-まず、Data Source Explorer Viewを表示する。 +
-STSのメニューから、[Window] -> [Show View] -> [Other...]を選択し、Data Management配下のData Source Explorerが選択された状態で、 [OK]を押下する。
+[[Ch09_EnvironmentConstruction_DBeaver_Install]]
+=== DBeaverのインストール
 
-image::ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_DataSourceExplorer_ShowView.png[Show View]
+ここでは、DBeaverのインストールを説明する。
 
-ワークベンチ上にData Source Explorer Viewが表示される。
+. STSのメニューバーから、[Help] -> [Install New Software...] を選択して[Install]ウィンドウを開く。
+. [Work with]フォームに``https://dbeaver.io/update/latest/``を入力し、[Enter]キーを押下する。
+. [DBeaver]と[DBeaver IDE]にチェックし、[Next >]を押下する。
 
-image::ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_DataSourceExplorer_DataSourceExplorerView.png[Data Source Explorer View]
+.Available Software
+image::ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_DBeaver_Install_AvailableSoftware.png[Available Software]
 
-次に、データベースへ接続するためのConnection Profileを作成する。 +
-Data Source Explorer ViewのDatabase Connectionsを右クリックし、[New...]を押下し、Connection Profileを表示する。 +
-そして、Generic JDBCを選択し、Nameに``H2 Database``と入力した状態で、[Next]を押下する。 +
-(Nameに入力する値は任意である。)
+[start=4]
+. インストール対象に[DBeaver IDE]があることを確認し、[Next >]を押下する。
 
-image::ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_DataSourceExplorer_NewConnectionProfileType.png[New Conenction Profile Type]
+.Install Details
+image::ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_DBeaver_Install_InstallDetails.png[Install Details]
 
-初期状態ではDriverが設定されていないためH2 Databaseへ接続するためのDriverの追加を行う。 +
-Driversのドロップダウンの右にあるNew Driver Definitionボタンを押下し、Driverの定義ウィンドウを表示する。
+[start=5]
+. [Licenses text]を確認して、[I accept the terms of the license agreement]にチェックし、[Finish]を押下する。 +
 
-Name/Typeタブの、Available driver templatesにてGeneric JDBC Driverを選択する。
+.Review Licenses
+image::ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_DBeaver_Install_ReviewLicenses.png[Review Licenses]
 
-image::ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_DataSourceExplorer_NewDriverDifinitionName.png[New Driver Difinition Name/Type]
+[start=6]
+. インストール完了後、STSを再起動する。
+. STSのメニューバーに[SQLエディタ]と[データベース]があることを確認する。
 
-次に、JAR Listタブを開き、[Add Jar/Zip...]を押下し、H2 Databaseのjarファイルを選択し、[開く]を押下する。
+.STS Menu Bar
+image::ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_DBeaver_Install_Menubar.png[STS Menu Bar]
+
+[[Ch09_EnvironmentConstruction_DBeaver_Connection_Config]]
+=== DBeaverのデータベース接続設定
+
+ここでは、DBeaverでデータベースに接続するための設定を説明する。
+
+. STSのメニューバーから、[データベース] -> [新しい接続]を選択して[新しい接続を作成する]ウィンドウを開く。
+. フォームに``H2``を入力し、サイドメニューから[All]を選択する。
+. [H2 Embedded]を選択し、[Next >]を押下する。
+
+.Select Connection Type
+image::ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_DBeaver_Select_Connection_Type.png[Select Connection Type]
+
+[start=4]
+. [Edit Driver Settings]を押下し、[ドライバーの編集H2 Embedded']ウインドウを開く。
+. [URLテンプレート]フォームに``jdbc:h2:~/batch-admin;AUTO_SERVER=TRUE``を入力する。
+. [Allow Empty Password]にチェックする。
+. [ファイルの追加]から``C:\xxx\macchinetta-batch-tutorial\lib\h2-1.4.200.jar``を選択し、[開く]を押下する。
+. [クラスを見つける]を押下し、[ドライバクラス]で[org.h2.Driver]を選択する。
+
+.Edit Driver
+image::ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_DBeaver_Edit_Driver.png[Edit Driver]
 
 [NOTE]
 .H2 Databaseのjarが格納されている場所
@@ -525,43 +540,47 @@ C:\xxx>mvn clean dependency:copy-dependencies -DoutputDirectory=lib package
 ----
 ====
 
-image::ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_DataSourceExplorer_NewDriverDifinitionJARList.png[New Driver Difinition JAR List]
-
-次に、Propertiesタブを開き下記の内容を設定し[OK]を押下し、Driverを追加する。
-
-Database Nameに設定する値は任意である。その他の設定値はbatch-application.propertiesに設定されている値と同じになる。
+[start=9]
+. 下表のとおりフォームに値を入力し、[Save password locally]のチェックをはずす。
 
 [cols="30,70", options="header"]
-.Propertiesタブで設定する値
+.H2 Embedded接続設定
 |===
-|Property
-|Value
+|フォーム
+|値
 
-|Connection URL
-|jdbc:h2:~/batch-admin;AUTO_SERVER=TRUE
-
-|Database Name
+|データベース/スキーマ
 |macchinetta-batch-tutorial
 
-|Driver Class
-|org.h2.Driver
-
-|User ID
+|ユーザ名
 |sa
 |===
 
-image::ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_DataSourceExplorer_NewDriverDifinitionProperties.png[New Driver Difinition Properties]
+.Setting Connection
+image::ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_DBeaver_Setting_Connection.png[Setting Connection]
 
-設定した内容でDriverが追加されていることを確認し、[Finish]を押下する。
+[start=10]
+. [テスト接続]を押下する。
+. [ユーザ資格情報]の入力を要求するウインドウが出た場合、[ユーザ名]フォームに``sa``を入力し、[OK]を押下する。 +
+**[パスワード]フォームには値を入力しない。**
 
-image::ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_DataSourceExplorer_NewConnectionProfileDetails.png[New Conenction Profile Details]
+[CAUTION]
+.ドライバファイルをダウンロードする
+====
+H2 Embeddedドライバファイルが見つからず、以下のウインドウが表示された場合、[ダウンロード]を押下する。
 
-Connection Profileの作成が完了すると、Data Source Explorer ViewにH2 DatabaseへのConnectionが表示される。
+.Download Driver
+image::ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_DBeaver_Download_Driver.png[Download Driver]
+====
 
-image::ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_DataSourceExplorer_DataSourceExplorerAddedConnection.png[Data Source Explorer added Connection]
+[start=12]
+. <<Ch09_EnvironmentConstruction_DBeaver_Connection_Config_Connection_Test>>のようなウインドウが表示され、接続できたことを確認し、[Finish]を押下する。
 
-以上でSTSからデータベースを参照する準備が完了した。 +
-Data Source Explorerの設定確認は<<Ch09_EnvironmentConstruction_OperationCheck>>にて実施する。
+[[Ch09_EnvironmentConstruction_DBeaver_Connection_Config_Connection_Test]]
+.Connection Test
+image::ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_DBeaver_Connection_Test.png[Connection Test]
+
+以上でSTSからデータベースを参照する準備が完了した。
 
 [[Ch09_EnvironmentConstruction_OperationCheck]]
 == プロジェクトの動作確認
@@ -590,10 +609,11 @@ STSでジョブを実行する手順を以下に示す。
 
 Run Configuration(実行構成)を作成する方法についてサンプルジョブの実行を例にして説明する。
 
-STSのメニューから、[Run] -> [Run Configurations...] -> タイプの一覧からJava Applicationを選択して右クリック -> [New]を選択しRun Configuration作成画面を表示し、以下の値を設定する。 +
+. STSのメニューから、[Run] -> [Run Configurations...]を押下し、[Run Configurations]を開く。
+. サイドバーの[Java Application]を右クリックで[New]を選択し、Run Configuration作成画面を表示して下表のとおり値を入力する。
 
 [cols="30,70", options="header"]
-.Run ConfigurationsのMainタブで設定する値
+.Run ConfigurationsのMainタブで入力する値
 |===
 |項目名
 |値
@@ -609,12 +629,14 @@ STSのメニューから、[Run] -> [Run Configurations...] -> タイプの一�
 |org.springframework.batch.core.launch.support.CommandLineJobRunner
 |===
 
+.Run Configurations Main tab
 image::ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_OperationCheck_ExecJob_RunConf_Main.png[Run Configurations Main tab]
 
-次にArgumentsタブを開き、以下の値を設定する。
+[start=3]
+. [Arguments]タブを開き、下表のとおり値を入力する。
 
 [cols="30,70", options="header"]
-.Run ConfigurationsのArgumentsタブで設定する値
+.Run ConfigurationsのArgumentsタブで入力する値
 |===
 |項目名
 |値
@@ -623,9 +645,11 @@ image::ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_OperationCheck_
 |META-INF/jobs/job01.xml job01
 |===
 
+.Run Configurations Arguments tab
 image::ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_OperationCheck_ExecJob_RunConf_Arg.png[Run Configurations Arguments tab]
 
-設定が完了したら[Apply]を押下する。
+[start=4]
+. [Apply]を押下する。
 
 [NOTE]
 .Run Configurationの作成で設定する値について
@@ -633,7 +657,7 @@ image::ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_OperationCheck_
 Run Configurationに<<Ch09_EnvironmentConstruction_BlankProject_ExecSample,サンプルジョブの実行(正しく作成できたことの確認)>>のコマンドと同様のパラメータを設定する。 +
 ただし、クラスパスはMainタブのProjectへプロジェクトを設定するとSTSによって自動的に解決される。 +
 Run Configurationに設定するパラメータは、実行するジョブによってパラメータを変更してほしい。 +
-なお、ファイルアクセスするジョブの場合はinputFileやoutputFileのパラメータも必要になるため留意すること。
+なお、<<Ch09_FileAccessJob.adoc#Ch09_Impl_FileAccessJob,ファイルアクセスでデータ入出力を行うジョブ>>では、パラメータで入出力ファイルを指定する必要があるため留意すること。
 ====
 
 [[Ch09_EnvironmentConstruction_OperationCheck_ExecJob_Run]]
@@ -648,31 +672,40 @@ Run Configurationに設定するパラメータは、実行するジョブによ
 .Debug Viewを表示する理由
 ====
 STSでDebug Viewを表示しないとジョブの実行時の終了コードを確認することはできない。 +
-<<Ch09_ExceptionHandlingWithTryCatchJob.adoc#Ch09_ExceptionHandlingWithTryCatchJob, try-catchで例外ハンドリングを行うジョブ>>ではリスナーにてジョブの終了コードの変換するため、Debug Viewを表示して結果を確認する必要がある。
+<<Ch09_ExceptionHandlingWithTryCatchJob.adoc#Ch09_Impl_ExceptionHandlingWithTryCatchJob, try-catchで例外ハンドリングを行うジョブ>>ではリスナーにてジョブの終了コードの変換するため、Debug Viewを表示して結果を確認する必要がある。
 ====
 
-はじめにジョブを実行する方法について説明する。
+. STSのメニューから、[Run] -> [Run Configurations...]を押下し、[Run Configurations]を開く。
+. サイドバーの[Java Application]配下にある<<Ch09_EnvironmentConstruction_OperationCheck_ExecJob_RunConf>>にて作成した[Execute Job01]を選択して[Run]を押下する。
 
-STSのメニューから、[Run] -> [Run Configurations...] -> タイプの一覧からJava Application配下にある<<Ch09_EnvironmentConstruction_OperationCheck_ExecJob_RunConf>>にて作成したExecute Job01を選択して[Run]を押下することでジョブが実行される。
-
+.Run Job01
 image::ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_OperationCheck_ExecJob_Run_Job01.png[Run Job01]
 
-ジョブの実行結果はコンソールログにて確認する。 +
-以下のように表示されていれば正常にジョブが実行されている。
+[start=3]
+. ジョブの実行結果を[Console]で確認する。 +
+以下ようなコンソールログが[Console]に表示されていれば正常にジョブが実行されている。
 
+[source, console]
+.コンソールログ出力例
+----
+[2020/03/06 09:41:13] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=job01]] completed with the following parameters: [{jsr_batch_run_id=48}] and the following status: [COMPLETED] in 125ms
+----
+
+.Run Job01 console
 image::ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_OperationCheck_ExecJob_Run_Job01Console.png[Run Job01 console]
 
-次に、Debug Viewを表示させてジョブ実行の終了コードを確認する。
+[start=4]
+. STSのメニューから、[Window] -> [Show View] -> [Other...]を選択し、[Debug]配下の[Debug]を選択した状態で[OK]を押下する。
 
-STSのメニューから、[Window] -> [Show View] -> [Other...]を選択し、Debug配下のDebugが選択された状態で、 [OK]を押下する。
-
+.Show View
 image::ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_OperationCheck_ExecJob_Run_ShowView.png[Show View]
 
-ワークベンチ上にDebugが表示される。
+[start=5]
+. [Debug]でジョブ実行の終了コードを確認する。 +
+``<terminated, exit value: 0>``という表示のジョブ実行の終了コードが``0``であることから、ジョブが正常に終了したことを確認できる。
 
+.Debug View
 image::ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_OperationCheck_ExecJob_Run_DebugView.png[Debug View]
-
-``<terminated, exit value: 0>``という表示により、ジョブ実行の終了コードが``0``であることが確認できる。
 
 [TIP]
 .STSでジョブの実行が失敗する場合について
@@ -682,23 +715,28 @@ STSのメニューから、[project] -> [clean]を選択する。
 ====
 
 [[Ch09_EnvironmentConstruction_OperationCheck_RefDB]]
-=== Data Source Explorerを使用してデータベースを参照する
+=== DBeaverを使用してデータベースを参照する
 
-Data Source Explorer Viewを使用してデータベースを参照する方法について説明する。
+ここでは、DBeaverを使用してデータベースを参照する方法について説明する。
 
-Data Source Explorerにてデータベース``BATCH-ADMIN``を下記の階層で開くとテーブルの一覧を確認することができる。
+. STSのメニューから、[Window] -> [Show View] -> [Other...]を選択し、[データベース]配下の[Database Browser]を選択した状態で[OK]を押下する。
 
+.Show View
+image::ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_OperationCheck_RefDB_ShowView.png[Show View]
+
+[start=2]
+. [Database Browser]にて[H2 Server -macchinetta-batch-tutorial] -> [PUBLIC] -> [テーブル]を開き、テーブル一覧を確認する。 +
+{SB}メタデータテーブル(詳細は<<Ch02_SpringBatchArchitecture.adoc#Ch02_SpringBatchArch_Arch_MetadataSchema,JobRepositoryのメタデータスキーマ>>を参照)及び、<<Ch09_EnvironmentConstruction_InputDataPreparation_DB,データベースアクセスでデータ入出力を行うジョブの入力データの準備>>を実施した場合には``MEMBER_INFO``テーブルが作成されていることが確認できる。
+
+.Show Tables
 image::ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_OperationCheck_RefDB_Tables.png[Show Tables]
 
-{SB}メタデータテーブル(詳細は<<Ch02_SpringBatchArchitecture.adoc#Ch02_SpringBatchArch_Arch_MetadataSchema,JobRepositoryのメタデータスキーマ>>を参照)及び、
-<<Ch09_EnvironmentConstruction_InputDataPreparation_DB,データベースアクセスでデータ入出力を行うジョブの入力データの準備>>を実施した場合には``MEMBER_INFO``テーブルが作成されていることが確認できる。
+[start=3]
+. 参照したいテーブルをダブルクリックし、開いたViewの[データ]タブを選択することでテーブルに格納されているレコードを参照する。 +
+以下は``BATCH_JOB_EXECUTION``テーブルを参照した例である。
 
-次に、テーブルに格納されているレコードは以下の方法で参照することができる。
-
-参照したいテーブルを右クリック、[Data] -> [Edit]と選択することでテーブル形式でテーブルに格納されているレコードを参照することができる。 +
-以下は``BATCH_JOB_INSTANCE``テーブルを参照した例である。
-
-image::ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_OperationCheck_RefDB_BATCH_JOB_INSTANCE.png[Show BATCH_JOB_INSTANCE]
+.Show BATCH_JOB_EXECUTION
+image::ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_OperationCheck_RefDB_BATCH_JOB_EXECUTION.png[Show BATCH_JOB_EXECUTION]
 
 ``job01``という名前のジョブが実行されたことがわかる。
 

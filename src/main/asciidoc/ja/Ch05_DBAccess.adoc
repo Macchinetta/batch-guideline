@@ -7,7 +7,7 @@ include::_include_all.adoc[]
 == Overview
 
 {batch5_shortname}では、データベースアクセスの方法として、MyBatis3(以降、「MyBatis」と呼ぶ)を利用する。
-MyBatisによるデータベースアクセスの基本的な利用方法は、{server5_guide}の以下を参照してほしい。
+MyBatisによるデータベースアクセスの基本的な利用方法は、{server5_guide}の以下を参照。
 
 * {server5_url}/ArchitectureInDetail/DataAccessDetail/DataAccessCommon.html[データベースアクセス(共通編)]
 * {server5_url}/ArchitectureInDetail/DataAccessDetail/DataAccessMyBatis3.html[データベースアクセス(MyBatis3編)]
@@ -187,7 +187,7 @@ jdbc.password=postgres
 .MyBatisのその他のパラメータ
 ====
 その他のパラメータに関しては以下リンクを参照し、 アプリケーションの特性にあった設定を行うこと。 +
-http://www.mybatis.org/mybatis-3/configuration.html
+https://mybatis.org/mybatis-3/configuration.html
 ====
 
 以下にデフォルト提供されている設定を示す。
@@ -259,7 +259,7 @@ http://www.mybatis.org/mybatis-3/configuration.html
 [[Ch05_DBAccess_HowToUse_Config_MapperXML]]
 ==== Mapper XMLの定義
 {batch5_shortname}特有の説明事項はないので、{server5_guide}の
-{server5_url}/ArchitectureInDetail/DataAccessDetail/DataAccessMyBatis3.html#dataaccessmybatis3howtodababaseaccess[データベースアクセス処理の実装]を参照してほしい。
+{server5_url}/ArchitectureInDetail/DataAccessDetail/DataAccessMyBatis3.html#dataaccessmybatis3howtodababaseaccess[データベースアクセス処理の実装]を参照。
 
 [[Ch05_DBAccess_HowToUse_Config_Scan]]
 ==== MyBatis-Springの設定
@@ -280,7 +280,7 @@ MyBatis-Springが提供するItemReaderおよびItemWriterを使用する場合�
 これを回避するために、{batch5_shortname}では、個別設定として、個々のジョブ定義でそのジョブが必要とするMapper XMLだけを指定する設定方法を採用する。
 
 基本的な設定方法については、{server5_guide}の
-{server5_url}/ArchitectureInDetail/DataAccessDetail/DataAccessMyBatis3.html#dataaccessmybatis3howtousesettingsmybatis-spring[MyBatis-Springの設定]を参照してほしい。
+{server5_url}/ArchitectureInDetail/DataAccessDetail/DataAccessMyBatis3.html#dataaccessmybatis3howtousesettingsmybatis-spring[MyBatis-Springの設定]を参照。
 
 {batch5_shortname}では、複数の``SqlSessionFactory``および``SqlSessionTemplate``が定義されているため、
 どれを利用するか明示的に指定する必要がある。 +
@@ -382,6 +382,7 @@ MyBatis-Springが提供するItemReaderとして下記の2つが存在する。
 <batch:job id="outputAllCustomerList01" job-repository="jobRepository">
     <batch:step id="outputAllCustomerList01.step01">
         <batch:tasklet transaction-manager="jobTransactionManager">
+            <!-- (5) -->>
             <batch:chunk reader="reader"
                          processor="retrieveBranchFromContextItemProcessor"
                          writer="writer" commit-interval="10"/>
@@ -463,13 +464,13 @@ public class RetrieveBranchFromContextItemProcessor implements ItemProcessor<Cus
 |``MyBatisCursorItemReader``を定義する。
 
 |(3)
-|``queryId``のプロパティに、(7)で定義しているSQLのIDを(6)の``namespace`` + ``<メソッド名>``で指定する。
+|``queryId``属性に、(7)で定義しているSQLのIDを(6)の``namespace`` + ``<メソッド名>``で指定する。
 
 |(4)
-|``sqlSessionFactory-ref``のプロパティに、アクセスするデータベースの``SqlSessionFactory``を指定する。
+|``sqlSessionFactory-ref``属性に、アクセスするデータベースの``SqlSessionFactory``を指定する。
 
 |(5)
-|(2)で定義した``MyBatisCursorItemReader``をreader属性に指定する。
+|(2)で定義した``MyBatisCursorItemReader``を``reader``属性に指定する。
 
 |(6)
 |Mapper XMLを定義する。namespaceの値とインタフェースのFQCNを一致させること。
@@ -612,10 +613,10 @@ public class CheckAmountTasklet implements Tasklet {
 |``MyBatisCursorItemReader``を定義する。
 
 |(3)
-|``queryId``のプロパティに、(6)で定義しているSQLのIDを(5)の``namespace`` + ``<メソッド名>``で指定する。
+|``queryId``属性に、(6)で定義しているSQLのIDを(5)の``namespace`` + ``<メソッド名>``で指定する。
 
 |(4)
-|``sqlSessionFactory-ref``のプロパティに、アクセスするデータベースの``SqlSessionFactory``を指定する。
+|``sqlSessionFactory-ref``属性に、アクセスするデータベースの``SqlSessionFactory``を指定する。
 
 |(5)
 |Mapper XMLを定義する。namespaceの値とインタフェースのFQCNを一致させること。
@@ -717,7 +718,7 @@ $ java -cp ${CLASSPATH} org.springframework.batch.core.launch.support.CommandLin
 |データベースからデータを取得するための``ItemReader``を定義する。
 
 |(3)
-|プロパティ名に``parameterValues``を設定する。
+|``<property>``要素の``name``属性に``parameterValues``を設定する。
 
 |(4)
 |検索条件にする値をジョブパラメータから取得し、キーに設定することで検索条件を指定する。
@@ -830,7 +831,7 @@ ItemProcessorでのデータベースアクセスは``BATCH``となる。
 
 |(4)
 |``MyBatisCursorItemReader``を定義する。 +
-``sqlSessionFactory-ref``プロパティに、アクセスするデータベースの``SqlSessionFactory``を指定する。
+``sqlSessionFactory-ref``属性に、アクセスするデータベースの``SqlSessionFactory``を指定する。
 
 |===
 
@@ -859,7 +860,7 @@ ItemProcessorでのデータベースアクセスは``BATCH``となる。
 {batch5_shortname}では、タスクレットモデルでMapperインタフェースを利用してデータベースアクセスする場合はCursorを利用することを基本とする。 +
 Cursor同様に大量データを処理するうえで、ResultHandlerを利用することも有効である。
 ResultHandlerについては、{server5_guide}の
-{server5_url}/ArchitectureInDetail/DataAccessDetail/DataAccessMyBatis3.html#resulthandler[ResultHandlerの実装]を参照のこと。
+{server5_url}/ArchitectureInDetail/DataAccessDetail/DataAccessMyBatis3.html#resulthandler[ResultHandlerの実装]を参照。
 
 [source,xml]
 .Bean定義
@@ -1118,14 +1119,14 @@ public class BranchEditItemProcessor implements ItemProcessor<Branch, ExclusiveB
 |``MyBatisBatchItemWriter``を定義する。
 
 |(3)
-|``statementId``のプロパティに、(7)で定義しているSQLのIDを(6)の``namespace`` + ``<メソッド名>``で指定する。
+|``statementId``属性に、(7)で定義しているSQLのIDを(6)の``namespace`` + ``<メソッド名>``で指定する。
 
 |(4)
-|``sqlSessionTemplate-ref``のプロパティに、アクセスするデータベースの``SessionTemplate``を指定する。 +
+|``sqlSessionTemplate-ref``属性に、アクセスするデータベースの``SessionTemplate``を指定する。 +
 指定する``SessionTemplate``は、``executorType``が``BATCH``に設定されていることが必須である。
 
 |(5)
-|(2)で定義した``MyBatisBatchItemWriter``をwriter属性に指定する。
+|(2)で定義した``MyBatisBatchItemWriter``を``writer``属性に指定する。
 
 |(6)
 |Mapper XMLを定義する。namespaceの値とインタフェースのFQCNを一致させること。
@@ -1258,10 +1259,10 @@ MapperインタフェースとMapper XMLについては<<Ch05_DBAccess_HowToUse_
 |``MyBatisBatchItemWriter``を定義する。
 
 |(3)
-|``statementId``のプロパティに、(6)で定義しているSQLのIDを(5)の``namespace`` + ``<メソッド名>``で指定する。
+|``statementId``属性に、(6)で定義しているSQLのIDを(5)の``namespace`` + ``<メソッド名>``で指定する。
 
 |(4)
-|``sqlSessionTemplate-ref``のプロパティに、アクセスするデータベースの``SessionTemplate``を指定する。 +
+|``sqlSessionTemplate-ref``属性に、アクセスするデータベースの``SessionTemplate``を指定する。 +
 指定する``SessionTemplate``は、``executorType``が``BATCH``に設定されていることが必須である。
 
 |(5)
@@ -1298,7 +1299,7 @@ ItemWriter以外でデータベースの更新を行うにはMapperインタフ�
 [[Ch05_DBAccess_HowToUse_Output_MapperInterface_Overview]]
 機能概要::
 
-Mapperインタフェースを利用してデータベースアクセスするうえでの{batch5_shortname}としての制約は<<Ch05_DBAccess_HowToUse_Input_MapperInterface>>を参照のこと。 +
+Mapperインタフェースを利用してデータベースアクセスするうえでの{batch5_shortname}としての制約は<<Ch05_DBAccess_HowToUse_Input_MapperInterface>>を参照。 +
 さらにItemProcessor、TaskletでMapperインタフェースを利用したデータベースの更新を行う際には以下の制約がある。
 
 ItemProcessorでの制約::
@@ -1401,10 +1402,10 @@ MapperインタフェースとMapper XMLについては<<Ch05_DBAccess_HowToUse_
 
 |(4)
 |``MyBatisBatchItemWriter``を定義する。 +
-``sqlSessionTemplate-ref``プロパティに``BATCH``設定されている``batchModeSqlSessionTemplate``を指定する。
+``sqlSessionTemplate-ref``属性に``BATCH``設定されている``batchModeSqlSessionTemplate``を指定する。
 
 |(5)
-|(4)で定義した``MyBatisBatchItemWriter``をwriter属性に指定する。
+|(4)で定義した``MyBatisBatchItemWriter``を``writer``属性に指定する。
 
 |===
 
@@ -1630,7 +1631,7 @@ public class CustomerCache {
 |(3)
 |リスナーにて、Mapperインタフェースからデータを取得してキャッシュする。 +
 ここでは、``StepExecutionListener#beforeStep``にてステップ実行前にキャッシュを作成し、
-以降の処理ではキャッシュを参照することで、I/Oを低減し処理効率を高めている。
+以降の処理ではキャッシュを参照することで、入出力を低減し処理効率を高めている。
 
 |(4)
 |(2)で設定したキャッシュと同じBeanをInjectする。
@@ -1669,7 +1670,7 @@ public class CustomerCache {
 ====
 
 [[Ch05_DBAccess_HowToExtend]]
-== How To Extend
+== How to extend
 === CompositeItemWriterにおける複数テーブルの更新
 チャンクモデルで、1つの入力データに対して複数のテーブルへ更新を行いたい場合は、{SB}が提供する``CompositeItemWriter``を利用し、
 各テーブルに対応した``MyBatisBatchItemWriter``を連結することで実現できる。
@@ -1858,7 +1859,7 @@ public class SalesDTO implements Serializable {
 |(8),(9)を順番に実行するために``CompositeItemWriter``を定義する。
 
 |(11)
-|``<list>``タグ内に(8),(9)を設定する。指定した順番にItemWriterが実行される。
+|``<list>``要素内に(8),(9)を設定する。指定した順番にItemWriterが実行される。
 
 |(12)
 |チャンクの``writer``属性に(10)で定義したBeanを指定する。``processor``属性には(1)のItemProcessorを指定する。
@@ -1947,7 +1948,7 @@ $ java -cp ${CLASSPATH} org.springframework.batch.core.launch.support.CommandLin
 |データベースからデータを取得するための``ItemReader``を定義する。
 
 |(3)
-|プロパティ名に``parameterValues``を設定する。
+|``<property>``要素の``name``属性に``parameterValues``を設定する。
 
 |(4)
 |検索条件にする値をジョブパラメータから取得し、キーに設定することで検索条件を指定する。

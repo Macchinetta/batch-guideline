@@ -7,8 +7,7 @@ include::_include_all.adoc[]
 == 概要
 ファイルアクセスでデータ入出力を行うジョブを作成する。
 
-なお、本節は{batch5_guide}を元に説明しているため、
-詳細については<<Ch05_FileAccess.adoc#Ch05_FileAccess,ファイルアクセス>>を参照のこと。
+なお、詳細については{batch5_guide}の<<Ch05_FileAccess.adoc#Ch05_FileAccess,ファイルアクセス>>を参照。
 
 <<Ch09_TutorialApplication.adoc#Ch09_TutorialApplication,作成するアプリケーションの説明>>の
 背景、処理概要、業務仕様を以下に再掲する。
@@ -78,8 +77,7 @@ include::_include_all.adoc[]
 |===
 
 このチュートリアルではヘッダレコード、フッタレコードは扱わないこととしているため、
-ヘッダレコード、フッタレコードの扱いやファイルフォーマットについては、
-<<Ch05_FileAccess.adoc#Ch05_FileAccess,ファイルアクセス>>を参照してほしい。
+ヘッダレコード、フッタレコードの扱いやファイルフォーマットについては、<<Ch05_FileAccess.adoc#Ch05_FileAccess,ファイルアクセス>>を参照。
 
 [[Ch09_Impl_FileAccessJob_Overview_JobOverview]]
 === ジョブの概要
@@ -87,7 +85,7 @@ include::_include_all.adoc[]
 処理フローおよび処理シーケンスを以下に示す。
 
 処理シーケンスではトランザクション制御の範囲について触れているが、ファイルの場合は擬似的なトランザクション制御を行うことで実現している。
-詳細は、<<Ch05_Transaction.adoc#Ch05_Transaction_HowToUse_SingleDataSource_NonTx,非トランザクショナルなデータソースに対する補足>>を参照のこと。
+詳細は、<<Ch05_Transaction.adoc#Ch05_Transaction_HowToUse_SingleDataSource_NonTx,非トランザクショナルなデータソースに対する補足>>を参照。
 
 //^
 処理フロー概要::
@@ -195,9 +193,9 @@ Bean定義ファイルにて、チャンクモデルでのファイルアクセ�
        xmlns:context="http://www.springframework.org/schema/context"
        xmlns:batch="http://www.springframework.org/schema/batch"
        xmlns:p="http://www.springframework.org/schema/p"
-       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
-             http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
-             http://www.springframework.org/schema/batch http://www.springframework.org/schema/batch/spring-batch.xsd">
+       xsi:schemaLocation="http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd
+             http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd
+             http://www.springframework.org/schema/batch https://www.springframework.org/schema/batch/spring-batch.xsd">
 
     <!-- (1) -->
     <import resource="classpath:META-INF/spring/job-base-context.xml"/>
@@ -232,7 +230,7 @@ DTOクラスはファイルごとに作成する。
 以下のとおり、変換対象クラスとしてDTOクラスを実装する。
 
 [source, java]
-.com.example.batch.tutorial.common.dto.MemberInfoDTO
+.com.example.batch.tutorial.common.dto.MemberInfoDto
 ----
 package com.example.batch.tutorial.common.dto;
 
@@ -305,7 +303,7 @@ public class MemberInfoDto {
 
 ItemReader、ItemWriterの設定として、ジョブBean定義ファイルに以下の(1)以降を追記する。 +
 ここで触れていない設定内容については、<<Ch05_FileAccess.adoc#Ch05_FileAccess_HowToUse_VariableLength_Input,可変長レコードの入力>>
-および<<Ch05_FileAccess.adoc#Ch05_FileAccess_HowToUse_VariableLength_Output,可変長レコードの出力>>を参照のこと。
+および<<Ch05_FileAccess.adoc#Ch05_FileAccess_HowToUse_VariableLength_Output,可変長レコードの出力>>を参照。
 
 [source, xml]
 .src/main/resources/META-INF/jobs/fileaccess/jobPointAddChunk.xml
@@ -316,9 +314,9 @@ ItemReader、ItemWriterの設定として、ジョブBean定義ファイルに�
        xmlns:context="http://www.springframework.org/schema/context"
        xmlns:batch="http://www.springframework.org/schema/batch"
        xmlns:p="http://www.springframework.org/schema/p"
-       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
-             http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
-             http://www.springframework.org/schema/batch http://www.springframework.org/schema/batch/spring-batch.xsd">
+       xsi:schemaLocation="http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd
+             http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd
+             http://www.springframework.org/schema/batch https://www.springframework.org/schema/batch/spring-batch.xsd">
 
     <import resource="classpath:META-INF/spring/job-base-context.xml"/>
 
@@ -438,6 +436,16 @@ Beanのプロパティとレコード内の各項目とのマッピングは``Fi
 
 |===
 
+[NOTE]
+.擬似的トランザクション制御の有効
+====
+擬似的トランザクション制御を有効にすると、リソースへの書き込みを遅延し、コミットタイミングで実際に書き出す。
+そのため、ファイルへの書き出しまでメモリ内に出力分のデータを保持することになり、取り扱うデータ量が多い場合、メモリ不足でエラーとなる可能性が高くなる。
+
+このチュートリアルで実装するジョブは、取り扱うデータ量が少ないことから擬似的トランザクション制御を有効にしている。
+詳細は、<<Ch05_Transaction.adoc#Ch05_Transaction_HowToUse_SingleDataSource_NonTx,非トランザクショナルなデータソースに対する補足>>を参照。
+====
+
 [[Ch09_Impl_FileAccessJob_Chunk_Logic]]
 === ロジックの実装
 ポイント加算処理を行うビジネスロジッククラスを実装する。
@@ -505,7 +513,7 @@ public class PointAddItemProcessor implements ItemProcessor<MemberInfoDto, Membe
 
 |(2)
 |入出力で使用するオブジェクトの型をそれぞれ型引数に指定した``ItemProcessor``インタフェースを実装する。 +
-ここでは、入出力で使用するオブジェクトは共に<<Ch09_Impl_FileAccessJob_Chunk_Dto>>で作成した``MemberInfoDTO``を指定する。
+ここでは、入出力で使用するオブジェクトは共に<<Ch09_Impl_FileAccessJob_Chunk_Dto>>で作成した``MemberInfoDto``を指定する。
 
 |(3)
 |定数として、ポイント加算対象とする商品購入フラグ:1を定義する。 +
@@ -529,11 +537,11 @@ public class PointAddItemProcessor implements ItemProcessor<MemberInfoDto, Membe
 
 |(9)
 |返り値の型は、このクラスで実装している``ItemProcessor``インタフェースの型引数で指定した
-出力オブジェクトの型である``MemberInfoDTO``とする。
+出力オブジェクトの型である``MemberInfoDto``とする。
 
 |(10)
 |引数として受け取る``item``の型は、
-このクラスで実装している``ItemProcessor``インタフェースの型引数で指定した入力オブジェクトの型である``MemberInfoDTO``とする。
+このクラスで実装している``ItemProcessor``インタフェースの型引数で指定した入力オブジェクトの型である``MemberInfoDto``とする。
 
 |===
 
@@ -550,9 +558,9 @@ public class PointAddItemProcessor implements ItemProcessor<MemberInfoDto, Membe
        xmlns:context="http://www.springframework.org/schema/context"
        xmlns:batch="http://www.springframework.org/schema/batch"
        xmlns:p="http://www.springframework.org/schema/p"
-       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
-             http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
-             http://www.springframework.org/schema/batch http://www.springframework.org/schema/batch/spring-batch.xsd">
+       xsi:schemaLocation="http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd
+             http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd
+             http://www.springframework.org/schema/batch https://www.springframework.org/schema/batch/spring-batch.xsd">
 
     <import resource="classpath:META-INF/spring/job-base-context.xml"/>
 
@@ -625,7 +633,7 @@ public class PointAddItemProcessor implements ItemProcessor<MemberInfoDto, Membe
 |(2)
 |ステップの設定を行う。 +
 ``id``属性は、1つのバッチアプリケーションに含まれる全ジョブの範囲内で一意とする必要はないが、障害発生時に追跡しやすくなる等の様々なメリットがあるため一意とする。 +
-特別な理由がない限り、(1)で指定したid属性に[step+連番]を付加する形式とする。 +
+特別な理由がない限り、(1)で指定した``id``属性に[step+連番]を付加する形式とする。 +
 ここでは、チャンクモデルのジョブのステップ名として``jobPointAddChunk.step01``を指定する。
 
 |(3)
@@ -670,13 +678,19 @@ Argumentsタブに入出力ファイルのパラメータを引数として追�
 
 [[Ch09_Impl_FileAccessJob_Chunk_Execution_Console]]
 ==== コンソールログの確認
-Consoleに以下の内容のログが出力されていることを確認する。
+Console Viewを開き、以下の内容のログが出力されていることを確認する。
+
+* 処理が完了(COMPLETED)し、例外が発生していないこと。
 
 [source, console]
 .コンソールログ出力例
 ----
-[2017/08/18 11:09:19] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=jobPointAddChunk]] completed with the following parameters: [{inputFile=files/input/input-member-info-data.csv, outputFile=files/output/output-member-info-data.csv, jsr_batch_run_id=386}] and the following status: [COMPLETED]
-[2017/08/18 11:09:19] [main] [o.s.c.s.ClassPathXmlApplicationContext] [INFO ] Closing org.springframework.context.support.ClassPathXmlApplicationContext@735f7ae5: startup date [Fri Aug 18 11:09:12 JST 2017]; root of context hierarchy
+(.. omitted)
+
+[2020/03/10 13:11:26] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=jobPointAddChunk]] launched with the following parameters: [{inputFile=files/input/input-member-info-data.csv, outputFile=files/output/output-member-info-data.csv, jsr_batch_run_id=116}]
+[2020/03/10 13:11:26] [main] [o.s.b.c.j.SimpleStepHandler] [INFO ] Executing step: [jobPointAddChunk.step01]
+[2020/03/10 13:11:26] [main] [o.s.b.c.s.AbstractStep] [INFO ] Step: [jobPointAddChunk.step01] executed in 388ms
+[2020/03/10 13:11:26] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=jobPointAddChunk]] completed with the following parameters: [{inputFile=files/input/input-member-info-data.csv, outputFile=files/output/output-member-info-data.csv, jsr_batch_run_id=116}] and the following status: [COMPLETED] in 461ms
 ----
 
 [[Ch09_Impl_FileAccessJob_Chunk_Execution_Exitcode]]
@@ -696,7 +710,7 @@ image::ch09/FileAccess/Ch09_FileAccessJob_Confirm_ExitCode_ChunkModel.png[Confir
 * 出力ディレクトリに会員情報ファイルが出力されていること
 ** 出力ファイル: files/output/output-member-info-data.csv
 * statusフィールド
-** "0"(初期状態)のレコードが存在しないこと
+** "1"(処理対象)から"0"(初期状態)に更新されていること
 * pointフィールド
 ** ポイント加算対象について、会員種別に応じたポイントが加算されていること
 *** typeフィールドが"G"(ゴールド会員)の場合は100ポイント
@@ -733,9 +747,9 @@ Bean定義ファイルにて、タスクレットモデルでのファイルア�
        xmlns:context="http://www.springframework.org/schema/context"
        xmlns:batch="http://www.springframework.org/schema/batch"
        xmlns:p="http://www.springframework.org/schema/p"
-       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
-             http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
-             http://www.springframework.org/schema/batch http://www.springframework.org/schema/batch/spring-batch.xsd">
+       xsi:schemaLocation="http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd
+             http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd
+             http://www.springframework.org/schema/batch https://www.springframework.org/schema/batch/spring-batch.xsd">
 
     <!-- (1) -->
     <import resource="classpath:META-INF/spring/job-base-context.xml"/>
@@ -769,7 +783,7 @@ DTOクラスはファイルごとに作成する。
 以下のとおり、変換対象クラスとしてDTOクラスを実装する。
 
 [source, java]
-.com.example.batch.tutorial.common.dto.MemberInfoDTO
+.com.example.batch.tutorial.common.dto.MemberInfoDto
 ----
 package com.example.batch.tutorial.common.dto;
 
@@ -842,7 +856,7 @@ public class MemberInfoDto {
 
 ItemReader、ItemWriterの設定として、ジョブBean定義ファイルに以下の(1)以降を追記する。 +
 ここで触れていない設定内容については、<<Ch05_FileAccess.adoc#Ch05_FileAccess_HowToUse_VariableLength_Input,可変長レコードの入力>>
-および<<Ch05_FileAccess.adoc#Ch05_FileAccess_HowToUse_VariableLength_Output,可変長レコードの出力>>を参照のこと。
+および<<Ch05_FileAccess.adoc#Ch05_FileAccess_HowToUse_VariableLength_Output,可変長レコードの出力>>を参照。
 
 [source, xml]
 .src/main/resources/META-INF/jobs/fileaccess/jobPointAddTasklet.xml
@@ -853,13 +867,13 @@ ItemReader、ItemWriterの設定として、ジョブBean定義ファイルに�
        xmlns:context="http://www.springframework.org/schema/context"
        xmlns:batch="http://www.springframework.org/schema/batch"
        xmlns:p="http://www.springframework.org/schema/p"
-       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
-             http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
-             http://www.springframework.org/schema/batch http://www.springframework.org/schema/batch/spring-batch.xsd">
+       xsi:schemaLocation="http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd
+             http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd
+             http://www.springframework.org/schema/batch https://www.springframework.org/schema/batch/spring-batch.xsd">
 
     <import resource="classpath:META-INF/spring/job-base-context.xml"/>
 
-    <context:component-scan base-package="com.example.batch.tutorial.fileaccess.chunk"/>
+    <context:component-scan base-package="com.example.batch.tutorial.fileaccess.tasklet"/>
 
     <!-- (1) (2) -->
     <bean id="reader"
@@ -983,6 +997,7 @@ Beanのプロパティとレコード内の各項目とのマッピングは``Fi
 
 Tasklet実装の中でチャンクモデルの各種コンポーネントを利用するかどうかは、
 <<Ch03_CreateTaskletJob#Ch03_CreateTaskletJob_HowToUse_InOutImpl,チャンクモデルのコンポーネントを利用するTasklet実装>>を参照して適宜判断してほしい。
+ただし、タスクレットモデルでファイルアクセスする場合はItemReader・ItemWriterの実装クラスを利用するとよい。
 ====
 
 [[Ch09_Impl_FileAccessJob_Tasklet_Logic]]
@@ -1181,9 +1196,9 @@ public class PointAddTasklet implements Tasklet {
        xmlns:context="http://www.springframework.org/schema/context"
        xmlns:batch="http://www.springframework.org/schema/batch"
        xmlns:p="http://www.springframework.org/schema/p"
-       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
-             http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
-             http://www.springframework.org/schema/batch http://www.springframework.org/schema/batch/spring-batch.xsd">
+       xsi:schemaLocation="http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd
+             http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd
+             http://www.springframework.org/schema/batch https://www.springframework.org/schema/batch/spring-batch.xsd">
 
     <import resource="classpath:META-INF/spring/job-base-context.xml"/>
 
@@ -1253,7 +1268,7 @@ public class PointAddTasklet implements Tasklet {
 |(2)
 |ステップの設定を行う。 +
 ``id``属性は、1つのバッチアプリケーションに含まれる全ジョブの範囲内で一意とする必要はないが、障害発生時に追跡しやすくなる等の様々なメリットがあるため一意とする。 +
- 特別な理由がない限り、(1)で指定したid属性に[step+連番]を付加する形式とする。 +
+ 特別な理由がない限り、(1)で指定した``id``属性に[step+連番]を付加する形式とする。 +
 ここでは、タスクレットモデルのジョブのステップ名として``jobPointAddTasklet.step01``を指定する。
 
 |(3)
@@ -1284,13 +1299,19 @@ Argumentsタブに入出力ファイルのパラメータを引数として追�
 
 [[Ch09_Impl_FileAccessJob_Tasklet_Execution_Console]]
 ==== コンソールログの確認
-Consoleに以下の内容のログが出力されていることを確認する。
+Console Viewを開き、以下の内容のログが出力されていることを確認する。
+
+* 処理が完了(COMPLETED)し、例外が発生していないこと。
 
 [source, console]
 .コンソールログ出力例
 ----
-[2017/09/12 10:13:18] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=jobPointAddTasklet]] completed with the following parameters: [{inputFile=files/input/input-member-info-data.csv, outputFile=files/output/output-member-info-data.csv, jsr_batch_run_id=474}] and the following status: [COMPLETED]
-[2017/09/12 10:13:18] [main] [o.s.c.s.ClassPathXmlApplicationContext] [INFO ] Closing org.springframework.context.support.ClassPathXmlApplicationContext@735f7ae5: startup date [Tue Sep 12 10:13:16 JST 2017]; root of context hierarchy
+(.. omitted)
+
+[2020/03/10 13:18:03] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=jobPointAddTasklet]] launched with the following parameters: [{inputFile=files/input/input-member-info-data.csv, outputFile=files/output/output-member-info-data.csv, jsr_batch_run_id=118}]
+[2020/03/10 13:18:03] [main] [o.s.b.c.j.SimpleStepHandler] [INFO ] Executing step: [jobPointAddTasklet.step01]
+[2020/03/10 13:18:03] [main] [o.s.b.c.s.AbstractStep] [INFO ] Step: [jobPointAddTasklet.step01] executed in 161ms
+[2020/03/10 13:18:03] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=jobPointAddTasklet]] completed with the following parameters: [{inputFile=files/input/input-member-info-data.csv, outputFile=files/output/output-member-info-data.csv, jsr_batch_run_id=118}] and the following status: [COMPLETED] in 229ms
 ----
 
 [[Ch09_Impl_FileAccessJob_Tasklet_Execution_Exitcode]]
@@ -1310,7 +1331,7 @@ image::ch09/FileAccess/Ch09_FileAccessJob_Confirm_ExitCode_TaskletModel.png[Conf
 * 出力ディレクトリに会員情報ファイルが出力されていること
 ** 出力ファイル: files/output/output-member-info-data.csv
 * statusフィールド
-** "0"(初期状態)のレコードが存在しないこと
+** "1"(処理対象)から"0"(初期状態)に更新されていること
 * pointフィールド
 ** ポイント加算対象について、会員種別に応じたポイントが加算されていること
 *** typeフィールドが"G"(ゴールド会員)の場合は100ポイント
