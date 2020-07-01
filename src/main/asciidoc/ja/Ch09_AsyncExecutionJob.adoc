@@ -23,7 +23,7 @@ ifeval::["{docname}" != "single_index"]
 また、アプリケーションの背景、処理概要、業務仕様は、<<Ch09_Impl_index.adoc#Ch09_Impl,バッチジョブの実装>>の各節を参照。
 endif::[]
 ifeval::["{docname}" == "single_index"]
-また、アプリケーションの背景、処理概要、業務仕様は、<<_Ch09_Impl_single_index.adoc#Ch09_Impl,バッチジョブの実装>>の各チュートリアルジョブを参照。
+また、アプリケーションの背景、処理概要、業務仕様は、<<_Ch09_Impl_single_index.adoc#Ch09_Impl_single_index,バッチジョブの実装>>の各チュートリアルジョブを参照。
 endif::[]
 
 以降では、DBポーリングによるジョブの非同期実行方法を以下の手順で説明する。
