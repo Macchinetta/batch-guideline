@@ -2639,6 +2639,40 @@ sales_plan_detail_03.csv
 |
 |===
 
+:four_space: &#160;&#160;&#160;&#160;
+[WARNING]
+.``itemCountLimitPerResource``で指定されたレコード件数で意図通りに出力されないことがある
+====
+``itemCountLimitPerResource``は1ファイルのレコードの出力件数を決定するものだが、 +
+この値は``commit-interval``で指定された数のレコードが出力された後で評価される。 +
+このため、``itemCountLimitPerResource``で指定された値以上のレコードが1ファイルに出力される場合がある。 +
+
+* ``itemCountLimitPerResource \<= commit-interval``の場合 +
+
+{four_space}1ファイルのレコードの出力件数は``commit-interval``の値になる。 +
+{four_space}例：入力データ全部で10件あり、``itemCountLimitPerResource=4, commit-interval=5``の場合 +
+{four_space}{four_space}1ファイル目のレコードの出力件数は5件になる +
+{four_space}{four_space}2ファイル目のレコードの出力件数は5件になる +
+
+* ``itemCountLimitPerResource > commit-interval``の場合 +
+
+{four_space}1ファイルのレコードの出力件数は``itemCountLimitPerResource``の値を超えたら、 +
+{four_space}次のチャンクが新しく作成されたファイルに書き込まれる。 +
+{four_space}例：入力データ全部で21件あり、``itemCountLimitPerResource=6, commit-interval=4``の場合 +
+{four_space}{four_space}1ファイル目のレコードの出力件数は8件になる +
+{four_space}{four_space}2ファイル目のレコードの出力件数は8件になる +
+{four_space}{four_space}3ファイル目のレコードの出力件数は5件になる +
+{four_space}{four_space}補足：最初4件は1ファイル目に出力された後``itemCountLimitPerResource``の6を超えていない、 +
+{four_space}{four_space}そのため次の4件も1ファイル目に出力され、全部で8件になる。 +
+{four_space}{four_space}さらに次の4件は来た時、8件はすでに``itemCountLimitPerResource``の6を超えているため、 +
+{four_space}{four_space}この4件は2ファイル目に出力される。 +
+{four_space}{four_space}結果として、1ファイル目と2ファイル目は8件になり、3ファイル目は5件になる +
+
+よって、``itemCountLimitPerResource``で指定されたレコード件数でファイルの出力を分けるためには、 +
+``commit-interval``と``itemCountLimitPerResource``の値を同数とするか、 +
+``commit-interval``を``itemCountLimitPerResource``の約数となるように設定する。
+====
+
 [IMPORTANT]
 .MultiResourceItemWriterが使用するItemWriterにresourceの指定は不要である
 ====
@@ -3070,6 +3104,9 @@ public class UseDateSalesPlanDetailFieldSetMapper implements FieldSetMapper<UseD
 
 XMLファイルを扱う場合の定義方法を説明する。
 
+[[Ch05_FileAccess_HowToExtend_Xml_Mapping]]
+==== オブジェクト変換ライブラリ
+
 BeanとXML間の変換処理(O/X (Object/XML) マッピング)にはSpring Frameworkが提供するライブラリを使用する。 +
 XMLファイルとオブジェクト間の変換処理を行うライブラリとして、XStreamやJAXBなどを利用した``Marshaller``および``Unmarshaller``を実装クラスが提供されている。 +
 状況に応じて適しているものを使用すること。
@@ -3087,7 +3124,46 @@ XStream::
 * Bean定義にて柔軟にXMLの要素とBeanのフィールドをマッピングすることができる
 * 柔軟にBeanマッピングする必要がある場合に有用である
 
-ここでは、JAXBを利用する例を示す。
+なお、以降の説明ではJAXBを利用する例を示す。
+
+[[Ch05_FileAccess_HowToExtend_Xml_Encoding]]
+==== 入出力におけるエンコーディングの仕様
+
+XMLの入出力には{SB}が提供する``org.springframework.batch.item.xml.StaxEventItemReader``
+および``org.springframework.batch.item.xml.StaxEventItemWriter``を使用する。 +
+これらのコンポーネントのエンコーディングの仕様は以下の表のとおり異なっているため、利用時には特にデフォルト値の違いに注意する必要がある。
+デフォルト値の違いによって意図しないエンコーディングで入出力が行われることを防ぐため、
+``StaxEventItemWriter``ではデフォルト値をそのまま使用する意図である場合でも明示的にエンコーディングを設定することを推奨する。
+
+[cols="5,15,40,40", options="header"]
+.各コンポーネントのエンコーディングについての仕様
+|===
+|項番
+|コンポーネント名
+|エンコーディングの指定方法
+|デフォルト値
+
+|(1)
+|``StaxEventItemReader``
+|なし
+|入力するXMLのencoding属性に従う。 +
+encoding属性が宣言されていない場合はUTF-8となる。
+
+|(2)
+|``StaxEventItemWriter``
+|Bean定義においてencodingプロパティを設定する。
+|UTF-8
+|===
+
+[WARNING]
+.{SB}のバージョンアップに伴うエンコーディングの仕様変更
+====
+{SB} 4.3.0以降では``StaxEventItemReader``にencodingプロパティが追加され、Bean定義でのエンコーディングの指定が可能となった。
+これに合わせ、デフォルト値も``FlatFileItemReader``等と同様にJavaVMのデフォルトエンコーディングに従うよう変更されている。
+
+Macchinetta Batch 2.3.0は{SB} 4.3.1を利用しているため、Macchinetta Batch 2.3.0へのバージョンアップを行う場合は、
+エンコーディングを明示的に指定しないと読み込みに利用されるエンコーディングが変化してしまう可能性があるため注意すること。
+====
 
 [[Ch05_FileAccess_HowToExtend_Xml_Input]]
 ==== 入力
@@ -3112,6 +3188,53 @@ XMLファイルの入力には{SB}が提供する``org.springframework.batch.ite
 
 
 下記の入力ファイルを読み込むための設定例を示す。
+
+[IMPORTANT]
+.依存ライブラリの追加
+====
+``org.springframework.oxm.jaxb.Jaxb2Marshaller``など、
+Spring Frameworkが提供するライブラリであるSpring Object/XML Marshallingを使用する場合は、
+ライブラリの依存関係に以下の設定を追加する必要がある。
+
+[source, xml]
+----
+<dependency>
+    <groupId>org.springframework</groupId>
+    <artifactId>spring-oxm</artifactId>
+</dependency>
+----
+
+Java SE 11でJAXBを利用する場合、jaxb-core及びjaxb-implが必要となる。
+アプリケーションの依存ライブラリやバッチから提供されるライブラリにjaxb-core及びjaxb-implがない場合は、下記のようにpom.xmlに依存関係を追加すること。
+[source, xml]
+----
+<dependency>
+    <groupId>com.sun.xml.bind</groupId>
+    <artifactId>jaxb-core</artifactId>
+    <version>${jaxb-core.version}</version> <!-- (1) -->
+</dependency>
+<dependency>
+    <groupId>com.sun.xml.bind</groupId>
+    <artifactId>jaxb-impl</artifactId>
+    <version>${jaxb-impl.version}</version> <!-- (2) -->
+</dependency>
+----
+
+[cols="10,90", options="header"]
+.設定内容の項目一覧
+|===
+|項番
+|説明
+
+|(1)
+|<<Ch02_MacchinettaBatchStack#Ch02_MacchinettaBatchStack_Stack_OSS,「表 1. OSSバージョン一覧」>>のjaxb-coreのバージョンを指定する。
+
+|(2)
+|<<Ch02_MacchinettaBatchStack#Ch02_MacchinettaBatchStack_Stack_OSS,「表 1. OSSバージョン一覧」>>のjaxb-implのバージョンを指定する。
+
+|===
+
+====
 
 [source, xml]
 .入力ファイル例
@@ -3419,22 +3542,6 @@ public class CustomerValidationEventHandler implements ValidationEventHandler {
 適切な``UnmarshalException``、``ValidationException``、または``MarshalException``を生成して現在の操作を終了させる場合はfalseを返す。
 |===
 
-[IMPORTANT]
-.依存ライブラリの追加
-====
-``org.springframework.oxm.jaxb.Jaxb2Marshaller``など、
-Spring Frameworkが提供するライブラリであるSpring Object/XML Marshallingを使用する場合は、
-ライブラリの依存関係に以下の設定を追加する必要がある。
-
-[source, xml]
-----
-<dependency>
-    <groupId>org.springframework</groupId>
-    <artifactId>spring-oxm</artifactId>
-</dependency>
-----
-====
-
 [[Ch05_FileAccess_HowToExtend_Xml_Output]]
 ==== 出力
 
@@ -3456,6 +3563,54 @@ XMLファイルの出力には{SB}が提供する``org.springframework.batch.ite
 ** ``classesToBeBound``プロパティに変換対象のクラスをリスト形式で設定する
 
 下記の出力ファイルを書き出すための設定例を示す。
+
+[IMPORTANT]
+.依存ライブラリの追加
+====
+``org.springframework.oxm.jaxb.Jaxb2Marshaller``など、
+Spring Frameworkが提供するライブラリであるSpring Object/XML Marshallingを使用する場合は、
+ライブラリの依存関係に以下の設定を追加する必要がある。
+
+[source, xml]
+----
+<dependency>
+    <groupId>org.springframework</groupId>
+    <artifactId>spring-oxm</artifactId>
+</dependency>
+----
+
+Java SE 11でJAXBを利用する場合、jaxb-core及びjaxb-implが必要となる。
+アプリケーションの依存ライブラリやバッチから提供されるライブラリにjaxb-core及びjaxb-implがない場合は、下記のようにpom.xmlに依存関係を追加すること。
+
+[source, xml]
+----
+<dependency>
+    <groupId>com.sun.xml.bind</groupId>
+    <artifactId>jaxb-core</artifactId>
+    <version>${jaxb-core.version}</version> <!-- (1) -->
+</dependency>
+<dependency>
+    <groupId>com.sun.xml.bind</groupId>
+    <artifactId>jaxb-impl</artifactId>
+    <version>${jaxb-impl.version}</version> <!-- (2) -->
+</dependency>
+----
+
+[cols="10,90", options="header"]
+.設定内容の項目一覧
+|===
+|項番
+|説明
+
+|(1)
+|<<Ch02_MacchinettaBatchStack#Ch02_MacchinettaBatchStack_Stack_OSS,「表 1. OSSバージョン一覧」>>のjaxb-coreのバージョンを指定する。
+
+|(2)
+|<<Ch02_MacchinettaBatchStack#Ch02_MacchinettaBatchStack_Stack_OSS,「表 1. OSSバージョン一覧」>>のjaxb-implのバージョンを指定する。
+
+|===
+
+====
 
 [source, xml]
 .出力ファイル例
@@ -3599,15 +3754,15 @@ public class CustomerToJaxb {
 
 |(1)
 |resource
-|出力ファイルを設定する
+|出力ファイルを設定する。
 |icon:check[]
 |なし
 
 |(2)
 |encoding
-|出力ファイルの文字コードを設定する +
-icon:warning[] {SB}が提供するコンポーネントの文字コードのデフォルト値はItemReaderとItemWriterで異なっている(ItemReaderのデフォルト値は「JavaVMのデフォルト文字セット」)。 +
-そのため、デフォルト値の値を使用する場合においても明示的に文字コードを設定することを推奨する。
+|出力ファイルのエンコーディングを設定する。 +
+<<Ch05_FileAccess_HowToExtend_Xml_Encoding>>で述べたように、ItemReader/Writer間のデフォルト値の違いによって意図しないエンコーディングで
+出力が行われることを防ぐため、デフォルト値をそのまま使用する意図である場合でも明示的にエンコーディングを設定することを推奨する。
 |
 |UTF-8
 
@@ -3650,22 +3805,6 @@ JAXBを利用する場合は、``org.springframework.oxm.jaxb.Jaxb2Marshaller``�
 |icon:check[]
 |なし
 |===
-
-[IMPORTANT]
-.依存ライブラリの追加
-====
-``org.springframework.oxm.jaxb.Jaxb2Marshaller``など、
-Spring Frameworkが提供するライブラリであるSpring Object/XML Marshallingを使用する場合は、
-ライブラリの依存関係に以下の設定を追加する必要がある。
-
-[source, xml]
-----
-<dependency>
-    <groupId>org.springframework</groupId>
-    <artifactId>spring-oxm</artifactId>
-</dependency>
-----
-====
 
 [[Ch05_FileAccess_HowToExtend_Xml_HeaderFooter]]
 ===== ヘッダ・フッタの出力

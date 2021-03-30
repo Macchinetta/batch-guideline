@@ -26,7 +26,7 @@ image::Ch02_MacchinettaBatchStack_Stack.png[{batch5_fullname} Stack]
 ====
 {batch5_fullname}で使用するOSSのバージョンは、原則として、Spring Boot Dependenciesの定義に準じている。
 なお、バージョン{batch5_version}におけるSpring Boot Dependenciesのバージョンは、
-https://docs.spring.io/spring-boot/docs/2.2.4.RELEASE/reference/htmlsingle/[2.2.4.RELEASE]である。
+https://docs.spring.io/spring-boot/docs/2.2.12.RELEASE/reference/htmlsingle/[2.2.12.RELEASE]である。
 ====
 
 [cols="25,25,25,15,5,5", options="header"]
@@ -175,7 +175,7 @@ https://docs.spring.io/spring-boot/docs/2.2.4.RELEASE/reference/htmlsingle/[2.2.
 |入力チェック
 |org.hibernate.validator
 |hibernate-validator
-|6.0.18.Final
+|6.0.21.Final
 ^|*
 |
 
@@ -203,14 +203,14 @@ https://docs.spring.io/spring-boot/docs/2.2.4.RELEASE/reference/htmlsingle/[2.2.
 |JDBCドライバ
 |org.postgresql
 |postgresql
-|42.2.9
+|42.2.18
 ^|*
 |
 
 |JSON
 |com.fasterxml.jackson.core
 |jackson-databind
-|2.10.2
+|2.10.5.1
 ^|
 ^|*1
 
@@ -245,7 +245,7 @@ https://docs.spring.io/spring-boot/docs/2.2.4.RELEASE/reference/htmlsingle/[2.2.
 |TERASOLUNA Batch
 |org.terasoluna.batch
 |terasoluna-batch
-|5.3.0.RELEASE
+|5.3.1.RELEASE
 |
 |
 
@@ -269,7 +269,7 @@ image::Ch02_MacchinettaBatchStack_Stack_Detail.png[{batch5_fullname} Components 
 基盤フレームワーク::
   フレームワークの基盤として、Spring Frameworkを利用する。DIコンテナをはじめ各種機能を活用する。
 
-  ** https://docs.spring.io/spring/docs/{spring_fw_version}/spring-framework-reference/core.html#spring-core[Spring Framework 5.2]
+  ** https://docs.spring.io/spring-framework/docs/{spring_fw_version}/spring-framework-reference/core.html[Spring Framework 5.2]
 
 バッチフレームワーク::
   バッチフレームワークとして、{SB}を利用する。同期実行には{SB}が提供するCommandLineJobRunnerを利用する。
@@ -287,7 +287,7 @@ image::Ch02_MacchinettaBatchStack_Stack_Detail.png[{batch5_fullname} Components 
   Webコンテナ起動:::
   Spring MVCを使用して、{SB}と連携をする。
 
-  *** https://docs.spring.io/spring/docs/{spring_fw_version}/spring-framework-reference/web.html#mvc[Spring MVC 5.2]
+  *** https://docs.spring.io/spring-framework/docs/{spring_fw_version}/spring-framework-reference/web.html#mvc[Spring MVC 5.2]
 
 O/R Mapper::
   MyBatisを利用し、Spring Frameworkとの連携ライブラリとして、MyBatis-Springを使用する。
@@ -317,7 +317,7 @@ O/R Mapper::
   相関チェック:::
     相関チェックにはBean Validation、もしくはSpring Validationを利用する。
 
-      *** https://docs.spring.io/spring/docs/{spring_fw_version}/spring-framework-reference/core.html#validator[Spring Validation 5.2]
+      *** https://docs.spring.io/spring-framework/docs/{spring_fw_version}/spring-framework-reference/core.html#validator[Spring Validation 5.2]
 
 コネクションプール::
   コネクションプールには、DBCPを利用する。

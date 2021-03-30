@@ -361,23 +361,32 @@ DBポーリング処理で異常が発生した場合について説明する。
 
 ジョブ登録設定::
   非同期実行として実行するジョブは、``org.springframework.batch.core.configuration.support.AutomaticJobRegistrar``で登録を行う。
-  ``AutomaticJobRegistrar``を用いることで、ジョブ単位にコンテキストのモジュール化を行っている。
-  モジュール化することにより、ジョブ間で利用するBeanIDが重複していても問題にならないようにしている。
+  ``AutomaticJobRegistrar``を用いることで、ジョブ単位にコンテキストのモジュール化を行うことができる。
 
 [NOTE]
 .モジュール化とは
 ====
-モジュール化とは、「共通定義-各ジョブ定義」の階層構造になっており、各ジョブで定義されたBeanは、ジョブ間で独立したコンテキストに属することである。
-各ジョブ定義で定義されていないBeanへの参照がある場合は、共通定義で定義されたBeanを参照することになる。
+モジュール化とは、DIコンテナのコンテキストを「共通定義-各ジョブ定義」といった階層構造に分離することで、
+各ジョブ定義にあるBeanをコンテキスト間で独立させることである。 +
+この階層構造により、各ジョブ定義内からのBean参照は、まず同一ジョブのBean定義を参照し、
+ジョブ定義のBean定義にない場合、次いで共通定義で定義されたBeanを参照することになる。
+====
+
+[IMPORTANT]
+====
+非同期実行では同期実行と異なり、1つのバッチプロセス上に複数の異なるジョブ定義が準備され、さらに各ジョブのコンテキストは競合することなく並列実行できることが求められる。  +
+ジョブ定義によるコンテキストのモジュール化により、各ジョブ定義から生成されるBeanをコンテキストごとに独立させることができる。  +
+このため非同期実行では``AutomaticJobRegistrar``を明示的に使用し、ジョブ定義のモジュール化を行うこと。
 ====
 
 [[Ch04_AsyncJobWithDB_Arch_Config]]
 ==== Bean定義の構成
 ジョブのBean定義は、同期実行のBean定義と同じ構成でよい。ただし、以下の注意点がある。
 
-* ``AutomaticJobRegistrar``でジョブを登録する際、ジョブのBeanIDは識別子となるため重複をしてはいけない。
+* ``AutomaticJobRegistrar``でジョブを登録する際、ジョブのBeanIDはアプリケーションコンテキストのモジュール化によってDIコンテナ全体としては重複が許されるが、
+目的のジョブを起動する際に一意に識別することができなくなるため、ジョブのBeanIDの重複は避けること。
 * ステップのBeanIDも重複しないことが望ましい。
-** 設計時に、BeanIDの命名規則を``{ジョブID}.{ステップID}``とすることで、ジョブIDのみ一意に設計すればよい。
+** 指針として設計時にBeanIDの命名規則を``{ジョブID}.{ステップID}``とすることで、BeanIDとしての一意性を保つことができる。
 
 [NOTE]
 ====
@@ -1090,7 +1099,7 @@ $ java -cp dependency/* org.terasoluna.batch.async.db.AsyncBatchDaemon
 下記に日時を固定し、タイムゾーンを変更するための設定例を示す。
 
 [source,xml]
-.META-INF/spring/customized-async-batch-daemon.xml
+.META-INF/ch04/asyncjobwithdb/async-batch-daemon-clock.xml
 ----
 <bean id="jobRequestPollTask"
       class="org.terasoluna.batch.async.db.JobRequestPollTask"
@@ -1144,145 +1153,3 @@ image::Ch04_AsyncJobWithDB_MultipleActivation.png[]
 ``JobRequestPollTask``は、楽観ロックによる排他制御を行っているため、ポーリングステータスをINITからPOLLEDへ更新できた非同期バッチデーモンが取得したレコードのジョブを実行できる。
 排他された他の非同期バッチデーモンは、次のジョブ要求レコードを処理する。
 ====
-
-[[Ch04_AsyncJobWithDB_Appendix]]
-== Appendix
-
-[[Ch04_AsyncJobWithDB_Appendix_Modular]]
-=== ジョブ定義のモジュール化について
-<<Ch04_AsyncJobWithDB_Arch_Components_AppCtx>>でも簡単に説明したが、``AutomaticJobRegistrar``を用いることで以下の事象を回避することができる。
-
-* 同じBeanID(BeanName)を使用すると、Beanが上書きされてしまい、ジョブが意図しない動作をする。
-** その結果、意図しないエラーが発生する可能性が高くなる。
-* エラーを回避するために、ジョブ全体でBeanすべてのIDが一意になるように命名しなければいけなくなる。
-** ジョブ数が増えてくると管理するのが困難になり、不必要なトラブルが発生する可能性が高くなる。
-
-``AutomaticJobRegistrar``を使用しない場合に起こる現象について説明をする。
-ここで説明する内容は上記の問題を引き起こすので、非同期実行では使用しないこと。
-
-[source,xml]
-.Job1.xml
-----
-<!-- Reader -->
-<!-- (1) -->
-<bean id="reader" class="org.mybatis.spring.batch.MyBatisCursorItemReader"
-      p:queryId="jp.co.ntt.fw.macchinetta.batch.job.repository.EmployeeRepositoy.findAll"
-      p:sqlSessionFactory-ref="jobSqlSessionFactory"/>
-
-<!-- Writer -->
-<!-- (2) -->
-<bean id="writer"
-      class="org.springframework.batch.item.file.FlatFileItemWriter" scope="step"
-      p:resource="file:#{jobParameters['basedir']}/input/employee.csv">
-  <property name="lineAggregator">
-    <bean class="org.springframework.batch.item.file.transform.DelimitedLineAggregator">
-      <property name="fieldExtractor">
-        <bean class="org.springframework.batch.item.file.transform.BeanWrapperFieldExtractor"
-              p:names="invoiceNo,salesDate,productId,customerId,quant,price"/>
-      </property>
-    </bean>
-  </property>
-</bean>
-
-
-<!-- Job -->
-<batch:job id="job1" job-repository="jobRepository">
-  <batch:step id="job1.step">
-    <batch:tasklet transaction-manager="transactionManager">
-      <batch:chunk reader="reader" writer="writer" commit-interval="100" />
-    </batch:tasklet>
-  </batch:step>
-</batch:job>
-----
-
-[source,xml]
-.Job2.xml
-----
-<!-- Reader -->
-<!-- (3) -->
-<bean id="reader"
-      class="org.springframework.batch.item.file.FlatFileItemReader" scope="step"
-      p:resource="file:#{jobParameters['basedir']}/input/invoice.csv">
-  <property name="lineMapper">
-    <bean class="org.springframework.batch.item.file.mapping.DefaultLineMapper">
-      <property name="lineTokenizer">
-        <bean class="org.springframework.batch.item.file.transform.DelimitedLineTokenizer"
-              p:names="invoiceNo,salesDate,productId,customerId,quant,price"/>
-      </property>
-      <property name="fieldSetMapper" ref="invoiceFieldSetMapper"/>
-    </bean>
-  </property>
-</bean>
-
-<!-- Writer -->
-<!-- (4) -->
-<bean id="writer" class="org.mybatis.spring.batch.MyBatisBatchItemWriter"
-      p:statementId="jp.co.ntt.fw.macchinetta.batch.job.repository.InvoiceRepository.create"
-      p:sqlSessionFactory-ref="jobSqlSessionFactory"/>
-
-<!-- Job -->
-<batch:job id="job2" job-repository="jobRepository">
-  <batch:step id="job2.step">
-    <batch:tasklet transaction-manager="transactionManager">
-      <batch:chunk reader="reader" writer="writer" commit-interval="100" />
-    </batch:tasklet>
-  </batch:step>
-</batch:job>
-----
-
-.async-batch-daemon.xml
-[source,xml]
-.BeanIdが上書きされる定義
------
-<bean id="automaticJobRegistrar"
-      class="org.springframework.batch.core.configuration.support.AutomaticJobRegistrar">
-    <property name="applicationContextFactories">
-        <bean class="org.springframework.batch.core.configuration.support.ClasspathXmlApplicationContextsFactoryBean">
-            <property name="resources">
-                <list>
-                    <value>classpath:/META-INF/jobs/other/async/*.xml</value>  <!-- (5) -->
-                </list>
-            </property>
-        </bean>
-    </property>
-    <property name="jobLoader">
-        <bean class="org.springframework.batch.core.configuration.support.DefaultJobLoader"
-              p:jobRegistry-ref="jobRegistry"/>
-    </property>
-</bean>
-
-<bean class="org.springframework.batch.core.configuration.support.JobRegistryBeanPostProcessor"
-    p:jobRegistry-ref="jobRegistry" />
-
-<import resource="classpath:/META-INF/jobs/async/*.xml" />   <!-- (6) -->
------
-
-[cols="10,90", options="header"]
-.設定のポイント一覧
-|===
-
-|項番
-|説明
-
-|(1)
-|Job1ではデータベースから読み込むItemReaderを``reader``というBeanIDで定義する。
-
-|(2)
-|Job1ではファイルへ書き込むItemWriterを``writer``というBeanIDで定義する。
-
-|(3)
-|Job2ではファイルから読み込むItemReaderを``reader``というBeanIDで定義する。
-
-|(4)
-|Job2ではデータベースへ書き込むItemWriterを``writer``というBeanIDで定義する。
-
-|(5)
-|``AutomaticJobRegistrar``は対象となるジョブ以外のジョブ定義を読む込むように設定する。
-
-|(6)
-|Springのimportを使用して、対象のJob定義を読み込むようにする。
-
-|===
-
-この場合、Job1.xml,Job2.xmlの順に読み込まれたとすると、Job1.xmlで定義されたいたreader,writerはJob2.xmlの定義で上書きされる。 +
-その結果、Job1を実行すると、Job2のreader,writerが使用されて期待した処理が行われなくなる。

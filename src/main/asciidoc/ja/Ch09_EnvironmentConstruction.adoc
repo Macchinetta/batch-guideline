@@ -518,14 +518,17 @@ image::ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_DBeaver_Install
 image::ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_DBeaver_Select_Connection_Type.png[Select Connection Type]
 
 [start=4]
-. [Edit Driver Settings]を押下し、[ドライバーの編集H2 Embedded']ウインドウを開く。
+. [ドライバの設定を編集]を押下し、[ドライバーの編集H2 Embedded']ウインドウを開く。
 . [URLテンプレート]フォームに``jdbc:h2:~/batch-admin;AUTO_SERVER=TRUE``を入力する。
-. [Allow Empty Password]にチェックする。
-. [ファイルの追加]から``C:\xxx\macchinetta-batch-tutorial\lib\h2-1.4.200.jar``を選択し、[開く]を押下する。
+. [空のパスワードを許可する]にチェックする。
+. [ライブラリ]タブを開き、[ファイルの追加]から``C:\xxx\macchinetta-batch-tutorial\lib\h2-1.4.200.jar``を選択し、[開く]を押下する。
 . [クラスを見つける]を押下し、[ドライバクラス]で[org.h2.Driver]を選択する。
 
 .Edit Driver
 image::ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_DBeaver_Edit_Driver.png[Edit Driver]
+
+.Edit Library
+image::ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_DBeaver_Edit_Lib.png[Edit Library]
 
 [NOTE]
 .H2 Databaseのjarが格納されている場所
@@ -541,7 +544,7 @@ C:\xxx>mvn clean dependency:copy-dependencies -DoutputDirectory=lib package
 ====
 
 [start=9]
-. 下表のとおりフォームに値を入力し、[Save password locally]のチェックをはずす。
+. 下表のとおりフォームに値を入力し、[パスワードをローカルに保存]のチェックをはずす。
 
 [cols="30,70", options="header"]
 .H2 Embedded接続設定

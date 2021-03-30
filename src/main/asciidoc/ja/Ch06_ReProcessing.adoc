@@ -190,7 +190,7 @@ $ java -cp dependency/* org.springframework.batch.core.launch.support.CommandLin
 .非同期実行(DBポーリング)で実行したジョブのリスタート例
 ----
 $ # (1)
-$ java -cp dependency/* org.springframework.batch.core.launch.support.CommandLineJobRunner <JobExecutionId> -restart
+$ java -cp dependency/* org.springframework.batch.core.launch.support.CommandLineJobRunner <jobPath> <jobExecutionId> -restart
 ----
 
 [cols="10,90"]

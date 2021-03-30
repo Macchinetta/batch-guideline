@@ -272,15 +272,20 @@ MyBatis-Springが提供するItemReaderおよびItemWriterを使用する場合�
 . 個別設定として、ジョブ単位で利用するMapper XMLを登録する。
 ** ``META-INF/jobs/``配下のBean定義に、個々のジョブごとに必要なMapper XMLを記述することになる。
 
+基本的な設定方法については、{server5_guide}の
+{server5_url}/ArchitectureInDetail/DataAccessDetail/DataAccessMyBatis3.html#dataaccessmybatis3howtousesettingsmybatis-spring[MyBatis-Springの設定]を参照。
+
+[WARNING]
+.共通設定をした場合の性能面での弊害
+====
 共通設定をしてしまうと、同期実行をする際に実行するジョブのMapper XMLだけでなく、その他のジョブが使用するMapper XMLも読み込んでしまうために以下に示す弊害が生じる。
 
 * ジョブの起動までに時間がかかる
 * メモリリソースの消費が大きくなる
 
 これを回避するために、{batch5_shortname}では、個別設定として、個々のジョブ定義でそのジョブが必要とするMapper XMLだけを指定する設定方法を採用する。
-
-基本的な設定方法については、{server5_guide}の
-{server5_url}/ArchitectureInDetail/DataAccessDetail/DataAccessMyBatis3.html#dataaccessmybatis3howtousesettingsmybatis-spring[MyBatis-Springの設定]を参照。
+この方法においては、``<mybatis:scan>``によるスキャン範囲を最小限にするため、ジョブごとに必要となるMapper XMLを分けて格納するパッケージ構成であることが望ましい。
+====
 
 {batch5_shortname}では、複数の``SqlSessionFactory``および``SqlSessionTemplate``が定義されているため、
 どれを利用するか明示的に指定する必要がある。 +
@@ -289,11 +294,11 @@ MyBatis-Springが提供するItemReaderおよびItemWriterを使用する場合�
 以下に設定例を示す。
 
 [source, xml]
-.META-INF/jobs/common/jobCustomerList01.xml
+.jobSalesPlan01.xml
 ----
 <!-- (1) -->
 <mybatis:scan
-    base-package="jp.co.ntt.fw.macchinetta.batch.functionaltest.app.repository.mst"
+    base-package="jp.co.ntt.fw.macchinetta.batch.functionaltest.app.repository.plan"
     factory-ref="jobSqlSessionFactory"/>
 ----
 
@@ -304,7 +309,9 @@ MyBatis-Springが提供するItemReaderおよびItemWriterを使用する場合�
 |説明
 
 |(1)
-|``<mybatis:scan>``の``factory-ref``属性に``jobSqlSessionFactory``を設定する。
+|``<mybatis:scan>``の``base-package``属性にMapper XMLをスキャンするパッケージを設定する。
+指定するのはこのジョブが必要とするMapper XMLが直下に格納されているパッケージである。 +
+``factory-ref``属性には``jobSqlSessionFactory``を設定する。
 |===
 
 
@@ -867,13 +874,13 @@ ResultHandlerについては、{server5_guide}の
 ----
 <!-- (1) -->
 <mybatis:scan
-        base-package="jp.co.ntt.fw.macchinetta.batch.functionaltest.ch05.exclusivecontrol.repository"
+        base-package="jp.co.ntt.fw.macchinetta.batch.functionaltest.ch05.dbaccess.repository;jp.co.ntt.fw.macchinetta.batch.functionaltest.app.repository"
         factory-ref="jobSqlSessionFactory"/>
 
-<batch:job id="taskletOptimisticLockCheckJob" job-repository="jobRepository">
-    <batch:step id="taskletOptimisticLockCheckJob.step01">
+<batch:job id="jobSalesPlanCursorTasklet" job-repository="jobRepository">
+    <batch:step id="jobSalesPlanCursorTasklet.step01">
         <batch:tasklet transaction-manager="jobTransactionManager"
-                       ref="optimisticLockTasklet">
+                       ref="salesPlanCursorTasklet">
         </batch:tasklet>
     </batch:step>
 </batch:job>
@@ -1051,19 +1058,25 @@ MyBatis-Springが提供するItemWriterは以下の1つのみである。
 .Mapper XML
 ----
 <!-- (6) -->
-<mapper namespace="jp.co.ntt.fw.macchinetta.batch.functionaltest.app.repository.plan.SalesPlanDetailRepository">
+<mapper namespace="jp.co.ntt.fw.macchinetta.batch.functionaltest.ch05.exclusivecontrol.repository.ExclusiveControlRepository">
 
     <!-- (7) -->
-    <insert id="create"
-            parameterType="jp.co.ntt.fw.macchinetta.batch.functionaltest.app.model.plan.SalesPlanDetail">
+    <update id="branchExclusiveUpdate"
+            parameterType="jp.co.ntt.fw.macchinetta.batch.functionaltest.ch05.exclusivecontrol.model.ExclusiveBranch">
         <![CDATA[
-        INSERT INTO
-            sales_plan_detail(branch_id, year, month, customer_id, amount)
-        VALUES (
-            #{branchId}, #{year}, #{month}, #{customerId}, #{amount}
-        )
+	        UPDATE
+	            branch_mst
+	        SET
+	            branch_name = #{branchName,jdbcType=VARCHAR},
+	            branch_address = #{branchAddress,jdbcType=VARCHAR},
+	            branch_tel = #{branchTel,jdbcType=VARCHAR},
+	            update_date = #{updateDate,jdbcType=TIMESTAMP}
+	        WHERE
+	            branch_id = #{branchId}
+	        AND
+	            branch_name = #{oldBranchName}
         ]]>
-    </insert>
+    </update>
 
     <!-- omitted -->
 </mapper>
@@ -1072,10 +1085,10 @@ MyBatis-Springが提供するItemWriterは以下の1つのみである。
 [source,java]
 .Mapperインタフェース
 ----
-public interface SalesPlanDetailRepository {
+public interface ExclusiveControlRepository {
 
     // (8)
-    void create(SalesPlanDetail salesPlanDetail);
+    int branchExclusiveUpdate(ExclusiveBranch branch);
 
     // omitted.
 }
@@ -1303,14 +1316,13 @@ Mapperインタフェースを利用してデータベースアクセスする�
 さらにItemProcessor、TaskletでMapperインタフェースを利用したデータベースの更新を行う際には以下の制約がある。
 
 ItemProcessorでの制約::
-  MyBatisには、同一トランザクション内において、2つ以上の``ExecutorType``で実行してはいけないという制約がある。 +
-  「ItemWriterに``MyBatisBatchItemWriter``を使用する」と「ItemProcessorでMapperインタフェースを使用し参照更新をする」を
-  同時に満たす場合は、この制約に抵触する。 +
-  制約を回避するには、ItemProcessorでは``ExecutorType``が``BATCH``のMapperインタフェースによって
-  データベースアクセスすることになる。 +
-  加えて、``MyBatisBatchItemWriter``ではSQL実行後のステータスチェックにより、自身が発行したSQLかどうかチェックしているのだが、
-  当然ItemProcessorによるSQL実行は管理できないためエラーが発生してしまう。 +
-  よって、``MyBatisBatchItemWriter``を利用している場合は、Mapperインタフェースによる更新はできなくなり、参照のみとなる。
+  ItemWriterに``MyBatisBatchItemWriter``を利用する場合、ItemProcessorではMapperインタフェースを利用してデータベースの更新処理を行うことができないという制約がある。 +
+  これは、``MyBatisBatchItemWriter``がSQL実行後に自身が発行したSQLによる更新処理が行われたかをチェックしており、
+  その際に同一トランザクション内での他の更新処理を検知するとエラーを発生させることによるものである。 +
+  よって、ItemProcessorでMapperインタフェースを利用したデータベースの更新はできず、参照のみが可能となる。 +
+  ItemProcessor内で更新処理を行いたいケースとして、「特定の条件に当てはまる入力データについて、
+  ItemWriterとは異なる更新処理をするためにItemProcessorで個別に更新処理を行う」などが考えられるが、上記の制約によりこのような利用はできない。 +
+  代替手段として、後述のタスクレットモデルによる実装、もしくはItemProcessor、ItemWriterでの更新をステップやジョブで分離したバッチ処理の設計を検討されたい。
 
 [CAUTION]
 ====
@@ -1321,93 +1333,6 @@ Taskletでの制約::
   Taskletでは、Mapperインタフェースを利用することが基本であるため、ItemProcessorのような影響はない。 +
   ``MyBatisBatchItemWriter``をInjectして利用することも考えられるが、その場合はMapperインタフェース自体を
   ``BATCH``設定で処理すればよい。つまり、Taskletでは、``MyBatisBatchItemWriter``をInjectして使う必要は基本的にない。
-
-[[Ch05_DBAccess_HowToUse_Output_MapperInterface_Chunk]]
-チャンクモデルにおける利用方法::
-
-チャンクモデルでMapperインタフェースを利用してデータベースを更新(登録)する実装例を以下に示す。
-
-[source,java]
-.ItemProcessorでの実装例
-----
-@Component
-public class UpdateCustomerItemProcessor implements ItemProcessor<Customer, Customer> {
-
-    // omitted.
-
-    // (1)
-    @Inject
-    DBAccessCustomerRepository customerRepository;
-
-    @Override
-    public Customer process(Customer item) throws Exception {
-        item.setCustomerName(String.format("%s updated by mapper if", item.getCustomerName()));
-        item.setCustomerAddress(String.format("%s updated by item writer", item.getCustomerAddress()));
-        item.setUpdateDate(new Timestamp(clock.millis()));
-
-        // (2)
-        long cnt = customerRepository.updateName(item);
-
-        // omitted.
-
-        return item;
-    }
-}
-----
-
-[source,xml]
-.Bean定義
-----
-<!-- (3) -->
-<mybatis:scan
-        base-package="jp.co.ntt.fw.macchinetta.batch.functionaltest.ch05.dbaccess.repository;jp.co.ntt.fw.macchinetta.batch.functionaltest.app.repository"
-        template-ref="batchModeSqlSessionTemplate"/>
-
-<!-- (4) -->
-<bean id="writer" class="org.mybatis.spring.batch.MyBatisBatchItemWriter"
-      p:statementId="jp.co.ntt.fw.macchinetta.batch.functionaltest.app.repository.plan.SalesPlanDetailRepository.create"
-      p:sqlSessionTemplate-ref="batchModeSqlSessionTemplate"/>
-
-    <batch:job id="updateMapperAndItemWriterBatchModeJob" job-repository="jobRepository">
-        <batch:step id="updateMapperAndItemWriterBatchModeJob.step01">
-            <batch:tasklet transaction-manager="jobTransactionManager">
-            <batch:chunk reader="reader"
-                         processor="updateCustomerItemProcessor"
-                         writer="writer" commit-interval="10"/> <!-- (5) -->
-        </batch:tasklet>
-    </batch:step>
-    <!-- omitted -->
-</batch:job>
-----
-
-MapperインタフェースとMapper XMLについては<<Ch05_DBAccess_HowToUse_Output_MyBatisItemWriter>>
-で説明している内容以外に特筆すべきことがないため省略する。
-
-[cols="10,90"]
-.説明
-|===
-|項番
-|説明
-
-|(1)
-|MapperインタフェースをInjectする。
-
-|(2)
-|DTOオブジェクトを生成して更新データを設定し、DTOオブジェクトを返却することでデータベースの更新を行う。
-
-|(3)
-|Mapper XMLの登録を行う。 +
-``template-ref``属性に``BATCH``設定されている``batchModeSqlSessionTemplate``を指定することで、ItemProcessorでのデータベースアクセスは``BATCH``となる。
-ここで、``factory-ref="jobSqlSessionFactory"``としてしまうと、前述の制約に抵触し、``MyBatisBatchItemWriter``実行時に例外が発生してしまう。
-
-|(4)
-|``MyBatisBatchItemWriter``を定義する。 +
-``sqlSessionTemplate-ref``属性に``BATCH``設定されている``batchModeSqlSessionTemplate``を指定する。
-
-|(5)
-|(4)で定義した``MyBatisBatchItemWriter``を``writer``属性に指定する。
-
-|===
 
 [[Ch05_DBAccess_HowToUse_Output_MapperInterface_Tasklet]]
 タスクレットモデルにおける利用方法::
