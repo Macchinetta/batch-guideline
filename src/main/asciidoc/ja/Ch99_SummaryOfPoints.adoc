@@ -113,9 +113,9 @@ include::_include_all.adoc[]
 
 .データベースアクセスとトランザクション
 
-* 「ItemWriterに``MyBatisBatchItemWriter``を使用する」と「ItemProcessorでMapperインタフェースを使用し参照更新をする」は同時にできない。
+* 「ItemWriterに``MyBatisBatchItemWriter``を使用する」と「ItemProcessorでMapperインタフェースを使用し更新処理をする」は同時にできない。
 ** MyBatisには、同一トランザクション内で2つ以上の``ExecutorType``で実行してはいけないという制約があるため。
-<<Ch05_DBAccess.adoc#Ch05_DBAccess_HowToUse_Input_MapperInterface,Mapperインタフェース(入力)>>を参照。
+<<Ch05_DBAccess.adoc#Ch05_DBAccess_HowToUse_Output_MapperInterface,Mapperインタフェース(出力)>>を参照。
 * データベースの同一テーブルへ入出力する際の注意点
 ** 読み取り一貫性を担保するための情報が出力(UPDATEの発行)により失われた結果、入力(SELECT)にてエラーが発生することがある。 以下の対策を検討する。
 *** データベースに依存になるが、情報を確保する領域を大きくする。

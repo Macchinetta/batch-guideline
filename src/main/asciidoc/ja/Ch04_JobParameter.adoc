@@ -262,7 +262,7 @@ $ java org.springframework.batch.core.launch.support.CommandLineJobRunner \
 <!-- (1) -->
 <bean id="reader"
       class="org.springframework.batch.item.file.FlatFileItemReader" scope="step"
-      p:resource="file:#{jobParameters[inputFile] ?: /input/sample.csv}">  <!-- (2) -->
+      p:resource="file:#{jobParameters['inputFile'] ?: '/input/sample.csv'}">  <!-- (2) -->
     <property name="lineMapper">
         <!-- omitted settings -->
     </property>
@@ -282,7 +282,7 @@ $ java org.springframework.batch.core.launch.support.CommandLineJobRunner \
 
 |(2)
 |参照するパラメータを指定する。 +
-デフォルト値に``/output/result.csv``を設定している。
+デフォルト値に``/input/sample.csv``を設定している。
 
 |===
 

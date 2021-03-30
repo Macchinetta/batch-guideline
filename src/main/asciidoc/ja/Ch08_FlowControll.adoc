@@ -126,9 +126,7 @@ Macchinetta Batch 2.xでのフロー制御方法を説明する。
 [source,xml]
 .Bean定義
 ----
-<bean id="sequentialFlowTasklet"
-    class="jp.co.ntt.fw.macchinetta.batch.functionaltest.ch08.flowcontrol.SequentialFlowTasklet"
-        p:failExecutionStep="#{jobParameters['failExecutionStep']}" scope="step"/>
+<!-- tasklet definition is omitted. -->
 
 <batch:step id="parentStep">
     <batch:tasklet ref="sequentialFlowTasklet"

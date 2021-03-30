@@ -53,7 +53,7 @@ include::_include_all.adoc[]
 そのため、ブランクプロジェクトでは、あらかじめ``JobRepository``のトランザクション分離レベルを``READ_COMMITTED``に設定している。
 ====
 
-[NOTE]
+[WARNING]
 .インメモリJobRepositoryの選択肢
 ====
 {SB} にはインメモリでジョブの実行管理を行う
@@ -63,7 +63,11 @@ include::_include_all.adoc[]
 ``This repository is only really intended for use in testing and rapid prototyping.``
 とテスト用であることが示されており、また、
 ``Not suited for use in multi-threaded jobs with splits``
-と並列処理には不適切であると示されているためである。
+と並列処理には不適切であると示されているためである。 +
+尚、{SB} 4.3.0でMap-based JobRepository/JobExplorerは非推奨となった。 +
+https://docs.spring.io/spring-batch/docs/current/reference/html/whatsnew.html[{SB}4.3/Deprecations] +
+{SB}によるこの不具合報告の状況としては以下を参照されたい。 +
+https://github.com/spring-projects/spring-batch/issues/3780[{SB}/BATCH-3780]
 ====
 
 [[Ch07_JobManagement_Overview_JobExecutionManagement_PerformanceImprovement]]
@@ -79,22 +83,16 @@ https://docs.spring.io/spring-batch/docs/{spring_batch_version}/reference/html/s
 ``JobRepository``の永続化を行う場合は、Indexを作成することを検討されたい。
 ====
 
-[[Ch07_JobManagement_Overview_JobExecutionManagement_PerformanceImprovement_ByDao]]
+[[Ch07_JobManagement_Overview_JobExecutionManagement_FixPerformanceProblem]]
 [TIP]
-.DAOの実装によるJobRepositoryの性能改善
+.Spring BatchのバージョンアップによるJobRepositoryの性能問題の修正
 ====
-{SB} 4.2.xから加わった変更により、ジョブの起動時に{SB}が発行する``JobRepository``へのlink:https://github.com/spring-projects/spring-batch/issues/3634[SQLによって、性能劣化]が発生する事がある。
+Macchinetta Batch 2.2.0では、{SB} 4.2.xから加わった変更により、ジョブの起動時に{SB}が発行する
+link:https://github.com/spring-projects/spring-batch/issues/3634[``JobRepository``へのSQLによる性能劣化]が発生する事がある。
+この問題は{SB}側で対処され、{SB} 4.2.4および4.3.0で変更が取り込まれた。Macchinetta Batchでは2.2.1および2.3.0でこの変更が取り込まれている。
 
-本件は{SB}側で対処されており、{SB} 4.3.0で取り込まれる予定である。一方で、Macchinetta Batch {revnumber-index}が利用する{SB} {spring_batch_version}には取り込まれていないため、本バージョンを利用する場合は、本件に起因した性能劣化が発生する可能性がある。
-
-本件の影響は、ショートジョブの大量実行などによって``JobRepository``に大量のレコードがある状態で顕著に表れる。そのため、類似するバッチジョブを実装している場合、DBの実行計画を取得するなどして本件の影響を確認してほしい。
-
-本件の対策としては、以下の対応が考えられる。
-
-. {SB}で対処されたlink:https://github.com/spring-projects/spring-batch/pull/3635/files[変更]を実装する
-. <<Ch04_AsyncJobWithDB.adoc#Ch04_AsyncJobWithDB_HowToUse_CumulativeData,``JobRepository``に蓄積されるレコードを一定間隔で退避>>する
-
-1の方法を選択する場合、link:https://github.com/spring-projects/spring-batch/pull/3635#issuecomment-611571008[こちら]のコメントを参考に、{SB}のクラスをオーバーライドしてほしい。
+本件の対策として、Macchinetta Batch 2.2.0では「{SB}で対処されたlink:https://github.com/spring-projects/spring-batch/pull/3635/files[変更]を実装する」ことを推奨しているが、
+Macchinetta Batch {revnumber-index}ではこの問題は発生しないため、対策は不要となる。
 ====
 
 ジョブスケジューラを使用したジョブの実行管理については各製品のマニュアルを参照。 +

@@ -344,7 +344,8 @@ icon:warning[] {batch5_shortname}では、データベースを参照する際�
 AmqpItemReader
 |JMSやAMQPからメッセージを受信し、その中に含まれるデータの読み込みを行う。
 
-|JpaPagingItemReader
+|JpaCursorItemReader +
+JpaPagingItemReader
 |JPA実装と連携してデータベース上のレコードを読み込む。
 
 |HibernateCursorItemReader +

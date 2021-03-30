@@ -472,10 +472,10 @@ public class StepErrorLoggingListener implements StepExecutionListener {
 .ItemReadListener#onReadErrorの実装例
 ----
 @Component
-public class CommonItemReadListener implements ItemReadListener<Object> {
+public class ChunkComponentListener implements ItemReadListener<Object> {
 
     private static final Logger logger =
-            LoggerFactory.getLogger(CommonItemReadListener.class);
+            LoggerFactory.getLogger(ChunkComponentListener.class);
 
     // omitted.
 
@@ -578,10 +578,10 @@ public class AmountCheckProcessor implements
 .ItemProcessListener#onProcessErrorの実装例
 ----
 @Component
-public class CommonItemProcessListener implements ItemProcessListener<Object, Object> {
+public class ChunkComponentListener implements ItemProcessListener<Object, Object> {
 
     private static final Logger logger =
-            LoggerFactory.getLogger(CommonItemProcessListener.class);
+            LoggerFactory.getLogger(ChunkComponentListener.class);
 
     // omitted.
 
@@ -619,10 +619,10 @@ public class CommonItemProcessListener implements ItemProcessListener<Object, Ob
 .ItemWriteListener#onWriteErrorの実装例
 ----
 @Component
-public class CommonItemWriteListener implements ItemWriteListener<Object> {
+public class ChunkComponentListener implements ItemWriteListener<Object> {
 
     private static final Logger logger =
-            LoggerFactory.getLogger(CommonItemWriteListener.class);
+            LoggerFactory.getLogger(ChunkComponentListener.class);
 
     // omitted.
 

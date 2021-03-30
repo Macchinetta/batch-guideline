@@ -121,11 +121,11 @@ image::Ch09_DBAccessJob_ProcessSequence_ChunkModel.png[ProcessSequence of DBAcce
 .シーケンス図の説明
 . ジョブからステップが実行される。
 . ステップは、リソースをオープンする。
-. ``MyBatisCursorItemReader``は、member_infoテーブルから会員情報をすべて取得(select文の発行)する。
+. ``MyBatisCursorItemReader``は、member_infoテーブルから会員情報を取得するためのselect文を発行する。
 ** 入力データがなくなるまで、以降の処理を繰り返す。
 ** チャンク単位で、フレームワークトランザクションを開始する。
 ** チャンクサイズに達するまで4から10までの処理を繰り返す。
-. ステップは、``MyBatisCursorItemReader``から入力データを1件取得する。
+. ステップは、``MyBatisCursorItemReader``から入力データを1件取得する処理を行う。
 . ``MyBatisCursorItemReader``は、member_infoテーブルから入力データを1件取得する。
 . member_infoテーブルは、``MyBatisCursorItemReader``に入力データを返却する。
 . ``MyBatisCursorItemReader``は、ステップに入力データを返却する。
@@ -136,6 +136,20 @@ image::Ch09_DBAccessJob_ProcessSequence_ChunkModel.png[ProcessSequence of DBAcce
 . ``MyBatisBatchItemWriter``は、member_infoテーブルに対して会員情報の更新(update文の発行)を行う。
 . ステップはフレームワークトランザクションをコミットする。
 . ステップはジョブに終了コード(ここでは正常終了:0)を返却する。
+
+[NOTE]
+.Cursorについての説明
+====
+上記のシーケンス図を読み進める上で必要なCursorについての説明を行う。Cursorとは、検索結果がマッピングされたBeanの代わりにMyBatisCursorItemReaderにより1件ずつデータが返却される仕組みである。以下にCursorを用いた処理の流れについて説明する。
+
+. SELECT文を発行し、Cursorを取得する。
+** Cursor自身にはSELECT文結果のレコードが直接含まれておらず、Cursorはレコードを指す位置情報を保持している。
+** 2から3までの処理をレコードがなくなるまで繰り返す。
+. SELECT文結果を取得するためにCursorが指すレコードに対してfetchを行う。
+** Cursorの初回fetchはSELECT文結果の先頭行のレコードを指している。
+. Cursorを次のレコードへと進める。
+. Cursorを閉じる。
+====
 
 //^
 タスクレットモデルの場合の処理シーケンス::
@@ -155,10 +169,10 @@ image::Ch09_DBAccessJob_ProcessSequence_TaskletModel.png[ProcessSequence of DBAc
 ** ステップはフレームワークトランザクションを開始する。
 . ステップは``PointAddTasklet``を実行する。
 . ``PointAddTasklet``は、リソースをオープンする。
-. ``MyBatisCursorItemReader``は、member_infoテーブルから会員情報をすべて取得(select文の発行)する。
+. ``MyBatisCursorItemReader``は、member_infoテーブルから会員情報を取得するためのselect文を発行する。
 ** 入力データがなくなるまで5から9までの処理を繰り返す。
 ** 一定件数に達するまで5から11までの処理を繰り返す。
-. ``PointAddTasklet``は、``MyBatisCursorItemReader``から入力データを1件取得する。
+. ``PointAddTasklet``は、``MyBatisCursorItemReader``から入力データを1件取得する処理を行う。
 . ``MyBatisCursorItemReader``は、member_infoテーブルから入力データを1件取得する。
 . member_infoテーブルは、``MyBatisCursorItemReader``に入力データを返却する。
 . ``MyBatisCursorItemReader``は、タスクレットに入力データを返却する。

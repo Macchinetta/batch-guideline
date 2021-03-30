@@ -31,11 +31,11 @@ include::_include_all.adoc[]
 |Microsoft Windows 10 Enterprise 2016 LTSB (64bit)
 
 |JDK
-|RedHat OpenJDK 8u232 Windows 64-bit/ +
-RedHat OpenJDK 11.0.5 Windows 64-bit
+|RedHat OpenJDK 8u272 Windows 64-bit/ +
+RedHat OpenJDK 11.0.9 Windows 64-bit
 
 |IDE
-|Spring Tool Suite 3.9.11 released
+|Spring Tool Suite 3.9.15 released
 
 |Build Tool
 |Apache Maven 3.3.9

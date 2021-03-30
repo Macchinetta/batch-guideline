@@ -4,3 +4,4 @@
 :author: {author-index}
 :revdate: {revdate-index}
 :revnumber: {revnumber-index}
+:commitId: {commit-id}

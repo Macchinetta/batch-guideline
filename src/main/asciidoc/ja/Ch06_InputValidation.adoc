@@ -341,11 +341,11 @@ public class ValidateAndContinueItemProcessor implements ItemProcessor<Verificat
 .try/catchによるハンドリング例
 ----
 @Component
-public class ValidateAndAbortItemProcessor implements ItemProcessor<VerificationSalesPlanDetail, SalesPlanDetail> {
+public class ValidateAndAbortByTryCatchItemProcessor implements ItemProcessor<VerificationSalesPlanDetail, SalesPlanDetail> {
     /**
      * Logger.
      */
-    private static final Logger logger = LoggerFactory.getLogger(ValidateAndAbortItemProcessor.class);
+    private static final Logger logger = LoggerFactory.getLogger(ValidateAndAbortByTryCatchItemProcessor.class);
 
     @Inject
     Validator<VerificationSalesPlanDetail> validator;
@@ -354,12 +354,15 @@ public class ValidateAndAbortItemProcessor implements ItemProcessor<Verification
     public SalesPlanDetail process(VerificationSalesPlanDetail item) throws Exception {
         try {  // (1)
             validator.validate(item);  // (2)
+            return convert(item);
         } catch (ValidationException e) {
             // (3)
             logger.error("Exception occurred in input validation at the {} th item. [message:{}]",
                     item.getCount(), e.getMessage());
             throw e;  // (4)
         }
+    }
+    private SalesPlanDetail convert(VerificationSalesPlanDetail item) {
 
         SalesPlanDetail salesPlanDetail = new SalesPlanDetail();
         // omitted business logic
@@ -648,7 +651,6 @@ public class ValidateAndBulkMessageItemProcessor implements ItemProcessor<Verifi
             // (6)
             if (stepExecution.getExecutionContext().containsKey("errorMessageList")) {
                 errorMessageList = (List<String>) stepExecution.getExecutionContext().get("errorMessageList");
-                stepExecution.getExecutionContext().remove("errorMessageList");
             }
 
             // (7)

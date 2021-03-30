@@ -101,7 +101,7 @@ include::_include_all.adoc[]
 ユーザトランザクション::
 ユーザが制御するトランザクション
 
-[[Ch05_Transaction_Arch_UnderSpringBatchChunkModel]]
+[[Ch05_Transaction_Arch_UnderSpringBatch_ChunkModel]]
 ==== チャンクモデルにおけるトランザクション制御の仕組み
 チャンクモデルにおけるトランザクション制御は、中間コミット方式のみとなる。
 一括コミット方式は実現できない。
@@ -157,18 +157,19 @@ image::Ch05_transaction_TransactionControlChunkModel_rollback.png[Transaction Co
 [start=8]
 . ステップはフレームワークトランザクションをロールバックする。
 
-[[Ch05_Transaction_Arch_UnderSpringBatchTaskletModel]]
+[[Ch05_Transaction_Arch_UnderSpringBatch_TaskletModel]]
 ==== タスクレットモデルにおけるトランザクション制御の仕組み
-タスクレットモデルにおけるトランザクション制御は、
-一括コミット方式と中間コミット方式のいずれかを利用できる。
+タスクレットモデルにおけるトランザクション制御は、下記のいずれかの方式を利用できる。
 
-一括コミット方式:: {SB}がもつトランザクション制御の仕組みを利用する
-中間コミット方式:: ユーザにてトランザクションを直接操作する
+* <<Ch05_Transaction_Arch_UnderSpringBatch_TaskletModel_SingleTransaction>>
+* <<Ch05_Transaction_Arch_UnderSpringBatch_TaskletModel_ChunkTransaction>>
+
+以下、これらを順に説明する。
 
 [[Ch05_Transaction_Arch_UnderSpringBatch_TaskletModel_SingleTransaction]]
-===== タスクレットモデルにおける一括コミット方式
-{SB}がもつトランザクション制御の仕組みについて説明する。
+==== タスクレットモデルにおける一括コミット方式
 
+一括コミット方式では、{SB}がタスクレット起動時に開始されるトランザクション制御の仕組みをそのまま利用する。 +
 この方式の特徴は、1つのトランザクション内で繰り返しデータ処理を行うことである。
 
 正常系でのトランザクション制御:: 正常系でのトランザクション制御を説明する。
@@ -225,9 +226,9 @@ image::Ch05_transaction_TransactionControlTaskletModel_SingleTransaction_rollbac
 . ステップはフレームワークトランザクションをロールバックする。
 
 [[Ch05_Transaction_Arch_UnderSpringBatch_TaskletModel_ChunkTransaction]]
-===== タスクレットモデルにおける中間コミット方式
-ユーザにてトランザクションを直接操作する仕組みについて説明する。
+==== タスクレットモデルにおける中間コミット方式
 
+中間コミット方式では、ユーザにてトランザクションを直接操作する。 +
 この方式の特徴は、リソースの操作を行えないフレームワークトランザクションを利用することで、ユーザトランザクションのみにリソースの操作を行わせることである。 +
 ``transaction-manager``属性に、リソースが紐づかない``org.springframework.batch.support.transaction.ResourcelessTransactionManager``を指定する。
 
