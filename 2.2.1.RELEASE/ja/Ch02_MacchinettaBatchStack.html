@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Asciidoctor 2.0.10">
+<title>Macchinetta Batch Framework (2.x)のスタック</title>
+<link rel="stylesheet" href="./theme/css/readthedocs.css">
+<link rel="stylesheet" href="./theme/css/font-awesome.min.css">
+<link rel="stylesheet" href="./theme/css/coderay-asciidoctor.css">
+<link rel="stylesheet" href="./theme/css/header-footer.css">
+<title>Macchinetta Batch Framework (2.x) Development Guideline</title>
+
+<div class="common-bg">
+  <div class="information">
+    Macchinetta Batch Framework (2.x) Development Guideline - version 2.2.1.RELEASE, 2021-3-26, commit-id:94f5df3
+  </div>
+  <div class="index">
+    <a href="index.html">&gt; INDEX</a>
+  </div>
+</div>
+</head>
+<body id="Ch02_MacchinettaBatchStack" class="book toc2 toc-left">
+<div id="header">
+<h1>Macchinetta Batch Framework (2.x)のスタック</h1>
+<div id="toc" class="toc2">
+<div id="toctitle">Table of Contents</div>
+<ul class="sectlevel1">
+<li><a href="#Ch02_MacchinettaBatchStack_Overview">概要</a></li>
+<li><a href="#Ch02_MacchinettaBatchStack_Stack">Macchinetta Batch Framework (2.x)のスタック</a>
+<ul class="sectlevel2">
+<li><a href="#Ch02_MacchinettaBatchStack_Stack_OSS">利用するOSSのバージョン</a></li>
+</ul>
+</li>
+<li><a href="#Ch02_MacchinettaBatchStack_Components">Macchinetta Batch Framework (2.x)の構成要素</a></li>
+</ul>
+</div>
+</div>
+<div id="content">
+<div class="sect1">
+<h2 id="Ch02_MacchinettaBatchStack_Overview"><a class="anchor" href="#Ch02_MacchinettaBatchStack_Overview"></a>概要</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Macchinetta Batch Framework (2.x)の構成について説明し、Macchinetta Batch Framework (2.x)の担当範囲を示す。</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="Ch02_MacchinettaBatchStack_Stack"><a class="anchor" href="#Ch02_MacchinettaBatchStack_Stack"></a>Macchinetta Batch Framework (2.x)のスタック</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Macchinetta Batch Framework (2.x)で使用するSoftware Frameworkは、
+<a href="https://spring.io/projects/spring-framework">Spring Framework</a> (<a href="https://spring.io/projects/spring-batch">Spring Batch</a>)
+を中心としたOSSの組み合わせである。以下にMacchinetta Batch Framework (2.x)のスタック概略図を示す。</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/Ch02_MacchinettaBatchStack_Stack.png" alt="Macchinetta Batch Framework (2.x) Stack">
+</div>
+<div class="title">図 1. Macchinetta Batch Framework (2.x)のスタック概略図</div>
+</div>
+<div class="paragraph">
+<p>ジョブスケジューラやデータベースなどの製品についての説明は、本ガイドラインの説明対象外とする。</p>
+</div>
+<div class="sect2">
+<h3 id="Ch02_MacchinettaBatchStack_Stack_OSS"><a class="anchor" href="#Ch02_MacchinettaBatchStack_Stack_OSS"></a>利用するOSSのバージョン</h3>
+<div class="paragraph">
+<p>Macchinetta Batch Framework (2.x)のバージョン2.2.1.RELEASEで利用するOSSのバージョン一覧を以下に示す。</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+<div class="paragraph">
+<p>Macchinetta Batch Framework (2.x)で使用するOSSのバージョンは、原則として、Spring Boot Dependenciesの定義に準じている。
+なお、バージョン2.2.1.RELEASEにおけるSpring Boot Dependenciesのバージョンは、
+<a href="https://docs.spring.io/spring-boot/docs/2.2.12.RELEASE/reference/htmlsingle/">2.2.12.RELEASE</a>である。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 1. OSSバージョン一覧</caption>
+<colgroup>
+<col style="width: 25%;">
+<col style="width: 25%;">
+<col style="width: 25%;">
+<col style="width: 15%;">
+<col style="width: 5%;">
+<col style="width: 5%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Type</th>
+<th class="tableblock halign-left valign-top">GroupId</th>
+<th class="tableblock halign-left valign-top">ArtifactId</th>
+<th class="tableblock halign-left valign-top">Version</th>
+<th class="tableblock halign-left valign-top">Spring Boot Dependencies</th>
+<th class="tableblock halign-left valign-top">Remarks</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Spring</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">org.springframework</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">spring-aop</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">5.2.12.RELEASE</p></td>
+<td class="tableblock halign-center valign-top"><p class="tableblock">*</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Spring</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">org.springframework</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">spring-beans</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">5.2.12.RELEASE</p></td>
+<td class="tableblock halign-center valign-top"><p class="tableblock">*</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Spring</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">org.springframework</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">spring-context</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">5.2.12.RELEASE</p></td>
+<td class="tableblock halign-center valign-top"><p class="tableblock">*</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Spring</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">org.springframework</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">spring-expression</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">5.2.12.RELEASE</p></td>
+<td class="tableblock halign-center valign-top"><p class="tableblock">*</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Spring</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">org.springframework</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">spring-core</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">5.2.12.RELEASE</p></td>
+<td class="tableblock halign-center valign-top"><p class="tableblock">*</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Spring</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">org.springframework</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">spring-tx</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">5.2.12.RELEASE</p></td>
+<td class="tableblock halign-center valign-top"><p class="tableblock">*</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Spring</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">org.springframework</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">spring-jdbc</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">5.2.12.RELEASE</p></td>
+<td class="tableblock halign-center valign-top"><p class="tableblock">*</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Spring</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">org.springframework</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">spring-oxm</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">5.2.12.RELEASE</p></td>
+<td class="tableblock halign-center valign-top"><p class="tableblock">*</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Spring Batch</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">org.springframework.batch</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">spring-batch-core</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">4.2.5.RELEASE</p></td>
+<td class="tableblock halign-center valign-top"><p class="tableblock">*</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Spring Batch</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">org.springframework.batch</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">spring-batch-infrastructure</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">4.2.5.RELEASE</p></td>
+<td class="tableblock halign-center valign-top"><p class="tableblock">*</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Spring Retry</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">org.springframework.retry</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">spring-retry</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1.2.5.RELEASE</p></td>
+<td class="tableblock halign-center valign-top"><p class="tableblock">*</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Java Batch</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">javax.batch</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">javax.batch-api</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1.0</p></td>
+<td class="tableblock halign-center valign-top"></td>
+<td class="tableblock halign-center valign-top"><p class="tableblock">*1</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">MyBatis3</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">org.mybatis</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">mybatis</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">3.5.3</p></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">MyBatis3</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">org.mybatis</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">mybatis-spring</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">2.0.3</p></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">DI</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">javax.inject</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">javax.inject</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-center valign-top"></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ログ出力</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ch.qos.logback</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">logback-classic</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1.2.3</p></td>
+<td class="tableblock halign-center valign-top"><p class="tableblock">*</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ログ出力</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">org.slf4j</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">jcl-over-slf4j</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1.7.30</p></td>
+<td class="tableblock halign-center valign-top"><p class="tableblock">*</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ログ出力</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">org.slf4j</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">slf4j-api</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1.7.30</p></td>
+<td class="tableblock halign-center valign-top"><p class="tableblock">*</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">入力チェック</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">javax.validation</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">validation-api</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">2.0.1.Final</p></td>
+<td class="tableblock halign-center valign-top"><p class="tableblock">*</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">入力チェック</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">org.hibernate.validator</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">hibernate-validator</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">6.0.21.Final</p></td>
+<td class="tableblock halign-center valign-top"><p class="tableblock">*</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">コネクションプール</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">org.apache.commons</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">commons-dbcp2</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">2.7.0</p></td>
+<td class="tableblock halign-center valign-top"><p class="tableblock">*</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">EL式</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">org.glassfish</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">javax.el</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">3.0.0</p></td>
+<td class="tableblock halign-center valign-top"></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">インメモリデータベース</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">com.h2database</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">h2</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1.4.200</p></td>
+<td class="tableblock halign-center valign-top"><p class="tableblock">*</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">JDBCドライバ</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">org.postgresql</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">postgresql</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">42.2.18</p></td>
+<td class="tableblock halign-center valign-top"><p class="tableblock">*</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">JSON</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">com.fasterxml.jackson.core</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">jackson-databind</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">2.10.5.1</p></td>
+<td class="tableblock halign-center valign-top"></td>
+<td class="tableblock halign-center valign-top"><p class="tableblock">*1</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">JSON</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">org.codehaus.jettison</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">jettison</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1.2</p></td>
+<td class="tableblock halign-center valign-top"></td>
+<td class="tableblock halign-center valign-top"><p class="tableblock">*1</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">XML</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">javax.xml.bind</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">jaxb-api</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">2.3.1</p></td>
+<td class="tableblock halign-center valign-top"><p class="tableblock">*</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">XML</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">com.sun.xml.bind</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">jaxb-core</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">2.3.0.1</p></td>
+<td class="tableblock halign-center valign-top"></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">XML</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">com.sun.xml.bind</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">jaxb-impl</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">2.3.2</p></td>
+<td class="tableblock halign-center valign-top"></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">TERASOLUNA Batch</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">org.terasoluna.batch</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">terasoluna-batch</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">5.3.1.RELEASE</p></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+</tbody>
+</table>
+<div class="exampleblock">
+<div class="title">Remarksについて</div>
+<div class="content">
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Spring Boot Dependenciesが定義するライブラリで個別に依存しているライブラリ</p>
+</li>
+</ol>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="Ch02_MacchinettaBatchStack_Components"><a class="anchor" href="#Ch02_MacchinettaBatchStack_Components"></a>Macchinetta Batch Framework (2.x)の構成要素</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Macchinetta Batch Framework (2.x)のSoftware Framework構成要素について説明する。
+以下にSoftware Framework構成要素の概略図を示す。各要素の概要は後述する。</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/Ch02_MacchinettaBatchStack_Stack_Detail.png" alt="Macchinetta Batch Framework (2.x) Components of Software Framework">
+</div>
+<div class="title">図 2. Software Framework構成要素の概略図</div>
+</div>
+<div class="paragraph">
+<p>以下に、各要素の概要を示す。</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">基盤フレームワーク</dt>
+<dd>
+<p>フレームワークの基盤として、Spring Frameworkを利用する。DIコンテナをはじめ各種機能を活用する。</p>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="https://docs.spring.io/spring-framework/docs/5.2.12.RELEASE/spring-framework-reference/core.html">Spring Framework 5.2</a></p>
+</li>
+</ul>
+</div>
+</dd>
+<dt class="hdlist1">バッチフレームワーク</dt>
+<dd>
+<p>バッチフレームワークとして、Spring Batchを利用する。同期実行にはSpring Batchが提供するCommandLineJobRunnerを利用する。</p>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="https://docs.spring.io/spring-batch/docs/4.2.5.RELEASE/reference/html/index.html">Spring Batch 4.2</a></p>
+</li>
+</ul>
+</div>
+</dd>
+<dt class="hdlist1">非同期実行</dt>
+<dd>
+<p>非同期実行を実現する方法として、以下の機能を利用する。</p>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">DBポーリングによる周期起動</dt>
+<dd>
+<p>TERASOLUNA Batch Framework for Java (5.x)が提供するライブラリを利用する。</p>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="Ch04_AsyncJobWithDB.html#Ch04_AsyncJobWithDB">"非同期実行(DBポーリング)"</a></p>
+</li>
+</ul>
+</div>
+</dd>
+<dt class="hdlist1">Webコンテナ起動</dt>
+<dd>
+<p>Spring MVCを使用して、Spring Batchと連携をする。</p>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="https://docs.spring.io/spring-framework/docs/5.2.12.RELEASE/spring-framework-reference/web.html#mvc">Spring MVC 5.2</a></p>
+</li>
+</ul>
+</div>
+</dd>
+</dl>
+</div>
+</dd>
+<dt class="hdlist1">O/R Mapper</dt>
+<dd>
+<p>MyBatisを利用し、Spring Frameworkとの連携ライブラリとして、MyBatis-Springを使用する。</p>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="https://mybatis.org/mybatis-3/">MyBatis 3.5</a></p>
+</li>
+<li>
+<p><a href="https://mybatis.org/spring/">MyBatis-Spring 2.0</a></p>
+</li>
+</ul>
+</div>
+</dd>
+<dt class="hdlist1">ファイルアクセス</dt>
+<dd>
+<p><a href="https://docs.spring.io/spring-batch/docs/4.2.5.RELEASE/reference/html/readersAndWriters.html#flatFiles">Spring Batchから提供されている機能</a>
+に加えて、補助機能をTERASOLUNA Batch Framework for Java (5.x)が提供する。</p>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="Ch05_FileAccess.html#Ch05_FileAccess">"ファイルアクセス"</a></p>
+</li>
+</ul>
+</div>
+</dd>
+<dt class="hdlist1">ロギング</dt>
+<dd>
+<p>ロガーはAPIにSLF4J、実装にLogbackを利用する。</p>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="http://www.slf4j.org/">SLF4J</a></p>
+</li>
+<li>
+<p><a href="http://logback.qos.ch/">Logback</a></p>
+</li>
+</ul>
+</div>
+</dd>
+<dt class="hdlist1">バリデーション</dt>
+<dd>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">単項目チェック</dt>
+<dd>
+<p>単項目チェックにはBean Validationを利用し、実装はHibernate Validatorを使用する。</p>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="https://beanvalidation.org/2.0/spec/">Bean Validation 2.0</a></p>
+</li>
+<li>
+<p><a href="https://docs.jboss.org/hibernate/validator/6.0/reference/en-US/html_single/">Hibernate Validator 6.0</a></p>
+</li>
+</ul>
+</div>
+</dd>
+<dt class="hdlist1">相関チェック</dt>
+<dd>
+<p>相関チェックにはBean Validation、もしくはSpring Validationを利用する。</p>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="https://docs.spring.io/spring-framework/docs/5.2.12.RELEASE/spring-framework-reference/core.html#validator">Spring Validation 5.2</a></p>
+</li>
+</ul>
+</div>
+</dd>
+</dl>
+</div>
+</dd>
+<dt class="hdlist1">コネクションプール</dt>
+<dd>
+<p>コネクションプールには、DBCPを利用する。</p>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="https://commons.apache.org/proper/commons-dbcp/">DBCP 2</a></p>
+</li>
+</ul>
+</div>
+</dd>
+</dl>
+</div>
+</div>
+</div>
+</div>
+<div class="container">
+
+  <div class="common-bg">
+    <div class="information">
+      Macchinetta Batch Framework (2.x) Development Guideline - version 2.2.1.RELEASE, 2021-3-26, commit-id:94f5df3
+    </div>
+    <div class="index">
+      <a href="index.html">&gt; INDEX</a>
+    </div>
+  </div>
+
+  <div class="footer-bg">
+    <div class="copyright">
+      &copy; Copyright 2017 NTT Corporation.
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

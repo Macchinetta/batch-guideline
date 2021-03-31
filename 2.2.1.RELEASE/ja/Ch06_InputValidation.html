@@ -1,0 +1,1138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Asciidoctor 2.0.10">
+<title>入力チェック</title>
+<link rel="stylesheet" href="./theme/css/readthedocs.css">
+<link rel="stylesheet" href="./theme/css/font-awesome.min.css">
+<link rel="stylesheet" href="./theme/css/coderay-asciidoctor.css">
+<link rel="stylesheet" href="./theme/css/header-footer.css">
+<title>Macchinetta Batch Framework (2.x) Development Guideline</title>
+
+<div class="common-bg">
+  <div class="information">
+    Macchinetta Batch Framework (2.x) Development Guideline - version 2.2.1.RELEASE, 2021-3-26, commit-id:94f5df3
+  </div>
+  <div class="index">
+    <a href="index.html">&gt; INDEX</a>
+  </div>
+</div>
+</head>
+<body id="Ch06_InputValidation" class="book toc2 toc-left">
+<div id="header">
+<h1>入力チェック</h1>
+<div id="toc" class="toc2">
+<div id="toctitle">Table of Contents</div>
+<ul class="sectlevel1">
+<li><a href="#Ch06_InputValidation_Overview">Overview</a>
+<ul class="sectlevel2">
+<li><a href="#Ch06_InputValidation_Overview_Category">入力チェックの分類</a></li>
+<li><a href="#Ch06_InputValidation_Overview_Arch">入力チェックの全体像</a></li>
+</ul>
+</li>
+<li><a href="#Ch06_InputValidation_HowToUse">How to use</a>
+<ul class="sectlevel2">
+<li><a href="#Ch06_InputValidation_HowToUse_Settings">各種設定</a></li>
+<li><a href="#Ch06_InputValidation_HowToUse_defRules">入力チェックルールの定義</a></li>
+<li><a href="#Ch06_InputValidation_HowToUse_Execution">入力チェックの実施</a></li>
+<li><a href="#Ch06_InputValidation_HowToUse_ErrorHandling">入力チェックエラーのハンドリング</a>
+<ul class="sectlevel3">
+<li><a href="#Ch06_InputValidation_HowToUse_ErrorHandling_Abend">処理を異常終了する場合</a></li>
+<li><a href="#Ch06_InputValidation_HowToUse_ErrorHandling_Skip">エラーレコードをスキップする場合</a></li>
+<li><a href="#Ch06_InputValidation_HowToUse_ErrorHandling_ExitCode">終了コードの設定</a></li>
+<li><a href="#Ch06_InputValidation_HowToUse_ErrorHandling_ErrorMessage">エラーメッセージの出力</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div id="content">
+<div class="sect1">
+<h2 id="Ch06_InputValidation_Overview"><a class="anchor" href="#Ch06_InputValidation_Overview"></a>Overview</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>本節では、ジョブの入力データに対する妥当性のチェック(以降、入力チェックと呼ぶ)について説明する。</p>
+</div>
+<div class="paragraph">
+<p>本機能は、チャンクモデルとタスクレットモデルとで同じ使い方になる。</p>
+</div>
+<div class="paragraph">
+<p>一般的に、バッチ処理における入力チェックは、他システム等から受領したデータに対して、
+自システムにおいて妥当であることを確認するために実施する事が多い。<br>
+反対に、自システム内の信頼できるデータ(たとえば、データベースに格納されたデータ)に対して、
+入力チェックを実施することは不要と言える。</p>
+</div>
+<div class="paragraph">
+<p>入力チェックはMacchinetta Server 1.xの内容と重複するため、Macchinetta Server 1.x 開発ガイドラインの
+<a href="https://macchinetta.github.io/server-guideline/1.7.0.RELEASE/ja/ArchitectureInDetail/WebApplicationDetail/Validation.html">入力チェック</a>も合わせて参照。
+以下に、主な比較について示す。</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 1. 主な比較一覧</caption>
+<colgroup>
+<col style="width: 30%;">
+<col style="width: 35%;">
+<col style="width: 35%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">比較対象</th>
+<th class="tableblock halign-left valign-top">Macchinetta Server 1.x</th>
+<th class="tableblock halign-left valign-top">Macchinetta Batch 2.x</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">使用できる入力チェックルール</p></td>
+<td class="tableblock halign-center valign-top" colspan="2"><p class="tableblock">Macchinetta Server 1.xと同様</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ルールを付与する対象</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>フォームクラス</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>DTO</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">チェックの実行方法</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Controllerに@Validatedアノテーションを付与する</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>ValidatorクラスのAPIをコールする</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">エラーメッセージの設定</p></td>
+<td class="tableblock halign-center valign-top" colspan="2"><p class="tableblock">Macchinetta Server 1.x 開発ガイドラインの
+<a href="https://macchinetta.github.io/server-guideline/1.7.0.RELEASE/ja/ArchitectureInDetail/WebApplicationDetail/Validation.html#validation-message-def">エラーメッセージの定義</a>と同様</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">エラーメッセージの出力先</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">画面</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ログ等</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>なお、本節で説明対象とする入力チェックは、主にステップが処理する入力データを対象とする。<br>
+ジョブパラメータのチェックについては<a href="Ch04_JobParameter.html#Ch04_JobParameter_HowToUse_ParamsValidation">パラメータの妥当性検証</a>を参照。</p>
+</div>
+<div class="sect2">
+<h3 id="Ch06_InputValidation_Overview_Category"><a class="anchor" href="#Ch06_InputValidation_Overview_Category"></a>入力チェックの分類</h3>
+<div class="paragraph">
+<p>入力チェックは、単項目チェック、相関項目チェックに分類される。</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 2. 設定内容の項目一覧</caption>
+<colgroup>
+<col style="width: 15%;">
+<col style="width: 30%;">
+<col style="width: 25%;">
+<col style="width: 30%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">種類</th>
+<th class="tableblock halign-left valign-top">説明</th>
+<th class="tableblock halign-left valign-top">例</th>
+<th class="tableblock halign-left valign-top">実現方法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">単項目チェック</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">単一のフィールドで完結するチェック</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">入力必須チェック<br>
+桁チェック<br>
+型チェック</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Bean Validation(実装ライブラリとしてHibernate Validatorを使用)</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">相関項目チェック</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">複数のフィールドを比較するチェック</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">数値の大小比較<br>
+日付の前後比較</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>org.springframework.validation.Validator</code>インタフェースを実装した<code>Validation</code>クラス<br>
+または Bean Validation</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>Springは、Java標準であるBean Validationをサポートしている。
+単項目チェックには、このBean Validationを利用する。
+相関項目チェックの場合は、Bean ValidationまたはSpringが提供している<code>org.springframework.validation.Validator</code>インタフェースを利用する。</p>
+</div>
+<div class="paragraph">
+<p>この点は、
+Macchinetta Server 1.x 開発ガイドラインの <a href="https://macchinetta.github.io/server-guideline/1.7.0.RELEASE/ja/ArchitectureInDetail/WebApplicationDetail/Validation.html#id3">入力チェックの分類</a>
+と同様である。</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="Ch06_InputValidation_Overview_Arch"><a class="anchor" href="#Ch06_InputValidation_Overview_Arch"></a>入力チェックの全体像</h3>
+<div class="paragraph">
+<p>チャンクモデル、タスクレットモデルにて入力チェックを行うタイミングは以下のとおりである。<br></p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>チャンクモデルの場合は<code>ItemProcessor</code>で行う。</p>
+</li>
+<li>
+<p>タスクレットモデルの場合は<code>Tasklet#execute()</code>にて、任意のタイミングで行う。</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>チャンクモデル、タスクレットモデルにおいて入力チェックの実装方法は同様となるため、
+ここではチャンクモデルの<code>ItemProcessor</code>で入力チェックを行う場合について説明する。</p>
+</div>
+<div class="paragraph">
+<p>まず、入力チェックの全体像を説明する。入力チェックに関連するクラスの関係は以下のとおりである。</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/Ch06_InputValidation_Architecture_classes.png" alt="InputValidation architecture">
+</div>
+<div class="title">図 1. 入力チェックの関連クラス</div>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>ItemProcessor</code>に、<code>org.springframework.batch.item.validator.Validator</code>の実装である
+<code>org.springframework.batch.item.validator.SpringValidator</code>をインジェクションしvalidateメソッドを実行する。</p>
+<div class="ulist">
+<ul>
+<li>
+<p><code>SpringValidator</code>は内部に<code>org.springframework.validation.Validator</code>を保持し、validateメソッドを実行する。<br>
+いわば、<code>org.springframework.validation.Validator</code>のラッパーといえる。<br>
+<code>org.springframework.validation.Validator</code>の実装は、
+<code>org.springframework.validation.beanvalidation.LocalValidatorFactoryBean</code>となる。
+このクラスを通じてHibernate Validatorを使用する。</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>何件目のデータで入力チェックエラーになったのかを判別するために<code>org.springframework.batch.item.ItemCountAware</code>を入力DTOに実装する。</p>
+</li>
+</ul>
+</div>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-important" title="Important"></i>
+</td>
+<td class="content">
+<div class="title">データ件数の設定</div>
+<div class="paragraph">
+<p><code>ItemCountAware#setItemCount</code>は<code>AbstractItemCountingItemStreamItemReader</code>によって設定される。
+よって、タスクレットモデルで<code>ItemReader</code>を使わない場合、更新されない。
+この場合は何件目のデータでエラーになったかはユーザにて設定すること。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-important" title="Important"></i>
+</td>
+<td class="content">
+<div class="title">javax.validation.Validatorやorg.springframework.validation.Validatorといったバリデータは直接使用しない。</div>
+<div class="paragraph">
+<p><code>javax.validation.Validator</code>や<code>org.springframework.validation.Validator</code>といったバリデータは直接使用せず、
+<code>org.springframework.batch.item.validator.SpringValidator</code>を使用する。</p>
+</div>
+<div class="paragraph">
+<p><code>SpringValidator</code>は<code>org.springframework.validation.Validator</code>のラッパーである。<br>
+<code>SpringValidator</code>は発生した例外を<code>BindException</code>にラップし、<code>ValidationException</code>としてスローする。<br>
+そのため、<code>ValidationException</code>を通して<code>BindException</code>にアクセスでき、柔軟なハンドリングがしやすくなる。</p>
+</div>
+<div class="paragraph">
+<p>一方、<code>javax.validation.Validator</code>や<code>org.springframework.validation.Validator</code>といったバリデータを直接使用すると、バリデーションエラーになった情報を処理する際に煩雑なロジックになってしまう。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-important" title="Important"></i>
+</td>
+<td class="content">
+<div class="title">org.springframework.batch.item.validator.ValidatingItemProcessorは使用しない</div>
+<div class="paragraph">
+<p><code>org.springframework.validation.Validator</code>による入力チェックは、
+Spring Batchが提供する<code>ValidatingItemProcessor</code>を使用しても実現可能である。</p>
+</div>
+<div class="paragraph">
+<p>しかし、以下の理由により状況によっては拡張を必要としてしまうため、
+実装方法を統一する観点より使用しないこととする。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>入力チェックエラーをハンドリングし処理を継続することができない。</p>
+</li>
+<li>
+<p>入力チェックエラーとなったデータに対して柔軟な対応を行うことができない。</p>
+<div class="ulist">
+<ul>
+<li>
+<p>入力チェックエラーとなったデータに対しての処理は、利用者によって多種多様(ログ出力のみ、エラーデータを別ファイルに退避する、など)となると想定される。</p>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="Ch06_InputValidation_HowToUse"><a class="anchor" href="#Ch06_InputValidation_HowToUse"></a>How to use</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>先にも述べたが、入力チェックの実現方法は以下のとおりMacchinetta Server 1.xと同様である。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>単項目チェックは、Bean Validationを利用する。</p>
+</li>
+<li>
+<p>相関項目チェックは、Bean ValidationまたはSpringが提供している<code>org.springframework.validation.Validator</code>インタフェースを利用する。</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>入力チェックの方法について以下の順序で説明する。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="#Ch06_InputValidation_HowToUse_Settings">各種設定</a></p>
+</li>
+<li>
+<p><a href="#Ch06_InputValidation_HowToUse_defRules">入力チェックルールの定義</a></p>
+</li>
+<li>
+<p><a href="#Ch06_InputValidation_HowToUse_Execution">入力チェックの実施</a></p>
+</li>
+<li>
+<p><a href="#Ch06_InputValidation_HowToUse_ErrorHandling">入力チェックエラーのハンドリング</a></p>
+</li>
+</ul>
+</div>
+<div class="sect2">
+<h3 id="Ch06_InputValidation_HowToUse_Settings"><a class="anchor" href="#Ch06_InputValidation_HowToUse_Settings"></a>各種設定</h3>
+<div class="paragraph">
+<p>入力チェックにはHibernate Validatorを使用する。
+ライブラリの依存関係にHibernate Validatorの定義があり、必要なBean定義が存在することを確認する。
+これらは、Macchinetta Batch 2.xが提供するブランクプロジェクトではすでに設定済である。</p>
+</div>
+<div class="listingblock">
+<div class="title">依存ライブラリの設定例</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"><span class="tag">&lt;dependency&gt;</span>
+    <span class="tag">&lt;groupId&gt;</span>org.hibernate<span class="tag">&lt;/groupId&gt;</span>
+    <span class="tag">&lt;artifactId&gt;</span>hibernate-validator<span class="tag">&lt;/artifactId&gt;</span>
+<span class="tag">&lt;/dependency&gt;</span></code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">launch-context.xml</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"><span class="tag">&lt;bean</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">validator</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">org.springframework.batch.item.validator.SpringValidator</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">p:validator-ref</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">beanValidator</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+
+<span class="tag">&lt;bean</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">beanValidator</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">org.springframework.validation.beanvalidation.LocalValidatorFactoryBean</span><span class="delimiter">&quot;</span></span> <span class="tag">/&gt;</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<div class="title">エラーメッセージの設定</div>
+<p>先にも述べたが、エラーメッセージの設定については、
+Macchinetta Server 1.x 開発ガイドラインの <a href="https://macchinetta.github.io/server-guideline/1.7.0.RELEASE/ja/ArchitectureInDetail/WebApplicationDetail/Validation.html#validation-message-def">エラーメッセージの定義</a>を参照。</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="Ch06_InputValidation_HowToUse_defRules"><a class="anchor" href="#Ch06_InputValidation_HowToUse_defRules"></a>入力チェックルールの定義</h3>
+<div class="paragraph">
+<p>入力チェックのルールを実装する対象は<code>ItemReader</code>を通じて取得するDTOである。
+<code>ItemReader</code>を通じて取得するDTOは以下の要領で実装する。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>何件目のデータで入力チェックエラーになったのかを判別するために、<code>org.springframework.batch.item.ItemCountAware</code>を実装する。</p>
+<div class="ulist">
+<ul>
+<li>
+<p><code>setItemCount</code>メソッドにて引数で受けた現在処理中のitemが読み込み何件目であるかをあらわす数値をクラスフィールドに保持する。</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>入力チェックルールを定義する。</p>
+<div class="ulist">
+<ul>
+<li>
+<p>Macchinetta Server 1.x 開発ガイドラインの <a href="https://macchinetta.github.io/server-guideline/1.7.0.RELEASE/ja/ArchitectureInDetail/WebApplicationDetail/Validation.html">入力チェック</a> を参照。</p>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>以下に、入力チェックルールを定義したDTOの例を示す。</p>
+</div>
+<div class="listingblock">
+<div class="title">入力チェックルールを定義したDTOの例</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="java"><span class="directive">public</span> <span class="type">class</span> <span class="class">VerificationSalesPlanDetail</span> <span class="directive">implements</span> ItemCountAware {  <span class="comment">// (1)</span>
+
+    <span class="directive">private</span> <span class="type">int</span> count;
+
+    <span class="annotation">@NotEmpty</span>
+    <span class="annotation">@Size</span>(min = <span class="integer">1</span>, max = <span class="integer">6</span>)
+    <span class="directive">private</span> <span class="predefined-type">String</span> branchId;
+
+    <span class="annotation">@NotNull</span>
+    <span class="annotation">@Min</span>(<span class="integer">1</span>)
+    <span class="annotation">@Max</span>(<span class="integer">9999</span>)
+    <span class="directive">private</span> <span class="type">int</span> year;
+
+    <span class="annotation">@NotNull</span>
+    <span class="annotation">@Min</span>(<span class="integer">1</span>)
+    <span class="annotation">@Max</span>(<span class="integer">12</span>)
+    <span class="directive">private</span> <span class="type">int</span> month;
+
+    <span class="annotation">@NotEmpty</span>
+    <span class="annotation">@Size</span>(min = <span class="integer">1</span>, max = <span class="integer">10</span>)
+    <span class="directive">private</span> <span class="predefined-type">String</span> customerId;
+
+    <span class="annotation">@NotNull</span>
+    <span class="annotation">@DecimalMin</span>(<span class="string"><span class="delimiter">&quot;</span><span class="content">0</span><span class="delimiter">&quot;</span></span>)
+    <span class="annotation">@DecimalMax</span>(<span class="string"><span class="delimiter">&quot;</span><span class="content">9999999999</span><span class="delimiter">&quot;</span></span>)
+    <span class="directive">private</span> <span class="predefined-type">BigDecimal</span> amount;
+
+    <span class="annotation">@Override</span>
+    <span class="directive">public</span> <span class="type">void</span> setItemCount(<span class="type">int</span> count) {
+        <span class="local-variable">this</span>.count = count;  <span class="comment">// (2)</span>
+    }
+
+    <span class="comment">// omitted getter/setter</span>
+}</code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 3. 設定内容の項目一覧</caption>
+<colgroup>
+<col style="width: 10%;">
+<col style="width: 90%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>ItemCountAware</code>クラスを実装し、<code>setItemCount</code>メソッドをオーバーライドする。<br>
+<code>ItemCountAware#setItemCount()</code>は、<code>ItemReader</code>が読み込んだデータが何件目であるかを引数に渡される。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(2)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">引数で受ける<code>count</code>をクラスフィールドに保持する。<br>
+この値は、何件目のデータで入力チェックエラーになったのかを判別するため使用する。</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect2">
+<h3 id="Ch06_InputValidation_HowToUse_Execution"><a class="anchor" href="#Ch06_InputValidation_HowToUse_Execution"></a>入力チェックの実施</h3>
+<div class="paragraph">
+<p>入力チェックの実施方法について説明する。
+入力チェック実施は以下の要領で実装する。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>ItemProcessor</code>の実装にて、<code>org.springframework.batch.item.validator.Validator#validate()</code>を実行する。</p>
+<div class="ulist">
+<ul>
+<li>
+<p><code>Validator</code>には<code>SpringValidator</code>のインスタンスをインジェクトして使用する。</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>入力チェックエラーをハンドリングする。詳細は<a href="#Ch06_InputValidation_HowToUse_ErrorHandling">入力チェックエラーのハンドリング</a>を参照。</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>入力チェックの実施例を以下に示す。</p>
+</div>
+<div class="listingblock">
+<div class="title">入力チェックを実施する例</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="java"><span class="annotation">@Component</span>
+<span class="directive">public</span> <span class="type">class</span> <span class="class">ValidateAndContinueItemProcessor</span> <span class="directive">implements</span> ItemProcessor&lt;VerificationSalesPlanDetail, SalesPlanDetail&gt; {
+    <span class="annotation">@Inject</span>  <span class="comment">// (1)</span>
+    <span class="predefined-type">Validator</span>&lt;VerificationSalesPlanDetail&gt; validator;
+
+    <span class="annotation">@Override</span>
+    <span class="directive">public</span> SalesPlanDetail process(VerificationSalesPlanDetail item) <span class="directive">throws</span> <span class="exception">Exception</span> {
+        <span class="keyword">try</span> {  <span class="comment">// (2)</span>
+            validator.validate(item);  <span class="comment">// (3)</span>
+        } <span class="keyword">catch</span> (ValidationException e) {
+          <span class="comment">// omitted exception handling</span>
+        }
+
+        SalesPlanDetail salesPlanDetail = <span class="keyword">new</span> SalesPlanDetail();
+        <span class="comment">// omitted business logic</span>
+
+        <span class="keyword">return</span> salesPlanDetail;
+    }
+}</code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 4. 設定内容の項目一覧</caption>
+<colgroup>
+<col style="width: 10%;">
+<col style="width: 90%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>SpringValidator</code>のインスタンスをインジェクトする。<br>
+<code>org.springframework.batch.item.validator.Validator</code>の型引数には、<code>ItemReader</code>を通じて取得するDTOを設定する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(2)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">入力チェックエラーをハンドリングする。<br>
+例では例外をtry/catchで捕捉する方法で処理している。<br>
+詳細は<a href="#Ch06_InputValidation_HowToUse_ErrorHandling">入力チェックエラーのハンドリング</a>を参照。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(3)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>ItemReader</code>を通じて取得するDTOを引数として<code>Validator#validate()</code>を実行する。</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect2">
+<h3 id="Ch06_InputValidation_HowToUse_ErrorHandling"><a class="anchor" href="#Ch06_InputValidation_HowToUse_ErrorHandling"></a>入力チェックエラーのハンドリング</h3>
+<div class="paragraph">
+<p>入力チェックエラーが発生した場合の選択肢は以下の2択となる。</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>入力チェックエラーが発生した時点で処理を打ち切り、ジョブを異常終了させる。</p>
+</li>
+<li>
+<p>入力チェックエラーが発生したことをログ等に残し、後続データの処理は継続する。その後、ジョブ終了時に、ジョブを警告終了させる。</p>
+</li>
+</ol>
+</div>
+<div class="sect3">
+<h4 id="Ch06_InputValidation_HowToUse_ErrorHandling_Abend"><a class="anchor" href="#Ch06_InputValidation_HowToUse_ErrorHandling_Abend"></a>処理を異常終了する場合</h4>
+<div class="paragraph">
+<p>例外発生時に処理を異常終了するためには、<code>java.lang.RuntimeException</code>またはそのサブクラスをスローする。</p>
+</div>
+<div class="paragraph">
+<p>例外発生時にログ出力等の処理を行う方法は以下の2とおりがある。</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>例外をtry/catchで捕捉し、例外をスローする前に行う。</p>
+</li>
+<li>
+<p>例外をtry/catchで捕捉せず、<code>ItemProcessListener</code>を実装しonProcessErrorメソッドにて行う。</p>
+<div class="ulist">
+<ul>
+<li>
+<p><code>ItemProcessListener#onProcessError()</code>は<code>@OnProcessError</code>アノテーションを使用して実装してもよい。
+詳細は、<a href="Ch04_Listener.html#Ch04_Listener">リスナー</a>を参照。</p>
+</li>
+</ul>
+</div>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>例外発生時に、例外情報をログ出力し、処理を異常終了する例を以下に示す。</p>
+</div>
+<div class="listingblock">
+<div class="title">try/catchによるハンドリング例</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="java"><span class="annotation">@Component</span>
+<span class="directive">public</span> <span class="type">class</span> <span class="class">ValidateAndAbortByTryCatchItemProcessor</span> <span class="directive">implements</span> ItemProcessor&lt;VerificationSalesPlanDetail, SalesPlanDetail&gt; {
+    <span class="comment">/**
+     * Logger.
+     */</span>
+    <span class="directive">private</span> <span class="directive">static</span> <span class="directive">final</span> <span class="predefined-type">Logger</span> logger = LoggerFactory.getLogger(ValidateAndAbortByTryCatchItemProcessor.class);
+
+    <span class="annotation">@Inject</span>
+    <span class="predefined-type">Validator</span>&lt;VerificationSalesPlanDetail&gt; validator;
+
+    <span class="annotation">@Override</span>
+    <span class="directive">public</span> SalesPlanDetail process(VerificationSalesPlanDetail item) <span class="directive">throws</span> <span class="exception">Exception</span> {
+        <span class="keyword">try</span> {  <span class="comment">// (1)</span>
+            validator.validate(item);  <span class="comment">// (2)</span>
+            <span class="keyword">return</span> convert(item);
+        } <span class="keyword">catch</span> (ValidationException e) {
+            <span class="comment">// (3)</span>
+            logger.error(<span class="string"><span class="delimiter">&quot;</span><span class="content">Exception occurred in input validation at the {} th item. [message:{}]</span><span class="delimiter">&quot;</span></span>,
+                    item.getCount(), e.getMessage());
+            <span class="keyword">throw</span> e;  <span class="comment">// (4)</span>
+        }
+    }
+    <span class="directive">private</span> SalesPlanDetail convert(VerificationSalesPlanDetail item) {
+
+        SalesPlanDetail salesPlanDetail = <span class="keyword">new</span> SalesPlanDetail();
+        <span class="comment">// omitted business logic</span>
+
+        <span class="keyword">return</span> salesPlanDetail;
+    }
+}</code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 5. 設定内容の項目一覧</caption>
+<colgroup>
+<col style="width: 10%;">
+<col style="width: 90%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">try/catchにて例外を捕捉する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(2)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">入力チェックを実行する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(3)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">例外をスローする前にログ出力処理を行う。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(4)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">例外をスローする。<br>
+<code>org.springframework.batch.item.validator.ValidationException</code>は<code>RuntimeException</code>のサブクラスであるため、
+そのままスローしなおしてよい。</p></td>
+</tr>
+</tbody>
+</table>
+<div class="listingblock">
+<div class="title">ItemProcessListener#OnProcessErrorによるハンドリング例</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="java"><span class="annotation">@Component</span>
+<span class="directive">public</span> <span class="type">class</span> <span class="class">ValidateAndAbortItemProcessor</span> <span class="directive">implements</span> ItemProcessor&lt;VerificationSalesPlanDetail, SalesPlanDetail&gt; {
+
+    <span class="comment">/**
+     * Logger.
+     */</span>
+    <span class="directive">private</span> <span class="directive">static</span> <span class="directive">final</span> <span class="predefined-type">Logger</span> logger = LoggerFactory.getLogger(ValidateAndAbortItemProcessor.class);
+
+    <span class="annotation">@Inject</span>
+    <span class="predefined-type">Validator</span>&lt;VerificationSalesPlanDetail&gt; validator;
+
+    <span class="annotation">@Override</span>
+    <span class="directive">public</span> SalesPlanDetail process(VerificationSalesPlanDetail item) <span class="directive">throws</span> <span class="exception">Exception</span> {
+        validator.validate(item);  <span class="comment">// (1)</span>
+
+        SalesPlanDetail salesPlanDetail = <span class="keyword">new</span> SalesPlanDetail();
+        <span class="comment">// omitted business logic</span>
+
+        <span class="keyword">return</span> salesPlanDetail;
+    }
+
+    <span class="annotation">@OnProcessError</span>  <span class="comment">// (2)</span>
+    <span class="type">void</span> onProcessError(VerificationSalesPlanDetail item, <span class="exception">Exception</span> e) {
+        <span class="comment">// (3)</span>
+        logger.error(<span class="string"><span class="delimiter">&quot;</span><span class="content">Exception occurred in input validation at the {} th item. [message:{}]</span><span class="delimiter">&quot;</span></span>, item.getCount() ,e.getMessage());
+    }
+}</code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 6. 設定内容の項目一覧</caption>
+<colgroup>
+<col style="width: 10%;">
+<col style="width: 90%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">入力チェックを実行する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(2)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>ItemProcessListener#onProcessError()</code>を<code>@OnProcessError</code>アノテーションを使用して実装する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(3)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">例外をスローする前にログ出力処理を行う。</p></td>
+</tr>
+</tbody>
+</table>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-warning" title="Warning"></i>
+</td>
+<td class="content">
+<div class="title">ItemProcessListener#onProcessError()使用時の注意点</div>
+<div class="paragraph">
+<p>onProcessErrorメソッドの利用は業務処理と例外ハンドリングを切り離すことができるためソースコードの可読性、保守性の向上等に有用である。<br>
+しかし、上記の例でハンドリング処理を行っている<code>ValidationException</code>以外の例外が発生した場合も同じメソッドが実行されるため注意が必要である。</p>
+</div>
+<div class="paragraph">
+<p><code>ItemProcessor#process()</code>におけるログ出力を例外によって出力し分ける場合は、
+onProcessErrorメソッドにて発生した例外の種類を判定して例外処理を行う必要がある。
+これが煩雑である場合は、try/catchによるハンドリングにて入力チェックエラーのみを処理し、それ以外はリスナーに移譲するように責務を分担するとよい。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect3">
+<h4 id="Ch06_InputValidation_HowToUse_ErrorHandling_Skip"><a class="anchor" href="#Ch06_InputValidation_HowToUse_ErrorHandling_Skip"></a>エラーレコードをスキップする場合</h4>
+<div class="paragraph">
+<p>入力チェックエラーが発生したレコードの情報をログ出力等を行った後、エラーが発生したレコードをスキップして後続データの処理を継続する場合は以下の要領で実装する。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>例外をtry/catchで捕捉する。</p>
+</li>
+<li>
+<p>例外発生時のログ出力等を行う。</p>
+</li>
+<li>
+<p><code>ItemProcessor#process()</code>の返り値として<code>null</code>を返却する。</p>
+<div class="ulist">
+<ul>
+<li>
+<p><code>null</code>を返却することで入力チェックエラーが発生したレコードは後続の処理対象(<code>ItemWriter</code>による出力)に含まれなくなる。</p>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+<div class="listingblock">
+<div class="title">ItemProcessorによるスキップ例</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="java"><span class="annotation">@Component</span>
+<span class="directive">public</span> <span class="type">class</span> <span class="class">ValidateAndContinueItemProcessor</span> <span class="directive">implements</span> ItemProcessor&lt;VerificationSalesPlanDetail, SalesPlanDetail&gt; {
+    <span class="comment">/**
+     * Logger.
+     */</span>
+    <span class="directive">private</span> <span class="directive">static</span> <span class="directive">final</span> <span class="predefined-type">Logger</span> logger = LoggerFactory.getLogger(ValidateAndContinueItemProcessor.class);
+
+    <span class="annotation">@Inject</span>
+    <span class="predefined-type">Validator</span>&lt;VerificationSalesPlanDetail&gt; validator;
+
+    <span class="annotation">@Override</span>
+    <span class="directive">public</span> SalesPlanDetail process(VerificationSalesPlanDetail item) <span class="directive">throws</span> <span class="exception">Exception</span> {
+        <span class="keyword">try</span> {  <span class="comment">// (1)</span>
+            validator.validate(item);  <span class="comment">// (2)</span>
+        } <span class="keyword">catch</span> (ValidationException e) {
+            <span class="comment">// (3)</span>
+            logger.warn(<span class="string"><span class="delimiter">&quot;</span><span class="content">Skipping item because exception occurred in input validation at the {} th item. [message:{}]</span><span class="delimiter">&quot;</span></span>,
+                    item.getCount(), e.getMessage());
+            <span class="comment">// (4)</span>
+            <span class="keyword">return</span> <span class="predefined-constant">null</span>;  <span class="comment">// skipping item</span>
+        }
+
+        SalesPlanDetail salesPlanDetail = <span class="keyword">new</span> SalesPlanDetail();
+        <span class="comment">// omitted business logic</span>
+
+        <span class="keyword">return</span> salesPlanDetail;
+    }
+}</code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 7. 設定内容の項目一覧</caption>
+<colgroup>
+<col style="width: 10%;">
+<col style="width: 90%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">try/catchにて例外を捕捉する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(2)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">入力チェックを実行する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(3)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>null</code>を返却する前にログ出力処理を行う。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(4)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>null</code>を返却することで当該データをスキップし次のデータ処理へ移る。</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect3">
+<h4 id="Ch06_InputValidation_HowToUse_ErrorHandling_ExitCode"><a class="anchor" href="#Ch06_InputValidation_HowToUse_ErrorHandling_ExitCode"></a>終了コードの設定</h4>
+<div class="paragraph">
+<p>入力チェックエラーが発生した場合、入力チェックエラーが発生しなかった場合とジョブの状態を区別するために必ず正常終了ではない終了コードを設定すること。<br>
+入力チェックエラーが発生したデータをスキップした場合、異常終了した場合においても終了コードの設定は必須である。</p>
+</div>
+<div class="paragraph">
+<p>終了コードの設定方法については、<a href="Ch07_JobManagement.html#Ch07_JobManagement">ジョブの管理</a>を参照。</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="Ch06_InputValidation_HowToUse_ErrorHandling_ErrorMessage"><a class="anchor" href="#Ch06_InputValidation_HowToUse_ErrorHandling_ErrorMessage"></a>エラーメッセージの出力</h4>
+<div class="paragraph">
+<p>入力チェックエラーが発生した場合にMessageSourceを使用することで、任意のエラーメッセージを出力することができる。
+エラーメッセージの設定については、Macchinetta Server 1.x 開発ガイドラインの
+<a href="https://macchinetta.github.io/server-guideline/1.7.0.RELEASE/ja/ArchitectureInDetail/WebApplicationDetail/Validation.html#validation-message-def">エラーメッセージの定義</a>を参照。
+エラーメッセージを出力する場合は以下の要領で実装する。</p>
+</div>
+<div class="paragraph">
+<p>エラーメッセージを出力する方法としては、以下の2とおりがある。</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>レコード内の各項目についてエラーメッセージを出力</p>
+</li>
+<li>
+<p>エラーメッセージをまとめて出力</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>レコード内の各項目についてエラーメッセージを出力する場合の要領と実装例を以下に示す。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>入力チェックでエラーが発生した項目に対して、<code>MessageSource</code>を用いてエラーメッセージのログ出力を行う。</p>
+</li>
+</ul>
+</div>
+<div class="listingblock">
+<div class="title">MessageSourceによるエラーメッセージ出力例</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="java"><span class="annotation">@Component</span>
+<span class="directive">public</span> <span class="type">class</span> <span class="class">ValidateAndMessageItemProcessor</span> <span class="directive">implements</span> ItemProcessor&lt;VerificationSalesPlanDetail, SalesPlanDetail&gt; {
+    <span class="comment">/**
+     * Logger.
+     */</span>
+    <span class="directive">private</span> <span class="directive">static</span> <span class="directive">final</span> <span class="predefined-type">Logger</span> logger = LoggerFactory.getLogger(ValidateAndMessageItemProcessor.class);
+
+    <span class="annotation">@Inject</span>
+    <span class="predefined-type">Validator</span>&lt;VerificationSalesPlanDetail&gt; validator;
+
+    <span class="annotation">@Inject</span>
+    MessageSource messageSource;  <span class="comment">// (1)</span>
+
+    <span class="annotation">@Override</span>
+    <span class="directive">public</span> SalesPlanDetail process(VerificationSalesPlanDetail item) <span class="directive">throws</span> <span class="exception">Exception</span> {
+        <span class="keyword">try</span> {  <span class="comment">// (2)</span>
+            validator.validate(item);  <span class="comment">// (3)</span>
+        } <span class="keyword">catch</span> (ValidationException e) {
+            <span class="comment">// (4)</span>
+            <span class="exception">BindException</span> errors = (<span class="exception">BindException</span>) e.getCause();
+
+            <span class="comment">// (5)</span>
+            <span class="keyword">for</span> (FieldError fieldError : errors.getFieldErrors()) {
+                <span class="comment">// (6)</span>
+                logger.warn(messageSource.getMessage(fieldError, <span class="predefined-constant">null</span>) +
+                                <span class="string"><span class="delimiter">&quot;</span><span class="content">Skipping item because exception occurred in input validation at the {} th item. [message:{}]</span><span class="delimiter">&quot;</span></span>,
+                                    item.getCount(), e.getMessage());
+            <span class="comment">// (7)</span>
+            <span class="keyword">return</span> <span class="predefined-constant">null</span>;  <span class="comment">// skipping item</span>
+        }
+
+        <span class="keyword">return</span> convert(item);
+    }
+}</code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 8. 設定内容の項目一覧</caption>
+<colgroup>
+<col style="width: 10%;">
+<col style="width: 90%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>ResourceBundleMessageSource</code>のインスタンスをインジェクトする。<br>
+<code>MassageSorce</code>のBean定義は<a href="Ch07_JobManagement.html#Ch07_JobManagement_HowToUse_MessageManagement">メッセージ管理</a>を参照。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(2)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">try/catchにて例外を捕捉する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(3)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">入力チェックを実行する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(4)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>getCause()</code>で<code>org.springframework.validation.BindException</code>を取得する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(5)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>getFieldErrors()</code>で1件分の<code>FiledError</code>を取得する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(6)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">取得した<code>FieldError</code>を引数にして、<code>messageSource</code>でエラーメッセージの出力処理を行う。<br>
+1レコード内に3項目のエラーがある場合、3件のエラーメッセージを繰り返し出力する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(7)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>null</code>を返却することで当該データをスキップし次のデータ処理へ移る。</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>エラーメッセージをまとめて出力する場合の要領と実装例を以下に示す。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>StepExecutionContext</code>を利用し、入力チェックでエラーが発生した項目のエラーメッセージをリストに格納しておく。</p>
+</li>
+<li>
+<p><code>AfterStep</code>で<code>StepExecutionContext</code>からリストを取得し、まとめてエラーメッセージのログ出力を行う。</p>
+</li>
+</ul>
+</div>
+<div class="listingblock">
+<div class="title">StepExecutionContextを利用したエラーメッセージの一括出力例</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="java"><span class="annotation">@Component</span>
+<span class="annotation">@Scope</span>(<span class="string"><span class="delimiter">&quot;</span><span class="content">step</span><span class="delimiter">&quot;</span></span>)  <span class="comment">// (1)</span>
+<span class="directive">public</span> <span class="type">class</span> <span class="class">ValidateAndBulkMessageItemProcessor</span> <span class="directive">implements</span> ItemProcessor&lt;VerificationSalesPlanDetail, SalesPlanDetail&gt; {
+
+    <span class="comment">/**
+     * Logger.
+     */</span>
+    <span class="directive">private</span> <span class="directive">static</span> <span class="directive">final</span> <span class="predefined-type">Logger</span> logger = LoggerFactory.getLogger(ValidateAndBulkMessageItemProcessor.class);
+
+    <span class="directive">private</span> StepExecution stepExecution;  <span class="comment">// (2)</span>
+
+    <span class="annotation">@Inject</span>
+    <span class="predefined-type">Validator</span>&lt;VerificationSalesPlanDetail&gt; validator;
+
+    <span class="annotation">@Inject</span>
+    MessageSource messageSource;
+
+    <span class="annotation">@BeforeStep</span>  <span class="comment">// (3)</span>
+    <span class="directive">public</span> <span class="type">void</span> beforeStep(StepExecution stepExecution) {
+        <span class="local-variable">this</span>.stepExecution = stepExecution;  <span class="comment">// (4)</span>
+    }
+
+    <span class="annotation">@Override</span>
+    <span class="directive">public</span> SalesPlanDetail process(VerificationSalesPlanDetail item) <span class="directive">throws</span> <span class="exception">Exception</span> {
+        <span class="keyword">try</span> {
+            validator.validate(item);
+        } <span class="keyword">catch</span> (ValidationException e) {
+
+            <span class="exception">BindException</span> errors = (<span class="exception">BindException</span>) e.getCause();
+
+            <span class="predefined-type">List</span>&lt;<span class="predefined-type">String</span>&gt; errorMessageList = <span class="keyword">new</span> <span class="predefined-type">ArrayList</span>&lt;&gt;();  <span class="comment">// (5)</span>
+            <span class="comment">// (6)</span>
+            <span class="keyword">if</span> (stepExecution.getExecutionContext().containsKey(<span class="string"><span class="delimiter">&quot;</span><span class="content">errorMessageList</span><span class="delimiter">&quot;</span></span>)) {
+                errorMessageList = (<span class="predefined-type">List</span>&lt;<span class="predefined-type">String</span>&gt;) stepExecution.getExecutionContext().get(<span class="string"><span class="delimiter">&quot;</span><span class="content">errorMessageList</span><span class="delimiter">&quot;</span></span>);
+            }
+
+            <span class="comment">// (7)</span>
+            <span class="keyword">for</span> (FieldError fieldError : errors.getFieldErrors()) {
+                <span class="predefined-type">String</span> itemNumber = item.getCount() + <span class="string"><span class="delimiter">&quot;</span><span class="content"> th item</span><span class="delimiter">&quot;</span></span>;
+                <span class="predefined-type">String</span> errorMessage = messageSource.getMessage(fieldError, <span class="predefined-constant">null</span>);
+                <span class="predefined-type">String</span> detailErrorMessage = e.getMessage();
+
+                <span class="predefined-type">String</span> message = <span class="predefined-type">MessageFormat</span>
+                        .format(<span class="string"><span class="delimiter">&quot;</span><span class="content">{0} Skipping item because exception occurred in input validation at the {1}. [message:{2}]</span><span class="delimiter">&quot;</span></span>,
+                                errorMessage, itemNumber, detailErrorMessage);
+
+                errorMessageList.add(message);
+            }
+
+            stepExecution.getExecutionContext().put(<span class="string"><span class="delimiter">&quot;</span><span class="content">errorMessageList</span><span class="delimiter">&quot;</span></span>, errorMessageList);  <span class="comment">// (8)</span>
+
+            <span class="keyword">return</span> <span class="predefined-constant">null</span>; <span class="comment">// skipping item</span>
+        }
+
+        <span class="keyword">return</span> convert(item);
+    }
+
+    <span class="annotation">@AfterStep</span>  <span class="comment">// (9)</span>
+    <span class="directive">public</span> <span class="type">void</span> afterStep(StepExecution stepExecution) {
+        ExecutionContext executionContext = stepExecution.getExecutionContext();  <span class="comment">// (10)</span>
+
+        <span class="predefined-type">List</span>&lt;<span class="predefined-type">String</span>&gt; errorMessageList = (<span class="predefined-type">List</span>&lt;<span class="predefined-type">String</span>&gt;) executionContext.get(<span class="string"><span class="delimiter">&quot;</span><span class="content">errorMessageList</span><span class="delimiter">&quot;</span></span>);  <span class="comment">// (11)</span>
+        <span class="comment">//  (12)</span>
+        <span class="keyword">for</span> (<span class="predefined-type">String</span> errorMessage : errorMessageList) {
+            logger.warn(errorMessage);
+        }
+    }
+}</code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 9. 設定内容の項目一覧</caption>
+<colgroup>
+<col style="width: 10%;">
+<col style="width: 90%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">クラスに<code>@Scope</code>アノテーションを付与してスコープを指定する。<br>
+スコープは本クラス内で利用する<code>StepExecution </code>に合わせて<code>step</code>とする。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(2)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>StepExecution</code>を保持するためのフィールドを定義する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(3)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>beforeStep</code>メソッドを実装し、<code>@BeforeStep</code>アノテーションを付与する。<br>
+シグネチャは<code>void beforeStep(StepExecution stepExecution)</code>とする。<br>
+<code>StepExecutionListener</code>クラスを実装し、<code>beforeStep</code>メソッドをオーバーライドする方法でもよい。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(4)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>StepExecution</code>を取得してクラスフィールドに保持する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(5)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">エラーメッセージを格納するためのリストを定義する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(6)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>StepExecution</code>から<code>stepExecutionContext</code>を取得し、その中に<code>errorMessageList</code>というキーが存在するかチェックする。<br>
+<code>stepExecutionContext</code>から<code>errorMessageList</code>をキーとする値を取得し、(5)で定義したリストに代入する。<br>
+その後、<code>stepExecutionContext</code>から削除する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(7)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>getFieldErrors()</code>で1レコード中で発生したエラーを取得する。<br>
+ログ出力用エラーメッセージを生成し、<code>errorMessageList</code>に追加する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(8)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>StepExecution</code>から<code>stepExecutionContext</code>を取得し、<code>errorMessageList</code>というキーを指定して<code>stepExecutionContext</code>にエラーメッセージを格納したリストを登録する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(9)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>afterStep</code>メソッドを実装し、<code>@AfterStep</code>アノテーションを付与する。<br>
+シグネチャは<code>void afterStep(StepExecution stepExecution)</code>とする。<br>
+<code>StepExecutionListener</code>クラスを実装し、<code>afterStep</code>メソッドをオーバーライドする方法でもよい。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(10)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>StepExecution</code>から<code>stepExecutionContext</code>を取得する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(11)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>errorMessageList</code>というキーを指定して<code>stepExecutionContext</code>からエラーメッセージを格納したリストを取得する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(12)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">エラーメッセージを繰り返しログ出力する。</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
+</div>
+<link rel="stylesheet" href="./theme/css/coderay-asciidoctor.css">
+<div class="container">
+
+  <div class="common-bg">
+    <div class="information">
+      Macchinetta Batch Framework (2.x) Development Guideline - version 2.2.1.RELEASE, 2021-3-26, commit-id:94f5df3
+    </div>
+    <div class="index">
+      <a href="index.html">&gt; INDEX</a>
+    </div>
+  </div>
+
+  <div class="footer-bg">
+    <div class="copyright">
+      &copy; Copyright 2017 NTT Corporation.
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

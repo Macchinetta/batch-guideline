@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Asciidoctor 2.0.10">
+<title>処理の再実行</title>
+<link rel="stylesheet" href="./theme/css/readthedocs.css">
+<link rel="stylesheet" href="./theme/css/font-awesome.min.css">
+<link rel="stylesheet" href="./theme/css/coderay-asciidoctor.css">
+<link rel="stylesheet" href="./theme/css/header-footer.css">
+<title>Macchinetta Batch Framework (2.x) Development Guideline</title>
+
+<div class="common-bg">
+  <div class="information">
+    Macchinetta Batch Framework (2.x) Development Guideline - version 2.2.1.RELEASE, 2021-3-26, commit-id:94f5df3
+  </div>
+  <div class="index">
+    <a href="index.html">&gt; INDEX</a>
+  </div>
+</div>
+</head>
+<body id="Ch06_RerunRestart" class="book toc2 toc-left">
+<div id="header">
+<h1>処理の再実行</h1>
+<div id="toc" class="toc2">
+<div id="toctitle">Table of Contents</div>
+<ul class="sectlevel1">
+<li><a href="#Ch06_RerunRestart_Overview">Overview</a></li>
+<li><a href="#Ch06_RerunRestart_HowToUse">How to use</a>
+<ul class="sectlevel2">
+<li><a href="#Ch06_RerunRestart_HowToUse_Rerun">ジョブのリラン</a></li>
+<li><a href="#Ch06_RerunRestart_HowToUse_Restart">ジョブのリスタート</a></li>
+<li><a href="#Ch06_RerunRestart_HowToUse_StatelessRestart">ステートレスリスタート</a></li>
+<li><a href="#Ch06_RerunRestart_HowToUse_StatefullRestart">ステートフルリスタート</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div id="content">
+<div class="sect1">
+<h2 id="Ch06_RerunRestart_Overview"><a class="anchor" href="#Ch06_RerunRestart_Overview"></a>Overview</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>障害発生などに起因してジョブが異常終了した後に、ジョブを再実行することで回復する手段について説明する。</p>
+</div>
+<div class="paragraph">
+<p>本機能は、チャンクモデルとタスクレットモデルとで使い方が異なるため、それぞれについて説明する。</p>
+</div>
+<div class="paragraph">
+<p>ジョブの再実行には、以下の方法がある。</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>ジョブのリラン</p>
+</li>
+<li>
+<p>ジョブのリスタート</p>
+<div class="ulist">
+<ul>
+<li>
+<p>ステートレスリスタート</p>
+<div class="ulist">
+<ul>
+<li>
+<p>件数ベースリスタート</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>ステートフルリスタート</p>
+<div class="ulist">
+<ul>
+<li>
+<p>処理状態を判断し、未処理のデータを抽出して処理するリスタート</p>
+<div class="ulist">
+<ul>
+<li>
+<p>処理状態を識別するための処理を別途実装する必要がある</p>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>以下に用語を定義する。</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">リラン</dt>
+<dd>
+<p>ジョブを最初からやり直すこと。<br>
+事前作業として、データ初期化など障害発生前のジョブ開始時点に状態を回復する必要がある。</p>
+</dd>
+<dt class="hdlist1">リスタート</dt>
+<dd>
+<p>ジョブが中断した箇所から処理を再開すること。<br>
+処理再開位置の保持・取得方法、再開位置までのデータスキップ方法などをあらかじめ設計/実装する必要がある。<br>
+リスタートには、ステートレスとステートフルの2種類がある。</p>
+</dd>
+<dt class="hdlist1">ステートレスリスタート</dt>
+<dd>
+<p>個々の入力データに対する状態(未処理/処理済)を考慮しないリスタート方法。</p>
+</dd>
+<dt class="hdlist1">件数ベースリスタート</dt>
+<dd>
+<p>ステートレスリスタートの1つ。<br>
+処理した入力データ件数を保持し、リスタート時にその件数分入力データをスキップする方法。<br>
+出力が非トランザクショナルなリソースの場合は、出力位置を保持し、リスタート時にその位置まで書き込み位置を移動することも必要になる。</p>
+</dd>
+<dt class="hdlist1">ステートフルリスタート</dt>
+<dd>
+<p>個々の入力データに対する状態(未処理/処理済)を判断し、未処理のデータのみを取得条件とするリスタート方法。<br>
+出力が非トランザクショナルなリソースの場合は、リソースを追記可能にして、リスタート時には前回の結果へ追記していくようにする。</p>
+</dd>
+</dl>
+</div>
+<div class="paragraph">
+<p>一般的に、再実行の方法はリランがもっとも簡単である。
+リラン &lt; ステートレスリスタート &lt; ステートフルリスタートの順に、設計や実装が難しくなる。
+無論、可能であれば常にリランとすることが好ましいが、
+ユーザが実装するジョブ1つ1つに対して、許容するバッチウィンドウや処理特性に応じてどの方法を適用するか検討してほしい。</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="Ch06_RerunRestart_HowToUse"><a class="anchor" href="#Ch06_RerunRestart_HowToUse"></a>How to use</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>リランとリスタートの実現方法について説明する。</p>
+</div>
+<div class="sect2">
+<h3 id="Ch06_RerunRestart_HowToUse_Rerun"><a class="anchor" href="#Ch06_RerunRestart_HowToUse_Rerun"></a>ジョブのリラン</h3>
+<div class="paragraph">
+<p>ジョブのリランを実現する方法を説明する。</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>リラン前にデータの初期化などデータ回復の事前作業を実施する。</p>
+</li>
+<li>
+<p>失敗したジョブを同じ条件(同じパラメータ)で再度実行する。</p>
+<div class="ulist">
+<ul>
+<li>
+<p>Spring Batchでは同じパラメータでジョブを実行すると二重実行と扱われるが、Macchinetta Batch 2.xでは別ジョブとして扱う。<br>
+詳細は、<a href="Ch04_JobParameter.html#Ch04_JobParameter_HowToUse_Converter">"パラメータ変換クラスについて"</a>を参照。</p>
+</li>
+</ul>
+</div>
+</li>
+</ol>
+</div>
+</div>
+<div class="sect2">
+<h3 id="Ch06_RerunRestart_HowToUse_Restart"><a class="anchor" href="#Ch06_RerunRestart_HowToUse_Restart"></a>ジョブのリスタート</h3>
+<div class="paragraph">
+<p>ジョブのリスタート方法を説明する。</p>
+</div>
+<div class="paragraph">
+<p>ジョブのリスタートを行う場合は、同期実行したジョブに対して行うことを基本とする。</p>
+</div>
+<div class="paragraph">
+<p>非同期実行したジョブは、リスタートではなくリランで対応するジョブ設計にすることを推奨する。
+これは、<strong>「意図したリスタート実行」</strong>なのか<strong>「意図しない重複実行」</strong>であるかの判断が難しく、
+運用で混乱をきたす可能性があるからである。</p>
+</div>
+<div class="paragraph">
+<p>非同期実行ジョブでリスタート要件がどうしても外せない場合は、
+<strong>「意図したリスタート実行」</strong>を明確にするために、以下の方法を利用できる。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>CommandLineJobRunner</code>の<code>-restart</code>によるリスタート</p>
+<div class="ulist">
+<ul>
+<li>
+<p>非同期実行したジョブを別途同期実行によりリスタートする。逐次で回復処理を進めていく際に有効となる。</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p><code>JobOperator#restart(JobExecutionId)</code>によるリスタート</p>
+<div class="ulist">
+<ul>
+<li>
+<p>非同期実行したジョブを、再度非同期実行の仕組み上でリスタートする。一括で回復処理を進めていく際に有効となる。</p>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="Ch04_AsyncJobWithDB.html#Ch04_AsyncJobWithDB">非同期実行(DBポーリング)</a>はリスタートをサポートしていない。そのため、別途ユーザにて実装する必要がある。</p>
+</li>
+<li>
+<p><a href="Ch04_AsyncJobWithWebContainer.html#Ch04_AsyncJobWithWeb">非同期実行(Webコンテナ)</a>はリスタートの実現方法をガイドしている。この記述にしたがって、ユーザにて実装すること。</p>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-important" title="Important"></i>
+</td>
+<td class="content">
+<div class="title">入力チェックがある場合のリスタートについて</div>
+<div class="paragraph">
+<p>入力チェックエラーは、チェックエラーの原因となる入力リソースを修正しない限り回復不可能である。
+参考までに、入力チェックエラーが発生した際の入力リソース修正例を以下に示す。</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>入力チェックエラーが発生した場合は、対象データが特定できるようにログ出力を行う。</p>
+</li>
+<li>
+<p>出力されたログ情報にもとづいて、入力データの修正を行う。</p>
+<div class="ulist">
+<ul>
+<li>
+<p>入力データの順番が変わらないようにする。</p>
+</li>
+<li>
+<p>修正方法は入力リソースの生成方法により対応が異なる。</p>
+<div class="ulist">
+<ul>
+<li>
+<p>手動で修正</p>
+</li>
+<li>
+<p>ジョブなどで再作成</p>
+</li>
+<li>
+<p>連携元からの再送</p>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>修正した入力データを配備して、リスタートを実行する。</p>
+</li>
+</ol>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+<div class="title">多重処理(Partition Step)の場合について</div>
+<div class="paragraph">
+<p><a href="Ch08_ParallelAndMultiple.html#Ch08_ParallelAndMultiple_HowToUse_Partitioning">"多重処理(Partition Step)"</a>でリスタートする場合、
+再び<strong>分割処理から</strong>処理が実施される。
+データを分割した結果、すべて処理済みであった場合、無駄な分割処理が行われ<code>JobRepository</code>上には記録されるが、
+これによるデータ不整合などの問題は発生しない。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect2">
+<h3 id="Ch06_RerunRestart_HowToUse_StatelessRestart"><a class="anchor" href="#Ch06_RerunRestart_HowToUse_StatelessRestart"></a>ステートレスリスタート</h3>
+<div class="paragraph">
+<p>ステートレスリスタートを実現する方法を説明する。</p>
+</div>
+<div class="paragraph">
+<p>Macchinetta Batch 2.xでのステートレスリスタートは、件数ベースのリスタートを指す。これは、Spring Batchの仕組みをそのまま利用することで実現する。<br>
+件数ベースのリスタートは、チャンクモデルのジョブ実行で使用できる。
+また、件数ベースのリスタートは、<code>JobRepository</code>に登録される入出力に関するコンテキスト情報を利用する。
+よって、件数ベースのリスタートでは、<code>JobRepository</code>はインメモリデータベースではなく、永続性が担保されているデータベースを使用することを前提とする。</p>
+</div>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-important" title="Important"></i>
+</td>
+<td class="content">
+<div class="title">JobRepositoryの障害発生時について</div>
+<div class="paragraph">
+<p><a href="Ch05_DBAccess.html#Ch05_DBAccess_HowToUse_Config_DataSource">データソースの設定</a>で説明したとおり、
+<code>JobRepository</code>への更新は業務処理とは独立したトランザクションで行われるため、
+<code>JobRepository</code>に障害が発生した場合は実際の処理件数とずれる可能性がある。
+これは、リスタート時に二重処理の危険性があることを意味する。
+よって、<code>JobRepository</code>の可用性を検討したり、次点の方法としてリランの方法を検討しておいたりといった、
+障害時の対処方法を検討する必要がある。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">リスタート時の入力</dt>
+<dd>
+<p>Spring Batchが提供しているItemReaderのほとんどが件数ベースのリスタートに対応しているため、特別な対応は不要である。<br>
+件数ベースのリスタート可能なItemReaderを自作する場合は、リスタート処理が実装されている以下の抽象クラスを拡張すればよい。</p>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">:</dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p><code>org.springframework.batch.item.support.AbstractItemCountingItemStreamItemReader</code></p>
+<div class="literalblock">
+<div class="content">
+<pre>::
+件数ベースリスタートは、あくまで件数のみを基準としてリスタート開始点を決定するため、入力データの変更/追加/削除を検出することができない。
+ジョブが異常終了した後、回復するために入力データを補正することはしばしばあるが、
+以下のようなデータの変更を行った場合は、ジョブが正常終了した結果と、ジョブが異常終了した後リスタートして回復できた結果、
+の間で出力に差が出るため注意すること。</pre>
+</div>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">:</dt>
+</dl>
+</div>
+</li>
+<li>
+<p>データの取得順を変更する</p>
+<div class="ulist">
+<ul>
+<li>
+<p>リスタート時に、重複処理や未処理となるデータが発生してしまい、リランした結果と異なる回復結果になるため、決して行ってはいけない。</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>処理済みデータを更新する</p>
+<div class="ulist">
+<ul>
+<li>
+<p>リスタート時に更新したデータは読み飛ばされるので、リランした結果とリスタートした結果で回復結果が変わるため好ましくない場合がある。</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>未処理データを更新または追加する</p>
+<div class="ulist">
+<ul>
+<li>
+<p>リランした結果と同じ回復結果になるため許容する。ただし、初回実行で正常終了した結果とは異なる。
+これは異常なデータを緊急対処的にパッチする場合や、実行時点で受領したデータを可能な限り多く処理する際に限定して使うとよい。</p>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+</dd>
+</dl>
+</div>
+</dd>
+<dt class="hdlist1">リスタート時の出力</dt>
+<dd>
+<p>非トランザクショナルなリソースへの出力には注意が必要である。たとえば、ファイルではどの位置まで出力していたかを把握し、その位置から出力を行わなければいけない。<br>
+Spring Batchが提供している<code>FlatFileItemWriter</code>は、コンテキストから前回の出力位置を取得して、リスタート時にはその位置から出力を行ため、特別な対応は不要である。<br>
+トランザクショナルなリソースについては、失敗時にロールバックが行われているため、リスタート時には特に対処することなく処理を行うことができる。</p>
+</dd>
+</dl>
+</div>
+<div class="paragraph">
+<p>上記の条件を満たしていれば、失敗したジョブに<code>-restart</code>のオプションを付加して再度実行すればよい。
+以下にジョブのリスタート例を示す。</p>
+</div>
+<div class="listingblock">
+<div class="title">同期実行したジョブのリスタート例</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="console">$ # (1)
+$ java -cp dependency/* org.springframework.batch.core.launch.support.CommandLineJobRunner &lt;jobPath&gt; &lt;jobName&gt; -restart</code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 1. 説明</caption>
+<colgroup>
+<col style="width: 10%;">
+<col style="width: 90%;">
+</colgroup>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">項番</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">説明</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>CommandLineJobRunner</code>へ失敗したジョブと同じジョブBeanのパスとジョブ名を指定し、<code>-restart</code>を付加して実行する。<br>
+ジョブパラメータは、<code>JobRepository</code>から復元されるため指定は不要。</p></td>
+</tr>
+</tbody>
+</table>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-warning" title="Warning"></i>
+</td>
+<td class="content">
+<div class="title">実運用時の考慮</div>
+<div class="paragraph">
+<p>リスタート時に限らず、本番運用においては上記のように直にコマンドを打つような運用は避けること。
+これは、誤ったコマンドの実行を防ぐためである。</p>
+</div>
+<div class="paragraph">
+<p>誤ったコマンドの実行は、監視に不必要な情報をログに残したり、監視ツールが不要なアラートを発する原因になる可能性がある。
+例えば、実行するべきコマンドをスクリプト化し、これを実行する運用とするなど、出来る限り直にコマンドを入力しない運用を検討してほしい。</p>
+</div>
+<div class="paragraph">
+<p>なお、ジョブのリスタートを防止する場合には、<a href="#Ch06_RerunRestart_HowToUse_StatefullRestart">ステートフルリスタート</a>で後述するように、
+ジョブのBean定義で、<code>restartable</code>属性を<code>-restart</code>にすることも考えられる。
+これにより、誤って<code>-restart</code>オプションをつけて起動した場合に、エラーにすることができる。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>非同期実行(DBポーリング)で実行したジョブのリスタート例を以下に示す。</p>
+</div>
+<div class="listingblock">
+<div class="title">非同期実行(DBポーリング)で実行したジョブのリスタート例</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="console">$ # (1)
+$ java -cp dependency/* org.springframework.batch.core.launch.support.CommandLineJobRunner &lt;jobPath&gt; &lt;jobExecutionId&gt; -restart</code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 2. 説明</caption>
+<colgroup>
+<col style="width: 10%;">
+<col style="width: 90%;">
+</colgroup>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">項番</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">説明</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>CommandLineJobRunner</code>へ失敗したジョブと同じジョブ実行ID(JobExecutionId)を指定し、<code>-restart</code>を付加して実行する。<br>
+ジョブパラメータは、<code>JobRepository</code>から復元されるため指定は不要。</p>
+<p class="tableblock">ジョブ実行IDは、ジョブ要求テーブルから取得することができる。
+ジョブ要求テーブルについては、<a href="Ch04_AsyncJobWithDB.html#Ch04_AsyncJobWithDB_Arch_RequireTable">"ポーリングするテーブルについて"</a>を参照。</p></td>
+</tr>
+</tbody>
+</table>
+<div class="admonitionblock tip">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+<div class="title">ジョブ実行IDのログ出力</div>
+<div class="paragraph">
+<p>異常終了したジョブのジョブ実行IDを迅速に特定するため、
+ジョブ終了時や例外発生時にジョブ実行IDをログ出力するリスナーや例外ハンドリングクラスを実装することを推奨する。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>非同期実行(Webコンテナ)でのリスタート例を以下に示す。</p>
+</div>
+<div class="listingblock">
+<div class="title">非同期実行(Webコンテナ)で実行したジョブのリスタート例</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="java"><span class="directive">public</span> <span class="type">long</span> restart(<span class="type">long</span> JobExecutionId) <span class="directive">throws</span> Execption {
+  <span class="keyword">return</span> jobOperator.restart(JobExecutionId); <span class="comment">// (1)</span>
+}</code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 3. 説明</caption>
+<colgroup>
+<col style="width: 10%;">
+<col style="width: 90%;">
+</colgroup>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">項番</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">説明</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>JobOperator</code>へ失敗したジョブと同じジョブ実行ID(JobExecutionId)を指定し、<code>restart</code>メソッドで実行する。<br>
+ジョブパラメータは、<code>JobRepository</code>から復元される。</p>
+<p class="tableblock">ジョブ実行IDは、WebAPでジョブ実行した際に取得したIDを利用するか、<code>JobRepository</code>から取得することができる。
+取得方法は、<a href="Ch07_JobManagement.html#Ch07_JobManagement_HowToUse_JobStatusManagement">"ジョブの状態管理"</a>を参照。</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect2">
+<h3 id="Ch06_RerunRestart_HowToUse_StatefullRestart"><a class="anchor" href="#Ch06_RerunRestart_HowToUse_StatefullRestart"></a>ステートフルリスタート</h3>
+<div class="paragraph">
+<p>ステートフルリスタートを実現する方法を説明する。</p>
+</div>
+<div class="paragraph">
+<p>ステートフルリスタートとは、実行時に入出力結果を付きあわせて未処理データだけ取得することで再処理する方法である。
+この方法は、状態保持･未処理判定など設計が難しいが、データの変更に強い特徴があるため、時々用いられることがある。</p>
+</div>
+<div class="paragraph">
+<p>ステートフルリスタートでは、リスタート条件を入出力リソースから判定するため、<code>JobRepository</code>の永続化は不要となる。</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">リスタート時の入力</dt>
+<dd>
+<p>入出力結果を付きあわせて未処理データだけ取得するロジックを実装したItemReaderを用意する。</p>
+</dd>
+<dt class="hdlist1">リスタート時の出力</dt>
+<dd>
+<p><a href="#Ch06_RerunRestart_HowToUse_StatelessRestart">ステートレスリスタート</a>と同様に非トランザクショナルなリソースへ出力には注意が必要になる。<br>
+ファイルの場合、コンテキストを使用しないことを前提にすると、ファイルの追記を許可するような設計が必要になる。</p>
+</dd>
+</dl>
+</div>
+<div class="paragraph">
+<p>ステートフルリスタートは、<a href="#Ch06_RerunRestart_HowToUse_Rerun">ジョブのリラン</a>と同様に失敗時のジョブと同じ条件でジョブを再実行する。<br>
+ステートレスリスタートとは異なり、<code>-restart</code>のオプションは使用しない。</p>
+</div>
+<div class="paragraph">
+<p>簡単ステートフルなリスタートの実現例を下記に示す。</p>
+</div>
+<div class="olist arabic">
+<div class="title">処理仕様</div>
+<ol class="arabic">
+<li>
+<p>入力対象のテーブルに処理済カラムを定義し、処理が成功したらNULL以外の値で更新する。</p>
+<div class="ulist">
+<ul>
+<li>
+<p>未処理データの抽出条件は、処理済カラムの値がNULLとなる。</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>処理結果をファイルに出力する。</p>
+</li>
+</ol>
+</div>
+<div class="listingblock">
+<div class="title">RestartOnConditionRepository.xml</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"><span class="comment">&lt;!-- (1) --&gt;</span>
+<span class="tag">&lt;select</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">findByProcessedIsNull</span><span class="delimiter">&quot;</span></span>
+        <span class="attribute-name">resultType</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jp.co.ntt.fw.macchinetta.batch.functionaltest.app.model.plan.SalesPlanDetail</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+    <span class="inline-delimiter">&lt;![CDATA[</span>
+    SELECT
+        branch_id AS branchId, year, month, customer_id AS customerId, amount
+    FROM
+        sales_plan_detail
+    WHERE
+        processed IS NULL
+    ORDER BY
+        branch_id ASC, year ASC, month ASC, customer_id ASC
+    <span class="inline-delimiter">]]&gt;</span>
+<span class="tag">&lt;/select&gt;</span>
+
+<span class="comment">&lt;!-- (2) --&gt;</span>
+<span class="tag">&lt;update</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">update</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">parameterType</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jp.co.ntt.fw.macchinetta.batch.functionaltest.app.model.plan.SalesPlanDetail</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+    <span class="inline-delimiter">&lt;![CDATA[</span>
+    UPDATE
+        sales_plan_detail
+    SET
+        processed = '1'
+    WHERE
+        branch_id = #{branchId}
+    AND
+        year = #{year}
+    AND
+        month = #{month}
+    AND
+        customer_id = #{customerId}
+    <span class="inline-delimiter">]]&gt;</span>
+<span class="tag">&lt;/update&gt;</span></code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">restartOnConditionBasisJob.xml</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"><span class="comment">&lt;!-- (3) --&gt;</span>
+<span class="tag">&lt;bean</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">reader</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">org.mybatis.spring.batch.MyBatisCursorItemReader</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">p:queryId</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jp.co.ntt.fw.macchinetta.batch.functionaltest.ch06.reprocessing.repository.RestartOnConditionRepository.findByZeroOrLessAmount</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">p:sqlSessionFactory-ref</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobSqlSessionFactory</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+
+<span class="comment">&lt;!-- (4) --&gt;</span>
+<span class="tag">&lt;bean</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">dbWriter</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">org.mybatis.spring.batch.MyBatisBatchItemWriter</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">p:statementId</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jp.co.ntt.fw.macchinetta.batch.functionaltest.ch06.reprocessing.repository.RestartOnConditionRepository.update</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">p:sqlSessionTemplate-ref</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">batchModeSqlSessionTemplate</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+
+<span class="tag">&lt;bean</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">fileWriter</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">org.springframework.batch.item.file.FlatFileItemWriter</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">scope</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">step</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">p:resource</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">file:#{jobParameters['outputFile']}</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">p:appendAllowed</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">true</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span> <span class="comment">&lt;!-- (5) --&gt;</span>
+    <span class="tag">&lt;property</span> <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">lineAggregator</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+        <span class="tag">&lt;bean</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">org.springframework.batch.item.file.transform.DelimitedLineAggregator</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+            <span class="tag">&lt;property</span> <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">fieldExtractor</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+                <span class="tag">&lt;bean</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">org.springframework.batch.item.file.transform.BeanWrapperFieldExtractor</span><span class="delimiter">&quot;</span></span>
+                      <span class="attribute-name">p:names</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">branchId,year,month,customerId,amount</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+            <span class="tag">&lt;/property&gt;</span>
+        <span class="tag">&lt;/bean&gt;</span>
+    <span class="tag">&lt;/property&gt;</span>
+<span class="tag">&lt;/bean&gt;</span>
+<span class="comment">&lt;!-- (6) --&gt;</span>
+<span class="tag">&lt;bean</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">compositeWriter</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">org.springframework.batch.item.support.CompositeItemWriter</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+    <span class="tag">&lt;property</span> <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">delegates</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+        <span class="tag">&lt;list&gt;</span>
+            <span class="tag">&lt;ref</span> <span class="attribute-name">bean</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">fileWriter</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+            <span class="tag">&lt;ref</span> <span class="attribute-name">bean</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">dbWriter</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+        <span class="tag">&lt;/list&gt;</span>
+    <span class="tag">&lt;/property&gt;</span>
+<span class="tag">&lt;/bean&gt;</span>
+
+<span class="tag">&lt;batch:job</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">restartOnConditionBasisJob</span><span class="delimiter">&quot;</span></span>
+           <span class="attribute-name">job-repository</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobRepository</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">restartable</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">false</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span> <span class="comment">&lt;!-- (7) --&gt;</span>
+
+    <span class="tag">&lt;batch:step</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">restartOnConditionBasisJob.step01</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+        <span class="tag">&lt;batch:tasklet</span> <span class="attribute-name">transaction-manager</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobTransactionManager</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+            <span class="tag">&lt;batch:chunk</span> <span class="attribute-name">reader</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">reader</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">processor</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">amountUpdateItemProcessor</span><span class="delimiter">&quot;</span></span>
+                         <span class="attribute-name">writer</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">compositeWriter</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">commit-interval</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">10</span><span class="delimiter">&quot;</span></span> <span class="tag">/&gt;</span>
+        <span class="tag">&lt;/batch:tasklet&gt;</span>
+    <span class="tag">&lt;/batch:step&gt;</span>
+
+<span class="tag">&lt;/batch:job&gt;</span></code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">リスタートのコマンド実行例</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="console">$ # (8)
+$ java -cp dependency/* org.springframework.batch.core.launch.support.CommandLineJobRunner &lt;jobPath&gt; &lt;jobName&gt; &lt;jobParameters&gt; ...</code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 4. 説明</caption>
+<colgroup>
+<col style="width: 10%;">
+<col style="width: 90%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">処理済カラムがNULLのデータのみ抽出するようにSQLを定義する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(2)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">処理済カラムをNULL以外で更新するSQLを定義する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(3)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ItemReaderには、(1)で定義したSQLIDを設定する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(4)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">データベースへ更新は、(2)で定義したSQLIDを設定する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(5)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">リスタート時に前回中断箇所から書き込み可能にするため、ファイルの追記を許可する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(6)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ファイル出力 &#8594; データベース更新の順序で処理されるように<code>CompositeItemWriter</code>を定し、chunkのwriterに設定する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(7)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">必須ではないが、誤って<code>-restart</code>オプションをつけて起動された場合にエラーになるように<code>restartable</code>属性をfalseに設定しておく。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(8)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">失敗したジョブの実行条件で再度実行を行う。</p></td>
+</tr>
+</tbody>
+</table>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-important" title="Important"></i>
+</td>
+<td class="content">
+<div class="title">ジョブのrestartable属性について</div>
+<div class="paragraph">
+<p><code>restartable</code>がtrueの場合、<a href="#Ch06_RerunRestart_HowToUse_StatelessRestart">ステートレスリスタート</a>で説明したとおり、コンテキスト情報を使い入出力データの読み飛ばしを行う。
+ステートフルリスタートでSpring Batch提供のItemReaderやItemWriterを使用している場合、この動作により期待した処理が行われなくなる可能性がある。
+そのため、<code>restartable</code>をfalseにすることで、<code>-restart</code>オプションによる起動はエラーとなり、誤動作を防止することができる。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</div>
+</div>
+</div>
+</div>
+<link rel="stylesheet" href="./theme/css/coderay-asciidoctor.css">
+<div class="container">
+
+  <div class="common-bg">
+    <div class="information">
+      Macchinetta Batch Framework (2.x) Development Guideline - version 2.2.1.RELEASE, 2021-3-26, commit-id:94f5df3
+    </div>
+    <div class="index">
+      <a href="index.html">&gt; INDEX</a>
+    </div>
+  </div>
+
+  <div class="footer-bg">
+    <div class="copyright">
+      &copy; Copyright 2017 NTT Corporation.
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

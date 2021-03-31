@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Asciidoctor 2.0.10">
+<title>チャンクモデルとタスクレットモデルの使い分け</title>
+<link rel="stylesheet" href="./theme/css/readthedocs.css">
+<link rel="stylesheet" href="./theme/css/font-awesome.min.css">
+<link rel="stylesheet" href="./theme/css/coderay-asciidoctor.css">
+<link rel="stylesheet" href="./theme/css/header-footer.css">
+<title>Macchinetta Batch Framework (2.x) Development Guideline</title>
+
+<div class="common-bg">
+  <div class="information">
+    Macchinetta Batch Framework (2.x) Development Guideline - version 2.2.1.RELEASE, 2021-3-26, commit-id:94f5df3
+  </div>
+  <div class="index">
+    <a href="index.html">&gt; INDEX</a>
+  </div>
+</div>
+</head>
+<body id="Ch03_ChunkOrTasklet" class="book toc2 toc-left">
+<div id="header">
+<h1>チャンクモデルとタスクレットモデルの使い分け</h1>
+<div id="toc" class="toc2">
+<div id="toctitle">Table of Contents</div>
+<ul class="sectlevel1">
+<li><a href="#Ch03_ChunkOrTasklet_Comparison">チャンクモデルとタスクレットモデルの比較</a></li>
+<li><a href="#Ch03_ChunkOrTasklet_Example">チャンクモデルとタスクレットモデルを使い分ける例</a></li>
+</ul>
+</div>
+</div>
+<div id="content">
+<div class="sect1">
+<h2 id="Ch03_ChunkOrTasklet_Comparison"><a class="anchor" href="#Ch03_ChunkOrTasklet_Comparison"></a>チャンクモデルとタスクレットモデルの比較</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>ここでは、チャンクモデルとタスクレットモデルの使い分けについて、それぞれの特徴を整理することで説明する。
+なお、詳細な説明については適宜対応する章を参照。</p>
+</div>
+<div class="paragraph">
+<p>また、以降の内容は考え方の一例として捉えてほしい。制約や推奨事項ではない。
+ユーザやシステムの特性に応じてジョブを作成する際の参考にしてほしい。</p>
+</div>
+<div class="paragraph">
+<p>以下に、チャンクモデルとタスクレットモデルの主要な違いについて列挙する。</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 1. チャンクモデルとタスクレットモデルの比較</caption>
+<colgroup>
+<col style="width: 10%;">
+<col style="width: 45%;">
+<col style="width: 45%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項目</th>
+<th class="tableblock halign-left valign-top">チャンクモデル</th>
+<th class="tableblock halign-left valign-top">タスクレットモデル</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">構成要素</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>ItemReader</code>, <code>ItemProcessor</code>, <code>ItemWriter</code>の3つに分割する。</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Tasklet</code>の1つに集約する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">トランザクション</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">一定件数で中間コミットを発行しながら処理することが基本となる。一括コミットはできない。<br>
+処理対象データ件数に依らず一定のマシンリソースで処理できる。<br>
+処理途中でエラーが発生すると未処理データと処理済データが混在する。</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">全体で一括コミットにて処理することが基本となる。中間コミットはユーザにて実装する必要がある。<br>
+処理対象データが大量になると、マシンリソースが枯渇する恐れがある。<br>
+処理途中でエラーが発生すると未処理データのみにロールバックされる。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">リスタート</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">件数ベースのリスタートができる。</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">件数ベースのリスタートはできない。</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="sect1">
+<h2 id="Ch03_ChunkOrTasklet_Example"><a class="anchor" href="#Ch03_ChunkOrTasklet_Example"></a>チャンクモデルとタスクレットモデルを使い分ける例</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>以上を踏まえて、以下にそれぞれを使い分ける例をいくつか紹介する。</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">リカバリを限りなくシンプルにしたい</dt>
+<dd>
+<p>エラーとなったジョブは対象のジョブをリランするのみで復旧したい場合など、
+リカバリをシンプルにしたい時はタスクレットモデルを選択するとよい。<br>
+チャンクモデルでは処理済データをジョブ実行前の状態に戻したり、
+未処理データのみ処理するようジョブをあらかじめ作りこんでおいたり、
+といった対処が必要となる。</p>
+</dd>
+<dt class="hdlist1">処理の内容をまとめたい</dt>
+<dd>
+<p>1ジョブ1クラスなど、ジョブの見通しを優先したい場合はタスクレットを選択するとよい。</p>
+</dd>
+<dt class="hdlist1">大量のデータを安定して処理したい</dt>
+<dd>
+<p>1000万件など、一括処理するとリソースに影響する件数を対象とする際はチャンクモデルを活用するか検討するとよい。
+これは中間コミットによって安定させることを意味する。
+タスクレットモデルでも中間コミットを打つことが可能だが、チャンクモデルの方がシンプルな実装になる可能性がある。</p>
+</dd>
+<dt class="hdlist1">エラー後の復旧は件数ベースリスタートとしたい</dt>
+<dd>
+<p>バッチウィンドウがシビアであり、エラーとなったデータ以降から再開したい場合に、
+Spring Batchが提供する件数ベースリスタートを活用するときは、チャンクモデルを選択する必要がある。
+これにより、個々のジョブでその仕組を作りこむ必要がなくなる。</p>
+</dd>
+</dl>
+</div>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-important" title="Important"></i>
+</td>
+<td class="content">
+<div class="paragraph">
+<p>チャンクモデルとタスクレットモデルは、併用することが基本である。<br>
+バッチシステム内のジョブすべてをどちらかのモデルでのみ実装する必要はない。<br>
+システム全体のジョブがもつ特性を踏まえて、一方のモデルを基本とし、状況に応じてもう一方のモデルを使うことは自然である。</p>
+</div>
+<div class="paragraph">
+<p>たとえば、大部分は処理件数や処理時間に余裕があるならばタスクレットモデルを基本とし、
+極少数の大量件数を処理するジョブはチャンクモデルを選択する、といったことは自然といえる。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</div>
+</div>
+</div>
+<div class="container">
+
+  <div class="common-bg">
+    <div class="information">
+      Macchinetta Batch Framework (2.x) Development Guideline - version 2.2.1.RELEASE, 2021-3-26, commit-id:94f5df3
+    </div>
+    <div class="index">
+      <a href="index.html">&gt; INDEX</a>
+    </div>
+  </div>
+
+  <div class="footer-bg">
+    <div class="copyright">
+      &copy; Copyright 2017 NTT Corporation.
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

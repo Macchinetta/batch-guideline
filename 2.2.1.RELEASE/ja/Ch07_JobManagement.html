@@ -1,0 +1,1265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Asciidoctor 2.0.10">
+<title>ジョブの管理</title>
+<link rel="stylesheet" href="./theme/css/readthedocs.css">
+<link rel="stylesheet" href="./theme/css/font-awesome.min.css">
+<link rel="stylesheet" href="./theme/css/coderay-asciidoctor.css">
+<link rel="stylesheet" href="./theme/css/header-footer.css">
+<title>Macchinetta Batch Framework (2.x) Development Guideline</title>
+
+<div class="common-bg">
+  <div class="information">
+    Macchinetta Batch Framework (2.x) Development Guideline - version 2.2.1.RELEASE, 2021-3-26, commit-id:94f5df3
+  </div>
+  <div class="index">
+    <a href="index.html">&gt; INDEX</a>
+  </div>
+</div>
+</head>
+<body id="Ch07_JobManagement" class="book toc2 toc-left">
+<div id="header">
+<h1>ジョブの管理</h1>
+<div id="toc" class="toc2">
+<div id="toctitle">Table of Contents</div>
+<ul class="sectlevel1">
+<li><a href="#Ch07_JobManagement_Overview">Overview</a>
+<ul class="sectlevel2">
+<li><a href="#Ch07_JobManagement_Overview_JobExecutionManagement">ジョブの実行管理とは</a>
+<ul class="sectlevel3">
+<li><a href="#Ch07_JobManagement_Overview_JobExecutionManagement_Function">Spring Batch が提供する機能</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="#Ch07_JobManagement_HowToUse">How to use</a>
+<ul class="sectlevel2">
+<li><a href="#Ch07_JobManagement_HowToUse_JobStatusManagement">ジョブの状態管理</a>
+<ul class="sectlevel3">
+<li><a href="#Ch07_JobManagement_HowToUse_JobStatusManagement_Persistence">状態の永続化</a></li>
+<li><a href="#Ch07_JobManagement_HowToUse_JobStatusManagement_Retrieve">ジョブの状態・実行結果の確認</a></li>
+<li><a href="#Ch07_JobManagement_HowToUse_JobStatusManagement_JobStop">ジョブの停止</a></li>
+</ul>
+</li>
+<li><a href="#Ch07_JobManagement_HowToUse_ExitCode">終了コードのカスタマイズ</a>
+<ul class="sectlevel3">
+<li><a href="#Ch07_JobManagement_HowToUse_ExitCode_StepExitCode">ステップの終了コードの変更</a></li>
+<li><a href="#Ch07_JobManagement_HowToUse_ExitCode_JobExitCode">ジョブの終了コードの変更</a></li>
+<li><a href="#Ch07_JobManagement_HowToUse_ExitCode_Mapping">終了コードのマッピング</a></li>
+</ul>
+</li>
+<li><a href="#Ch07_JobManagement_HowToUse_DuplicateSafe">二重起動防止</a></li>
+<li><a href="#Ch07_JobManagement_HowToUse_Logging">ロギング</a>
+<ul class="sectlevel3">
+<li><a href="#Ch07_JobManagement_HowToUse_Logging_Clarification">ログ出力元の明確化</a></li>
+<li><a href="#Ch07_JobManagement_HowToUse_Logging_Monitoring">ログ監視</a></li>
+<li><a href="#Ch07_JobManagement_HowToUse_Logging_OutputLocation">ログ出力先</a></li>
+</ul>
+</li>
+<li><a href="#Ch07_JobManagement_HowToUse_MessageManagement">メッセージ管理</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div id="content">
+<div class="sect1">
+<h2 id="Ch07_JobManagement_Overview"><a class="anchor" href="#Ch07_JobManagement_Overview"></a>Overview</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>ジョブの実行を管理する方法について説明する。</p>
+</div>
+<div class="paragraph">
+<p>本機能は、チャンクモデルとタスクレットモデルとで同じ使い方になる。</p>
+</div>
+<div class="sect2">
+<h3 id="Ch07_JobManagement_Overview_JobExecutionManagement"><a class="anchor" href="#Ch07_JobManagement_Overview_JobExecutionManagement"></a>ジョブの実行管理とは</h3>
+<div class="paragraph">
+<p>ジョブの起動状態や実行結果を記録しバッチシステムを維持することを指す。
+特に、異常発生時の検知や次に行うべき行動(異常終了後のリラン・リスタート等)を判断するために、必要な情報を確保することが重要である。<br>
+バッチアプリケーションの特性上、起動直後にその結果をユーザインタフェースで確認できることは稀である。
+よって、ジョブスケジューラ/RDBMS/アプリケーションログといった、ジョブの実行とは別に実行状態・結果の記録を行う仕組みが必要となる。</p>
+</div>
+<div class="sect3">
+<h4 id="Ch07_JobManagement_Overview_JobExecutionManagement_Function"><a class="anchor" href="#Ch07_JobManagement_Overview_JobExecutionManagement_Function"></a>Spring Batch が提供する機能</h4>
+<div class="paragraph">
+<p>Spring Batchは、ジョブの実行管理向けに以下のインタフェースを提供している。</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 1. ジョブの管理機能一覧</caption>
+<colgroup>
+<col style="width: 40%;">
+<col style="width: 60%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">機能</th>
+<th class="tableblock halign-left valign-top">対応するインタフェース</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ジョブの実行状態・結果の記録</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>org.springframework.batch.core.repository.JobRepository</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ジョブの終了コードとプロセス終了コードの変換</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>org.springframework.batch.core.launch.support.ExitCodeMapper</code></p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>Spring Batch はジョブの起動状態・実行結果の記録に<code>JobRepository</code>を使用する。
+Macchinetta Batch 2.xでは、以下のすべてに該当する場合は永続化は任意としてよい。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>同期型ジョブ実行のみでMacchinetta Batch 2.xを使用する。</p>
+</li>
+<li>
+<p>ジョブの停止・リスタートを含め、ジョブの実行管理はすべてジョブスケジューラに委ねる。</p>
+<div class="ulist">
+<ul>
+<li>
+<p>Spring Batchがもつ<code>JobRepository</code>を前提としたリスタートを利用しない。</p>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>これらに該当する場合は<code>JobRepository</code>が使用するRDBMSの選択肢として、インメモリ・組み込み型データベースである<code>H2</code>を利用する。<br>
+一方で非同期実行を利用する場合や、Spring Batchの停止・リスタートを活用する場合は、ジョブの実行状態・結果を永続化可能なRDBMSが必要となる。</p>
+</div>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-important" title="Important"></i>
+</td>
+<td class="content">
+<div class="title">デフォルトのトランザクション分離レベル</div>
+<div class="paragraph">
+<p>Spring Batchが提供するxsdでは、<code>JobRepository</code>のトランザクション分離レベルは<code>SERIALIZABLE</code>をデフォルト値としている。
+しかし、この場合、同期/非同期にかかわらず複数のジョブを同時に実行した際に<code>JobRepository</code>の更新で例外が発生してしまう。
+そのため、ブランクプロジェクトでは、あらかじめ<code>JobRepository</code>のトランザクション分離レベルを<code>READ_COMMITTED</code>に設定している。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+<div class="title">インメモリJobRepositoryの選択肢</div>
+<div class="paragraph">
+<p>Spring Batch にはインメモリでジョブの実行管理を行う
+<code>org.springframework.batch.core.repository.support.MapJobRepositoryFactoryBean</code>
+が用意されているが、本ガイドラインでは使用しない。<br>
+このクラスのJavadocにあるとおり、
+<code>This repository is only really intended for use in testing and rapid prototyping.</code>
+とテスト用であることが示されており、また、
+<code>Not suited for use in multi-threaded jobs with splits</code>
+と並列処理には不適切であると示されているためである。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div id="Ch07_JobManagement_Overview_JobExecutionManagement_PerformanceImprovement" class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+<div class="title">IndexによるJobRepositoryの性能改善</div>
+<div class="paragraph">
+<p>Indexを作成することで、<code>JobRepository</code>の性能改善が期待できる。<br>
+どのSQL文のどの列に対してIndexを作成するかは、実行計画を確認するなどして適切に判断してほしい。
+Spring Batchのリファレンス
+<a href="https://docs.spring.io/spring-batch/docs/4.2.5.RELEASE/reference/html/schema-appendix.html#recommendationsForIndexingMetaDataTables">B.10 Recommendations for Indexing Meta Data Tables</a>
+では、Spring Batchが提供するDaoの実装によって、WHERE句でどの列が利用されているか、およびそれらの使用頻度を示しているので参考にするとよい。<br></p>
+</div>
+<div class="paragraph">
+<p><code>JobRepository</code>の永続化を行う場合は、Indexを作成することを検討されたい。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div id="Ch07_JobManagement_Overview_JobExecutionManagement_FixPerformanceProblem" class="admonitionblock tip">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+<div class="title">Spring BatchのバージョンアップによるJobRepositoryの性能問題の修正</div>
+<div class="paragraph">
+<p>Macchinetta Batch 2.2.0では、Spring Batch 4.2.xから加わった変更により、ジョブの起動時にSpring Batchが発行する
+<a href="https://github.com/spring-projects/spring-batch/issues/3634"><code>JobRepository</code>へのSQLによる性能劣化</a>が発生する事がある。
+この問題はSpring Batch側で対処され、Spring Batch 4.2.4および4.3.0で変更が取り込まれた。Macchinetta Batchでは2.2.1および2.3.0でこの変更が取り込まれている。</p>
+</div>
+<div class="paragraph">
+<p>本件の対策として、Macchinetta Batch 2.2.0では「Spring Batchで対処された<a href="https://github.com/spring-projects/spring-batch/pull/3635/files">変更</a>を実装する」ことを推奨しているが、
+Macchinetta Batch 2.2.1.RELEASEではこの問題は発生しないため、対策は不要となる。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>ジョブスケジューラを使用したジョブの実行管理については各製品のマニュアルを参照。<br>
+本ガイドラインではMacchinetta Batch 2.x内部で<code>JobRepository</code>を用いたジョブの状態を管理するうえで関連する、
+以下の項目について説明する。</p>
+</div>
+<div class="ulist">
+<div class="title">Macchinetta Batch内部での状態管理に関する項目</div>
+<ul>
+<li>
+<p><a href="#Ch07_JobManagement_HowToUse_JobStatusManagement">ジョブの状態管理</a></p>
+<div class="ulist">
+<ul>
+<li>
+<p>状態を永続化する方法</p>
+</li>
+<li>
+<p>状態を確認する方法</p>
+</li>
+<li>
+<p>ジョブを手動停止する方法</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p><a href="#Ch07_JobManagement_HowToUse_ExitCode">終了コードのカスタマイズ</a></p>
+</li>
+<li>
+<p><a href="#Ch07_JobManagement_HowToUse_DuplicateSafe">二重起動防止</a></p>
+</li>
+<li>
+<p><a href="#Ch07_JobManagement_HowToUse_Logging">ロギング</a></p>
+</li>
+<li>
+<p><a href="#Ch07_JobManagement_HowToUse_MessageManagement">メッセージ管理</a></p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="Ch07_JobManagement_HowToUse"><a class="anchor" href="#Ch07_JobManagement_HowToUse"></a>How to use</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p><code>JobRepository</code>はSpring BatchによりRDBMSへ自動的に新規登録・更新を行う。<br>
+ジョブの状態・実行結果の確認を行う場合は、意図しない変更処理がバッチアプリケーションの内外から行われることのないよう、以下のいずれかの方法を選択する。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="#Ch07_JobManagement_HowToUse_JobStatusManagement">ジョブの状態管理</a>に関するテーブルに対しクエリを発行する</p>
+</li>
+<li>
+<p><code>org.springframework.batch.core.explore.JobExplorer</code>を使用する</p>
+</li>
+</ul>
+</div>
+<div class="sect2">
+<h3 id="Ch07_JobManagement_HowToUse_JobStatusManagement"><a class="anchor" href="#Ch07_JobManagement_HowToUse_JobStatusManagement"></a>ジョブの状態管理</h3>
+<div class="paragraph">
+<p><code>JobRepository</code>を用いたジョブの状態管理方法を説明する。<br>
+Spring Batchにより、以下のEntityがRDBMSのテーブルに登録される。</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 2. JobRepositoryで管理されるEntityクラスとテーブル名</caption>
+<colgroup>
+<col style="width: 10%;">
+<col style="width: 20%;">
+<col style="width: 20%;">
+<col style="width: 20%;">
+<col style="width: 30%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">Entityクラス</th>
+<th class="tableblock halign-left valign-top">テーブル名</th>
+<th class="tableblock halign-left valign-top">生成単位</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>JobExecution</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>BATCH_JOB_EXECUTION</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1回のジョブ実行</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ジョブの状態・実行結果を保持する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(2)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>JobExecutionContext</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>BATCH_JOB_EXECUTION_CONTEXT</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1回のジョブ実行</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ジョブ内部のコンテキストを保持する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(3)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>JobExecutionParams</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>BATCH_JOB_EXECUTION_PARAMS</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1回のジョブ実行</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">起動時に与えられたジョブパラメータを保持する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(4)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>StepExecution</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>BATCH_STEP_EXECUTION</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1回のステップ実行</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ステップの状態・実行結果、コミット・ロールバック件数を保持する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(5)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>StepExecutionContext</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>BATCH_STEP_EXECUTION_CONTEXT</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1回のステップ実行</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ステップ内部のコンテキストを保持する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(6)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>JobInstance</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>BATCH_JOB_INSTANCE</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ジョブ名とジョブパラメータの組み合わせ</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ジョブ名、およびジョブパラメータをシリアライズした文字列を保持する。</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>たとえば、1回のジョブ起動で3つのステップを実行した場合、以下の差が生じる</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>JobExecution</code>、<code>JobExecutionContext</code>、<code>JobExecutionParams</code>は1レコード登録される</p>
+</li>
+<li>
+<p><code>StepExecution</code>、<code>StepExecutionContext</code>は3レコード登録される</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>また、<code>JobInstance</code>は過去に起動した同名ジョブ・同一パラメータよる二重実行を抑止するために使用されるが、
+Macchinetta Batch 2.xではこのチェックを行わない。詳細は<a href="#Ch07_JobManagement_HowToUse_DuplicateSafe">二重起動防止</a>を参照。</p>
+</div>
+<div class="admonitionblock tip">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+<div class="paragraph">
+<p><code>JobRepository</code>による各テーブルの構成は、
+<a href="Ch02_SpringBatchArchitecture.html#Ch02_SpringBatchArch">Spring Batchのアーキテクチャ</a>にて説明している。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-important" title="Important"></i>
+</td>
+<td class="content">
+<div class="title">チャンク方式におけるStepExecutionの件数項目について</div>
+<div class="paragraph">
+<p>以下のように、不整合が発生しているように見えるが、仕様上妥当なケースがある。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>StepExecution(BATCH_STEP_EXECUTIONテーブル)</code>のトランザクション発行回数が入力データ件数と一致しない場合がある。</p>
+<div class="ulist">
+<ul>
+<li>
+<p>トランザクション発行回数は<code>BATCH_STEP_EXECUTION</code>の<code>COMMIT_COUNT</code>と<code>ROLLBACK_COUNT</code>の総和を指す。<br>
+ただし、入力データ件数がチャンクサイズで割り切れる場合<code>COMMIT_COUNT</code>が+1となる。<br>
+これは入力データ件数分を読み込んだ後、終端を表すnullも入力データとカウントされて空処理されるためである。</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p><code>BATCH_STEP_EXECUTION</code>と<code>BATCH_STEP_EXECUTION_CONTEXT</code>の処理件数が異なることがある。</p>
+<div class="ulist">
+<ul>
+<li>
+<p><code>BATCH_STEP_EXECUTION</code>テーブルの<code>READ_COUNT</code>、<code>WRITE_COUNT</code>はそれぞれ<code>ItemReader</code>、<code>ItemWriter</code>による読み込み・書き込みを行った件数が記録される。</p>
+</li>
+<li>
+<p><code>BATCH_STEP_EXECUTION_CONTEXT</code>テーブルの<code>SHORT_CONTEXT</code>カラムはJSON形式で
+<code>ItemReader</code>による読み込み処理件数が記録される。しかし、必ずしも<code>BATCH_STEP_EXECUTION</code>による処理件数と一致しない。<br></p>
+</li>
+<li>
+<p>これはチャンク方式による<code>BATCH_STEP_EXECUTION</code>テーブルが成功・失敗を問わず読み込み・書き込み件数を記録するのに対し、
+<code>BATCH_STEP_EXECUTION_CONTEXT</code>テーブルは処理途中で失敗した場合のリスタートで再開される位置として記録するためである。</p>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="sect3">
+<h4 id="Ch07_JobManagement_HowToUse_JobStatusManagement_Persistence"><a class="anchor" href="#Ch07_JobManagement_HowToUse_JobStatusManagement_Persistence"></a>状態の永続化</h4>
+<div class="paragraph">
+<p>外部RDBMSを使用することで<code>JobRepository</code>によるジョブの実行管理情報を永続化させることができる。
+batch-application.propertiesの以下項目を外部RDBMS向けのデータソース、スキーマ設定となるよう修正する。</p>
+</div>
+<div class="listingblock">
+<div class="title">batch-application.properties</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="properties"># (1)
+# Admin DataSource settings.
+admin.jdbc.driver=org.postgresql.Driver
+admin.jdbc.url=jdbc:postgresql://serverhost:5432/admin
+admin.jdbc.username=postgres
+admin.jdbc.password=postgres
+
+# (2)
+spring-batch.schema.script=classpath:org/springframework/batch/core/schema-postgresql.sql</code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 3. 設定内容の項目一覧(PostgreSQL)</caption>
+<colgroup>
+<col style="width: 20%;">
+<col style="width: 80%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">接頭辞<code>admin</code>が付与されているプロパティの値として、接続する外部RDBMSの設定をそれぞれ記述する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(2)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">アプリケーション起動時に<code>JobRepository</code>としてスキーマの自動生成を行うスクリプトファイルを指定する。</p></td>
+</tr>
+</tbody>
+</table>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-important" title="Important"></i>
+</td>
+<td class="content">
+<div class="title">管理用/業務用データソースの補足</div>
+<div class="ulist">
+<ul>
+<li>
+<p>データベースへの接続設定は、管理用と業務用データソースとして別々に定義する。<br>
+ブランクプロジェクトでは別々に定義した上で、
+<code>JobRepository</code>は、プロパティ接頭辞に<code>admin</code>が付与された管理用データソースを使用するよう設定済みである。</p>
+</li>
+<li>
+<p>非同期実行(DBポーリング)を使用する場合は、ジョブ要求テーブルも同じ管理用データソース、スキーマ生成スクリプトを指定すること。<br>
+詳細は<a href="Ch04_AsyncJobWithDB.html#Ch04_AsyncJobWithDB">非同期実行(DBポーリング)</a>を参照。</p>
+</li>
+</ul>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect3">
+<h4 id="Ch07_JobManagement_HowToUse_JobStatusManagement_Retrieve"><a class="anchor" href="#Ch07_JobManagement_HowToUse_JobStatusManagement_Retrieve"></a>ジョブの状態・実行結果の確認</h4>
+<div class="paragraph">
+<p><code>JobRepository</code>からジョブの実行状態を確認する方法について説明する。<br>
+いずれの方法も、あらかじめ確認対象のジョブ実行IDが既知であること。</p>
+</div>
+<div class="sect4">
+<h5 id="Ch07_JobManagement_HowToUse_JobStatusManagement_Retrieve_Query"><a class="anchor" href="#Ch07_JobManagement_HowToUse_JobStatusManagement_Retrieve_Query"></a>クエリを直接発行する</h5>
+<div class="paragraph">
+<p>RDBMSコンソールを用い、<code>JobRepository</code>が永続化されたテーブルに対して直接クエリを発行する。</p>
+</div>
+<div class="listingblock">
+<div class="title">SQLサンプル</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="sql">admin=<span class="comment"># select JOB_EXECUTION_ID, START_TIME, END_TIME, STATUS, EXIT_CODE from BATCH_JOB_EXECUTION where JOB_EXECUTION_ID = 1;</span>
+ job_execution_id |       start_time        |        end_time         |  status   | exit_code
+<span class="comment">------------------+-------------------------+-------------------------+-----------+-----------</span>
+                <span class="integer">1</span> | <span class="integer">2017</span><span class="integer">-02</span><span class="integer">-14</span> <span class="integer">17</span>:<span class="integer">57</span>:<span class="float">38.486</span> | <span class="integer">2017</span><span class="integer">-02</span><span class="integer">-14</span> <span class="integer">18</span>:<span class="integer">19</span>:<span class="float">45.421</span> | COMPLETED | COMPLETED
+(<span class="integer">1</span> <span class="type">row</span>)
+admin=<span class="comment"># select JOB_EXECUTION_ID, STEP_EXECUTION_ID, START_TIME, END_TIME, STATUS, EXIT_CODE from BATCH_STEP_EXECUTION where JOB_EXECUTION_ID = 1;</span>
+ job_execution_id | step_execution_id |       start_time        |        end_time        |  status   | exit_code
+<span class="comment">------------------+-------------------+-------------------------+------------------------+-----------+-----------</span>
+                <span class="integer">1</span> |                 <span class="integer">1</span> | <span class="integer">2017</span><span class="integer">-02</span><span class="integer">-14</span> <span class="integer">17</span>:<span class="integer">57</span>:<span class="float">38.524</span> | <span class="integer">2017</span><span class="integer">-02</span><span class="integer">-14</span> <span class="integer">18</span>:<span class="integer">19</span>:<span class="float">45.41</span> | COMPLETED | COMPLETED
+(<span class="integer">1</span> <span class="type">row</span>)</code></pre>
+</div>
+</div>
+</div>
+<div class="sect4">
+<h5 id="Ch07_JobManagement_HowToUse_JobStatusManagement_Retrieve_JobExplorer"><a class="anchor" href="#Ch07_JobManagement_HowToUse_JobStatusManagement_Retrieve_JobExplorer"></a><code>JobExplorer</code>を利用する</h5>
+<div class="paragraph">
+<p>バッチアプリケーションと同じアプリケーションコンテキストを共有可能な環境下で、<code>JobExplorer</code>をインジェクションすることでジョブの実行状態を確認する。</p>
+</div>
+<div class="listingblock">
+<div class="title">APIコールサンプル</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="java"><span class="comment">// omitted.</span>
+
+<span class="annotation">@Inject</span>
+<span class="directive">private</span> JobExplorer jobExplorer;
+
+<span class="directive">private</span> <span class="type">void</span> monitor(<span class="type">long</span> jobExecutionId) {
+
+    <span class="comment">// (1)</span>
+    JobExecution jobExecution = jobExplorer.getJobExecution(jobExecutionId);
+
+    <span class="comment">// (2)</span>
+    <span class="predefined-type">String</span> jobName = jobExecution.getJobInstance().getJobName();
+    <span class="predefined-type">Date</span> jobStartTime = jobExecution.getStartTime();
+    <span class="predefined-type">Date</span> jobEndTime = jobExecution.getEndTime();
+    BatchStatus jobBatchStatus = jobExecution.getStatus();
+    <span class="predefined-type">String</span> jobExitCode = jobExecution.getExitStatus().getExitCode();
+
+    <span class="comment">// omitted.</span>
+
+    <span class="comment">// (3)</span>
+    <span class="keyword">for</span> (StepExecution stepExecution : jobExecution.getStepExecutions()) {
+        <span class="predefined-type">String</span> stepName = stepExecution.getStepName();
+        <span class="predefined-type">Date</span> stepStartTime = stepExecution.getStartTime();
+        <span class="predefined-type">Date</span> stepEndTime = stepExecution.getEndTime();
+        BatchStatus stepStatus = stepExecution.getStatus();
+        <span class="predefined-type">String</span> stepExitCode = stepExecution.getExitStatus().getExitCode();
+
+        <span class="comment">// omitted.</span>
+    }
+}</code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 4. 設定内容の項目一覧(PostgreSQL)</caption>
+<colgroup>
+<col style="width: 20%;">
+<col style="width: 80%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">インジェクションされた<code>JobExplorer</code>からジョブ実行IDを指定し<code>JobExecution</code>を取得する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(2)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>JobExecution</code>によるジョブの実行結果を取得する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(3)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>JobExecution</code>から、ジョブ内で実行されたステップのコレクションを取得し、個々の実行結果を取得する。</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="sect3">
+<h4 id="Ch07_JobManagement_HowToUse_JobStatusManagement_JobStop"><a class="anchor" href="#Ch07_JobManagement_HowToUse_JobStatusManagement_JobStop"></a>ジョブの停止</h4>
+<div class="paragraph">
+<p>ジョブの停止とは<code>JobRepository</code>の実行中ステータスを停止中ステータスに更新し、ステップの境界や
+チャンク方式によるチャンクコミット時にジョブを停止させる機能である。<br>
+リスタートと組み合わせることで、停止された位置からの処理を再開させることができる。</p>
+</div>
+<div class="admonitionblock tip">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+<div class="paragraph">
+<p>リスタートの詳細は<a href="Ch06_ReProcessing.html#Ch06_RerunRestart_HowToUse_Restart">"ジョブのリスタート"</a>を参照。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="admonitionblock caution">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-caution" title="Caution"></i>
+</td>
+<td class="content">
+<div class="paragraph">
+<p>「ジョブの停止」は仕掛かり中のジョブを直ちに中止する機能ではなく、<code>JobRepository</code>の実行中ステータスを停止中に更新する機能である。<br>
+ジョブに対して即座に仕掛かり中スレッドに対して割り込みするといったような、何らかの停止処理を行うわけではない。</p>
+</div>
+<div class="paragraph">
+<p>このため、ジョブの停止は「チャンクの切れ目など、節目となる処理が完了した際に停止するよう予約する」ことともいえる。
+たとえば以下の状況下でジョブ停止を行っても、期待する動作とはならない。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>単一ステップで<code>Tasklet</code>により構成されたジョブ実行。</p>
+</li>
+<li>
+<p>チャンク方式で、データ入力件数 &lt; <code>commit-interval</code>のとき。</p>
+</li>
+<li>
+<p>処理内で無限ループが発生している場合。</p>
+</li>
+</ul>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>以下、ジョブの停止方法を説明する。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>コマンドラインからの停止</p>
+<div class="ulist">
+<ul>
+<li>
+<p>同期型ジョブ・非同期型ジョブのどちらでも利用できる</p>
+</li>
+<li>
+<p><code>CommandLineJobRunner</code>の<code>-stop</code>を利用する</p>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+<div class="listingblock">
+<div class="title">起動時のジョブ名を指定する方法</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="terminal">$ java org.springframework.batch.core.launch.support.CommandLineJobRunner \
+    classpath:/META-INF/jobs/job01.xml job01 -stop</code></pre>
+</div>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>ジョブ名指定によるジョブ停止は同名のジョブが並列で起動することが少ない同期バッチ実行時に適している。</p>
+</li>
+</ul>
+</div>
+<div class="listingblock">
+<div class="title">ジョブ実行ID(jobExecutionId)を指定する方法</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="terminal">$ java org.springframework.batch.core.launch.support.CommandLineJobRunner \
+    classpath:/META-INF/jobs/job01.xml 3 -stop</code></pre>
+</div>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>ジョブ実行ID指定によるジョブ停止は同名のジョブが並列で起動することの多い非同期バッチ実行時に適している。</p>
+</li>
+</ul>
+</div>
+<div class="admonitionblock tip">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+<div class="ulist">
+<ul>
+<li>
+<p>JobExecutionIdの確認方法は<a href="#Ch07_JobManagement_HowToUse_JobStatusManagement_Retrieve">ジョブの状態・実行結果の確認</a>を参照。</p>
+</li>
+<li>
+<p>ジョブ実行IDをもとにジョブ停止を行う場合は<code>JobOpertion#stop()</code>を利用してもよい。<br>
+<code>JobOperation#stop()</code>を用いたジョブの停止は
+<a href="Ch04_AsyncJobWithWebContainer.html#Ch04_AsyncJobWithWeb_HowToExtend_StopAndRestart">"非同期実行ジョブの停止とリスタート"</a>を参照。</p>
+</li>
+</ul>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="Ch07_JobManagement_HowToUse_ExitCode"><a class="anchor" href="#Ch07_JobManagement_HowToUse_ExitCode"></a>終了コードのカスタマイズ</h3>
+<div class="paragraph">
+<p>同期実行によりジョブ終了時、javaプロセスの終了コードをジョブやステップの終了コードに合わせてカスタマイズできる。
+javaプロセスの終了コードをカスタマイズするのに必要な作業を以下に示す。</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>ステップの終了コードを変更する。</p>
+</li>
+<li>
+<p>ステップの終了コードに合わせて、ジョブの終了コードを変更する。</p>
+</li>
+<li>
+<p>ジョブの終了コードとjavaプロセスの終了コードをマッピングする。</p>
+</li>
+</ol>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+<div class="title">終了コードの意味合いについて</div>
+<div class="paragraph">
+<p>本節では、終了コードは2つの意味合いで扱われており、それぞれの説明を以下に示す。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>COMPLETED、FAILEDなどの文字列の終了コードは、ジョブやステップの終了コードである。</p>
+</li>
+<li>
+<p>0、255などの数値の終了コードは、Javaプロセスの終了コードである。</p>
+</li>
+</ul>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="sect3">
+<h4 id="Ch07_JobManagement_HowToUse_ExitCode_StepExitCode"><a class="anchor" href="#Ch07_JobManagement_HowToUse_ExitCode_StepExitCode"></a>ステップの終了コードの変更</h4>
+<div class="paragraph">
+<p>処理モデルごとにステップの終了コードを変更する方法を以下に示す。</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">チャンクモデルにおけるステップの終了コードの変更</dt>
+<dd>
+<p>ステップ終了時の処理としてStepExecutionListenerのafterStepメソッドを実装し、任意のステップの終了コードを返却する。</p>
+</dd>
+</dl>
+</div>
+<div class="listingblock">
+<div class="title">StepExecutionListener実装例</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="java"><span class="annotation">@Component</span>
+<span class="directive">public</span> <span class="type">class</span> <span class="class">StepExitStatusChangeListener</span> <span class="directive">implements</span> StepExecutionListener {
+
+    <span class="annotation">@Override</span>
+    <span class="directive">public</span> ExitStatus afterStep(StepExecution stepExecution) {
+
+        ExitStatus exitStatus = stepExecution.getExitStatus();
+        <span class="keyword">if</span> (conditionalCheck(stepExecution)) {
+            <span class="comment">// (1)</span>
+            exitStatus = <span class="keyword">new</span> ExitStatus(<span class="string"><span class="delimiter">&quot;</span><span class="content">CUSTOM STEP FAILED</span><span class="delimiter">&quot;</span></span>);
+        }
+        <span class="keyword">return</span> exitStatus;
+    }
+
+    <span class="directive">private</span> <span class="type">boolean</span> conditionalCheck(StepExecution stepExecution) {
+        <span class="comment">// omitted.</span>
+    }
+}</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">ジョブ定義</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"><span class="tag">&lt;batch:step</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">exitstatusjob.step</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+    <span class="tag">&lt;batch:tasklet</span> <span class="attribute-name">transaction-manager</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">transactionManager</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+        <span class="tag">&lt;batch:chunk</span> <span class="attribute-name">reader</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">reader</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">writer</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">writer</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">commit-interval</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">10</span><span class="delimiter">&quot;</span></span> <span class="tag">/&gt;</span>
+    <span class="tag">&lt;/batch:tasklet&gt;</span>
+    <span class="tag">&lt;batch:listeners&gt;</span>
+        <span class="tag">&lt;batch:listener</span> <span class="attribute-name">ref</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">stepExitStatusChangeListener</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+    <span class="tag">&lt;/batch:listeners&gt;</span>
+<span class="tag">&lt;/batch:step&gt;</span></code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 5. 実装内容の一覧</caption>
+<colgroup>
+<col style="width: 20%;">
+<col style="width: 80%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ステップの実行結果に応じて独自の終了コードを設定する。</p></td>
+</tr>
+</tbody>
+</table>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">タスクレットモデルにおけるステップの終了コードの変更</dt>
+<dd>
+<p>Taskletのexecuteメソッドの引数であるStepContributionに任意のステップの終了コードを設定する。</p>
+</dd>
+</dl>
+</div>
+<div class="listingblock">
+<div class="title">Tasklet実装例</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="java"><span class="annotation">@Override</span>
+<span class="directive">public</span> RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) <span class="directive">throws</span> <span class="exception">Exception</span> {
+
+    <span class="comment">// omitted.</span>
+    <span class="keyword">if</span> (errorCount &gt; <span class="integer">0</span>) {
+        contribution.setExitStatus(<span class="keyword">new</span> ExitStatus(<span class="string"><span class="delimiter">&quot;</span><span class="content">STEP COMPLETED WITH SKIPS</span><span class="delimiter">&quot;</span></span>));  <span class="comment">// (1)</span>
+    }
+    <span class="keyword">return</span> RepeatStatus.FINISHED;
+}</code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 6. 実装内容の一覧</caption>
+<colgroup>
+<col style="width: 20%;">
+<col style="width: 80%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">タスクレットの実行結果に応じて独自の終了コードを設定する。</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect3">
+<h4 id="Ch07_JobManagement_HowToUse_ExitCode_JobExitCode"><a class="anchor" href="#Ch07_JobManagement_HowToUse_ExitCode_JobExitCode"></a>ジョブの終了コードの変更</h4>
+<div class="paragraph">
+<p>ジョブ終了時の処理としてJobExecutionListenerのafterJobメソッドを実装し、最終的なジョブの終了コードを各ステップの終了コードによって設定する。</p>
+</div>
+<div class="listingblock">
+<div class="title">JobExecutionListener実装例</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="java"><span class="annotation">@Component</span>
+<span class="directive">public</span> <span class="type">class</span> <span class="class">JobExitCodeChangeListener</span> <span class="directive">extends</span> JobExecutionListenerSupport {
+
+    <span class="annotation">@Override</span>
+    <span class="directive">public</span> <span class="type">void</span> afterJob(JobExecution jobExecution) {
+        <span class="comment">// (1)</span>
+        <span class="keyword">for</span> (StepExecution stepExecution : jobExecution.getStepExecutions()) {
+            <span class="keyword">if</span> (<span class="string"><span class="delimiter">&quot;</span><span class="content">STEP COMPLETED WITH SKIPS</span><span class="delimiter">&quot;</span></span>.equals(stepExecution.getExitStatus().getExitCode())) {
+                jobExecution.setExitStatus(<span class="keyword">new</span> ExitStatus(<span class="string"><span class="delimiter">&quot;</span><span class="content">JOB COMPLETED WITH SKIPS</span><span class="delimiter">&quot;</span></span>));
+                logger.info(<span class="string"><span class="delimiter">&quot;</span><span class="content">Change status 'JOB COMPLETED WITH SKIPS'</span><span class="delimiter">&quot;</span></span>);
+                <span class="keyword">break</span>;
+            }
+        }
+    }
+}</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">ジョブ定義</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"><span class="tag">&lt;batch:job</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">exitstatusjob</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">job-repository</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobRepository</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+    <span class="tag">&lt;batch:step</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">exitstatusjob.step</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+        <span class="comment">&lt;!-- omitted --&gt;</span>
+    <span class="tag">&lt;/batch:step&gt;</span>
+    <span class="tag">&lt;batch:listeners&gt;</span>
+        <span class="tag">&lt;batch:listener</span> <span class="attribute-name">ref</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobExitCodeChangeListener</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+    <span class="tag">&lt;/batch:listeners&gt;</span>
+<span class="tag">&lt;/batch:job&gt;</span></code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 7. 実装内容の一覧</caption>
+<colgroup>
+<col style="width: 20%;">
+<col style="width: 80%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ジョブの実行結果に応じて、最終的なジョブの終了コードを<code>JobExecution</code>に設定する。<br>
+ここではステップから返却された終了コードのいずれかに<code>CUSTOM STEP FAILED</code>が含まれている場合、
+終了コード<code>CUSTOM FAILED</code>としている。</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect3">
+<h4 id="Ch07_JobManagement_HowToUse_ExitCode_Mapping"><a class="anchor" href="#Ch07_JobManagement_HowToUse_ExitCode_Mapping"></a>終了コードのマッピング</h4>
+<div class="paragraph">
+<p>ジョブの終了コードとプロセスの終了コードをマッピング定義を行う。</p>
+</div>
+<div class="listingblock">
+<div class="title">launch-context.xml</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"><span class="comment">&lt;!-- exitCodeMapper --&gt;</span>
+<span class="tag">&lt;bean</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">exitCodeMapper</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">org.springframework.batch.core.launch.support.SimpleJvmExitCodeMapper</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+    <span class="tag">&lt;property</span> <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">mapping</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+        <span class="tag">&lt;util:map</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">exitCodeMapper</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">key-type</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">java.lang.String</span><span class="delimiter">&quot;</span></span>
+                  <span class="attribute-name">value-type</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">java.lang.Integer</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+            <span class="comment">&lt;!-- ExitStatus --&gt;</span>
+            <span class="tag">&lt;entry</span> <span class="attribute-name">key</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">NOOP</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">value</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">0</span><span class="delimiter">&quot;</span></span> <span class="tag">/&gt;</span>
+            <span class="tag">&lt;entry</span> <span class="attribute-name">key</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">COMPLETED</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">value</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">0</span><span class="delimiter">&quot;</span></span> <span class="tag">/&gt;</span>
+            <span class="tag">&lt;entry</span> <span class="attribute-name">key</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">STOPPED</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">value</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">255</span><span class="delimiter">&quot;</span></span> <span class="tag">/&gt;</span>
+            <span class="tag">&lt;entry</span> <span class="attribute-name">key</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">FAILED</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">value</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">255</span><span class="delimiter">&quot;</span></span> <span class="tag">/&gt;</span>
+            <span class="tag">&lt;entry</span> <span class="attribute-name">key</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">UNKNOWN</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">value</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">255</span><span class="delimiter">&quot;</span></span> <span class="tag">/&gt;</span>
+            <span class="tag">&lt;entry</span> <span class="attribute-name">key</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">CUSTOM FAILED</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">value</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">100</span><span class="delimiter">&quot;</span></span> <span class="tag">/&gt;</span> <span class="comment">&lt;!-- Custom Exit Status --&gt;</span>
+        <span class="tag">&lt;/util:map&gt;</span>
+    <span class="tag">&lt;/property&gt;</span>
+<span class="tag">&lt;/bean&gt;</span></code></pre>
+</div>
+</div>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-warning" title="Warning"></i>
+</td>
+<td class="content">
+<div class="title">プロセスの終了コードに1は厳禁</div>
+<div class="paragraph">
+<p>一般的にJavaプロセスはVMクラッシュやSIGKILLシグナル受信などによりプロセスが強制終了した際、
+終了コードとして1を返却することがある。
+正常・異常を問わずバッチアプリケーションの終了コードとは明確に区別すべきであるため、
+アプリケーション内ではプロセスの終了コードとして1を定義しないこと。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="admonitionblock tip">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+<div class="title">終了ステータスと終了コードの違いについて</div>
+<div class="paragraph">
+<p><code>JobRepository</code>で管理されるジョブとステップの状態として、「ステータス(<code>STATUS</code>)」と「終了コード(<code>EXIT_CODE</code>)」があるが、以下の点で異なる。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>ステータスはSpring Batchの内部制御で用いられ enum型の<code>BatchStatus</code>による具体値が定義されているためカスタマイズできない。</p>
+</li>
+<li>
+<p>終了コードはジョブのフロー制御やプロセス終了コードの変更で使用することができ、カスタマイズできる。</p>
+</li>
+</ul>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="Ch07_JobManagement_HowToUse_DuplicateSafe"><a class="anchor" href="#Ch07_JobManagement_HowToUse_DuplicateSafe"></a>二重起動防止</h3>
+<div class="paragraph">
+<p>Spring Batchではジョブを起動する際、<code>JobRepositry</code>から<code>JobInstance(BATCH_JOB_INSTANCEテーブル)</code>に対して
+以下の組み合わせが存在するか確認する。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>起動対象となるジョブ名</p>
+</li>
+<li>
+<p>ジョブパラメータ</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Macchinetta Batch 2.xではジョブ・ジョブパラメータの組み合わせが一致しても複数回起動可能としている。<br>
+つまり、二重起動を許容する。
+詳細は、<a href="Ch04_JobParameter.html#Ch04_JobParameter">ジョブの起動パラメータ</a>を参照。</p>
+</div>
+<div class="paragraph">
+<p>二重起動を防止する場合は、ジョブスケジューラやアプリケーション内で実施する必要がある。<br>
+詳細な手段については、ジョブスケジューラ製品や業務要件に強く依存するため割愛する。<br>
+個々のジョブについて、二重起動を抑止する必要があるかについて、検討すること。</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="Ch07_JobManagement_HowToUse_Logging"><a class="anchor" href="#Ch07_JobManagement_HowToUse_Logging"></a>ロギング</h3>
+<div class="paragraph">
+<p>ログの設定方法について説明する。</p>
+</div>
+<div class="paragraph">
+<p>ログの出力、設定、考慮事項はMacchinetta Server 1.xと共通点が多い。まずは、
+<a href="https://macchinetta.github.io/server-guideline/1.7.0.RELEASE/ja/ArchitectureInDetail/GeneralFuncDetail/Logging.html">ロギング</a>を参照。</p>
+</div>
+<div class="paragraph">
+<p>ここでは、Macchinetta Batch 2.x特有の考慮点について説明する。</p>
+</div>
+<div class="sect3">
+<h4 id="Ch07_JobManagement_HowToUse_Logging_Clarification"><a class="anchor" href="#Ch07_JobManagement_HowToUse_Logging_Clarification"></a>ログ出力元の明確化</h4>
+<div class="paragraph">
+<p>バッチ実行時のログは出力元のジョブやジョブ実行を明確に特定できるようにしておく必要がある。
+そのため、スレッド名、ジョブ名、実行ジョブIDを出力するとよい。
+特に非同期実行時は同名のジョブが異なるスレッドで並列に動作することになるため、
+ジョブ名のみの記録はログ出力元を特定しにくくなる恐れがある。</p>
+</div>
+<div class="paragraph">
+<p>それぞれの要素は、以下の要領で実現できる。</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">スレッド名</dt>
+<dd>
+<p><code>logback.xml</code>の出力パターンである<code>%thread</code>を指定する</p>
+</dd>
+<dt class="hdlist1">ジョブ名・実行ジョブID</dt>
+<dd>
+<p><code>JobExecutionListener</code>を実装したコンポーネントを作成し、ジョブの開始・終了時に記録する</p>
+</dd>
+</dl>
+</div>
+<div class="listingblock">
+<div class="title">JobExecutionListener実装例</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="java"><span class="comment">// package and import omitted.</span>
+
+<span class="annotation">@Component</span>
+<span class="directive">public</span> <span class="type">class</span> <span class="class">JobExecutionLoggingListener</span> <span class="directive">implements</span> JobExecutionListener {
+    <span class="directive">private</span> <span class="directive">static</span> <span class="directive">final</span> <span class="predefined-type">Logger</span> logger =
+            LoggerFactory.getLogger(JobExecutionLoggingListener.class);
+
+    <span class="annotation">@Override</span>
+    <span class="directive">public</span> <span class="type">void</span> beforeJob(JobExecution jobExecution) {
+        <span class="comment">// (1)</span>
+        logger.info(<span class="string"><span class="delimiter">&quot;</span><span class="content">job started. [JobName:{}][jobExecutionId:{}]</span><span class="delimiter">&quot;</span></span>,
+            jobExecution.getJobInstance().getJobName(), jobExecution.getId());
+    }
+
+    <span class="annotation">@Override</span>
+    <span class="directive">public</span> <span class="type">void</span> afterJob(JobExecution jobExecution) {
+        <span class="comment">// (2)</span>
+        logger.info(<span class="string"><span class="delimiter">&quot;</span><span class="content">job finished.[JobName:{}][jobExecutionId:{}][ExitStatus:{}]</span><span class="delimiter">&quot;</span></span>
+                , jobExecution.getJobInstance().getJobName(),
+                , jobExecution.getId(), jobExecution.getExitStatus().getExitCode());
+    }
+
+}</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">ジョブBean定義ファイル</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"><span class="comment">&lt;!-- omitted. --&gt;</span>
+<span class="tag">&lt;batch:job</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">loggingJob</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">job-repository</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobRepository</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+    <span class="tag">&lt;batch:step</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">loggingJob.step01</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+        <span class="tag">&lt;batch:tasklet</span> <span class="attribute-name">transaction-manager</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobTransactionManager</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+            <span class="comment">&lt;!-- omitted. --&gt;</span>
+        <span class="tag">&lt;/batch:tasklet&gt;</span>
+    <span class="tag">&lt;/batch:step&gt;</span>
+    <span class="tag">&lt;batch:listeners&gt;</span>
+        <span class="comment">&lt;!-- (3) --&gt;</span>
+        <span class="tag">&lt;batch:listener</span> <span class="attribute-name">ref</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobExecutionLoggingListener</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+    <span class="tag">&lt;/batch:listeners&gt;</span>
+<span class="tag">&lt;/batch:job&gt;</span>
+<span class="comment">&lt;!-- omitted. --&gt;</span></code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 8. ジョブ名、ジョブ実行IDのログ出力実装例</caption>
+<colgroup>
+<col style="width: 40%;">
+<col style="width: 60%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ジョブの開始前にジョブ名とジョブ実行IDをINFOログに出力している。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(2)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ジョブの終了時は(1)に加えて終了コードも出力している。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(3)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">コンポーネントとして登録されている<code>JobExecutionLoggingListener</code>を特定ジョブのBean定義に関連づけている。</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect3">
+<h4 id="Ch07_JobManagement_HowToUse_Logging_Monitoring"><a class="anchor" href="#Ch07_JobManagement_HowToUse_Logging_Monitoring"></a>ログ監視</h4>
+<div class="paragraph">
+<p>バッチアプリケーションは運用時のユーザインタフェースはログが主体となる。
+監視対象と発生時のアクションを明確に設計しておかないと、
+フィルタリングが困難となり、対処に必要なログが埋もれてしまう危険がある。
+このため、ログの監視対象としてキーワードとなるメッセージやコード体系をあらかじめ決めておくとよい。
+ログに出力するメッセージ管理については、後述の<a href="#Ch07_JobManagement_HowToUse_MessageManagement">"メッセージ管理"</a>を参照。</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="Ch07_JobManagement_HowToUse_Logging_OutputLocation"><a class="anchor" href="#Ch07_JobManagement_HowToUse_Logging_OutputLocation"></a>ログ出力先</h4>
+<div class="paragraph">
+<p>バッチアプリケーションにおけるログの出力先について、どの単位でログを分散/集約するのかを設計するとよい。
+たとえばフラットファイルにログを出力する場合でも以下のように複数パターンが考えられる。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>1ジョブあたり1ファイルに出力する</p>
+</li>
+<li>
+<p>複数ジョブを1グループにまとめた単位で1ファイルに出力する</p>
+</li>
+<li>
+<p>1サーバあたり1ファイルに出力する</p>
+</li>
+<li>
+<p>複数サーバをまとめて1ファイルに出力する</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>いずれも対象システムにおける、ジョブ総数/ログ総量/発生する入出力レートなどによって、
+どの単位でまとめるのが最適かが分かれる。
+また、ログを確認する方法にも依存する。ジョブスケジューラ上から参照することが多いか、コンソールから参照することが多いか、
+といった活用方法によっても選択肢が変わると想定する。</p>
+</div>
+<div class="paragraph">
+<p>重要なことは、運用設計にてログ出力を十分検討し、試験にてログの有用性を確認することに尽きる。</p>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="Ch07_JobManagement_HowToUse_MessageManagement"><a class="anchor" href="#Ch07_JobManagement_HowToUse_MessageManagement"></a>メッセージ管理</h3>
+<div class="paragraph">
+<p>メッセージ管理について説明する。</p>
+</div>
+<div class="paragraph">
+<p>コード体系のばらつき防止や、監視対象のキーワードとしての抽出を設計しやすくするため、
+一定のルールに従ってメッセージを付与することが望ましい。</p>
+</div>
+<div class="paragraph">
+<p>なお、ログと同様、メッセージ管理についても基本的にはMacchinetta Server 1.xと同様である。</p>
+</div>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-important" title="Important"></i>
+</td>
+<td class="content">
+<div class="title">MessageSourceの活用について</div>
+<div class="paragraph">
+<p>プロパティファイルからメッセージを使用するには<code>MessageSource</code>を使用することができる。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>具体的な設定・実装例については<a href="https://macchinetta.github.io/server-guideline/1.7.0.RELEASE/ja/ArchitectureInDetail/GeneralFuncDetail/Logging.html#id8">ログメッセージの一元管理</a>を参照。</p>
+<div class="ulist">
+<ul>
+<li>
+<p>ここではログ出力のサンプルとして Spring MVC のコントローラー のケースにそって例示されているが、
+Spring Batchの任意のコンポーネントに読み換えてほしい。</p>
+</li>
+<li>
+<p>ここでは<code>MessageSource</code>のインスタンスを独自に生成しているが、Macchinetta Batch 2.xではその必要はない。
+<code>ApplicationContext</code>が生成された後でのみ、各コンポーネントにアクセスされるためである。
+なお、ブランクプロジェクトには以下のとおり設定済みである。</p>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+<div class="listingblock">
+<div class="title">launch-context.xml</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"><span class="tag">&lt;bean</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">messageSource</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">org.springframework.context.support.ResourceBundleMessageSource</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">p:basenames</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">i18n/application-messages</span><span class="delimiter">&quot;</span></span> <span class="tag">/&gt;</span></code></pre>
+</div>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</div>
+</div>
+</div>
+</div>
+<link rel="stylesheet" href="./theme/css/coderay-asciidoctor.css">
+<div class="container">
+
+  <div class="common-bg">
+    <div class="information">
+      Macchinetta Batch Framework (2.x) Development Guideline - version 2.2.1.RELEASE, 2021-3-26, commit-id:94f5df3
+    </div>
+    <div class="index">
+      <a href="index.html">&gt; INDEX</a>
+    </div>
+  </div>
+
+  <div class="footer-bg">
+    <div class="copyright">
+      &copy; Copyright 2017 NTT Corporation.
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

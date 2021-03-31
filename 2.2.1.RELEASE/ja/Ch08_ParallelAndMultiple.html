@@ -1,0 +1,1095 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Asciidoctor 2.0.10">
+<title>並列処理と多重処理</title>
+<link rel="stylesheet" href="./theme/css/readthedocs.css">
+<link rel="stylesheet" href="./theme/css/font-awesome.min.css">
+<link rel="stylesheet" href="./theme/css/coderay-asciidoctor.css">
+<link rel="stylesheet" href="./theme/css/header-footer.css">
+<title>Macchinetta Batch Framework (2.x) Development Guideline</title>
+
+<div class="common-bg">
+  <div class="information">
+    Macchinetta Batch Framework (2.x) Development Guideline - version 2.2.1.RELEASE, 2021-3-26, commit-id:94f5df3
+  </div>
+  <div class="index">
+    <a href="index.html">&gt; INDEX</a>
+  </div>
+</div>
+</head>
+<body id="Ch08_ParallelAndMultiple" class="book toc2 toc-left">
+<div id="header">
+<h1>並列処理と多重処理</h1>
+<div id="toc" class="toc2">
+<div id="toctitle">Table of Contents</div>
+<ul class="sectlevel1">
+<li><a href="#Ch08_ParallelAndMultiple_Overview">Overview</a>
+<ul class="sectlevel2">
+<li><a href="#Ch08_ParallelAndMultiple_Overview_Scheduler">ジョブスケジューラによる並列処理と多重処理</a>
+<ul class="sectlevel3">
+<li><a href="#Ch08_ParallelAndMultiple_Overview_Scheduler_ParallelJob">ジョブスケジューラによるジョブの並列化</a></li>
+<li><a href="#Ch08_ParallelAndMultiple_Overview_Scheduler_MultiplelJob">ジョブスケジューラによるジョブの多重化</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="#Ch08_ParallelAndMultiple_HowToUse">How to use</a>
+<ul class="sectlevel2">
+<li><a href="#Ch08_ParallelAndMultiple_HowToUse_ParallelStep">Parallel Step (並列処理)</a></li>
+<li><a href="#Ch08_ParallelAndMultiple_HowToUse_Partitioning">Partitioning Step (多重処理)</a>
+<ul class="sectlevel3">
+<li><a href="#Ch08_ParallelAndMultiple_HowToUse_Partitioning_VariablePartitonNumber">分割数が可変の場合</a></li>
+<li><a href="#Ch08_ParallelAndMultiple_HowToUse_Partitioning_FixingPartitonNumber">分割数が固定の場合</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div id="content">
+<div class="sect1">
+<h2 id="Ch08_ParallelAndMultiple_Overview"><a class="anchor" href="#Ch08_ParallelAndMultiple_Overview"></a>Overview</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>一般的に、バッチウィンドウ(バッチ処理のために使用できる時間)がシビアなバッチシステムでは、
+複数ジョブを並列に動作させる(以降、並列処理と呼ぶ)ことで全体の処理時間を可能な限り短くするように設計する。<br>
+しかし、1ジョブの処理データが大量であるために処理時間がバッチウィンドウに収まらない場合がある。<br>
+その際は、1ジョブの処理データを分割して多重走行させる(以降、多重処理と呼ぶ)ことで処理時間を短縮させる手法が用いられる。<br>
+この、並列処理と多重処理は同じような意味合いで扱われることもあるが、ここでは以下の定義とする。</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">並列処理</dt>
+<dd>
+<p>複数の異なるジョブを、同時に実行する。</p>
+</dd>
+</dl>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/Ch08_ParallelAndMultiple_Overview_Parallel.png" alt="Parallel Step">
+</div>
+<div class="title">図 1. 並列処理の概略図</div>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">多重処理</dt>
+<dd>
+<p>1ジョブの処理対象を分割して、同時に実行する。</p>
+</dd>
+</dl>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/Ch08_ParallelAndMultiple_Overview_Multiple.png" alt="Partition Step">
+</div>
+<div class="title">図 2. 多重処理の概略図</div>
+</div>
+<div class="paragraph">
+<p>並列処理と多重処理ともにジョブスケジューラで行う方法とMacchinetta Batch 2.xで行う方法がある。<br>
+なお、Macchinetta Batch 2.xでの並列処理および多重処理は
+<a href="Ch08_FlowControll.html#Ch08_FlowControll">フロー制御</a>の上に成り立っている。</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 1. 並列処理および多重処理の実現方法</caption>
+<colgroup>
+<col style="width: 20%;">
+<col style="width: 40%;">
+<col style="width: 40%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">実現方法</th>
+<th class="tableblock halign-left valign-top">並列処理</th>
+<th class="tableblock halign-left valign-top">多重処理</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ジョブスケジューラ</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">依存関係がない複数の異なるジョブを同時に実行するように定義する。</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">複数の同じジョブを異なるデータ範囲で実行するように定義する。各ジョブに処理対象のデータを絞るための情報を引数などで渡す。<br>
+たとえば、1年間のデータを月ごとに分割する、エリアや支店などの単位で分割する、など</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Macchinetta Batch 2.x</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#Ch08_ParallelAndMultiple_HowToUse_ParallelStep">Parallel Step (並列処理)</a><br>
+ステップ単位で並列処理を行う。<br>
+各ステップは同じ処理である必要はなく、データベースとファイルというような種類が異なるリソースに対して並列で処理を行う事も可能である。</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#Ch08_ParallelAndMultiple_HowToUse_Partitioning">Partitioning Step (多重処理)</a><br>
+Managerステップでは対象データを分割するためのキーを取得し、
+Workerステップではこのキーにもとづいて分割したデータを処理する。<br>
+Parallel Stepとは異なりWorkerステップの処理は同一処理となる。</p></td>
+</tr>
+</tbody>
+</table>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">ジョブスケジューラを使用する場合</dt>
+<dd>
+<p>1ジョブに1プロセスが割り当てられるため複数プロセスで起動される。 そのため、1つのジョブを設計・実装する難易度は低い。<br>
+しかし、複数プロセスで起動するため、同時実行数が増えるとマシンリソースへの負荷が高くなる。<br>
+よって、同時実行数が3、4程度であれば、ジョブスケジューラを利用するとよい。<br>
+もちろん、この数値は絶対的なものではない。実行環境やジョブの実装に依存するため目安としてほしい。</p>
+</dd>
+<dt class="hdlist1">Macchinetta Batch 2.xを使用する場合</dt>
+<dd>
+<p>各ステップがスレッドに割り当てられるため、1プロセス複数スレッドで動作する。そのため、1つのジョブへの設計・実装の難易度はジョブスケジューラを使用する場合より高くなる。<br>
+しかし、複数スレッドで起動するため、同時実行数が増えてもマシンリソースへの負荷がジョブスケジューラを使用する場合ほど高くはならない。
+よって、同時実行数が多い(5以上の)場合であれば、Macchinetta Batch 2.xを利用するのがよい。<br>
+もちろん、この数値は絶対的なものではない。実行環境やシステム特性に依存するため目安としてほしい。</p>
+</dd>
+</dl>
+</div>
+<div class="admonitionblock caution">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-caution" title="Caution"></i>
+</td>
+<td class="content">
+<div class="paragraph">
+<p>Spring Batchで実行可能な並列処理方法の1つに<code>Multi Thread Step</code>があるが、以下の理由によりMacchinetta Batch 2.xでの利用は非推奨とする。</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">Multi Thread Stepとは</dt>
+<dd>
+<p>チャンク単位で複数スレッドで並列処理を行う方法。</p>
+</dd>
+<dt class="hdlist1">非推奨理由</dt>
+<dd>
+<p>Spring Batchが提供しているReaderやWriterのほとんどが、マルチスレッドでの利用を想定して設計されていない。
+そのため、データロストや重複処理が発生する可能性があり、処理の信頼性が低い。また、複数スレッドで動作するため、一定の処理順序とならない。<br>
+ItemReader/ItemProcessor/ItemWriterを自作する場合でもスレッドセーフなど<code>Multi Thread Step</code>を使うためには考慮すべき点が多く実装および運用の難易度が高くなる。
+これらの理由により、<code>Multi Thread Step</code>は非推奨としている。<br>
+代わりに<a href="#Ch08_ParallelAndMultiple_HowToUse_Partitioning">Partitioning Step (多重処理)</a>を利用することを推奨する。</p>
+</dd>
+</dl>
+</div>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-warning" title="Warning"></i>
+</td>
+<td class="content">
+<div class="paragraph">
+<p><code>org.springframework.batch.item.support.SynchronizedItemStreamReader</code>を利用することで、既存のItemReaderをスレッドセーフにすることは可能である。
+それでも処理順序の課題は残るため、Macchinetta Batch 2.xでは<code>Multi Thread Step</code>は利用しないこと。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-warning" title="Warning"></i>
+</td>
+<td class="content">
+<div class="paragraph">
+<p>並列処理・多重処理で1つのデータベースに対して更新する場合は、リソース競合とデッドロックが発生する可能性がある。
+ジョブ設計の段階から潜在的な競合発生を排除すること。</p>
+</div>
+<div class="paragraph">
+<p>マルチプロセスや複数筐体への分散処理は、Spring Batchに機能があるが、Macchinetta Batch 2.xとしては障害設計が困難になるため扱わないこととする。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>本機能は、チャンクモデルとタスクレットモデルとで同じ使い方になる</p>
+</div>
+<div class="sect2">
+<h3 id="Ch08_ParallelAndMultiple_Overview_Scheduler"><a class="anchor" href="#Ch08_ParallelAndMultiple_Overview_Scheduler"></a>ジョブスケジューラによる並列処理と多重処理</h3>
+<div class="paragraph">
+<p>ここでは、ジョブスケジューラによる並列処理と多重処理の概念について説明を行う。</p>
+</div>
+<div class="paragraph">
+<p>ジョブ登録、スケジュール設定などについては、使用するジョブスケジューラのマニュアルを参照。</p>
+</div>
+<div class="sect3">
+<h4 id="Ch08_ParallelAndMultiple_Overview_Scheduler_ParallelJob"><a class="anchor" href="#Ch08_ParallelAndMultiple_Overview_Scheduler_ParallelJob"></a>ジョブスケジューラによるジョブの並列化</h4>
+<div class="paragraph">
+<p>並列実行させたい処理をそれぞれジョブとして登録、それぞれのジョブが同時に開始するようにスケジュールを設定する。
+各々のジョブは異なる処理として登録してよい。</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="Ch08_ParallelAndMultiple_Overview_Scheduler_MultiplelJob"><a class="anchor" href="#Ch08_ParallelAndMultiple_Overview_Scheduler_MultiplelJob"></a>ジョブスケジューラによるジョブの多重化</h4>
+<div class="paragraph">
+<p>多重実行させたい処理を複数登録し、パラメータにより対象データの抽出範囲を指定する。
+その上で、それぞれのジョブが同時に開始するようにスケジュールを設定する。
+各々のジョブは同じ処理ではあるが、処理対象データ範囲は独立していることが必要となる。</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="Ch08_ParallelAndMultiple_HowToUse"><a class="anchor" href="#Ch08_ParallelAndMultiple_HowToUse"></a>How to use</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Macchinetta Batch 2.xでの並列処理および多重処理を行う方法を説明する。</p>
+</div>
+<div class="sect2">
+<h3 id="Ch08_ParallelAndMultiple_HowToUse_ParallelStep"><a class="anchor" href="#Ch08_ParallelAndMultiple_HowToUse_ParallelStep"></a>Parallel Step (並列処理)</h3>
+<div class="paragraph">
+<p>Parallel Step (並列処理)の方法を説明する。</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/Ch08_ParallelAndMultiple_Parallel_Step.png" alt="Parallel Step">
+</div>
+<div class="title">図 3. Parallel Stepの概要図</div>
+</div>
+<div class="paragraph">
+<div class="title">概要図の説明</div>
+<p>各ステップに別々な処理を定義することができ、それらを並列に実行することができる。
+各ステップごとにスレッドが割り当てられる。</p>
+</div>
+<div class="paragraph">
+<p>Parallel Stepの概要図を例にしたParallel Stepの定義方法を以下に示す。</p>
+</div>
+<div class="listingblock">
+<div class="title">Parallel Stepのジョブ定義</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"><span class="comment">&lt;!-- Task Executor --&gt;</span>
+<span class="comment">&lt;!-- (1) --&gt;</span>
+<span class="tag">&lt;task:executor</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">parallelTaskExecutor</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">pool-size</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">10</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">queue-capacity</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">200</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+
+<span class="comment">&lt;!-- Job Definition --&gt;</span>
+<span class="comment">&lt;!-- (2) --&gt;</span>
+<span class="tag">&lt;batch:job</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">parallelStepJob</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">job-repository</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobRepository</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+  <span class="tag">&lt;batch:split</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">parallelStepJob.split</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">task-executor</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">parallelTaskExecutor</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+      <span class="tag">&lt;batch:flow&gt;</span>  <span class="comment">&lt;!-- (3)  --&gt;</span>
+          <span class="tag">&lt;batch:step</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">parallelStepJob.step.chunk.db</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+               <span class="comment">&lt;!-- (4) --&gt;</span>
+              <span class="tag">&lt;batch:tasklet</span> <span class="attribute-name">transaction-manager</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobTransactionManager</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+                  <span class="tag">&lt;batch:chunk</span> <span class="attribute-name">reader</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">fileReader</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">writer</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">databaseWriter</span><span class="delimiter">&quot;</span></span>
+                          <span class="attribute-name">commit-interval</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">100</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+              <span class="tag">&lt;/batch:tasklet&gt;</span>
+          <span class="tag">&lt;/batch:step&gt;</span>
+      <span class="tag">&lt;/batch:flow&gt;</span>
+
+      <span class="tag">&lt;batch:flow&gt;</span>  <span class="comment">&lt;!-- (3)  --&gt;</span>
+          <span class="tag">&lt;batch:step</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">parallelStepJob.step.tasklet.chunk</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+               <span class="comment">&lt;!-- (5) --&gt;</span>
+              <span class="tag">&lt;batch:tasklet</span> <span class="attribute-name">transaction-manager</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobTransactionManager</span><span class="delimiter">&quot;</span></span>
+                             <span class="attribute-name">ref</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">chunkTransactionTasklet</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+          <span class="tag">&lt;/batch:step&gt;</span>
+      <span class="tag">&lt;/batch:flow&gt;</span>
+
+      <span class="tag">&lt;batch:flow&gt;</span>  <span class="comment">&lt;!-- (3)  --&gt;</span>
+          <span class="tag">&lt;batch:step</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">parallelStepJob.step.tasklet.single</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+               <span class="comment">&lt;!-- (6) --&gt;</span>
+              <span class="tag">&lt;batch:tasklet</span> <span class="attribute-name">transaction-manager</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobTransactionManager</span><span class="delimiter">&quot;</span></span>
+                             <span class="attribute-name">ref</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">singleTransactionTasklet</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+          <span class="tag">&lt;/batch:step&gt;</span>
+      <span class="tag">&lt;/batch:flow&gt;</span>
+
+      <span class="tag">&lt;batch:flow&gt;</span>  <span class="comment">&lt;!-- (3)  --&gt;</span>
+          <span class="tag">&lt;batch:step</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">parallelStepJob.step.chunk.file</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+              <span class="tag">&lt;batch:tasklet</span> <span class="attribute-name">transaction-manager</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobTransactionManager</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+                   <span class="comment">&lt;!-- (7) --&gt;</span>
+                  <span class="tag">&lt;batch:chunk</span> <span class="attribute-name">reader</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">databaseReader</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">writer</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">fileWriter</span><span class="delimiter">&quot;</span></span>
+                          <span class="attribute-name">commit-interval</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">200</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+              <span class="tag">&lt;/batch:tasklet&gt;</span>
+          <span class="tag">&lt;/batch:step&gt;</span>
+      <span class="tag">&lt;/batch:flow&gt;</span>
+
+  <span class="tag">&lt;/batch:split&gt;</span>
+<span class="tag">&lt;/batch:job&gt;</span></code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 2. 説明</caption>
+<colgroup>
+<col style="width: 10%;">
+<col style="width: 90%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">並列処理のために、各スレッドに割り当てるためのスレッドプールを定義する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(2)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>&lt;batch:split&gt;</code>要素内に並列実行するステップを<code>&lt;batch:flow&gt;</code>要素を使用した形式で定義をする。<br>
+<code>task-executor</code>属性に(1)で定義したスレッドプールのBeanを設定する</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(3)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>&lt;batch:flow&gt;</code>ごとに並列位処理したい<code>&lt;batch:step&gt;</code>を定義する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(4)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">概要図のStep1：チャンクモデルの中間コミット方式処理を定義する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(5)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">概要図のStep2：タスクレットモデルの中間コミット方式処理を定義する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(6)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">概要図のStep3：タスクレットモデルの一括コミット方式処理を定義する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(7)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">概要図のStep4：チャンクモデルの非トランザクショナルなリソースに対する中間コミット方式処理を定義する。</p></td>
+</tr>
+</tbody>
+</table>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-important" title="Important"></i>
+</td>
+<td class="content">
+<div class="title">並列処理したために処理性能が低下するケース</div>
+<div class="paragraph">
+<p>並列処理では多重処理同様にデータ範囲を変えて同じ処理を並列走行させることが可能である。この場合、データ範囲はパラメータなどで与える。<br>
+この際に、個々の処理ごとに対象となるデータ量が小さい場合、
+稼働時に占有するリソース量や処理時間などのフットプリントが並列処理では不利に働き、
+かえって処理性能が低下することがある。</p>
+</div>
+<div class="ulist">
+<div class="title">フットプリントの例</div>
+<ul>
+<li>
+<p>入力リソースに対するオープンから最初のデータ範囲を取得するまでの処理</p>
+<div class="ulist">
+<ul>
+<li>
+<p>リソースオープンは、データ取得に比べて処理時間がかかる</p>
+</li>
+<li>
+<p>データ範囲のメモリ領域を初期化する処理も同様に時間がかかる</p>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>また、Parallel Stepの前後に共通処理のステップを定義することも可能である。</p>
+</div>
+<div class="listingblock">
+<div class="title">共通処理ステップを含むParallel Stepの例</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"><span class="tag">&lt;batch:job</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">parallelRegisterJob</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">job-repository</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobRepository</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+    <span class="comment">&lt;!-- (1) --&gt;</span>
+    <span class="tag">&lt;batch:step</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">parallelRegisterJob.step.preprocess</span><span class="delimiter">&quot;</span></span>
+                <span class="attribute-name">next</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">parallelRegisterJob.split</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+        <span class="tag">&lt;batch:tasklet</span> <span class="attribute-name">transaction-manager</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobTransactionManager</span><span class="delimiter">&quot;</span></span>
+                       <span class="attribute-name">ref</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">deleteDetailTasklet</span><span class="delimiter">&quot;</span></span> <span class="tag">/&gt;</span>
+    <span class="tag">&lt;/batch:step&gt;</span>
+
+    <span class="comment">&lt;!--(2) --&gt;</span>
+    <span class="tag">&lt;batch:split</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">parallelRegisterJob.split</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">task-executor</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">parallelTaskExecutor</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+        <span class="tag">&lt;batch:flow&gt;</span>
+            <span class="tag">&lt;batch:step</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">parallelRegisterJob.step.plan</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+                <span class="tag">&lt;batch:tasklet</span> <span class="attribute-name">transaction-manager</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobTransactionManager</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+                    <span class="tag">&lt;batch:chunk</span> <span class="attribute-name">reader</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">planReader</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">writer</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">planWriter</span><span class="delimiter">&quot;</span></span>
+                            <span class="attribute-name">commit-interval</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">1000</span><span class="delimiter">&quot;</span></span> <span class="tag">/&gt;</span>
+                <span class="tag">&lt;/batch:tasklet&gt;</span>
+            <span class="tag">&lt;/batch:step&gt;</span>
+        <span class="tag">&lt;/batch:flow&gt;</span>
+        <span class="tag">&lt;batch:flow&gt;</span>
+            <span class="tag">&lt;batch:step</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">parallelRegisterJob.step.performance</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+                <span class="tag">&lt;batch:tasklet</span> <span class="attribute-name">transaction-manager</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobTransactionManager</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+                    <span class="tag">&lt;batch:chunk</span> <span class="attribute-name">reader</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">performanceReader</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">writer</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">performanceWriter</span><span class="delimiter">&quot;</span></span>
+                            <span class="attribute-name">commit-interval</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">1000</span><span class="delimiter">&quot;</span></span> <span class="tag">/&gt;</span>
+                <span class="tag">&lt;/batch:tasklet&gt;</span>
+            <span class="tag">&lt;/batch:step&gt;</span>
+        <span class="tag">&lt;/batch:flow&gt;</span>
+    <span class="tag">&lt;/batch:split&gt;</span>
+<span class="tag">&lt;/batch:job&gt;</span></code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 3. 説明</caption>
+<colgroup>
+<col style="width: 10%;">
+<col style="width: 90%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">前処理として処理するステップを定義する。<code>next</code>属性に<code>&lt;batch:split&gt;</code>に設定したidを指定する。<br>
+<code>next</code>属性による後続ステップの指定に関する詳細は<a href="Ch08_FlowControll.html#Ch08_FlowControll_HowToUse_SequencialFlow">"シーケンシャルフロー"</a>を参照。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(2)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Parallel Stepを定義する。<br>
+<code>&lt;batch:flow&gt;</code>ごとに並列処理したい<code>&lt;batch:step&gt;</code>を定義する。</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect2">
+<h3 id="Ch08_ParallelAndMultiple_HowToUse_Partitioning"><a class="anchor" href="#Ch08_ParallelAndMultiple_HowToUse_Partitioning"></a>Partitioning Step (多重処理)</h3>
+<div class="paragraph">
+<p>Partitioning Step(多重処理)の方法を説明する</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/Ch08_ParallelAndMultiple_Partitioing_Step.png" alt="Partitioning Step">
+</div>
+<div class="title">図 4. Partitioning Stepの概要図</div>
+</div>
+<div class="paragraph">
+<div class="title">概要図の説明</div>
+<p>Partitioning Stepでは、ManagerステップとWorkerステップの処理フェーズに分割される。</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Managerステップでは、<code>Partitioner</code>により各Workerステップが処理するデータ範囲を特定するための<code>Parition Key</code>を生成する。
+<code>Parition Key</code>はステップコンテキストに格納される。</p>
+</li>
+<li>
+<p>Workerステップでは、ステップコンテキストから自身に割り当てられた<code>Parition Key</code>を取得し、それを使い処理対象データを特定する。
+特定した処理対象データに対して定義したステップの処理を実行する。</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>Partitioning Stepでは処理データを分割必要があるが、分割数については可変数と固定数のどちらにも対応できる。</p>
+</div>
+<div class="dlist">
+<div class="title">分割数</div>
+<dl>
+<dt class="hdlist1">可変数の場合</dt>
+<dd>
+<p>部門別で分割や、特定のディレクトリに存在するファイル単位での処理</p>
+</dd>
+<dt class="hdlist1">固定数の場合</dt>
+<dd>
+<p>全データを個定数で分割してデータを処理</p>
+</dd>
+</dl>
+</div>
+<div class="paragraph">
+<p>Spring Batchでは、固定数のことを<code>grid-size</code>といい、<code>Partitioner</code>で<code>grid-size</code>になるようにデータ分割範囲を決定する。</p>
+</div>
+<div class="paragraph">
+<p>Partitioning Stepでは、分割数をスレッドサイズより大きくすることができる。
+この場合、スレッド数分で多重実行され、スレッドに空きが出るまで、処理が未実行のまま保留となるステップが発生する。</p>
+</div>
+<div class="paragraph">
+<p>以下にPartitioning Stepのユースケースを示す。</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 4. Partitioning Stepのユースケース</caption>
+<colgroup>
+<col style="width: 30%;">
+<col style="width: 30%;">
+<col style="width: 30%;">
+<col style="width: 10%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">ユースケース</th>
+<th class="tableblock halign-left valign-top">Manager(Patitioner)</th>
+<th class="tableblock halign-left valign-top">Worker</th>
+<th class="tableblock halign-left valign-top">分割数</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">マスタ情報からトランザクション情報を分割・多重化するケース<br>
+部門別や月別の集計処理など</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">DB(マスタ情報)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">DB(トランザクション情報)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">可変</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">複数ファイルのリストから1ファイル単位に多重化するケース<br>
+各支店からの転送データを支店別に多重処理(支店別集計処理など)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">複数ファイル</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">単一ファイル</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">可変</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">大量データを一定数で分割・多重化するケース</p>
+<p class="tableblock">障害発生時にリラン以外のリカバリ設計が難しくなるため、実運用では利用されることはあまりないケース。<br>
+リランする場合は、全件やり直しなので分割したメリットが薄れてしまう。</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>grid-size</code>とトランザクション情報件数からデータ範囲を特定</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">DB(トランザクション情報)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">固定</p></td>
+</tr>
+</tbody>
+</table>
+<div class="sect3">
+<h4 id="Ch08_ParallelAndMultiple_HowToUse_Partitioning_VariablePartitonNumber"><a class="anchor" href="#Ch08_ParallelAndMultiple_HowToUse_Partitioning_VariablePartitonNumber"></a>分割数が可変の場合</h4>
+<div class="paragraph">
+<p>Partitioning Stepで分割数を可変とする方法を説明する。<br>
+下記に処理イメージ図を示す。</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/Ch08_ParallelAndMultiple_Partitioing_variable.png" alt="Variable Partiton Number">
+</div>
+<div class="title">図 5. 処理イメージ図</div>
+</div>
+<div class="paragraph">
+<p>処理イメージを例とした実装方法を示す。</p>
+</div>
+<div class="listingblock">
+<div class="title">Repository(SQLMapper)の定義 (PostgreSQL)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"><span class="comment">&lt;!-- (1) --&gt;</span>
+<span class="tag">&lt;select</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">findAll</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">resultType</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jp.co.ntt.fw.macchinetta.batch.functionaltest.app.model.mst.Branch</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+    <span class="inline-delimiter">&lt;![CDATA[</span>
+    SELECT
+        branch_id AS branchId,
+        branch_name AS branchName,
+        branch_address AS branchAddrss,
+        branch_tel AS branchTel,
+        create_date AS createDate,
+        update_date AS updateDate
+    FROM
+        branch_mst
+    <span class="inline-delimiter">]]&gt;</span>
+<span class="tag">&lt;/select&gt;</span>
+
+<span class="comment">&lt;!-- (2) --&gt;</span>
+<span class="tag">&lt;select</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">summarizeInvoice</span><span class="delimiter">&quot;</span></span>
+        <span class="attribute-name">resultType</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jp.co.ntt.fw.macchinetta.batch.functionaltest.app.model.performance.SalesPerformanceDetail</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+    <span class="inline-delimiter">&lt;![CDATA[</span>
+    SELECT
+        branchId, year, month, customerId, SUM(amount) AS amount
+    FROM (
+        SELECT
+            t2.charge_branch_id AS branchId,
+            date_part('year', t1.invoice_date) AS year,
+            date_part('month', t1.invoice_date) AS month,
+            t1.customer_id AS customerId,
+            t1.invoice_amount AS amount
+        FROM invoice t1
+        INNER JOIN customer_mst t2 ON t1.customer_id = t2.customer_id
+        WHERE
+            t2.charge_branch_id = #{branchId}
+        ) t3
+    GROUP BY branchId, year, month, customerId
+    ORDER BY branchId ASC, year ASC, month ASC, customerId ASC
+    <span class="inline-delimiter">]]&gt;</span>
+<span class="tag">&lt;/select&gt;</span>
+
+<span class="comment">&lt;!-- omitted --&gt;</span></code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">Partitionerの実装例</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="java"><span class="annotation">@Component</span>
+<span class="directive">public</span> <span class="type">class</span> <span class="class">BranchPartitioner</span> <span class="directive">implements</span> Partitioner {
+
+    <span class="annotation">@Inject</span>
+    BranchRepository branchRepository; <span class="comment">// (3)</span>
+
+    <span class="annotation">@Override</span>
+    <span class="directive">public</span> <span class="predefined-type">Map</span>&lt;<span class="predefined-type">String</span>, ExecutionContext&gt; partition(<span class="type">int</span> gridSize) {
+
+        <span class="predefined-type">Map</span>&lt;<span class="predefined-type">String</span>, ExecutionContext&gt; map = <span class="keyword">new</span> <span class="predefined-type">HashMap</span>&lt;&gt;();
+        <span class="predefined-type">List</span>&lt;Branch&gt; branches = branchRepository.findAll();
+
+        <span class="type">int</span> index = <span class="integer">0</span>;
+        <span class="keyword">for</span> (Branch branch : branches) {
+            ExecutionContext context = <span class="keyword">new</span> ExecutionContext();
+            context.putString(<span class="string"><span class="delimiter">&quot;</span><span class="content">branchId</span><span class="delimiter">&quot;</span></span>, branch.getBranchId()); <span class="comment">// (4)</span>
+            map.put(<span class="string"><span class="delimiter">&quot;</span><span class="content">partition</span><span class="delimiter">&quot;</span></span> + index, context);  <span class="comment">// (5)</span>
+            index++;
+        }
+
+        <span class="keyword">return</span> map;
+    }
+}</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">Bean定義</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"><span class="comment">&lt;!-- (6) --&gt;</span>
+<span class="tag">&lt;task:executor</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">parallelTaskExecutor</span><span class="delimiter">&quot;</span></span>
+               <span class="attribute-name">pool-size</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">${thread.size}</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">queue-capacity</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">10</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+
+<span class="comment">&lt;!-- (7) --&gt;</span>
+<span class="tag">&lt;bean</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">reader</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">org.mybatis.spring.batch.MyBatisCursorItemReader</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">scope</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">step</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">p:queryId</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jp.co.ntt.fw.macchinetta.batch.functionaltest.app.repository.performance.InvoiceRepository.summarizeInvoice</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">p:sqlSessionFactory-ref</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobSqlSessionFactory</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+    <span class="tag">&lt;property</span> <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">parameterValues</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+        <span class="tag">&lt;map&gt;</span>
+            <span class="comment">&lt;!-- (8) --&gt;</span>
+            <span class="tag">&lt;entry</span> <span class="attribute-name">key</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">branchId</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">value</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">#{stepExecutionContext['branchId']}</span><span class="delimiter">&quot;</span></span> <span class="tag">/&gt;</span>
+        <span class="tag">&lt;/map&gt;</span>
+    <span class="tag">&lt;/property&gt;</span>
+<span class="tag">&lt;/bean&gt;</span>
+
+<span class="comment">&lt;!-- omitted --&gt;</span>
+
+<span class="tag">&lt;batch:job</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">multipleInvoiceSummarizeJob</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">job-repository</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobRepository</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+    <span class="comment">&lt;!-- (9) --&gt;</span>
+    <span class="tag">&lt;batch:step</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">multipleInvoiceSummarizeJob.manager</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+        <span class="comment">&lt;!-- (10) --&gt;</span>
+        <span class="tag">&lt;batch:partition</span> <span class="attribute-name">partitioner</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">branchPartitioner</span><span class="delimiter">&quot;</span></span>
+                         <span class="attribute-name">step</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">multipleInvoiceSummarizeJob.worker</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+            <span class="comment">&lt;!-- (11) --&gt;</span>
+            <span class="tag">&lt;batch:handler</span> <span class="attribute-name">grid-size</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">0</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">task-executor</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">parallelTaskExecutor</span><span class="delimiter">&quot;</span></span> <span class="tag">/&gt;</span>
+        <span class="tag">&lt;/batch:partition&gt;</span>
+    <span class="tag">&lt;/batch:step&gt;</span>
+<span class="tag">&lt;/batch:job&gt;</span>
+
+<span class="comment">&lt;!-- (12) --&gt;</span>
+<span class="tag">&lt;batch:step</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">multipleInvoiceSummarizeJob.worker</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+    <span class="tag">&lt;batch:tasklet</span> <span class="attribute-name">transaction-manager</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobTransactionManager</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+        <span class="tag">&lt;batch:chunk</span> <span class="attribute-name">reader</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">reader</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">writer</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">writer</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">commit-interval</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">10</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+    <span class="tag">&lt;/batch:tasklet&gt;</span>
+<span class="tag">&lt;/batch:step&gt;</span></code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 5. 説明</caption>
+<colgroup>
+<col style="width: 10%;">
+<col style="width: 90%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">マスタデータから処理対象を取得するSQLを定義する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(2)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">マスタデータからの取得値を検索条件とするSQLを定義する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(3)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">定義したRepository(SQLMapper)をInjectする。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(4)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1つのWorkerステップが処理するマスタ値をステップコンテキストに格納する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(5)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">各Workerが該当するコンテキストを取得できるようMapに格納する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(6)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">多重処理でWorkerステップの各スレッドに割り当てるためのスレッドプールを定義する。<br>
+Managerステップはメインスレッドで処理される。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(7)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">マスタ値によるデータ取得のItemReaderを定義する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(8)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(4)で設定したマスタ値をステップコンテキストから取得し、検索条件に追加する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(9)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Managerステップを定義する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(10)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">データの分割条件を生成する処理を定義する。<br>
+<code>partitioner</code>属性には、<code>Partitioner</code>インタフェース実装を設定する。<br>
+<code>step</code>属性には、(12)で定義するWorkerステップのBeanIDを設定する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(11)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>partitioner</code>では<code>grid-size</code>を使用しないため、<code>grid-size</code>属性には任意の値を設定する。
+<code>task-executor</code>属性に(6)で定義したスレッドプールのBeanIDを設定する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(12)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Workerステップを定義する。<br>
+<code>reader</code>属性に(7)で定義したItemReaderを設定する。</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>複数ファイルのリストから1ファイル単位に多重化する場合は、Spring Batchが提供している以下の<code>Partitioner</code>を利用することができる。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>org.springframework.batch.core.partition.support.MultiResourcePartitioner</code></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p><code>MultiResourcePartitioner</code>の利用例を以下に示す。</p>
+</div>
+<div class="listingblock">
+<div class="title">ファイル処理を多重化する例</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"><span class="comment">&lt;!-- (1) --&gt;</span>
+<span class="tag">&lt;task:executor</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">parallelTaskExecutor</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">pool-size</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">10</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">queue-capacity</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">200</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+
+<span class="comment">&lt;!-- (2) --&gt;</span>
+<span class="tag">&lt;bean</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">reader</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">org.springframework.batch.item.file.FlatFileItemReader</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">scope</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">step</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">p:resource</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">#{stepExecutionContext['fileName']}</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span> <span class="comment">&lt;!-- (3) --&gt;</span>
+    <span class="tag">&lt;property</span> <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">lineMapper</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+        <span class="tag">&lt;bean</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">org.springframework.batch.item.file.mapping.DefaultLineMapper</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+            <span class="tag">&lt;property</span> <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">lineTokenizer</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+                <span class="tag">&lt;bean</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">org.springframework.batch.item.file.transform.DelimitedLineTokenizer</span><span class="delimiter">&quot;</span></span>
+                      <span class="attribute-name">p:names</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">branchId,year,month,customerId,amount</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+            <span class="tag">&lt;/property&gt;</span>
+            <span class="tag">&lt;property</span> <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">fieldSetMapper</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+                <span class="tag">&lt;bean</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">org.springframework.batch.item.file.mapping.BeanWrapperFieldSetMapper</span><span class="delimiter">&quot;</span></span>
+                      <span class="attribute-name">p:targetType</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jp.co.ntt.fw.macchinetta.batch.functionaltest.app.model.plan.SalesPlanDetail</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+            <span class="tag">&lt;/property&gt;</span>
+        <span class="tag">&lt;/bean&gt;</span>
+    <span class="tag">&lt;/property&gt;</span>
+<span class="tag">&lt;/bean&gt;</span>
+
+<span class="comment">&lt;!-- (4) --&gt;</span>
+<span class="tag">&lt;bean</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">partitioner</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">org.springframework.batch.core.partition.support.MultiResourcePartitioner</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">scope</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">step</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">p:resources</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">file:#{jobParameters['inputdir']}/salesPlanDetail_*.csv</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span> <span class="comment">&lt;!-- (5) --&gt;</span>
+
+<span class="comment">&lt;!--(6) --&gt;</span>
+<span class="tag">&lt;batch:job</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">multiplePartitioninglStepFileJob</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">job-repository</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobRepository</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+    <span class="tag">&lt;batch:step</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">multiplePartitioninglStepFileJob.step.manager</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+        <span class="tag">&lt;batch:partition</span> <span class="attribute-name">partitioner</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">partitioner</span><span class="delimiter">&quot;</span></span>
+                         <span class="attribute-name">step</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">multiplePartitioninglStepFileJob.step.worker</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+            <span class="tag">&lt;batch:handler</span> <span class="attribute-name">grid-size</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">0</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">task-executor</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">parallelTaskExecutor</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+        <span class="tag">&lt;/batch:partition&gt;</span>
+    <span class="tag">&lt;/batch:step&gt;</span>
+<span class="tag">&lt;/batch:job&gt;</span>
+
+<span class="comment">&lt;!-- (7) --&gt;</span>
+<span class="tag">&lt;batch:step</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">multiplePartitioninglStepFileJob.step.worker</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+    <span class="tag">&lt;batch:tasklet</span> <span class="attribute-name">transaction-manager</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobTransactionManager</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+        <span class="tag">&lt;batch:chunk</span> <span class="attribute-name">reader</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">reader</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">writer</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">writer</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">commit-interval</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">20</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+    <span class="tag">&lt;/batch:tasklet&gt;</span>
+<span class="tag">&lt;/batch:step&gt;</span></code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 6. 説明</caption>
+<colgroup>
+<col style="width: 10%;">
+<col style="width: 90%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">多重処理でWorkerステップの各スレッドに割り当てるためのスレッドプールを定義する。<br>
+Managerステップはメインスレッドで処理される。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(2)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1つのファイルを読み込むためのItemReaderを定義する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(3)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>resouce</code>属性に、<code>MultiResourcePartitioner</code>で分割されたファイルを入力ファイルに指定する。<br>
+<code>MultiResourcePartitioner</code>は、"fileName"というキーでステップコンテキストにファイルパスを格納している。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(4)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>MultiResourcePartitioner</code>を<code>partitioner</code>として定義する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(5)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>*</code>を用いたパターンを使用することで、複数ファイルを対象にすることができる。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(6)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Managerステップを定義する。<br>
+定義内容は上記で説明したPartitioning Stepの内容と同じ。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(7)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Workerステップを定義する。<br>
+<code>reader</code>属性に(2)で定義したItemReaderを設定する。</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect3">
+<h4 id="Ch08_ParallelAndMultiple_HowToUse_Partitioning_FixingPartitonNumber"><a class="anchor" href="#Ch08_ParallelAndMultiple_HowToUse_Partitioning_FixingPartitonNumber"></a>分割数が固定の場合</h4>
+<div class="paragraph">
+<p>Partitioning Stepで分割数を固定する方法を説明する。<br>
+下記に処理イメージ図を示す。</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/Ch08_ParallelAndMultiple_Partitioing_fixed.png" alt="Fixing Partiton Number">
+</div>
+<div class="title">図 6. 処理イメージ図</div>
+</div>
+<div class="paragraph">
+<p>処理イメージを例とした実装方法を示す。</p>
+</div>
+<div class="listingblock">
+<div class="title">Repository(SQLMapper)の定義 (PostgreSQL)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"><span class="comment">&lt;!-- (1) --&gt;</span>
+<span class="tag">&lt;select</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">findByYearAndMonth</span><span class="delimiter">&quot;</span></span>
+    <span class="attribute-name">resultType</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jp.co.ntt.fw.macchinetta.batch.functionaltest.app.model.performance.SalesPerformanceSummary</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+    <span class="inline-delimiter">&lt;![CDATA[</span>
+    SELECT
+        branch_id AS branchId, year, month, amount
+    FROM
+        sales_performance_summary
+    WHERE
+        year = #{year} AND month = #{month}
+    ORDER BY
+        branch_id ASC
+    LIMIT
+        #{dataSize}
+    OFFSET
+        #{offset}
+    <span class="inline-delimiter">]]&gt;</span>
+<span class="tag">&lt;/select&gt;</span>
+
+<span class="comment">&lt;!-- (2) --&gt;</span>
+<span class="tag">&lt;select</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">countByYearAndMonth</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">resultType</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">_int</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+    <span class="inline-delimiter">&lt;![CDATA[</span>
+    SELECT
+        count(*)
+    FROM
+        sales_performance_summary
+    WHERE
+        year = #{year} AND month = #{month}
+    <span class="inline-delimiter">]]&gt;</span>
+<span class="tag">&lt;/select&gt;</span>
+
+<span class="comment">&lt;!-- omitted --&gt;</span></code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">Partitionerの実装例</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="java"><span class="annotation">@Component</span>
+<span class="directive">public</span> <span class="type">class</span> <span class="class">SalesDataPartitioner</span> <span class="directive">implements</span> Partitioner {
+
+    <span class="annotation">@Inject</span>
+    SalesSummaryRepository repository;  <span class="comment">// (3)</span>
+
+    <span class="comment">// omitted.</span>
+
+    <span class="annotation">@Override</span>
+    <span class="directive">public</span> <span class="predefined-type">Map</span>&lt;<span class="predefined-type">String</span>, ExecutionContext&gt; partition(<span class="type">int</span> gridSize) {
+
+        <span class="predefined-type">Map</span>&lt;<span class="predefined-type">String</span>, ExecutionContext&gt; map = <span class="keyword">new</span> <span class="predefined-type">HashMap</span>&lt;&gt;();
+        <span class="type">int</span> count = repository.countByYearAndMonth(year, month);
+        <span class="type">int</span> dataSize = (count / gridSize) + <span class="integer">1</span>;        <span class="comment">// (4)</span>
+        <span class="type">int</span> offset = <span class="integer">0</span>;
+
+        <span class="keyword">for</span> (<span class="type">int</span> i = <span class="integer">0</span>; i &lt; gridSize; i++) {
+            ExecutionContext context = <span class="keyword">new</span> ExecutionContext();
+            context.putInt(<span class="string"><span class="delimiter">&quot;</span><span class="content">dataSize</span><span class="delimiter">&quot;</span></span>, dataSize);     <span class="comment">// (5)</span>
+            context.putInt(<span class="string"><span class="delimiter">&quot;</span><span class="content">offset</span><span class="delimiter">&quot;</span></span>, offset);         <span class="comment">// (6)</span>
+            offset += dataSize;
+            map.put(<span class="string"><span class="delimiter">&quot;</span><span class="content">partition:</span><span class="delimiter">&quot;</span></span> + i, context);       <span class="comment">// (7)</span>
+        }
+
+        <span class="keyword">return</span> map;
+    }
+}</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">Bean定義</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"><span class="comment">&lt;!-- (8) --&gt;</span>
+<span class="tag">&lt;task:executor</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">parallelTaskExecutor</span><span class="delimiter">&quot;</span></span>
+               <span class="attribute-name">pool-size</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">${thread.size}</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">queue-capacity</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">10</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+
+<span class="comment">&lt;!-- (9) --&gt;</span>
+<span class="tag">&lt;bean</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">reader</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">org.mybatis.spring.batch.MyBatisCursorItemReader</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">scope</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">step</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">p:queryId</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jp.co.ntt.fw.macchinetta.batch.functionaltest.ch08.parallelandmultiple.repository.SalesSummaryRepository.findByYearAndMonth</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">p:sqlSessionFactory-ref</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobSqlSessionFactory</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+    <span class="tag">&lt;property</span> <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">parameterValues</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+        <span class="tag">&lt;map&gt;</span>
+            <span class="tag">&lt;entry</span> <span class="attribute-name">key</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">year</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">value</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">#{jobParameters['year']}</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">value-type</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">java.lang.Integer</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+            <span class="tag">&lt;entry</span> <span class="attribute-name">key</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">month</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">value</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">#{jobParameters['month']}</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">value-type</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">java.lang.Integer</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+            <span class="comment">&lt;!-- (10) --&gt;</span>
+            <span class="tag">&lt;entry</span> <span class="attribute-name">key</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">dataSize</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">value</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">#{stepExecutionContext['dataSize']}</span><span class="delimiter">&quot;</span></span> <span class="tag">/&gt;</span>
+            <span class="comment">&lt;!-- (11) --&gt;</span>
+            <span class="tag">&lt;entry</span> <span class="attribute-name">key</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">offset</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">value</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">#{stepExecutionContext['offset']}</span><span class="delimiter">&quot;</span></span> <span class="tag">/&gt;</span>
+        <span class="tag">&lt;/map&gt;</span>
+    <span class="tag">&lt;/property&gt;</span>
+<span class="tag">&lt;/bean&gt;</span>
+
+<span class="comment">&lt;!-- omitted --&gt;</span>
+
+<span class="tag">&lt;batch:job</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">multipleCreateSalesPlanSummaryJob</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">job-repository</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobRepository</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+    <span class="comment">&lt;!-- (12) --&gt;</span>
+    <span class="tag">&lt;batch:step</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">multipleCreateSalesPlanSummaryJob.manager</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+        <span class="comment">&lt;!-- (13) --&gt;</span>
+        <span class="tag">&lt;batch:partition</span> <span class="attribute-name">partitioner</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">salesDataPartitioner</span><span class="delimiter">&quot;</span></span>
+              <span class="attribute-name">step</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">multipleCreateSalesPlanSummaryJob.worker</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+            <span class="comment">&lt;!-- (14) --&gt;</span>
+            <span class="tag">&lt;batch:handler</span> <span class="attribute-name">grid-size</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">4</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">task-executor</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">parallelTaskExecutor</span><span class="delimiter">&quot;</span></span> <span class="tag">/&gt;</span>
+        <span class="tag">&lt;/batch:partition&gt;</span>
+    <span class="tag">&lt;/batch:step&gt;</span>
+<span class="tag">&lt;/batch:job&gt;</span>
+
+<span class="comment">&lt;!-- (15) --&gt;</span>
+<span class="tag">&lt;batch:step</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">multipleCreateSalesPlanSummaryJob.worker</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+    <span class="tag">&lt;batch:tasklet</span> <span class="attribute-name">transaction-manager</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobTransactionManager</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+        <span class="tag">&lt;batch:chunk</span> <span class="attribute-name">reader</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">reader</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">processor</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">addProfitsItemProcessor</span><span class="delimiter">&quot;</span></span>
+              <span class="attribute-name">writer</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">writer</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">commit-interval</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">10</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+    <span class="tag">&lt;/batch:tasklet&gt;</span>
+<span class="tag">&lt;/batch:step&gt;</span></code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 7. 説明</caption>
+<colgroup>
+<col style="width: 10%;">
+<col style="width: 90%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">特定のデータ範囲を取得するためにページネーション検索(SQL絞り込み方式)を定義する。<br>
+ページネーション検索(SQL絞り込み方式)の詳細は、Macchinetta Server 1.x 開発ガイドラインの
+<a href="https://macchinetta.github.io/server-guideline/1.7.0.RELEASE/ja/ArchitectureInDetail/DataAccessDetail/DataAccessMyBatis3.html#entity-sql">Entityのページネーション検索(SQL絞り込み方式)</a>を参照。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(2)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">処理対象の全件数を取得するSQLを定義する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(3)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">定義したRepository(SQLMapper)をInjectする。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(4)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1つのWorkerステップが処理するデータ件数を算出する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(5)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(4)のデータ件数をステップコンテキストに格納する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(6)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">各Workerステップの検索開始位置をステップコンテキストに格納する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(7)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">各Workerが該当するコンテキストを取得できるようMapに格納する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(8)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">多重処理でWorkerステップの各スレッドに割り当てるためのスレッドプールを定義する。<br>
+Managerステップはメインスレッドで処理される。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(9)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ページネーション検索(SQL絞り込み方式)によるデータ取得のItemReaderを定義する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(10)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(5)で設定したデータ件数をステップコンテキストから取得し、検索条件に追加する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(11)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(6)で設定した検索開始位置をステップコンテキストから取得し、検索条件に追加する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(12)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Managerステップを定義する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(13)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">データの分割条件を生成する処理を定義する。<br>
+<code>partitioner</code>属性には、<code>Partitioner</code>インタフェース実装を設定する。<br>
+<code>step</code>属性には、(15)で定義するWorkerステップのBeanIDを設定する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(14)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>grid-size</code>属性に分割数(固定値)を設定する。<br>
+<code>task-executor</code>属性に(8)で定義したスレッドプールのBeanIDを設定する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(15)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Workerステップを定義する。<br>
+<code>reader</code>属性に(9)で定義したItemReaderを設定する。</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
+</div>
+<link rel="stylesheet" href="./theme/css/coderay-asciidoctor.css">
+<div class="container">
+
+  <div class="common-bg">
+    <div class="information">
+      Macchinetta Batch Framework (2.x) Development Guideline - version 2.2.1.RELEASE, 2021-3-26, commit-id:94f5df3
+    </div>
+    <div class="index">
+      <a href="index.html">&gt; INDEX</a>
+    </div>
+  </div>
+
+  <div class="footer-bg">
+    <div class="copyright">
+      &copy; Copyright 2017 NTT Corporation.
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
