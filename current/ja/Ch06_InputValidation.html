@@ -14,7 +14,7 @@
 
 <div class="common-bg">
   <div class="information">
-    Macchinetta Batch Framework (2.x) Development Guideline - version 2.3.0.RELEASE, 2021-3-26, commit-id:9b11e9d
+    Macchinetta Batch Framework (2.x) Development Guideline - version 2.3.1.RELEASE, 2022-3-30
   </div>
   <div class="index">
     <a href="index.html">&gt; INDEX</a>
@@ -69,7 +69,7 @@
 </div>
 <div class="paragraph">
 <p>入力チェックはMacchinetta Server 1.xの内容と重複するため、Macchinetta Server 1.x 開発ガイドラインの
-<a href="https://macchinetta.github.io/server-guideline/1.8.0.RELEASE/ja/ArchitectureInDetail/WebApplicationDetail/Validation.html">入力チェック</a>も合わせて参照。
+<a href="https://macchinetta.github.io/server-guideline/1.8.1.RELEASE/ja/ArchitectureInDetail/WebApplicationDetail/Validation.html">入力チェック</a>も合わせて参照。
 以下に、主な比較について示す。</p>
 </div>
 <table class="tableblock frame-all grid-all stretch">
@@ -103,8 +103,10 @@
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">エラーメッセージの設定</p></td>
-<td class="tableblock halign-center valign-top" colspan="2"><p class="tableblock">Macchinetta Server 1.x 開発ガイドラインの
-<a href="https://macchinetta.github.io/server-guideline/1.8.0.RELEASE/ja/ArchitectureInDetail/WebApplicationDetail/Validation.html#validation-message-def">エラーメッセージの定義</a>と同様</p></td>
+<td class="tableblock halign-left valign-top" colspan="2"><p class="tableblock">Macchinetta Server 1.x 開発ガイドラインの
+<a href="https://macchinetta.github.io/server-guideline/1.8.1.RELEASE/ja/ArchitectureInDetail/WebApplicationDetail/Validation.html#validation-message-def">エラーメッセージの定義</a>と概ね同様だが、
+Macchinetta Server 1.xではメッセージキーにフォーム名を含められるのに対し、Macchinetta Batch 2.xではDTO名をメッセージキーに含めることができない。
+この差異はチェックの実行方法の違いによるものである。</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">エラーメッセージの出力先</p></td>
@@ -164,7 +166,7 @@
 </div>
 <div class="paragraph">
 <p>この点は、
-Macchinetta Server 1.x 開発ガイドラインの <a href="https://macchinetta.github.io/server-guideline/1.8.0.RELEASE/ja/ArchitectureInDetail/WebApplicationDetail/Validation.html#id3">入力チェックの分類</a>
+Macchinetta Server 1.x 開発ガイドラインの <a href="https://macchinetta.github.io/server-guideline/1.8.1.RELEASE/ja/ArchitectureInDetail/WebApplicationDetail/Validation.html#id3">入力チェックの分類</a>
 と同様である。</p>
 </div>
 </div>
@@ -363,7 +365,7 @@ Spring Batchが提供する<code>ValidatingItemProcessor</code>を使用して�
 <div class="paragraph">
 <div class="title">エラーメッセージの設定</div>
 <p>先にも述べたが、エラーメッセージの設定については、
-Macchinetta Server 1.x 開発ガイドラインの <a href="https://macchinetta.github.io/server-guideline/1.8.0.RELEASE/ja/ArchitectureInDetail/WebApplicationDetail/Validation.html#validation-message-def">エラーメッセージの定義</a>を参照。</p>
+Macchinetta Server 1.x 開発ガイドラインの <a href="https://macchinetta.github.io/server-guideline/1.8.1.RELEASE/ja/ArchitectureInDetail/WebApplicationDetail/Validation.html#validation-message-def">エラーメッセージの定義</a>を参照。</p>
 </div>
 </div>
 <div class="sect2">
@@ -389,7 +391,7 @@ Macchinetta Server 1.x 開発ガイドラインの <a href="https://macchinetta.
 <div class="ulist">
 <ul>
 <li>
-<p>Macchinetta Server 1.x 開発ガイドラインの <a href="https://macchinetta.github.io/server-guideline/1.8.0.RELEASE/ja/ArchitectureInDetail/WebApplicationDetail/Validation.html">入力チェック</a> を参照。</p>
+<p>Macchinetta Server 1.x 開発ガイドラインの <a href="https://macchinetta.github.io/server-guideline/1.8.1.RELEASE/ja/ArchitectureInDetail/WebApplicationDetail/Validation.html">入力チェック</a> を参照。</p>
 </li>
 </ul>
 </div>
@@ -843,7 +845,7 @@ onProcessErrorメソッドにて発生した例外の種類を判定して例外
 <div class="paragraph">
 <p>入力チェックエラーが発生した場合にMessageSourceを使用することで、任意のエラーメッセージを出力することができる。
 エラーメッセージの設定については、Macchinetta Server 1.x 開発ガイドラインの
-<a href="https://macchinetta.github.io/server-guideline/1.8.0.RELEASE/ja/ArchitectureInDetail/WebApplicationDetail/Validation.html#validation-message-def">エラーメッセージの定義</a>を参照。
+<a href="https://macchinetta.github.io/server-guideline/1.8.1.RELEASE/ja/ArchitectureInDetail/WebApplicationDetail/Validation.html#validation-message-def">エラーメッセージの定義</a>を参照。
 エラーメッセージを出力する場合は以下の要領で実装する。</p>
 </div>
 <div class="paragraph">
@@ -1120,7 +1122,7 @@ onProcessErrorメソッドにて発生した例外の種類を判定して例外
 
   <div class="common-bg">
     <div class="information">
-      Macchinetta Batch Framework (2.x) Development Guideline - version 2.3.0.RELEASE, 2021-3-26, commit-id:9b11e9d
+      Macchinetta Batch Framework (2.x) Development Guideline - version 2.3.1.RELEASE, 2022-3-30
     </div>
     <div class="index">
       <a href="index.html">&gt; INDEX</a>

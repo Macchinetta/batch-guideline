@@ -14,7 +14,7 @@
 
 <div class="common-bg">
   <div class="information">
-    Macchinetta Batch Framework (2.x) Development Guideline - version 2.3.0.RELEASE, 2021-3-26, commit-id:9b11e9d
+    Macchinetta Batch Framework (2.x) Development Guideline - version 2.3.1.RELEASE, 2022-3-30
   </div>
   <div class="index">
     <a href="index.html">&gt; INDEX</a>
@@ -287,12 +287,12 @@ Webリクエスト送信により直ちに実行するため、起動までの�
 <div class="paragraph">
 <p>「ジョブ起動時の異常」は Spring MVCコントローラ内で発生する例外として検知できる。
 ここでは説明を割愛するので、別途 Macchinetta Server 1.x 開発ガイドラインの
-<a href="https://macchinetta.github.io/server-guideline/1.8.0.RELEASE/ja/ArchitectureInDetail/WebServiceDetail/REST.html#resthowtouseexceptionhandling">例外のハンドリングの実装</a>を参照。</p>
+<a href="https://macchinetta.github.io/server-guideline/1.8.1.RELEASE/ja/ArchitectureInDetail/WebServiceDetail/REST.html#resthowtouseexceptionhandling">例外のハンドリングの実装</a>を参照。</p>
 </div>
 <div class="paragraph">
 <p>また、ジョブパラメータとして利用するリクエストの入力チェックは必要に応じて Spring MVC のコントローラ内で行うこと。<br>
 具体的な実装方法については、Macchinetta Server 1.x 開発ガイドラインの
-<a href="https://macchinetta.github.io/server-guideline/1.8.0.RELEASE/ja/ArchitectureInDetail/WebApplicationDetail/Validation.html">入力チェック</a>を参照。</p>
+<a href="https://macchinetta.github.io/server-guideline/1.8.1.RELEASE/ja/ArchitectureInDetail/WebApplicationDetail/Validation.html">入力チェック</a>を参照。</p>
 </div>
 </td>
 </tr>
@@ -565,7 +565,7 @@ Spring MVCコントローラが、<code>JobOperator</code>によりジョブを�
 <div class="title">Webアプリケーションの実装</div>
 <p>Macchinetta Server 1.xが提供するブランクプロジェクトを用い、Webアプリケーションの実装方法を説明する。
 詳細は、Macchinetta Server 1.x 開発ガイドラインの
-<a href="https://macchinetta.github.io/server-guideline/1.8.0.RELEASE/ja/ImplementationAtEachLayer/CreateWebApplicationProject.html">Webアプリケーション向け開発プロジェクトの作成</a>を参照。</p>
+<a href="https://macchinetta.github.io/server-guideline/1.8.1.RELEASE/ja/ImplementationAtEachLayer/CreateWebApplicationProject.html">Webアプリケーション向け開発プロジェクトの作成</a>を参照。</p>
 </div>
 <div class="paragraph">
 <p>ここでは非同期実行アプリケーションプロジェクトと同様、以下の名称で作成したものとして説明する。</p>
@@ -754,7 +754,7 @@ Webアプリケーションとは別プロジェクトとする場合はこの�
 <p>ここではWebアプリケーションとして、以下Macchinetta Server 1.x 開発ガイドラインを参考に、RESTful Webサービスを作成する。</p>
 </div>
 <div class="paragraph">
-<p><a href="https://macchinetta.github.io/server-guideline/1.8.0.RELEASE/ja/ArchitectureInDetail/WebServiceDetail/REST.html">RESTful Web Serviceで必要となるSpring MVCのコンポーネントを有効化するための設定</a></p>
+<p><a href="https://macchinetta.github.io/server-guideline/1.8.1.RELEASE/ja/ArchitectureInDetail/WebServiceDetail/REST.html#restful-web-servicespring-mvc">RESTful Web Serviceで必要となるSpring MVCのコンポーネントを有効化するための設定</a></p>
 </div>
 <div class="sect3">
 <h4 id="Ch04_AsyncJobWithWeb_HowToUse_WebApp_Config"><a class="anchor" href="#Ch04_AsyncJobWithWeb_HowToUse_WebApp_Config"></a>Webアプリケーションの設定</h4>
@@ -1344,7 +1344,7 @@ RDBMSスキーマ初期化もそれぞれ異なるモジュールの設定に応
 そのため、ここでは以下方法によりCSRF対策を無効化した前提で説明している。</p>
 </div>
 <div class="paragraph">
-<p><a href="https://macchinetta.github.io/server-guideline/1.8.0.RELEASE/ja/ArchitectureInDetail/WebServiceDetail/REST.html#csrf">CSRF対策</a></p>
+<p><a href="https://macchinetta.github.io/server-guideline/1.8.1.RELEASE/ja/ArchitectureInDetail/WebServiceDetail/REST.html#csrf">CSRF対策</a></p>
 </div>
 <div class="paragraph">
 <p>ここで作成されるWebアプリケーションはインターネット上には公開されず、CSRFを攻撃手段として
@@ -1652,7 +1652,7 @@ curlコマンドでHTTPステータスのみを確認する場合は<code>curl -
 
   <div class="common-bg">
     <div class="information">
-      Macchinetta Batch Framework (2.x) Development Guideline - version 2.3.0.RELEASE, 2021-3-26, commit-id:9b11e9d
+      Macchinetta Batch Framework (2.x) Development Guideline - version 2.3.1.RELEASE, 2022-3-30
     </div>
     <div class="index">
       <a href="index.html">&gt; INDEX</a>

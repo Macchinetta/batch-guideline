@@ -14,7 +14,7 @@
 
 <div class="common-bg">
   <div class="information">
-    Macchinetta Batch Framework (2.x) Development Guideline - version 2.3.0.RELEASE, 2021-3-26, commit-id:9b11e9d
+    Macchinetta Batch Framework (2.x) Development Guideline - version 2.3.1.RELEASE, 2022-3-30
   </div>
   <div class="index">
     <a href="index.html">&gt; INDEX</a>
@@ -192,7 +192,7 @@ Spring Batchによるこの不具合報告の状況としては以下を参照�
 <p>Indexを作成することで、<code>JobRepository</code>の性能改善が期待できる。<br>
 どのSQL文のどの列に対してIndexを作成するかは、実行計画を確認するなどして適切に判断してほしい。
 Spring Batchのリファレンス
-<a href="https://docs.spring.io/spring-batch/docs/4.3.1/reference/html/schema-appendix.html#recommendationsForIndexingMetaDataTables">B.10 Recommendations for Indexing Meta Data Tables</a>
+<a href="https://docs.spring.io/spring-batch/docs/4.3.4/reference/html/schema-appendix.html#recommendationsForIndexingMetaDataTables">B.10 Recommendations for Indexing Meta Data Tables</a>
 では、Spring Batchが提供するDaoの実装によって、WHERE句でどの列が利用されているか、およびそれらの使用頻度を示しているので参考にするとよい。<br></p>
 </div>
 <div class="paragraph">
@@ -217,7 +217,7 @@ Spring Batchのリファレンス
 </div>
 <div class="paragraph">
 <p>本件の対策として、Macchinetta Batch 2.2.0では「Spring Batchで対処された<a href="https://github.com/spring-projects/spring-batch/pull/3635/files">変更</a>を実装する」ことを推奨しているが、
-Macchinetta Batch 2.3.0.RELEASEではこの問題は発生しないため、対策は不要となる。</p>
+Macchinetta Batch 2.3.1.RELEASEではこの問題は発生しないため、対策は不要となる。</p>
 </div>
 </td>
 </tr>
@@ -776,44 +776,47 @@ javaプロセスの終了コードをカスタマイズするのに必要な作�
 <dl>
 <dt class="hdlist1">チャンクモデルにおけるステップの終了コードの変更</dt>
 <dd>
-<p>ステップ終了時の処理としてStepExecutionListenerのafterStepメソッドを実装し、任意のステップの終了コードを返却する。</p>
+<p>ステップ終了時の処理として、StepExecutionListenerのafterStepメソッドもしくは@AfterStepアノテーションを付与したメソッドを実装し、
+任意のステップの終了コードを返却する。</p>
 </dd>
 </dl>
 </div>
 <div class="listingblock">
-<div class="title">StepExecutionListener実装例</div>
+<div class="title">リスナーを含むItemProcessor実装例</div>
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="java"><span class="annotation">@Component</span>
-<span class="directive">public</span> <span class="type">class</span> <span class="class">StepExitStatusChangeListener</span> <span class="directive">implements</span> StepExecutionListener {
+<span class="annotation">@Scope</span>(<span class="string"><span class="delimiter">&quot;</span><span class="content">step</span><span class="delimiter">&quot;</span></span>)
+<span class="directive">public</span> <span class="type">class</span> <span class="class">CheckAmountItemProcessor</span> <span class="directive">implements</span> ItemProcessor&lt;SalesPlanSummary, SalesPlanSummary&gt; {
+
+    <span class="comment">// omitted.</span>
 
     <span class="annotation">@Override</span>
-    <span class="directive">public</span> ExitStatus afterStep(StepExecution stepExecution) {
+    <span class="directive">public</span> SalesPlanSummary process(SalesPlanSummary item) <span class="directive">throws</span> <span class="exception">Exception</span> {
+        <span class="keyword">if</span> (item.getAmount().signum() == -<span class="integer">1</span>) {
+            logger.warn(<span class="string"><span class="delimiter">&quot;</span><span class="content">amount is negative. skip item [item: {}]</span><span class="delimiter">&quot;</span></span>, item);
 
-        ExitStatus exitStatus = stepExecution.getExitStatus();
-        <span class="keyword">if</span> (conditionalCheck(stepExecution)) {
-            <span class="comment">// (1)</span>
-            exitStatus = <span class="keyword">new</span> ExitStatus(<span class="string"><span class="delimiter">&quot;</span><span class="content">CUSTOM STEP FAILED</span><span class="delimiter">&quot;</span></span>);
+            <span class="keyword">if</span> (!stepExecution.getExecutionContext().containsKey(ERROR_ITEMS_KEY)) {
+                stepExecution.getExecutionContext().put(ERROR_ITEMS_KEY, <span class="keyword">new</span> <span class="predefined-type">ArrayList</span>&lt;SalesPlanSummary&gt;());
+            }
+            <span class="annotation">@SuppressWarnings</span>(<span class="string"><span class="delimiter">&quot;</span><span class="content">unchecked</span><span class="delimiter">&quot;</span></span>)
+            <span class="predefined-type">List</span>&lt;SalesPlanSummary&gt; errorItems = (<span class="predefined-type">List</span>&lt;SalesPlanSummary&gt;) stepExecution.getExecutionContext().get(ERROR_ITEMS_KEY);
+            errorItems.add(item);
+
+            <span class="keyword">return</span> <span class="predefined-constant">null</span>;
         }
-        <span class="keyword">return</span> exitStatus;
+        <span class="keyword">return</span> item;
     }
 
-    <span class="directive">private</span> <span class="type">boolean</span> conditionalCheck(StepExecution stepExecution) {
-        <span class="comment">// omitted.</span>
+    <span class="annotation">@AfterStep</span>
+    <span class="directive">public</span> ExitStatus afterStep(StepExecution stepExecution) {
+        <span class="keyword">if</span> (stepExecution.getExecutionContext().containsKey(ERROR_ITEMS_KEY)) {
+            logger.info(<span class="string"><span class="delimiter">&quot;</span><span class="content">Change status 'STEP COMPLETED WITH SKIPS'</span><span class="delimiter">&quot;</span></span>);
+            <span class="comment">// (1)</span>
+            <span class="keyword">return</span> <span class="keyword">new</span> ExitStatus(<span class="string"><span class="delimiter">&quot;</span><span class="content">STEP COMPLETED WITH SKIPS</span><span class="delimiter">&quot;</span></span>);
+        }
+        <span class="keyword">return</span> stepExecution.getExitStatus();
     }
 }</code></pre>
-</div>
-</div>
-<div class="listingblock">
-<div class="title">ジョブ定義</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="xml"><span class="tag">&lt;batch:step</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">exitstatusjob.step</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
-    <span class="tag">&lt;batch:tasklet</span> <span class="attribute-name">transaction-manager</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">transactionManager</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
-        <span class="tag">&lt;batch:chunk</span> <span class="attribute-name">reader</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">reader</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">writer</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">writer</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">commit-interval</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">10</span><span class="delimiter">&quot;</span></span> <span class="tag">/&gt;</span>
-    <span class="tag">&lt;/batch:tasklet&gt;</span>
-    <span class="tag">&lt;batch:listeners&gt;</span>
-        <span class="tag">&lt;batch:listener</span> <span class="attribute-name">ref</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">stepExitStatusChangeListener</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
-    <span class="tag">&lt;/batch:listeners&gt;</span>
-<span class="tag">&lt;/batch:step&gt;</span></code></pre>
 </div>
 </div>
 <table class="tableblock frame-all grid-all stretch">
@@ -931,8 +934,8 @@ javaプロセスの終了コードをカスタマイズするのに必要な作�
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">ジョブの実行結果に応じて、最終的なジョブの終了コードを<code>JobExecution</code>に設定する。<br>
-ここではステップから返却された終了コードのいずれかに<code>CUSTOM STEP FAILED</code>が含まれている場合、
-終了コード<code>CUSTOM FAILED</code>としている。</p></td>
+ここではステップから返却された終了コードのいずれかに<code>STEP COMPLETED WITH SKIPS</code>が含まれている場合、
+終了コード<code>JOB COMPLETED WITH SKIPS</code>としている。</p></td>
 </tr>
 </tbody>
 </table>
@@ -957,7 +960,7 @@ javaプロセスの終了コードをカスタマイズするのに必要な作�
             <span class="tag">&lt;entry</span> <span class="attribute-name">key</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">STOPPED</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">value</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">255</span><span class="delimiter">&quot;</span></span> <span class="tag">/&gt;</span>
             <span class="tag">&lt;entry</span> <span class="attribute-name">key</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">FAILED</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">value</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">255</span><span class="delimiter">&quot;</span></span> <span class="tag">/&gt;</span>
             <span class="tag">&lt;entry</span> <span class="attribute-name">key</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">UNKNOWN</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">value</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">255</span><span class="delimiter">&quot;</span></span> <span class="tag">/&gt;</span>
-            <span class="tag">&lt;entry</span> <span class="attribute-name">key</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">CUSTOM FAILED</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">value</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">100</span><span class="delimiter">&quot;</span></span> <span class="tag">/&gt;</span> <span class="comment">&lt;!-- Custom Exit Status --&gt;</span>
+            <span class="tag">&lt;entry</span> <span class="attribute-name">key</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">JOB COMPLETED WITH SKIPS</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">value</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">100</span><span class="delimiter">&quot;</span></span> <span class="tag">/&gt;</span>
         <span class="tag">&lt;/util:map&gt;</span>
     <span class="tag">&lt;/property&gt;</span>
 <span class="tag">&lt;/bean&gt;</span></code></pre>
@@ -1042,7 +1045,7 @@ javaプロセスの終了コードをカスタマイズするのに必要な作�
 </div>
 <div class="paragraph">
 <p>ログの出力、設定、考慮事項はMacchinetta Server 1.xと共通点が多い。まずは、
-<a href="https://macchinetta.github.io/server-guideline/1.8.0.RELEASE/ja/ArchitectureInDetail/GeneralFuncDetail/Logging.html">ロギング</a>を参照。</p>
+<a href="https://macchinetta.github.io/server-guideline/1.8.1.RELEASE/ja/ArchitectureInDetail/GeneralFuncDetail/Logging.html">ロギング</a>を参照。</p>
 </div>
 <div class="paragraph">
 <p>ここでは、Macchinetta Batch 2.x特有の考慮点について説明する。</p>
@@ -1213,7 +1216,7 @@ javaプロセスの終了コードをカスタマイズするのに必要な作�
 <div class="ulist">
 <ul>
 <li>
-<p>具体的な設定・実装例については<a href="https://macchinetta.github.io/server-guideline/1.8.0.RELEASE/ja/ArchitectureInDetail/GeneralFuncDetail/Logging.html#id8">ログメッセージの一元管理</a>を参照。</p>
+<p>具体的な設定・実装例については<a href="https://macchinetta.github.io/server-guideline/1.8.1.RELEASE/ja/ArchitectureInDetail/GeneralFuncDetail/Logging.html#id8">ログメッセージの一元管理</a>を参照。</p>
 <div class="ulist">
 <ul>
 <li>
@@ -1251,7 +1254,7 @@ Spring Batchの任意のコンポーネントに読み換えてほしい。</p>
 
   <div class="common-bg">
     <div class="information">
-      Macchinetta Batch Framework (2.x) Development Guideline - version 2.3.0.RELEASE, 2021-3-26, commit-id:9b11e9d
+      Macchinetta Batch Framework (2.x) Development Guideline - version 2.3.1.RELEASE, 2022-3-30
     </div>
     <div class="index">
       <a href="index.html">&gt; INDEX</a>

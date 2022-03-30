@@ -14,7 +14,7 @@
 
 <div class="common-bg">
   <div class="information">
-    Macchinetta Batch Framework (2.x) Development Guideline - version 2.3.0.RELEASE, 2021-3-26, commit-id:9b11e9d
+    Macchinetta Batch Framework (2.x) Development Guideline - version 2.3.1.RELEASE, 2022-3-30
   </div>
   <div class="index">
     <a href="index.html">&gt; INDEX</a>
@@ -171,21 +171,6 @@ ItemReader/ItemProcessor/ItemWriterを自作する場合でもスレッドセー
 代わりに<a href="#Ch08_ParallelAndMultiple_HowToUse_Partitioning">Partitioning Step (多重処理)</a>を利用することを推奨する。</p>
 </dd>
 </dl>
-</div>
-<div class="admonitionblock warning">
-<table>
-<tr>
-<td class="icon">
-<i class="fa icon-warning" title="Warning"></i>
-</td>
-<td class="content">
-<div class="paragraph">
-<p><code>org.springframework.batch.item.support.SynchronizedItemStreamReader</code>を利用することで、既存のItemReaderをスレッドセーフにすることは可能である。
-それでも処理順序の課題は残るため、Macchinetta Batch 2.xでは<code>Multi Thread Step</code>は利用しないこと。</p>
-</div>
-</td>
-</tr>
-</table>
 </div>
 </td>
 </tr>
@@ -1002,7 +987,7 @@ Managerステップはメインスレッドで処理される。</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">特定のデータ範囲を取得するためにページネーション検索(SQL絞り込み方式)を定義する。<br>
 ページネーション検索(SQL絞り込み方式)の詳細は、Macchinetta Server 1.x 開発ガイドラインの
-<a href="https://macchinetta.github.io/server-guideline/1.8.0.RELEASE/ja/ArchitectureInDetail/DataAccessDetail/DataAccessMyBatis3.html#entity-sql">Entityのページネーション検索(SQL絞り込み方式)</a>を参照。</p></td>
+<a href="https://macchinetta.github.io/server-guideline/1.8.1.RELEASE/ja/ArchitectureInDetail/DataAccessDetail/DataAccessMyBatis3.html#entity-sql">Entityのページネーション検索(SQL絞り込み方式)</a>を参照。</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">(2)</p></td>
@@ -1077,7 +1062,7 @@ Managerステップはメインスレッドで処理される。</p></td>
 
   <div class="common-bg">
     <div class="information">
-      Macchinetta Batch Framework (2.x) Development Guideline - version 2.3.0.RELEASE, 2021-3-26, commit-id:9b11e9d
+      Macchinetta Batch Framework (2.x) Development Guideline - version 2.3.1.RELEASE, 2022-3-30
     </div>
     <div class="index">
       <a href="index.html">&gt; INDEX</a>

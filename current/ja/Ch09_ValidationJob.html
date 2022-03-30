@@ -14,7 +14,7 @@
 
 <div class="common-bg">
   <div class="information">
-    Macchinetta Batch Framework (2.x) Development Guideline - version 2.3.0.RELEASE, 2021-3-26, commit-id:9b11e9d
+    Macchinetta Batch Framework (2.x) Development Guideline - version 2.3.1.RELEASE, 2022-3-30
   </div>
   <div class="index">
     <a href="index.html">&gt; INDEX</a>
@@ -541,8 +541,8 @@
 <h3 id="Ch09_Impl_ValidationJob_Chunk_ValidationRulesDefinition"><a class="anchor" href="#Ch09_Impl_ValidationJob_Chunk_ValidationRulesDefinition"></a>入力チェックルールの定義</h3>
 <div class="paragraph">
 <p>入力チェックを行うために、DTOクラスのチェック対象のフィールドにBean Validationのアノテーションを付与する。<br>
-入力チェック用のアノテーションについては、Macchinetta Server 1.x 開発ガイドラインの<a href="https://macchinetta.github.io/server-guideline/1.8.0.RELEASE/ja/ArchitectureInDetail/WebApplicationDetail/Validation.html#validation-jsr380-doc">Bean Validationのチェックルール</a>
-および<a href="https://macchinetta.github.io/server-guideline/1.8.0.RELEASE/ja/ArchitectureInDetail/WebApplicationDetail/Validation.html#validation-validator-list">Hibernate Validatorのチェックルール</a>を参照。</p>
+入力チェック用のアノテーションについては、Macchinetta Server 1.x 開発ガイドラインの<a href="https://macchinetta.github.io/server-guideline/1.8.1.RELEASE/ja/ArchitectureInDetail/WebApplicationDetail/Validation.html#validation-jsr380-doc">Bean Validationのチェックルール</a>
+および<a href="https://macchinetta.github.io/server-guideline/1.8.1.RELEASE/ja/ArchitectureInDetail/WebApplicationDetail/Validation.html#validation-validator-list">Hibernate Validatorのチェックルール</a>を参照。</p>
 </div>
 <div class="paragraph">
 <p>チャンクモデル/タスクレットモデルで共通して利用するため、既に実施している場合は読み飛ばしてよい。</p>
@@ -705,7 +705,7 @@ tutorial.insert-data.script=file:sqls/insert-member-info-error-data.sql</code></
 </div>
 <div class="paragraph">
 <p>異常系データを利用するために、実行構成で設定する引数のうち、
-入力ファイル(inputFile)のパスを正常系データ(insert-member-info-data.csv)から異常系データ(insert-member-info-error-data.csv)に変更する。</p>
+入力ファイル(inputFile)のパスを正常系データ(input-member-info-data.csv)から異常系データ(input-member-info-error-data.csv)に変更する。</p>
 </div>
 </div>
 <div class="sect3">
@@ -953,8 +953,8 @@ Field error in object 'item' on field 'point': rejected value [1000001]; codes [
 <h3 id="Ch09_Impl_ValidationJob_Tasklet_ValidationRulesDefinition"><a class="anchor" href="#Ch09_Impl_ValidationJob_Tasklet_ValidationRulesDefinition"></a>入力チェックルールの定義</h3>
 <div class="paragraph">
 <p>入力チェックを行うために、DTOクラスのチェック対象のフィールドにBean Validationのアノテーションを付与する。<br>
-入力チェック用のアノテーションについては、Macchinetta Server 1.x 開発ガイドラインの<a href="https://macchinetta.github.io/server-guideline/1.8.0.RELEASE/ja/ArchitectureInDetail/WebApplicationDetail/Validation.html#validation-jsr380-doc">Bean Validationのチェックルール</a>
-および<a href="https://macchinetta.github.io/server-guideline/1.8.0.RELEASE/ja/ArchitectureInDetail/WebApplicationDetail/Validation.html#validation-validator-list">Hibernate Validatorのチェックルール</a>を参照。</p>
+入力チェック用のアノテーションについては、Macchinetta Server 1.x 開発ガイドラインの<a href="https://macchinetta.github.io/server-guideline/1.8.1.RELEASE/ja/ArchitectureInDetail/WebApplicationDetail/Validation.html#validation-jsr380-doc">Bean Validationのチェックルール</a>
+および<a href="https://macchinetta.github.io/server-guideline/1.8.1.RELEASE/ja/ArchitectureInDetail/WebApplicationDetail/Validation.html#validation-validator-list">Hibernate Validatorのチェックルール</a>を参照。</p>
 </div>
 <div class="paragraph">
 <p>チャンクモデル/タスクレットモデルで共通して利用するため、既に実施している場合は読み飛ばしてよい。</p>
@@ -1133,7 +1133,7 @@ tutorial.insert-data.script=file:sqls/insert-member-info-error-data.sql</code></
 </div>
 <div class="paragraph">
 <p>異常系データを利用するために、実行構成で設定する引数のうち、
-入力ファイル(inputFile)のパスを正常系データ(insert-member-info-data.csv)から異常系データ(insert-member-info-error-data.csv)に変更する。</p>
+入力ファイル(inputFile)のパスを正常系データ(input-member-info-data.csv)から異常系データ(input-member-info-error-data.csv)に変更する。</p>
 </div>
 </div>
 <div class="sect3">
@@ -1260,7 +1260,7 @@ Field error in object 'item' on field 'point': rejected value [1000001]; codes [
 
   <div class="common-bg">
     <div class="information">
-      Macchinetta Batch Framework (2.x) Development Guideline - version 2.3.0.RELEASE, 2021-3-26, commit-id:9b11e9d
+      Macchinetta Batch Framework (2.x) Development Guideline - version 2.3.1.RELEASE, 2022-3-30
     </div>
     <div class="index">
       <a href="index.html">&gt; INDEX</a>

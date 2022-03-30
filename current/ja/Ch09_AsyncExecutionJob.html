@@ -14,7 +14,7 @@
 
 <div class="common-bg">
   <div class="information">
-    Macchinetta Batch Framework (2.x) Development Guideline - version 2.3.0.RELEASE, 2021-3-26, commit-id:9b11e9d
+    Macchinetta Batch Framework (2.x) Development Guideline - version 2.3.1.RELEASE, 2022-3-30
   </div>
   <div class="index">
     <a href="index.html">&gt; INDEX</a>
@@ -504,7 +504,7 @@ Database Browserの表示手順は<a href="Ch09_EnvironmentConstruction.html#Ch0
 <div class="title">ファイルアクセスするジョブの実行要求用SQL</div>
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="sql"><span class="class">INSERT</span> <span class="class">INTO</span> batch_job_request(job_name,job_parameter,polling_status,create_date)
-<span class="keyword">VALUES</span> (<span class="string"><span class="delimiter">'</span><span class="content">jobPointAddChunk</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">inputFile=files/input/input-member-info-data.csv,outputFile=files/output/output-member_info_out.csv</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">INIT</span><span class="delimiter">'</span></span>, current_timestamp);</code></pre>
+<span class="keyword">VALUES</span> (<span class="string"><span class="delimiter">'</span><span class="content">jobPointAddChunk</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">inputFile=files/input/input-member-info-data.csv,outputFile=files/output/output-member-info-data.csv</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">INIT</span><span class="delimiter">'</span></span>, current_timestamp);</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -801,7 +801,7 @@ C:\tmpにstop-async-batch-daemonファイル(空ファイル)を作成する。<
 
   <div class="common-bg">
     <div class="information">
-      Macchinetta Batch Framework (2.x) Development Guideline - version 2.3.0.RELEASE, 2021-3-26, commit-id:9b11e9d
+      Macchinetta Batch Framework (2.x) Development Guideline - version 2.3.1.RELEASE, 2022-3-30
     </div>
     <div class="index">
       <a href="index.html">&gt; INDEX</a>

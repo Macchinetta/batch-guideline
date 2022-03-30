@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Asciidoctor 2.0.10">
+<title>非同期実行方式のジョブ</title>
+<link rel="stylesheet" href="./theme/css/readthedocs.css">
+<link rel="stylesheet" href="./theme/css/font-awesome.min.css">
+<link rel="stylesheet" href="./theme/css/coderay-asciidoctor.css">
+<link rel="stylesheet" href="./theme/css/header-footer.css">
+<title>Macchinetta Batch Framework (2.x) Development Guideline</title>
+
+<div class="common-bg">
+  <div class="information">
+    Macchinetta Batch Framework (2.x) Development Guideline - version 2.3.1.RELEASE, 2022-3-30
+  </div>
+  <div class="index">
+    <a href="index.html">&gt; INDEX</a>
+  </div>
+</div>
+</head>
+<body id="Ch09_Impl_AsyncExecutionJob" class="book toc2 toc-left">
+<div id="header">
+<h1>非同期実行方式のジョブ</h1>
+<div id="toc" class="toc2">
+<div id="toctitle">Table of Contents</div>
+<ul class="sectlevel1">
+<li><a href="#Ch09_Impl_AsyncExecutionJob_Overview">概要</a></li>
+<li><a href="#Ch09_Impl_AsyncExecutionJob_Preparation">準備</a>
+<ul class="sectlevel2">
+<li><a href="#Ch09_Impl_AsyncExecutionJob_Preparation_Properties">ポーリング処理の設定</a></li>
+<li><a href="#Ch09_Impl_AsyncExecutionJob_Preparation_Bean">ジョブの設定</a></li>
+<li><a href="#Ch09_Impl_AsyncExecutionJob_Preparation_Input">入力リソースの設定</a></li>
+</ul>
+</li>
+<li><a href="#Ch09_Impl_AsyncExecutionJob_StartAsyncBatchDaemon">非同期バッチデーモンを起動</a></li>
+<li><a href="#Ch09_Impl_AsyncExecutionJob_JobRegistration">ジョブ情報をジョブ要求テーブルに登録</a></li>
+<li><a href="#Ch09_Impl_AsyncExecutionJob_ExecutionResultCheck">ジョブの実行と結果の確認</a>
+<ul class="sectlevel2">
+<li><a href="#Ch09_Impl_AsyncExecutionJob_ExecutionResultCheck_Console">コンソールログの確認</a></li>
+<li><a href="#Ch09_Impl_AsyncExecutionJob_ExecutionResultCheck_ExitCode">終了コードの確認</a></li>
+<li><a href="#Ch09_Impl_AsyncExecutionJob_ExecutionResultCheck_Output">出力リソースの確認</a>
+<ul class="sectlevel3">
+<li><a href="#Ch09_Impl_AsyncExecutionJob_ExecutionResultCheck_Output_Table">データベースアクセスするジョブの場合</a></li>
+<li><a href="#Ch09_Impl_AsyncExecutionJob_ExecutionResultCheck_Output_File">ファイルアクセスするジョブの場合</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="#Ch09_Impl_AsyncExecutionJob_StopAsyncBatchDaemon">非同期バッチデーモンの停止</a></li>
+<li><a href="#Ch09_Impl_AsyncExecutionJob_ExecutionStatusCheck">ジョブ実行状態の確認</a></li>
+</ul>
+</div>
+</div>
+<div id="content">
+<div id="preamble">
+<div class="sectionbody">
+<div id="Ch09_Impl_AsyncExecutionJob_Prerequisite" class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+<div class="title">前提</div>
+<div class="paragraph">
+<p><a href="Ch09_Introduction.html#Ch09_Introduction_HowToProceed">チュートリアルの進め方</a>で説明しているとおり、
+既に作成済みのジョブに対して、非同期実行していく形式とする。
+非同期実行方式には<a href="Ch04_AsyncJobWithDB.html#Ch04_AsyncJobWithDB">DBポーリングを利用する方式</a>と
+<a href="Ch04_AsyncJobWithWebContainer.html#Ch04_AsyncJobWithWeb">Webコンテナを利用する方式</a>があるが、
+チュートリアルではDBポーリングを利用する方式の説明を行う。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="Ch09_Impl_AsyncExecutionJob_Overview"><a class="anchor" href="#Ch09_Impl_AsyncExecutionJob_Overview"></a>概要</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>DBポーリングを利用してジョブを非同期実行する。</p>
+</div>
+<div class="paragraph">
+<p>なお、詳細についてはMacchinetta Batch 2.x 開発ガイドラインの<a href="Ch04_AsyncJobWithDB.html#Ch04_AsyncJobWithDB">非同期実行(DBポーリング)</a>を参照。<br>
+また、アプリケーションの背景、処理概要、業務仕様は、<a href="Ch09_Impl_index.html#Ch09_Impl">バッチジョブの実装</a>の各節を参照。</p>
+</div>
+<div class="paragraph">
+<p>以降では、DBポーリングによるジョブの非同期実行方法を以下の手順で説明する。</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p><a href="#Ch09_Impl_AsyncExecutionJob_Preparation">準備</a></p>
+</li>
+<li>
+<p><a href="#Ch09_Impl_AsyncExecutionJob_StartAsyncBatchDaemon">非同期バッチデーモンを起動</a></p>
+</li>
+<li>
+<p><a href="#Ch09_Impl_AsyncExecutionJob_JobRegistration">ジョブ情報をジョブ要求テーブルに登録</a></p>
+</li>
+<li>
+<p><a href="#Ch09_Impl_AsyncExecutionJob_ExecutionResultCheck">ジョブの実行と結果の確認</a></p>
+</li>
+<li>
+<p><a href="#Ch09_Impl_AsyncExecutionJob_StopAsyncBatchDaemon">非同期バッチデーモンの停止</a></p>
+</li>
+<li>
+<p><a href="#Ch09_Impl_AsyncExecutionJob_ExecutionStatusCheck">ジョブ実行状態の確認</a></p>
+</li>
+</ol>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="Ch09_Impl_AsyncExecutionJob_Preparation"><a class="anchor" href="#Ch09_Impl_AsyncExecutionJob_Preparation"></a>準備</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>非同期実行(DBポーリング)を行うための準備作業を実施する。</p>
+</div>
+<div class="paragraph">
+<p>実施する作業は以下のとおり。</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p><a href="#Ch09_Impl_AsyncExecutionJob_Preparation_Properties">ポーリング処理の設定</a></p>
+</li>
+<li>
+<p><a href="#Ch09_Impl_AsyncExecutionJob_Preparation_Bean">ジョブの設定</a></p>
+</li>
+<li>
+<p><a href="#Ch09_Impl_AsyncExecutionJob_Preparation_Input">入力リソースの設定</a></p>
+</li>
+</ol>
+</div>
+<div class="sect2">
+<h3 id="Ch09_Impl_AsyncExecutionJob_Preparation_Properties"><a class="anchor" href="#Ch09_Impl_AsyncExecutionJob_Preparation_Properties"></a>ポーリング処理の設定</h3>
+<div class="paragraph">
+<p>非同期実行に必要な設定は、<code>batch-application.properties</code>で行う。<br>
+ブランクプロジェクトには設定済みであるため、詳細な説明は割愛する。
+各項目の説明は<a href="Ch04_AsyncJobWithDB.html#Ch04_AsyncJobWithDB_HowToUse_Config">各種設定</a>のポーリング処理の設定を参照。</p>
+</div>
+<div class="listingblock">
+<div class="title">src/main/resources/batch-application.properties</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="properties"># TERASOLUNA AsyncBatchDaemon settings.
+# (1)
+async-batch-daemon.scheduler.size=1
+async-batch-daemon.schema.script=classpath:org/terasoluna/batch/async/db/schema-h2.sql
+# (2)
+async-batch-daemon.job-concurrency-num=3
+# (3)
+async-batch-daemon.polling-interval=10000
+# (4)
+async-batch-daemon.polling-initial-delay=1000
+# (5)
+async-batch-daemon.polling-stop-file-path=/tmp/stop-async-batch-daemon</code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 1. 説明</caption>
+<colgroup>
+<col style="width: 10%;">
+<col style="width: 90%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">DBポーリング処理で起動される<code>TaskScheduler</code>のスレッドプールサイズを設定する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(2)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ポーリング時に一括で取得する件数を設定する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(3)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ポーリング周期(ミリ秒単位)を設定する。<br>
+前回タスクの実行完了時点から指定時間後にタスクを実行する。<br>
+ここでは、10000ミリ秒(10秒)を指定する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(4)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ポーリング初回起動遅延時間(ミリ秒単位)を設定する。<br>
+アプリケーションの起動から指定時間後にポーリングを初回実行する。<br>
+ここでは、1000ミリ秒(1秒)を指定する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(5)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">非同期バッチデーモンを停止させるための終了ファイルパスを設定する。<br>
+本チュートリアルは、Windows環境で実施することを前提としているため、
+この設定の場合はC:\tmp配下にstop-async-batch-daemonファイルを置くことになる。</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect2">
+<h3 id="Ch09_Impl_AsyncExecutionJob_Preparation_Bean"><a class="anchor" href="#Ch09_Impl_AsyncExecutionJob_Preparation_Bean"></a>ジョブの設定</h3>
+<div class="paragraph">
+<p>非同期実行する対象のジョブは、<code>async-batch-daemon.xml</code>の<code>automaticJobRegistrar</code>に設定する。</p>
+</div>
+<div class="paragraph">
+<p>例として<a href="Ch09_DBAccessJob.html#Ch09_Impl_DBAccessJob">データベースアクセスでデータ入出力を行うジョブ</a>(チャンクモデル)を指定した設定を以下に示す。</p>
+</div>
+<div class="listingblock">
+<div class="title">src/main/resources/META-INF/spring/async-batch-daemon.xml</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"><span class="preprocessor">&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;</span>
+<span class="tag">&lt;beans</span> <span class="attribute-name">xmlns</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">http://www.springframework.org/schema/beans</span><span class="delimiter">&quot;</span></span>
+       <span class="attribute-name">xmlns:xsi</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">http://www.w3.org/2001/XMLSchema-instance</span><span class="delimiter">&quot;</span></span>
+       <span class="attribute-name">xmlns:jdbc</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">http://www.springframework.org/schema/jdbc</span><span class="delimiter">&quot;</span></span>
+       <span class="attribute-name">xmlns:c</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">http://www.springframework.org/schema/c</span><span class="delimiter">&quot;</span></span>
+       <span class="attribute-name">xmlns:p</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">http://www.springframework.org/schema/p</span><span class="delimiter">&quot;</span></span>
+       <span class="attribute-name">xmlns:task</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">http://www.springframework.org/schema/task</span><span class="delimiter">&quot;</span></span>
+       <span class="attribute-name">xmlns:context</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">http://www.springframework.org/schema/context</span><span class="delimiter">&quot;</span></span>
+       <span class="attribute-name">xsi:schemaLocation</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd</span>
+            <span class="content">http://www.springframework.org/schema/jdbc https://www.springframework.org/schema/jdbc/spring-jdbc.xsd</span>
+            <span class="content">http://www.springframework.org/schema/task https://www.springframework.org/schema/task/spring-task.xsd</span>
+            <span class="content">http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+
+    <span class="comment">&lt;!-- omitted --&gt;</span>
+
+    <span class="tag">&lt;bean</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">automaticJobRegistrar</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">org.springframework.batch.core.configuration.support.AutomaticJobRegistrar</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+        <span class="tag">&lt;property</span> <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">applicationContextFactories</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+            <span class="tag">&lt;bean</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">org.springframework.batch.core.configuration.support.ClasspathXmlApplicationContextsFactoryBean</span><span class="delimiter">&quot;</span></span>
+                <span class="attribute-name">p:resources</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">classpath:/META-INF/jobs/dbaccess/jobPointAddChunk.xml</span><span class="delimiter">&quot;</span></span> <span class="tag">/&gt;</span> <span class="comment">&lt;!-- (1) --&gt;</span>
+        <span class="tag">&lt;/property&gt;</span>
+        <span class="tag">&lt;property</span> <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobLoader</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+            <span class="tag">&lt;bean</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">org.springframework.batch.core.configuration.support.DefaultJobLoader</span><span class="delimiter">&quot;</span></span>
+                <span class="attribute-name">p:jobRegistry-ref</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobRegistry</span><span class="delimiter">&quot;</span></span> <span class="tag">/&gt;</span>
+        <span class="tag">&lt;/property&gt;</span>
+    <span class="tag">&lt;/bean&gt;</span>
+
+    <span class="comment">&lt;!-- omitted --&gt;</span>
+
+<span class="tag">&lt;/beans&gt;</span></code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 2. 説明</caption>
+<colgroup>
+<col style="width: 10%;">
+<col style="width: 90%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">非同期実行する対象ジョブのBean定義ファイルを指定する。<br>
+ワイルドカード(**/*)の利用も可能である。
+ジョブの指定に際しては<a href="Ch04_AsyncJobWithDB.html#Ch04_AsyncJobWithDB_HowToUse_Config_Job">ジョブの設定</a>に記載してある注意事項を参照。</p></td>
+</tr>
+</tbody>
+</table>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-warning" title="Warning"></i>
+</td>
+<td class="content">
+<div class="title">ジョブ設計上の留意点</div>
+<div class="paragraph">
+<p>非同期実行(DBポーリング)の特性上、同一ジョブの並列実行が可能になっているので、並列実行した場合に同一ジョブが影響を与えないようにする必要がある。</p>
+</div>
+<div class="paragraph">
+<p>本チュートリアルでは、データベースアクセスのジョブとファイルアクセスのジョブで同じジョブIDを用いている。
+チュートリアルの中で、これらのジョブを並列実行することはないが、同じジョブIDのジョブを複数指定する場合はエラーとなってしまうため、
+ジョブの設計時に留意する必要がある。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect2">
+<h3 id="Ch09_Impl_AsyncExecutionJob_Preparation_Input"><a class="anchor" href="#Ch09_Impl_AsyncExecutionJob_Preparation_Input"></a>入力リソースの設定</h3>
+<div class="paragraph">
+<p>非同期実行でジョブを実行する際の入力リソース(データベース or ファイル)の設定を行う。<br>
+ここでは、正常系データを利用するジョブを実行する。</p>
+</div>
+<div class="paragraph">
+<p>データベースアクセスするジョブとファイルアクセスするジョブの場合の入力リソースの設定を以下に示す。</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">データベースアクセスするジョブの場合</dt>
+<dd>
+<p><code>batch-application.properties</code>のDatabase Initializeのスクリプトを以下のとおり設定する。</p>
+</dd>
+</dl>
+</div>
+<div class="listingblock">
+<div class="title">src/main/resources/batch-application.properties</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"># Database Initialize
+tutorial.create-table.script=file:sqls/create-member-info-table.sql
+tutorial.insert-data.script=file:sqls/insert-member-info-data.sql
+#tutorial.insert-data.script=file:sqls/insert-member-info-error-data.sql</code></pre>
+</div>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">ファイルアクセスするジョブの場合</dt>
+<dd>
+<p>事前に、入力ファイルが配備されていること、および出力ディレクトリが存在することを確認しておくこと。</p>
+<div class="ulist">
+<ul>
+<li>
+<p>入力ファイル</p>
+<div class="ulist">
+<ul>
+<li>
+<p>files/input/input-member-info-data.csv</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>出力ディレクトリ</p>
+<div class="ulist">
+<ul>
+<li>
+<p>files/output/</p>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+</dd>
+</dl>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+<div class="title">本チュートリアルにおける入力リソースのデータ準備について</div>
+<div class="paragraph">
+<p>データベースアクセスするジョブの場合、非同期バッチデーモン起動時(ApplicationContext生成時)にINSERTのSQLを実行し、
+データベースにデータを準備している。</p>
+</div>
+<div class="paragraph">
+<p>ファイルアクセスするジョブの場合、入力ファイルをディレクトリに配置し、
+ジョブ要求テーブルへジョブ情報の登録時にそのジョブ情報のパラメータ部として入出力ファイルのパスを指定する。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="Ch09_Impl_AsyncExecutionJob_StartAsyncBatchDaemon"><a class="anchor" href="#Ch09_Impl_AsyncExecutionJob_StartAsyncBatchDaemon"></a>非同期バッチデーモンを起動</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Macchinetta Batch 2.xが提供する<code>AsyncBatchDaemon</code>を起動する。</p>
+</div>
+<div class="paragraph">
+<p>実行構成を以下のとおり作成し、非同期バッチデーモンを起動する。<br>
+作成手順は<a href="Ch09_EnvironmentConstruction.html#Ch09_EnvironmentConstruction_OperationCheck_ExecJob_RunConf">Run Configuration(実行構成)の作成</a>を参照。</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 3. Run ConfigurationsのMainタブで設定する値</caption>
+<colgroup>
+<col style="width: 30%;">
+<col style="width: 70%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項目名</th>
+<th class="tableblock halign-left valign-top">値</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Name</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Run Job With AsyncBatchDaemon<br>
+(任意の値を設定する)</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Project</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">macchinetta-batch-tutorial</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Main class</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">org.terasoluna.batch.async.db.AsyncBatchDaemon</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>非同期バッチデーモンを起動すると、ポーリングプロセスが10秒間隔(<code>batch-application.properties</code>の<code>async-batch-daemon.polling-interval</code>に指定したミリ秒)で実行される。<br>
+ログの出力例を以下に示す。<br>
+このログではポーリングプロセスが3回実行されたことがわかる。</p>
+</div>
+<div class="listingblock">
+<div class="title">コンソールログの出力例</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="console">[2020/03/10 17:26:03] [main] [o.t.b.a.d.AsyncBatchDaemon] [INFO ] Async Batch Daemon start.
+
+(.. omitted)
+
+[2020/03/10 17:26:05] [main] [o.s.s.c.ThreadPoolTaskExecutor] [INFO ] Initializing ExecutorService
+[2020/03/10 17:26:05] [main] [o.s.s.c.ThreadPoolTaskScheduler] [INFO ] Initializing ExecutorService 'daemonTaskScheduler'
+[2020/03/10 17:26:05] [main] [o.t.b.a.d.AsyncBatchDaemon] [INFO ] Async Batch Daemon will start watching the creation of a polling stop file. [Path:\tmp\stop-async-batch-daemon]
+[2020/03/10 17:26:06] [daemonTaskScheduler-1] [o.t.b.a.d.JobRequestPollTask] [INFO ] Polling processing.
+[2020/03/10 17:26:16] [daemonTaskScheduler-1] [o.t.b.a.d.JobRequestPollTask] [INFO ] Polling processing.
+[2020/03/10 17:26:26] [daemonTaskScheduler-1] [o.t.b.a.d.JobRequestPollTask] [INFO ] Polling processing.</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="Ch09_Impl_AsyncExecutionJob_JobRegistration"><a class="anchor" href="#Ch09_Impl_AsyncExecutionJob_JobRegistration"></a>ジョブ情報をジョブ要求テーブルに登録</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>ジョブを実行するための情報をジョブ要求テーブル(batch_job_request)に登録するSQL(INSERT文)を発行する。</p>
+</div>
+<div class="paragraph">
+<p>ジョブ要求テーブルのテーブル仕様は<a href="Ch04_AsyncJobWithDB.html#Ch04_AsyncJobWithDB_Arch_RequireTable_TableStructure">ジョブ要求テーブルの構造</a>を参照。</p>
+</div>
+<div class="paragraph">
+<p>STS上でSQLを実行する方法を以下に記す。</p>
+</div>
+<div class="olist arabic">
+<div class="title">SQL実行手順</div>
+<ol class="arabic">
+<li>
+<p>Database Browserを表示する。<br>
+Database Browserの表示手順は<a href="Ch09_EnvironmentConstruction.html#Ch09_EnvironmentConstruction_OperationCheck_RefDB">DBeaverを使用してデータベースを参照する</a>を参照。</p>
+</li>
+</ol>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/ch09/AsyncExecution/Ch09_AsyncExecutionJob_DataSourceExplorer.png" alt="Data Source Explorer View">
+</div>
+<div class="title">図 1. Data Source Explorer View</div>
+</div>
+<div class="olist arabic">
+<ol class="arabic" start="2">
+<li>
+<p>SQLエディタを開く。<br>
+[H2 Embedded]を右クリックし、[最近のSQLエディタ]をクリックする。</p>
+</li>
+</ol>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/ch09/AsyncExecution/Ch09_AsyncExecutionJob_SQLEditor.png" alt="Open SQL Editor">
+</div>
+<div class="title">図 2. SQL Editor</div>
+</div>
+<div class="olist arabic">
+<ol class="arabic" start="3">
+<li>
+<p>SQLを記述する。<br>
+データベースアクセスするジョブとファイルアクセスするジョブを実行するためのSQLをチャンクモデルの例で以下に示す。</p>
+</li>
+</ol>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">データベースアクセスするジョブの場合</dt>
+<dd>
+<p>記述するSQLを以下に示す。</p>
+</dd>
+</dl>
+</div>
+<div class="listingblock">
+<div class="title">データベースアクセスするジョブの実行要求用SQL</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="sql"><span class="class">INSERT</span> <span class="class">INTO</span> batch_job_request(job_name,job_parameter,polling_status,create_date)
+<span class="keyword">VALUES</span> (<span class="string"><span class="delimiter">'</span><span class="content">jobPointAddChunk</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">INIT</span><span class="delimiter">'</span></span>, current_timestamp);</code></pre>
+</div>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">ファイルアクセスするジョブの場合</dt>
+<dd>
+<p>記述するSQLを以下に示す。</p>
+</dd>
+</dl>
+</div>
+<div class="listingblock">
+<div class="title">ファイルアクセスするジョブの実行要求用SQL</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="sql"><span class="class">INSERT</span> <span class="class">INTO</span> batch_job_request(job_name,job_parameter,polling_status,create_date)
+<span class="keyword">VALUES</span> (<span class="string"><span class="delimiter">'</span><span class="content">jobPointAddChunk</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">inputFile=files/input/input-member-info-data.csv,outputFile=files/output/output-member-info-data.csv</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">INIT</span><span class="delimiter">'</span></span>, current_timestamp);</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>SQL記述後のイメージを以下に記す。<br>
+ここでは、データベースアクセスするジョブの実行要求用SQLを記述している。</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic" start="4">
+<li>
+<p>ジョブの実行要求用SQLを入力し、[Ctrl]キー + [S]キーで保存する。</p>
+</li>
+<li>
+<p>[Ctrl]キー + [Enter]キーでSQLを実行する。</p>
+</li>
+<li>
+<p>[Statistics]に更新したRowカウント、実行したクエリ、クエリが完了した時間が出力される。</p>
+</li>
+</ol>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/ch09/AsyncExecution/Ch09_AsyncExecutionJob_ExecuteSQL.png" alt="Execute SQL">
+</div>
+<div class="title">図 3. Execute SQL</div>
+</div>
+<div class="olist arabic">
+<ol class="arabic" start="7">
+<li>
+<p>ジョブ要求テーブルを確認する。<br>
+下図のとおり、ジョブ要求テーブルにジョブを実行するための情報が登録されていることを確認する。<br>
+<code>POLLING_STATUS</code>は<code>INIT</code>で登録したが、既にポーリングが行われた場合は、<code>POLLING_STATUS</code>が<code>POLLED</code>もしくは<code>EXECUTED</code>となっている。<br>
+<code>POLLING_STATUS</code>の詳細については<a href="Ch04_AsyncJobWithDB.html#Ch04_AsyncJobWithDB_Arch_RequireTable_PollingStatus">ポーリングステータス(polling_status)の遷移パターン</a>を参照。</p>
+</li>
+</ol>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/ch09/AsyncExecution/Ch09_AsyncExecutionJob_BatchJobRequestTable.png" alt="Confrim batch_job_Request Table">
+</div>
+<div class="title">図 4. ジョブ要求テーブルの確認</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="Ch09_Impl_AsyncExecutionJob_ExecutionResultCheck"><a class="anchor" href="#Ch09_Impl_AsyncExecutionJob_ExecutionResultCheck"></a>ジョブの実行と結果の確認</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>非同期実行対象ジョブの実行結果を確認する。</p>
+</div>
+<div class="sect2">
+<h3 id="Ch09_Impl_AsyncExecutionJob_ExecutionResultCheck_Console"><a class="anchor" href="#Ch09_Impl_AsyncExecutionJob_ExecutionResultCheck_Console"></a>コンソールログの確認</h3>
+<div class="paragraph">
+<p>Console Viewを開き、以下の内容のログが出力されていることを確認する。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>処理が完了(COMPLETED)し、例外が発生していないこと。</p>
+</li>
+</ul>
+</div>
+<div class="listingblock">
+<div class="title">コンソールログ出力例</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="console">(.. omitted)
+
+[2020/03/10 17:27:06] [daemonTaskScheduler-1] [o.t.b.a.d.JobRequestPollTask] [INFO ] Polling processing.
+[2020/03/10 17:27:06] [daemonTaskExecutor-1] [o.s.b.c.l.s.SimpleJobOperator] [INFO ] Checking status of job with name=jobPointAddChunk
+[2020/03/10 17:27:06] [daemonTaskExecutor-1] [o.s.b.c.l.s.SimpleJobOperator] [INFO ] Attempting to launch job with name=jobPointAddChunk and parameters=
+[2020/03/10 17:27:06] [daemonTaskExecutor-1] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=jobPointAddChunk]] launched with the following parameters: [{jsr_batch_run_id=158}]
+[2020/03/10 17:27:07] [daemonTaskExecutor-1] [o.s.b.c.j.SimpleStepHandler] [INFO ] Executing step: [jobPointAddChunk.step01]
+[2020/03/10 17:27:07] [daemonTaskExecutor-1] [o.s.b.c.s.AbstractStep] [INFO ] Step: [jobPointAddChunk.step01] executed in 191ms
+[2020/03/10 17:27:07] [daemonTaskExecutor-1] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=jobPointAddChunk]] completed with the following parameters: [{jsr_batch_run_id=158}] and the following status: [COMPLETED] in 246ms
+[2020/03/10 17:27:16] [daemonTaskScheduler-1] [o.t.b.a.d.JobRequestPollTask] [INFO ] Polling processing.</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="Ch09_Impl_AsyncExecutionJob_ExecutionResultCheck_ExitCode"><a class="anchor" href="#Ch09_Impl_AsyncExecutionJob_ExecutionResultCheck_ExitCode"></a>終了コードの確認</h3>
+<div class="paragraph">
+<p>非同期実行の場合、STSのDebug Viewで実行対象ジョブの終了コードを確認することはできない。<br>
+ジョブの実行状態は<a href="#Ch09_Impl_AsyncExecutionJob_ExecutionStatusCheck">ジョブ実行状態の確認</a>で確認する。</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="Ch09_Impl_AsyncExecutionJob_ExecutionResultCheck_Output"><a class="anchor" href="#Ch09_Impl_AsyncExecutionJob_ExecutionResultCheck_Output"></a>出力リソースの確認</h3>
+<div class="paragraph">
+<p>実行したジョブによって出力リソース(データベース or ファイル)を確認する。</p>
+</div>
+<div class="sect3">
+<h4 id="Ch09_Impl_AsyncExecutionJob_ExecutionResultCheck_Output_Table"><a class="anchor" href="#Ch09_Impl_AsyncExecutionJob_ExecutionResultCheck_Output_Table"></a>データベースアクセスするジョブの場合</h4>
+<div class="paragraph">
+<p>更新前後の会員情報テーブルの内容を比較し、確認内容のとおりとなっていることを確認する。<br>
+確認手順は<a href="Ch09_EnvironmentConstruction.html#Ch09_EnvironmentConstruction_OperationCheck_RefDB">Data Source Explorerを使用してデータベースを参照する</a>を参照。</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">確認内容</dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>statusカラム</p>
+<div class="ulist">
+<ul>
+<li>
+<p>"1"(処理対象)から"0"(初期状態)に更新されていること</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>pointカラム</p>
+<div class="ulist">
+<ul>
+<li>
+<p>ポイント加算対象について、会員種別に応じたポイントが加算されていること</p>
+<div class="ulist">
+<ul>
+<li>
+<p>typeカラムが"G"(ゴールド会員)の場合は100ポイント</p>
+</li>
+<li>
+<p>typeカラムが"N"(一般会員)の場合は10ポイント</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>1,000,000(上限値)を超えたレコードが存在しないこと</p>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+</dd>
+</dl>
+</div>
+<div class="paragraph">
+<p>更新前後の会員情報テーブルの内容を以下に示す。</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/ch09/AsyncExecution/Ch09_AsyncExecutionJob_Result_MemberInfoTable.png" alt="Table of member_info">
+</div>
+<div class="title">図 5. 更新前後の会員情報テーブルの内容</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="Ch09_Impl_AsyncExecutionJob_ExecutionResultCheck_Output_File"><a class="anchor" href="#Ch09_Impl_AsyncExecutionJob_ExecutionResultCheck_Output_File"></a>ファイルアクセスするジョブの場合</h4>
+<div class="paragraph">
+<p>会員情報ファイルの入出力内容を比較し、確認内容のとおりとなっていることを確認する。</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">確認内容</dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>出力ディレクトリに会員情報ファイルが出力されていること</p>
+<div class="ulist">
+<ul>
+<li>
+<p>出力ファイル: files/output/output-member-info-data.csv</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>statusフィールド</p>
+<div class="ulist">
+<ul>
+<li>
+<p>"1"(処理対象)から"0"(初期状態)に更新されていること</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>pointフィールド</p>
+<div class="ulist">
+<ul>
+<li>
+<p>ポイント加算対象について、会員種別に応じたポイントが加算されていること</p>
+<div class="ulist">
+<ul>
+<li>
+<p>typeフィールドが"G"(ゴールド会員)の場合は100ポイント</p>
+</li>
+<li>
+<p>typeフィールドが"N"(一般会員)の場合は10ポイント</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>1,000,000(上限値)を超えたレコードが存在しないこと</p>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+</dd>
+</dl>
+</div>
+<div class="paragraph">
+<p>会員情報ファイルの入出力内容を以下に示す。<br>
+ファイルのフィールドはid(会員番号)、type(会員種別)、status(商品購入フラグ)、point(ポイント)の順で出力される。</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/ch09/AsyncExecution/Ch09_AsyncExecutionJob_Result_MemberInfoFile.png" alt="File of member_info">
+</div>
+<div class="title">図 6. 会員情報ファイルの入出力内容</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="Ch09_Impl_AsyncExecutionJob_StopAsyncBatchDaemon"><a class="anchor" href="#Ch09_Impl_AsyncExecutionJob_StopAsyncBatchDaemon"></a>非同期バッチデーモンの停止</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>終了ファイルを作成し、非同期バッチデーモンを停止する。</p>
+</div>
+<div class="paragraph">
+<p><a href="#Ch09_Impl_AsyncExecutionJob_Preparation_Properties">ポーリング処理の設定</a>で設定したとおり、
+C:\tmpにstop-async-batch-daemonファイル(空ファイル)を作成する。</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/ch09/AsyncExecution/Ch09_AsyncExecutionJob_StopAsyncBatchDaemon.png" alt="Stop AsyncBatchDaemon">
+</div>
+<div class="title">図 7. 終了ファイル作成</div>
+</div>
+<div class="paragraph">
+<p>STSのコンソールで以下のとおり非同期バッチデーモンが停止していることを確認する。</p>
+</div>
+<div class="listingblock">
+<div class="title">非同期バッチデーモンの停止を確認</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="console">(.. omitted)
+
+[2020/03/10 17:32:17] [daemonTaskScheduler-1] [o.t.b.a.d.JobRequestPollTask] [INFO ] Polling processing.
+[2020/03/10 17:32:26] [main] [o.t.b.a.d.AsyncBatchDaemon] [INFO ] Async Batch Daemon has detected the polling stop file, and then shutdown now!
+[2020/03/10 17:32:26] [main] [o.s.s.c.ThreadPoolTaskScheduler] [INFO ] Shutting down ExecutorService 'daemonTaskScheduler'
+[2020/03/10 17:32:26] [main] [o.s.s.c.ThreadPoolTaskExecutor] [INFO ] Shutting down ExecutorService
+[2020/03/10 17:32:26] [main] [o.t.b.a.d.JobRequestPollTask] [INFO ] JobRequestPollTask is called shutdown.
+[2020/03/10 17:32:26] [main] [o.s.s.c.ThreadPoolTaskScheduler] [INFO ] Shutting down ExecutorService 'daemonTaskScheduler'
+[2020/03/10 17:32:26] [main] [o.s.s.c.ThreadPoolTaskExecutor] [INFO ] Shutting down ExecutorService
+[2020/03/10 17:32:26] [main] [o.t.b.a.d.AsyncBatchDaemon] [INFO ] Async Batch Daemon stopped after all jobs completed.</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="Ch09_Impl_AsyncExecutionJob_ExecutionStatusCheck"><a class="anchor" href="#Ch09_Impl_AsyncExecutionJob_ExecutionStatusCheck"></a>ジョブ実行状態の確認</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>JobRepositoryのメタデータテーブルでジョブの状態・実行結果を確認する。ここでは、<code>batch_job_execution</code>を参照する。</p>
+</div>
+<div class="paragraph">
+<p>ジョブの状態を確認するためのSQLを以下に示す。</p>
+</div>
+<div class="listingblock">
+<div class="title">ジョブの状態確認用SQL</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="sql"><span class="class">SELECT</span> job_execution_id,start_time,end_time,exit_code <span class="keyword">FROM</span> batch_job_execution <span class="keyword">WHERE</span> job_execution_id =
+(<span class="class">SELECT</span> <span class="predefined">max</span>(job_execution_id) <span class="keyword">FROM</span> batch_job_request <span class="keyword">WHERE</span> job_execution_id <span class="keyword">IS</span> <span class="keyword">NOT</span> <span class="predefined-constant">NULL</span>);</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>このSQLでは、最後に実行されたジョブの実行状態を取得するようにしている。</p>
+</div>
+<div class="paragraph">
+<p>SQLの実行結果は、STS上でSQL実行後に表示されるSQL Results Viewにて確認できる。<br>
+下図のとおり、終了コード(EXIT_CODE)がCOMPLETED(正常終了)となっていることを確認する。<br>
+なお、ジョブの終了コードとプロセスの終了コードのマッピングについては、<a href="Ch07_JobManagement.html#Ch07_JobManagement_HowToUse_ExitCode_Mapping">終了コードのマッピング</a>を参照。</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/ch09/AsyncExecution/Ch09_AsyncExecutionJob_Confirm_JobStatus.png" alt="SQL Results View">
+</div>
+<div class="title">図 8. ジョブの状態確認</div>
+</div>
+</div>
+</div>
+</div>
+<link rel="stylesheet" href="./theme/css/coderay-asciidoctor.css">
+<div class="container">
+
+  <div class="common-bg">
+    <div class="information">
+      Macchinetta Batch Framework (2.x) Development Guideline - version 2.3.1.RELEASE, 2022-3-30
+    </div>
+    <div class="index">
+      <a href="index.html">&gt; INDEX</a>
+    </div>
+  </div>
+
+  <div class="footer-bg">
+    <div class="copyright">
+      &copy; Copyright 2017 NTT Corporation.
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

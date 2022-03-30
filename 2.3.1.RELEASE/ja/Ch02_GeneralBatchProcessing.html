@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Asciidoctor 2.0.10">
+<title>一般的なバッチ処理</title>
+<link rel="stylesheet" href="./theme/css/readthedocs.css">
+<link rel="stylesheet" href="./theme/css/font-awesome.min.css">
+<link rel="stylesheet" href="./theme/css/coderay-asciidoctor.css">
+<link rel="stylesheet" href="./theme/css/header-footer.css">
+<title>Macchinetta Batch Framework (2.x) Development Guideline</title>
+
+<div class="common-bg">
+  <div class="information">
+    Macchinetta Batch Framework (2.x) Development Guideline - version 2.3.1.RELEASE, 2022-3-30
+  </div>
+  <div class="index">
+    <a href="index.html">&gt; INDEX</a>
+  </div>
+</div>
+</head>
+<body id="Ch02_GeneralBatchProcess" class="book toc2 toc-left">
+<div id="header">
+<h1>一般的なバッチ処理</h1>
+<div id="toc" class="toc2">
+<div id="toctitle">Table of Contents</div>
+<ul class="sectlevel1">
+<li><a href="#Ch02_GeneralBatchProcess_AboutBatchProcess">一般的なバッチ処理とは</a></li>
+<li><a href="#Ch02_GeneralBatchProcess_Scenario">バッチ処理に求められる要件</a></li>
+<li><a href="#Ch02_GeneralBatchProcess_Considerations">バッチ処理で考慮する原則と注意点</a></li>
+</ul>
+</div>
+</div>
+<div id="content">
+<div class="sect1">
+<h2 id="Ch02_GeneralBatchProcess_AboutBatchProcess"><a class="anchor" href="#Ch02_GeneralBatchProcess_AboutBatchProcess"></a>一般的なバッチ処理とは</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>一般的に、バッチ処理とは「まとめて一括処理する」ことを指す。<br>
+データベースやファイルから大量のレコードを読み込み、処理し、書き出す処理であることが多い。<br>
+バッチ処理には以下の特徴があり、オンライン処理と比較して、応答性より処理スループットを優先した処理方式である。</p>
+</div>
+<div class="ulist">
+<div class="title">バッチ処理の特徴</div>
+<ul>
+<li>
+<p>データを一定の量でまとめて処理する。</p>
+</li>
+<li>
+<p>処理に一定の順序がある。</p>
+</li>
+<li>
+<p>スケジュールに従って実行・管理される。</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>次にバッチ処理を利用する主な目的を以下に示す。</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">スループットの向上</dt>
+<dd>
+<p>データをまとめて処理することで、処理のスループットを向上できる。<br>
+ファイルやデータベースは、1件ごとにデータを入出力せず、一定件数にまとめることで、入出力待ちのオーバヘッドが劇的に少なくなり効率的である。
+1件ごとの入出力待ちは微々たるものでも、大量データを処理する場合はその累積が致命的な遅延となる。</p>
+</dd>
+<dt class="hdlist1">応答性の確保</dt>
+<dd>
+<p>オンライン処理の応答性を確保するため、即時処理を行う必要がない処理をバッチ処理に切り出す。<br>
+たとえば、すぐに処理結果が必要でない場合、オンライン処理で受付まで処理を行い、裏でバッチ処理を行う構成がある。
+このような処理方式は、<code>ディレードバッチ</code>、<code>ディレードオンライン</code>などと呼ばれる。</p>
+</dd>
+<dt class="hdlist1">時間やイベントへの対応</dt>
+<dd>
+<p>特定の時刻に実行する処理やイベントに応じて実行する処理は、バッチ処理として実装することが素直と言える。<br>
+たとえば、特定の時刻に実行する処理としては、業務要件により1ヶ月分のデータを翌月第1週の週末に集計する処理や、システム運用ルールに則って週末日曜の午前2時に1週間分の業務データをバックアップする処理などがある。
+特定のイベントに応じて実行する処理としては、ジョブスケジューラと連携して特定のファイルの受信を検知した契機で、そのファイルを読み取って処理するなどがある。</p>
+</dd>
+<dt class="hdlist1">外部システムとの連携上の制約</dt>
+<dd>
+<p>ファイルなど外部システムとのインタフェースが制約となるために、バッチ処理を利用することもある。<br>
+外部システムから送付されてきたファイルは、一定期間のデータをまとめたものになる。
+これを取り込む処理は、オンライン処理よりもバッチ処理が向いている。</p>
+</dd>
+</dl>
+</div>
+<div class="paragraph">
+<p>バッチ処理を実現するには、さまざまな技術要素を組み合わせることが一般的である。ここでは、主要な技術を紹介する。</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">ジョブスケジューラ</dt>
+<dd>
+<p>バッチ処理の1実行単位をジョブと呼ぶ。これを管理するためのミドルウェアである。<br>
+バッチシステムにおいて、ジョブが数個であることは稀であり、通常は数百、ときには数千にいたる場合もある。
+そのため、ジョブの関連を定義し、実行スケジュールを管理する専用の仕組みが不可欠になる。</p>
+</dd>
+<dt class="hdlist1">シェルスクリプト</dt>
+<dd>
+<p>ジョブを実現する方法の1つ。OSやミドルウェアなどに実装されているコマンドを組み合わせて1つの処理を実現する。<br>
+手軽に実装できる反面、複雑なビジネスロジックを記述するには不向きであるため、ファイルのコピー・バックアップ・テーブルクリアなど主にシンプルな処理に用いる。
+また、別のプログラミング言語で実装した処理を実行する際に、起動前の設定や実行後の処理だけをシェルスクリプトが担うことも多い。</p>
+</dd>
+<dt class="hdlist1">プログラミング言語</dt>
+<dd>
+<p>ジョブを実現する方法の1つ。シェルスクリプトよりも構造化されたコードを記述でき、開発生産性・メンテナンス性・品質などを確保するのに有利である。
+そのため、比較的複雑なロジックになりやすいファイルやデータベースのデータを加工するようなビジネスロジックの実装によく使われる。</p>
+</dd>
+</dl>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="Ch02_GeneralBatchProcess_Scenario"><a class="anchor" href="#Ch02_GeneralBatchProcess_Scenario"></a>バッチ処理に求められる要件</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>業務処理を実現するために、バッチ処理に求められる要件には以下のようなものがある。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>性能向上</p>
+<div class="ulist">
+<ul>
+<li>
+<p>一定量のデータをまとめて処理できる。</p>
+</li>
+<li>
+<p>ジョブを並列/多重に実行できる。</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>異常発生時のリカバリ</p>
+<div class="ulist">
+<ul>
+<li>
+<p>再実行(手動/スケジュール)ができる。</p>
+</li>
+<li>
+<p>再処理した時に、処理済レコードをスキップして、未処理部分だけを処理できる。</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>多様な起動方式</p>
+<div class="ulist">
+<ul>
+<li>
+<p>同期実行ができる。</p>
+</li>
+<li>
+<p>非同期実行ができる。</p>
+<div class="ulist">
+<ul>
+<li>
+<p>実行契機としては、DBポーリング、HTTPリクエスト、などがある。</p>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>さまざまな入出力インタフェース</p>
+<div class="ulist">
+<ul>
+<li>
+<p>データベース</p>
+</li>
+<li>
+<p>ファイル</p>
+<div class="ulist">
+<ul>
+<li>
+<p>CSVやTSVなどの可変長</p>
+</li>
+<li>
+<p>固定長</p>
+</li>
+<li>
+<p>XML</p>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>上記の要件について具体的な内容を以下に示す。</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">大量データを一定のリソースで効率よく処理できる(性能向上)</dt>
+<dd>
+<p>大量のデータをまとめて処理することで処理時間を短縮する。このとき重要なのは、<strong>「一定のリソースで」</strong>の部分である。<br>
+100万件でも1億件でも、一定のCPUやメモリの使用で処理でき、件数に応じて緩やかにかつリニアに処理時間が延びるのが理想である。
+まとめて処理するには、一定件数ごとにトランザクションを開始・終了させ、まとめて入出力することで、
+使用するリソースを平準化させる仕組みが必要となる。<br>
+それでも処理しきれない膨大なデータを相手にする場合は、一歩進んでハードウェアリソースを限界まで使い切る仕組みも追加で必要になる。
+処理対象データを件数やグループで分割して、複数プロセス・複数スレッドによって多重処理する。
+さらに推し進めて複数マシンによる分散処理をすることもある。
+リソースを限界まで使い切る際には、入出力を限りなく低減することがきわめて重要になる。</p>
+</dd>
+<dt class="hdlist1">可能な限り処理を継続する(異常発生時のリカバリ)</dt>
+<dd>
+<p>大量データを処理するにあたって、入力データが異常な場合や、システム自体に異常が発生した場合の防御策を考えておく必要がある。<br>
+大量データは必然的に処理し終わるまでに長時間かかるが、エラー発生後に復旧までの時間が長期化すると、システム運用に大きな影響を及ぼしてしまう。<br>
+たとえば、1000万件のデータを処理する場合を考える。999万件目でエラーになり、それまでの処理をすべてやり直すとしたら、 運用スケジュールに影響が出てしまうことは明白である。<br>
+このような影響を抑えるために、バッチ処理ならではの処理継続性が重要となる。これにはエラーデータをスキップしながら次のデータを処理する仕組み、
+処理をリスタートする仕組み、可能な限り自動復旧を試みる仕組み、などが必要となる。また、1つのジョブを極力シンプルなつくりにし、再実行を容易にすることも重要である。</p>
+</dd>
+<dt class="hdlist1">実行契機に応じて柔軟に実行できる(多様な起動方式)</dt>
+<dd>
+<p>時刻を契機とする場合、オンラインや外部システムとの連携を契機とした場合など、さまざまな実行契機に対応する仕組みが必要になる。
+同期実行ではジョブスケジューラから定時になったら処理を起動する、
+非同期実行ではプロセスを常駐させておきイベントに応じて随時バッチ処理を行う、というような
+様々な仕組みが一般的に知られている。</p>
+</dd>
+<dt class="hdlist1">さまざまな入出力インタフェースを扱える(さまざまな入出力インタフェース)</dt>
+<dd>
+<p>オンラインや外部システムと連携するということは、データベースはもちろん、CSV/XMLといったさまざまなフォーマットのファイルを扱えることが重要となる。
+さらに、それぞれの入出力形式を透過的に扱える仕組みがあると実装しやすくなり、複数フォーマットへの対応も迅速に行なえるようになる。</p>
+</dd>
+</dl>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="Ch02_GeneralBatchProcess_Considerations"><a class="anchor" href="#Ch02_GeneralBatchProcess_Considerations"></a>バッチ処理で考慮する原則と注意点</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>バッチ処理システムを構築する際に考慮すべき重要な原則、および、いくつかの一般的な考慮事項を示す。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>単一のバッチ処理は可能な限り簡素化し、複雑な論理構造を避ける。</p>
+</li>
+<li>
+<p>処理とデータは物理的に近い場所におく(処理を実行する場所にデータを保存する)。</p>
+</li>
+<li>
+<p>システムリソース(特に入出力)の利用を最小限にし、できるだけインメモリで多くの操作を実行する。</p>
+</li>
+<li>
+<p>また、不要な物理入出力を避けるため、アプリケーションの入出力(SQLなど)を見直す。</p>
+</li>
+<li>
+<p>複数のジョブで同じ処理を繰り返さない。</p>
+<div class="ulist">
+<ul>
+<li>
+<p>たとえば、集計処理とレポート処理がある場合に、レポート処理で集計処理を再度することは避ける。</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>常にデータの整合性に関しては最悪の事態を想定する。十分なチェックとデータの整合性を維持するために、データの検証を行う。</p>
+</li>
+<li>
+<p>バックアップについて十分に検討する。特にシステムが年中無休で実行されている場合は、バックアップの難易度が高くなる。</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+<div class="container">
+
+  <div class="common-bg">
+    <div class="information">
+      Macchinetta Batch Framework (2.x) Development Guideline - version 2.3.1.RELEASE, 2022-3-30
+    </div>
+    <div class="index">
+      <a href="index.html">&gt; INDEX</a>
+    </div>
+  </div>
+
+  <div class="footer-bg">
+    <div class="copyright">
+      &copy; Copyright 2017 NTT Corporation.
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

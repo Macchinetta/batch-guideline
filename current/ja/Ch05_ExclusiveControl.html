@@ -14,7 +14,7 @@
 
 <div class="common-bg">
   <div class="information">
-    Macchinetta Batch Framework (2.x) Development Guideline - version 2.3.0.RELEASE, 2021-3-26, commit-id:9b11e9d
+    Macchinetta Batch Framework (2.x) Development Guideline - version 2.3.1.RELEASE, 2022-3-30
   </div>
   <div class="index">
     <a href="index.html">&gt; INDEX</a>
@@ -89,7 +89,7 @@
 </div>
 <div class="paragraph">
 <p>排他制御に関する概念は、オンライン処理と同様であるため、Macchinetta Server 1.x 開発ガイドラインにある
-<a href="https://macchinetta.github.io/server-guideline/1.8.0.RELEASE/ja/ArchitectureInDetail/DataAccessDetail/ExclusionControl.html">排他制御</a>を参照。</p>
+<a href="https://macchinetta.github.io/server-guideline/1.8.1.RELEASE/ja/ArchitectureInDetail/DataAccessDetail/ExclusionControl.html">排他制御</a>を参照。</p>
 </div>
 <div class="paragraph">
 <p>ここでは、Macchinetta Server 1.xでは説明されていない部分を中心に説明をする。</p>
@@ -101,7 +101,7 @@
 <h3 id="Ch05_ExclusiveControl_Overview_Necessity"><a class="anchor" href="#Ch05_ExclusiveControl_Overview_Necessity"></a>排他制御の必要性</h3>
 <div class="paragraph">
 <p>排他制御の必要性に関しては、Macchinetta Server 1.x 開発ガイドラインにある
-<a href="https://macchinetta.github.io/server-guideline/1.8.0.RELEASE/ja/ArchitectureInDetail/DataAccessDetail/ExclusionControl.html#exclusioncontrol-necessity">排他制御の必要性</a>を参照。</p>
+<a href="https://macchinetta.github.io/server-guideline/1.8.1.RELEASE/ja/ArchitectureInDetail/DataAccessDetail/ExclusionControl.html#exclusioncontrol-necessity">排他制御の必要性</a>を参照。</p>
 </div>
 </div>
 <div class="sect2">
@@ -176,7 +176,7 @@
 そのため、ファイルの更新順序をルール化することが重要である。<br>
 デッドロックの予防に関してはデータベースのテーブル間でのデッドロック防止と同様である。
 詳細については、Macchinetta Server 1.x 開発ガイドラインの
-<a href="https://macchinetta.github.io/server-guideline/1.8.0.RELEASE/ja/ArchitectureInDetail/DataAccessDetail/ExclusionControl.html#id9">デッドロックの予防</a>を参照。</p>
+<a href="https://macchinetta.github.io/server-guideline/1.8.1.RELEASE/ja/ArchitectureInDetail/DataAccessDetail/ExclusionControl.html#id9">デッドロックの予防</a>を参照。</p>
 </div>
 </td>
 </tr>
@@ -187,7 +187,7 @@
 <h3 id="Ch05_ExclusiveControl_Overview_DB"><a class="anchor" href="#Ch05_ExclusiveControl_Overview_DB"></a>データベースの排他制御</h3>
 <div class="paragraph">
 <p>データベースの排他制御に関しては、Macchinetta Server 1.x 開発ガイドラインにある
-<a href="https://macchinetta.github.io/server-guideline/1.8.0.RELEASE/ja/ArchitectureInDetail/DataAccessDetail/ExclusionControl.html#id5">データベースのロック機能による排他制御</a>
+<a href="https://macchinetta.github.io/server-guideline/1.8.1.RELEASE/ja/ArchitectureInDetail/DataAccessDetail/ExclusionControl.html#id5">データベースのロック機能による排他制御</a>
 で詳しく説明されているため、そちらを参照。</p>
 </div>
 </div>
@@ -210,11 +210,11 @@
 </thead>
 <tbody>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="https://macchinetta.github.io/server-guideline/1.8.0.RELEASE/ja/ArchitectureInDetail/DataAccessDetail/ExclusionControl.html#id7">楽観ロック</a></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="https://macchinetta.github.io/server-guideline/1.8.1.RELEASE/ja/ArchitectureInDetail/DataAccessDetail/ExclusionControl.html#id7">楽観ロック</a></p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">同時実行時におけるトランザクションで、別トランザクションの更新結果を処理対象外にして処理を継続できる場合</p></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="https://macchinetta.github.io/server-guideline/1.8.0.RELEASE/ja/ArchitectureInDetail/DataAccessDetail/ExclusionControl.html#id8">悲観ロック</a></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="https://macchinetta.github.io/server-guideline/1.8.1.RELEASE/ja/ArchitectureInDetail/DataAccessDetail/ExclusionControl.html#id8">悲観ロック</a></p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">処理時間が長く、処理中に対象データの状況が変化したことによるやり直しが難しい処理<br>
 ファイルに対する排他制御が必要な処理</p></td>
 </tr>
@@ -706,9 +706,9 @@ ItemProcessorでデータが取得できない場合は、他のトランザク�
 </div>
 <div class="paragraph">
 <p>データベースの排他制御実装は、Macchinetta Server 1.x 開発ガイドラインにある
-<a href="https://macchinetta.github.io/server-guideline/1.8.0.RELEASE/ja/ArchitectureInDetail/DataAccessDetail/ExclusionControl.html#mybatis3">MyBatis3使用時の実装方法</a>が基本である。
+<a href="https://macchinetta.github.io/server-guideline/1.8.1.RELEASE/ja/ArchitectureInDetail/DataAccessDetail/ExclusionControl.html#exclusioncontrolhowtousemybatis3">MyBatis3使用時の実装方法</a>が基本である。
 本ガイドラインでは、
-<a href="https://macchinetta.github.io/server-guideline/1.8.0.RELEASE/ja/ArchitectureInDetail/DataAccessDetail/ExclusionControl.html#mybatis3">MyBatis3使用時の実装方法</a>ができている前提で説明を行う。</p>
+<a href="https://macchinetta.github.io/server-guideline/1.8.1.RELEASE/ja/ArchitectureInDetail/DataAccessDetail/ExclusionControl.html#exclusioncontrolhowtousemybatis3">MyBatis3使用時の実装方法</a>ができている前提で説明を行う。</p>
 </div>
 <div class="paragraph">
 <p><a href="#Ch05_ExclusiveControl_Overview_Component">排他制御とコンポーネントの関係</a>にあるとおり、処理モデル・コンポーネントの組み合わせによるバリエーションがある。</p>
@@ -754,7 +754,7 @@ ItemProcessorでデータが取得できない場合は、他のトランザク�
 </table>
 <div class="paragraph">
 <p>タスクレットモデルでMapperインタフェースを使用する場合は、
-<a href="https://macchinetta.github.io/server-guideline/1.8.0.RELEASE/ja/ArchitectureInDetail/DataAccessDetail/ExclusionControl.html#mybatis3">MyBatis3使用時の実装方法</a>のとおりであるため、説明を割愛する。</p>
+<a href="https://macchinetta.github.io/server-guideline/1.8.1.RELEASE/ja/ArchitectureInDetail/DataAccessDetail/ExclusionControl.html#exclusioncontrolhowtousemybatis3">MyBatis3使用時の実装方法</a>のとおりであるため、説明を割愛する。</p>
 </div>
 <div class="paragraph">
 <p>タスクレットモデルでItemReader/ItemWriterを使用する場合は、Mapperインタフェースでの呼び出し部分がItemReader/ItemWriterに代わるだけなので、これも説明を割愛する。</p>
@@ -1001,7 +1001,7 @@ NO WAITやタイムアウトを設定して悲観ロックを行い、他のト�
 
   <div class="common-bg">
     <div class="information">
-      Macchinetta Batch Framework (2.x) Development Guideline - version 2.3.0.RELEASE, 2021-3-26, commit-id:9b11e9d
+      Macchinetta Batch Framework (2.x) Development Guideline - version 2.3.1.RELEASE, 2022-3-30
     </div>
     <div class="index">
       <a href="index.html">&gt; INDEX</a>

@@ -14,7 +14,7 @@
 
 <div class="common-bg">
   <div class="information">
-    Macchinetta Batch Framework (2.x) Development Guideline - version 2.3.0.RELEASE, 2021-3-26, commit-id:9b11e9d
+    Macchinetta Batch Framework (2.x) Development Guideline - version 2.3.1.RELEASE, 2022-3-30
   </div>
   <div class="index">
     <a href="index.html">&gt; INDEX</a>
@@ -56,7 +56,6 @@
 <li><a href="#Ch05_DBAccess_HowToExtend">How to extend</a>
 <ul class="sectlevel2">
 <li><a href="#compositeitemwriterにおける複数テーブルの更新">CompositeItemWriterにおける複数テーブルの更新</a></li>
-<li><a href="#Ch05_DBAccess_HowToExtend_SearchCondition">検索条件の指定方法</a></li>
 </ul>
 </li>
 </ul>
@@ -73,10 +72,10 @@ MyBatisによるデータベースアクセスの基本的な利用方法は、M
 <div class="ulist">
 <ul>
 <li>
-<p><a href="https://macchinetta.github.io/server-guideline/1.8.0.RELEASE/ja/ArchitectureInDetail/DataAccessDetail/DataAccessCommon.html">データベースアクセス(共通編)</a></p>
+<p><a href="https://macchinetta.github.io/server-guideline/1.8.1.RELEASE/ja/ArchitectureInDetail/DataAccessDetail/DataAccessCommon.html">データベースアクセス(共通編)</a></p>
 </li>
 <li>
-<p><a href="https://macchinetta.github.io/server-guideline/1.8.0.RELEASE/ja/ArchitectureInDetail/DataAccessDetail/DataAccessMyBatis3.html">データベースアクセス(MyBatis3編)</a></p>
+<p><a href="https://macchinetta.github.io/server-guideline/1.8.1.RELEASE/ja/ArchitectureInDetail/DataAccessDetail/DataAccessMyBatis3.html">データベースアクセス(MyBatis3編)</a></p>
 </li>
 </ul>
 </div>
@@ -496,7 +495,7 @@ JDBCドライバに適切な<code>fetchSize</code>を指定することが必須
 <h4 id="Ch05_DBAccess_HowToUse_Config_MapperXML"><a class="anchor" href="#Ch05_DBAccess_HowToUse_Config_MapperXML"></a>Mapper XMLの定義</h4>
 <div class="paragraph">
 <p>Macchinetta Batch 2.x特有の説明事項はないので、Macchinetta Server 1.x 開発ガイドラインの
-<a href="https://macchinetta.github.io/server-guideline/1.8.0.RELEASE/ja/ArchitectureInDetail/DataAccessDetail/DataAccessMyBatis3.html#dataaccessmybatis3howtodababaseaccess">データベースアクセス処理の実装</a>を参照。</p>
+<a href="https://macchinetta.github.io/server-guideline/1.8.1.RELEASE/ja/ArchitectureInDetail/DataAccessDetail/DataAccessMyBatis3.html#dataaccessmybatis3howtodababaseaccess">データベースアクセス処理の実装</a>を参照。</p>
 </div>
 </div>
 <div class="sect3">
@@ -533,7 +532,7 @@ JDBCドライバに適切な<code>fetchSize</code>を指定することが必須
 </div>
 <div class="paragraph">
 <p>基本的な設定方法については、Macchinetta Server 1.x 開発ガイドラインの
-<a href="https://macchinetta.github.io/server-guideline/1.8.0.RELEASE/ja/ArchitectureInDetail/DataAccessDetail/DataAccessMyBatis3.html#dataaccessmybatis3howtousesettingsmybatis-spring">MyBatis-Springの設定</a>を参照。</p>
+<a href="https://macchinetta.github.io/server-guideline/1.8.1.RELEASE/ja/ArchitectureInDetail/DataAccessDetail/DataAccessMyBatis3.html#dataaccessmybatis3howtousesettingsmybatis-spring">MyBatis-Springの設定</a>を参照。</p>
 </div>
 <div class="admonitionblock warning">
 <table>
@@ -674,7 +673,7 @@ MyBatis-Springが提供する<code>MyBatisCursorItemReader</code>によるデー
 </div>
 <div class="paragraph">
 <p><code>MyBatisPagingItemReader</code>は、Macchinetta Server 1.x 開発ガイドラインの
-<a href="https://macchinetta.github.io/server-guideline/1.8.0.RELEASE/ja/ArchitectureInDetail/DataAccessDetail/DataAccessMyBatis3.html#entity-sql">Entityのページネーション検索(SQL絞り込み方式)</a>で
+<a href="https://macchinetta.github.io/server-guideline/1.8.1.RELEASE/ja/ArchitectureInDetail/DataAccessDetail/DataAccessMyBatis3.html#entity-sql">Entityのページネーション検索(SQL絞り込み方式)</a>で
 説明している仕組みを利用したItemReaderである。<br>
 一定件数を取得した後に再度SQLを発行するため、データの一貫性が保たれない可能性がある。
 そのため、バッチ処理で利用するには危険であることから、Macchinetta Batch 2.xでは原則使用しない。<br>
@@ -685,7 +684,7 @@ Macchinetta Batch 2.xではMyBatisと連携して、Cursorを利用し取得デ�
 <code>mybatis:scan</code>によって動的にMapper XMLを登録する方法を採用している。
 そのため、Mapper XMLに対応するインタフェースを用意する必要がある。
 詳細については、Macchinetta Server 1.x 開発ガイドラインの
-<a href="https://macchinetta.github.io/server-guideline/1.8.0.RELEASE/ja/ArchitectureInDetail/DataAccessDetail/DataAccessMyBatis3.html#dataaccessmybatis3howtodababaseaccess">データベースアクセス処理の実装</a>を参照。</p>
+<a href="https://macchinetta.github.io/server-guideline/1.8.1.RELEASE/ja/ArchitectureInDetail/DataAccessDetail/DataAccessMyBatis3.html#dataaccessmybatis3howtodababaseaccess">データベースアクセス処理の実装</a>を参照。</p>
 </div>
 <div class="admonitionblock warning">
 <table>
@@ -725,7 +724,7 @@ Macchinetta Batch 2.xではMyBatisと連携して、Cursorを利用し取得デ�
 
 <span class="comment">&lt;!-- (2) (3) (4) --&gt;</span>
 <span class="tag">&lt;bean</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">reader</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">org.mybatis.spring.batch.MyBatisCursorItemReader</span><span class="delimiter">&quot;</span></span>
-      <span class="attribute-name">p:queryId</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jp.co.ntt.fw.macchinetta.batch.functionaltest.app.repository.mst.CustomerRepository.cursor</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">p:queryId</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jp.co.ntt.fw.macchinetta.batch.functionaltest.app.repository.mst.CustomerRepository.findAll</span><span class="delimiter">&quot;</span></span>
       <span class="attribute-name">p:sqlSessionFactory-ref</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobSqlSessionFactory</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
 
 <span class="tag">&lt;batch:job</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">outputAllCustomerList01</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">job-repository</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobRepository</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
@@ -750,7 +749,7 @@ Macchinetta Batch 2.xではMyBatisと連携して、Cursorを利用し取得デ�
     <span class="comment">&lt;!-- omitted --&gt;</span>
 
     <span class="comment">&lt;!-- (7) --&gt;</span>
-    <span class="tag">&lt;select</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">cursor</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">resultType</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jp.co.ntt.fw.macchinetta.batch.functionaltest.app.model.mst.Customer</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+    <span class="tag">&lt;select</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">findAll</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">resultType</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jp.co.ntt.fw.macchinetta.batch.functionaltest.app.model.mst.Customer</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
         <span class="inline-delimiter">&lt;![CDATA[</span>
         SELECT
             customer_id AS customerId,
@@ -776,7 +775,7 @@ Macchinetta Batch 2.xではMyBatisと連携して、Cursorを利用し取得デ�
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="java"><span class="directive">public</span> <span class="type">interface</span> <span class="class">CustomerRepository</span> {
     <span class="comment">// (8)</span>
-    <span class="predefined-type">Cursor</span>&lt;Customer&gt; cursor();
+    <span class="predefined-type">Cursor</span>&lt;Customer&gt; findAll();
 
     <span class="comment">// omitted.</span>
 }</code></pre>
@@ -922,7 +921,7 @@ Macchinetta Batch 2.xではMyBatisと連携して、Cursorを利用し取得デ�
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="java"><span class="directive">public</span> <span class="type">interface</span> <span class="class">SalesPlanDetailRepository</span> {
     <span class="comment">// (7)</span>
-    <span class="predefined-type">List</span>&lt;SalesPlanSummary&gt; summarizeDetails();
+    <span class="predefined-type">Cursor</span>&lt;SalesPlanSummary&gt; summarizeDetails();
 
     <span class="comment">// omitted.</span>
 }</code></pre>
@@ -1307,7 +1306,7 @@ ItemProcessorでのデータベースアクセスは<code>BATCH</code>となる�
 Macchinetta Batch 2.xでは、タスクレットモデルでMapperインタフェースを利用してデータベースアクセスする場合はCursorを利用することを基本とする。<br>
 Cursor同様に大量データを処理するうえで、ResultHandlerを利用することも有効である。
 ResultHandlerについては、Macchinetta Server 1.x 開発ガイドラインの
-<a href="https://macchinetta.github.io/server-guideline/1.8.0.RELEASE/ja/ArchitectureInDetail/DataAccessDetail/DataAccessMyBatis3.html#resulthandler">ResultHandlerの実装</a>を参照。</p>
+<a href="https://macchinetta.github.io/server-guideline/1.8.1.RELEASE/ja/ArchitectureInDetail/DataAccessDetail/DataAccessMyBatis3.html#resulthandler">ResultHandlerの実装</a>を参照。</p>
 </dd>
 </dl>
 </div>
@@ -1335,7 +1334,7 @@ ResultHandlerについては、Macchinetta Server 1.x 開発ガイドライン�
     <span class="comment">&lt;!-- omitted --&gt;</span>
 
     <span class="comment">&lt;!-- (3) --&gt;</span>
-    <span class="tag">&lt;select</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">cursor</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">resultType</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jp.co.ntt.fw.macchinetta.batch.functionaltest.app.model.plan.SalesPlanDetail</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+    <span class="tag">&lt;select</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">findAll</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">resultType</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jp.co.ntt.fw.macchinetta.batch.functionaltest.app.model.plan.SalesPlanDetail</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
         <span class="inline-delimiter">&lt;![CDATA[</span>
         SELECT
             branch_id AS branchId, year, month, customer_id AS customerId, amount
@@ -1354,7 +1353,7 @@ ResultHandlerについては、Macchinetta Server 1.x 開発ガイドライン�
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="java"><span class="directive">public</span> <span class="type">interface</span> <span class="class">SalesRepository</span> {
     <span class="comment">// (4)</span>
-    <span class="predefined-type">Cursor</span>&lt;SalesPlanDetail&gt; cursor();
+    <span class="predefined-type">Cursor</span>&lt;SalesPlanDetail&gt; findAll();
 }</code></pre>
 </div>
 </div>
@@ -1374,7 +1373,7 @@ ResultHandlerについては、Macchinetta Server 1.x 開発ガイドライン�
     <span class="directive">public</span> RepeatStatus execute(StepContribution contribution,
             ChunkContext chunkContext) <span class="directive">throws</span> <span class="exception">Exception</span> {
 
-        <span class="keyword">try</span> (<span class="predefined-type">Cursor</span>&lt;SalesPlanDetail&gt; cursor = repository.cursor()) {  <span class="comment">// (6)</span>
+        <span class="keyword">try</span> (<span class="predefined-type">Cursor</span>&lt;SalesPlanDetail&gt; cursor = repository.findAll()) {  <span class="comment">// (6)</span>
             <span class="keyword">for</span> (SalesPlanDetail salesPlan : cursor) { <span class="comment">// (7)</span>
                 <span class="comment">// omitted.</span>
             }
@@ -1454,7 +1453,13 @@ ResultHandlerについては、Macchinetta Server 1.x 開発ガイドライン�
 <div class="sect2">
 <h3 id="Ch05_DBAccess_HowToUse_Output"><a class="anchor" href="#Ch05_DBAccess_HowToUse_Output"></a>出力</h3>
 <div class="paragraph">
-<p>データベースアクセスの出力について以下のとおり説明する。</p>
+<p>データベースへの出力は、<code>MyBatisBatchItemWriter</code>もしくはMapperインタフェースを利用することで実現できる。<br>
+<code>MyBatisBatchItemWriter</code>とMapperインタフェースによる出力を併用した場合、<code>MyBatisBatchItemWriter</code>でエラーが発生する。
+よって、Mapperインタフェースを用いた出力はチャンクモデルでの利用に適さないため、利用方法を記載していない。<br>
+詳細は<a href="#Ch05_DBAccess_HowToUse_Output_MapperInterface_Overview">Mapperインタフェース(出力)の機能概要</a>で後述するため、そちらを参照されたい。</p>
+</div>
+<div class="paragraph">
+<p>上記の内容について以下のとおり説明する。</p>
 </div>
 <div class="olist arabic">
 <ol class="arabic">
@@ -1480,9 +1485,6 @@ ResultHandlerについては、Macchinetta Server 1.x 開発ガイドライン�
 <ol class="loweralpha" type="a">
 <li>
 <p><a href="#Ch05_DBAccess_HowToUse_Output_MapperInterface_Overview">機能概要</a></p>
-</li>
-<li>
-<p><a href="#Ch05_DBAccess_HowToUse_Output_MapperInterface_Chunk">チャンクモデルにおける利用方法</a></p>
 </li>
 <li>
 <p><a href="#Ch05_DBAccess_HowToUse_Output_MapperInterface_Tasklet">タスクレットモデルにおける利用方法</a></p>
@@ -1521,15 +1523,13 @@ MyBatis-Springが提供する<code>MyBatisBatchItemWriter</code>によるデー�
 <code>batchModeSqlSessionTemplate</code>を指定する必要がある。</p>
 </div>
 <div class="paragraph">
-<p><code>MyBatisBatchItemWriter</code>を利用してデータベースを更新するための実装例を以下に示す。</p>
+<p><code>MyBatisBatchItemWriter</code>を利用してデータベースに登録する実装例を以下に示す。</p>
 </div>
 <div id="Ch05_DBAccess_HowToUse_Output_MyBatisItemWriter_Chunk" class="dlist">
 <dl>
 <dt class="hdlist1">チャンクモデルにおける利用方法</dt>
 <dd>
-<p>チャンクモデルで<code>MyBatisBatchItemWriter</code>を利用してデータベースを更新(登録)する実装例を以下に示す。<br>
-ここでは、<code>MyBatisBatchItemWriter</code>の実装例と、実装した<code>MyBatisBatchItemWriter</code>を利用する<code>ItemProcessor</code>の実装例を説明する。
-<code>ItemProcessor</code>実装では取得したデータを<code>MyBatisBatchItemWriter</code>を利用してデータベースの更新を行っている。</p>
+<p>チャンクモデルで<code>MyBatisBatchItemWriter</code>を利用してデータベースに登録する実装例を以下に示す。</p>
 </dd>
 </dl>
 </div>
@@ -1537,24 +1537,24 @@ MyBatis-Springが提供する<code>MyBatisBatchItemWriter</code>によるデー�
 <div class="title">Bean定義</div>
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="xml"><span class="comment">&lt;!-- (1) --&gt;</span>
-<span class="tag">&lt;mybatis:scan</span>
-    <span class="attribute-name">base-package</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jp.co.ntt.fw.macchinetta.batch.functionaltest.ch05.exclusivecontrol.repository</span><span class="delimiter">&quot;</span></span>
-    <span class="attribute-name">factory-ref</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobSqlSessionFactory</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+<span class="tag">&lt;mybatis:scan</span> <span class="attribute-name">base-package</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jp.co.ntt.fw.macchinetta.batch.functionaltest.app.repository.performance</span><span class="delimiter">&quot;</span></span>
+                  <span class="attribute-name">factory-ref</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobSqlSessionFactory</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+
+<span class="comment">&lt;!-- omitted --&gt;</span>
 
 <span class="comment">&lt;!-- (2) (3) (4) --&gt;</span>
-<span class="tag">&lt;bean</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">writer</span><span class="delimiter">&quot;</span></span>
-      <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">org.mybatis.spring.batch.MyBatisBatchItemWriter</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">scope</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">step</span><span class="delimiter">&quot;</span></span>
-      <span class="attribute-name">p:statementId</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jp.co.ntt.fw.macchinetta.batch.functionaltest.ch05.exclusivecontrol.repository.ExclusiveControlRepository.branchExclusiveUpdate</span><span class="delimiter">&quot;</span></span>
-      <span class="attribute-name">p:sqlSessionTemplate-ref</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">batchModeSqlSessionTemplate</span><span class="delimiter">&quot;</span></span>
-      <span class="attribute-name">p:assertUpdates</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">#{new Boolean(jobParameters['assertUpdates'])}</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+<span class="tag">&lt;bean</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">writer</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">org.mybatis.spring.batch.MyBatisBatchItemWriter</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">p:statementId</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jp.co.ntt.fw.macchinetta.batch.functionaltest.app.repository.performance.SalesPerformanceSummaryRepository.create</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">p:sqlSessionTemplate-ref</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">batchModeSqlSessionTemplate</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
 
-<span class="tag">&lt;batch:job</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">chunkOptimisticLockCheckJob</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">job-repository</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobRepository</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
-    <span class="tag">&lt;batch:step</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">chunkOptimisticLockCheckJob.step01</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+<span class="tag">&lt;batch:job</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">DBAccessByMaybatisScan</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">job-repository</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobRepository</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+    <span class="tag">&lt;batch:step</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">DBAccessByMaybatisScan.step01</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
         <span class="tag">&lt;batch:tasklet</span> <span class="attribute-name">transaction-manager</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobTransactionManager</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
-            <span class="tag">&lt;batch:chunk</span> <span class="attribute-name">reader</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">reader</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">processor</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">branchEditItemProcessor</span><span class="delimiter">&quot;</span></span>
+            <span class="tag">&lt;batch:chunk</span> <span class="attribute-name">reader</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">reader</span><span class="delimiter">&quot;</span></span>
                          <span class="attribute-name">writer</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">writer</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">commit-interval</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">10</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span> <span class="comment">&lt;!-- (5) --&gt;</span>
         <span class="tag">&lt;/batch:tasklet&gt;</span>
     <span class="tag">&lt;/batch:step&gt;</span>
+    <span class="comment">&lt;!-- omitted --&gt;</span>
 <span class="tag">&lt;/batch:job&gt;</span></code></pre>
 </div>
 </div>
@@ -1562,24 +1562,18 @@ MyBatis-Springが提供する<code>MyBatisBatchItemWriter</code>によるデー�
 <div class="title">Mapper XML</div>
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="xml"><span class="comment">&lt;!-- (6) --&gt;</span>
-<span class="tag">&lt;mapper</span> <span class="attribute-name">namespace</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jp.co.ntt.fw.macchinetta.batch.functionaltest.ch05.exclusivecontrol.repository.ExclusiveControlRepository</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+<span class="tag">&lt;mapper</span> <span class="attribute-name">namespace</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jp.co.ntt.fw.macchinetta.batch.functionaltest.app.repository.performance.SalesPerformanceSummaryRepository</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
 
     <span class="comment">&lt;!-- (7) --&gt;</span>
-    <span class="tag">&lt;update</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">branchExclusiveUpdate</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">parameterType</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jp.co.ntt.fw.macchinetta.batch.functionaltest.ch05.exclusivecontrol.model.ExclusiveBranch</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+    <span class="tag">&lt;insert</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">create</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">parameterType</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jp.co.ntt.fw.macchinetta.batch.functionaltest.app.model.performance.SalesPerformanceSummary</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
         <span class="inline-delimiter">&lt;![CDATA[</span>
-        UPDATE
-            branch_mst
-        SET
-            branch_name = #{branchName,jdbcType=VARCHAR},
-            branch_address = #{branchAddress,jdbcType=VARCHAR},
-            branch_tel = #{branchTel,jdbcType=VARCHAR},
-            update_date = #{updateDate,jdbcType=TIMESTAMP}
-        WHERE
-            branch_id = #{branchId}
-        AND
-            branch_name = #{oldBranchName}
+        INSERT INTO
+            sales_performance_summary(branch_id, year, month, amount)
+        VALUES (
+            #{branchId}, #{year}, #{month}, #{amount}
+        )
         <span class="inline-delimiter">]]&gt;</span>
-    <span class="tag">&lt;/update&gt;</span>
+    <span class="tag">&lt;/insert&gt;</span>
 
     <span class="comment">&lt;!-- omitted --&gt;</span>
 <span class="tag">&lt;/mapper&gt;</span></code></pre>
@@ -1588,37 +1582,12 @@ MyBatis-Springが提供する<code>MyBatisBatchItemWriter</code>によるデー�
 <div class="listingblock">
 <div class="title">Mapperインタフェース</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="java"><span class="directive">public</span> <span class="type">interface</span> <span class="class">ExclusiveControlRepository</span> {
+<pre class="CodeRay highlight"><code data-lang="java"><span class="directive">public</span> <span class="type">interface</span> <span class="class">SalesPerformanceSummaryRepository</span> {
 
     <span class="comment">// (8)</span>
-    <span class="type">int</span> branchExclusiveUpdate(ExclusiveBranch branch);
+    <span class="type">void</span> create(SalesPerformanceSummary salesPerformanceSummary);
 
     <span class="comment">// omitted.</span>
-}</code></pre>
-</div>
-</div>
-<div class="listingblock">
-<div class="title">ItemProcessor実装</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="java"><span class="annotation">@Component</span>
-<span class="annotation">@Scope</span>(<span class="string"><span class="delimiter">&quot;</span><span class="content">step</span><span class="delimiter">&quot;</span></span>)
-<span class="directive">public</span> <span class="type">class</span> <span class="class">BranchEditItemProcessor</span> <span class="directive">implements</span> ItemProcessor&lt;Branch, ExclusiveBranch&gt; {
-    <span class="comment">// omitted.</span>
-
-    <span class="annotation">@Override</span>
-    <span class="directive">public</span> ExclusiveBranch process(Branch item) <span class="directive">throws</span> <span class="exception">Exception</span> { <span class="comment">// (9)</span>
-        ExclusiveBranch branch = <span class="keyword">new</span> ExclusiveBranch();
-        branch.setBranchId(item.getBranchId());
-        branch.setBranchName(item.getBranchName() + <span class="string"><span class="delimiter">&quot;</span><span class="content"> - </span><span class="delimiter">&quot;</span></span> + identifier);
-        branch.setBranchAddress(item.getBranchAddress() + <span class="string"><span class="delimiter">&quot;</span><span class="content"> - </span><span class="delimiter">&quot;</span></span> + identifier);
-        branch.setBranchTel(item.getBranchTel());
-        branch.setCreateDate(item.getUpdateDate());
-        branch.setUpdateDate(<span class="keyword">new</span> <span class="predefined-type">Timestamp</span>(clock.millis()));
-        branch.setOldBranchName(item.getBranchName());
-
-        <span class="comment">// (10)</span>
-        <span class="keyword">return</span> branch;
-    }
 }</code></pre>
 </div>
 </div>
@@ -1668,21 +1637,13 @@ MyBatis-Springが提供する<code>MyBatisBatchItemWriter</code>によるデー�
 <td class="tableblock halign-left valign-top"><p class="tableblock">(8)</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">(7)で定義したSQLのIDに対応するメソッドをインタフェースに定義する。</p></td>
 </tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">(9)</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">返り値の型は、このクラスで実装しているItemProcessorインタフェースの型引数で指定した 出力オブジェクトの型である<code>ExclusiveBranch</code>とする。</p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">(10)</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">更新データを設定したDTOオブジェクトを返すことでデータベースへ出力する。</p></td>
-</tr>
 </tbody>
 </table>
 <div id="Ch05_DBAccess_HowToUse_Output_MyBatisItemWriter_Tasklet" class="dlist">
 <dl>
 <dt class="hdlist1">タスクレットモデルにおける利用方法</dt>
 <dd>
-<p>タスクレットモデルで<code>MyBatisBatchItemWriter</code>を利用してデータベースを更新(登録)する実装例を以下に示す。<br>
+<p>タスクレットモデルで<code>MyBatisBatchItemWriter</code>を利用してデータベースに登録する実装例を以下に示す。<br>
 ここでは、<code>MyBatisBatchItemWriter</code>の実装例と実装した<code>MyBatisBatchItemWriter</code>を利用する<code>Tasklet</code>の実装例を説明する。
 タスクレットモデルでチャンクモデルのコンポーネントを利用する際の留意点については<a href="Ch03_CreateTaskletJob.html#Ch03_CreateTaskletJob_HowToUse_InOutImpl">チャンクモデルのコンポーネントを利用するTasklet実装</a>を参照。</p>
 </dd>
@@ -2062,7 +2023,7 @@ ItemWriterとは異なる更新処理をするためにItemProcessorで個別に
     <span class="annotation">@Override</span>
     <span class="directive">public</span> <span class="type">void</span> beforeStep(StepExecution stepExecution) {
         <span class="comment">// (3)</span>
-        <span class="keyword">for</span>(Customer customer : customerRepository.findAll()) {
+        <span class="keyword">for</span>(Customer customer : customerRepository.findAllAtOnce()) {
             cache.addCustomer(customer.getCustomerId(), customer);
         }
     }
@@ -2463,112 +2424,6 @@ MyBatisBatchItemWriterとFlatFileItemWriterを設定することで、データ�
 </table>
 </div>
 </div>
-<div class="sect2">
-<h3 id="Ch05_DBAccess_HowToExtend_SearchCondition"><a class="anchor" href="#Ch05_DBAccess_HowToExtend_SearchCondition"></a>検索条件の指定方法</h3>
-<div class="paragraph">
-<p>データベースアクセスの際に検索条件を指定して検索を行いたい場合は、
-Bean定義にてMap形式でジョブパラメータから値を取得し、キーを設定することで検索条件を指定することができる。
-以下にジョブパラメータを指定したジョブ起動コマンドの例と実装例を示す。</p>
-</div>
-<div class="listingblock">
-<div class="title">ジョブパラメータを指定した場合のジョブ起動コマンド</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="sh">$ java -cp ${CLASSPATH} org.springframework.batch.core.launch.support.CommandLineJobRunner /META-INF/job/job001 job001 year=2017 month=12</code></pre>
-</div>
-</div>
-<div class="listingblock">
-<div class="title">MapperXMLの実装例</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="xml"><span class="comment">&lt;!-- (1) --&gt;</span>
-<span class="tag">&lt;select</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">findByYearAndMonth</span><span class="delimiter">&quot;</span></span>
-    <span class="attribute-name">resultType</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jp.co.ntt.fw.macchinetta.batch.functionaltest.app.model.performance.SalesPerformanceSummary</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
-    <span class="inline-delimiter">&lt;![CDATA[</span>
-    SELECT
-        branch_id AS branchId, year, month, amount
-    FROM
-        sales_performance_summary
-    WHERE
-        year = #{year} AND month = #{month}
-    ORDER BY
-        branch_id ASC
-    <span class="inline-delimiter">]]&gt;</span>
-<span class="tag">&lt;/select&gt;</span>
-
-<span class="comment">&lt;!-- omitted --&gt;</span></code></pre>
-</div>
-</div>
-<div class="listingblock">
-<div class="title">Bean定義</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="xml"><span class="comment">&lt;!-- omitted --&gt;</span>
-
-<span class="comment">&lt;!-- (2) --&gt;</span>
-<span class="tag">&lt;bean</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">reader</span><span class="delimiter">&quot;</span></span>
-      <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">org.mybatis.spring.batch.MyBatisCursorItemReader</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">scope</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">step</span><span class="delimiter">&quot;</span></span>
-      <span class="attribute-name">p:queryId</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jp.co.ntt.fw.macchinetta.batch.functionaltest.ch08.parallelandmultiple.repository.SalesSummaryRepository.findByYearAndMonth</span><span class="delimiter">&quot;</span></span>
-      <span class="attribute-name">p:sqlSessionFactory-ref</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobSqlSessionFactory</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
-    <span class="tag">&lt;property</span> <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">parameterValues</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span> <span class="comment">&lt;!-- (3) --&gt;</span>
-        <span class="tag">&lt;map&gt;</span>
-            <span class="comment">&lt;!-- (4) --&gt;</span>
-            <span class="tag">&lt;entry</span> <span class="attribute-name">key</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">year</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">value</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">#{jobParameters['year']}</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">value-type</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">java.lang.Integer</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
-            <span class="tag">&lt;entry</span> <span class="attribute-name">key</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">month</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">value</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">#{jobParameters['month']}</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">value-type</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">java.lang.Integer</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
-
-            <span class="comment">&lt;!-- omitted --&gt;</span>
-        <span class="tag">&lt;/map&gt;</span>
-    <span class="tag">&lt;/property&gt;</span>
-<span class="tag">&lt;/bean&gt;</span>
-
-<span class="comment">&lt;!-- omitted --&gt;</span></code></pre>
-</div>
-</div>
-<table class="tableblock frame-all grid-all stretch">
-<caption class="title">表 16. 説明</caption>
-<colgroup>
-<col style="width: 10%;">
-<col style="width: 90%;">
-</colgroup>
-<thead>
-<tr>
-<th class="tableblock halign-left valign-top">項番</th>
-<th class="tableblock halign-left valign-top">説明</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">検索条件を指定して取得するSQLを定義する。</p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">(2)</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">データベースからデータを取得するための<code>ItemReader</code>を定義する。</p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">(3)</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><code>&lt;property&gt;</code>要素の<code>name</code>属性に<code>parameterValues</code>を設定する。</p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">(4)</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">検索条件にする値をジョブパラメータから取得し、キーに設定することで検索条件を指定する。
-SQLの引数が数値型で定義されているため、<code>value-type</code>で<code>Integer</code>に変換して渡している。</p></td>
-</tr>
-</tbody>
-</table>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<i class="fa icon-note" title="Note"></i>
-</td>
-<td class="content">
-<div class="title">StepExectionContextによる検索指定方法について</div>
-<div class="paragraph">
-<p>@BeforeStepなどジョブの前処理で検索条件を指定する場合は、<code>StepExecutionContext</code>に設定することで、<code>JobParameters</code>同様に取得することができる。</p>
-</div>
-</td>
-</tr>
-</table>
-</div>
-</div>
 </div>
 </div>
 </div>
@@ -2577,7 +2432,7 @@ SQLの引数が数値型で定義されているため、<code>value-type</code>
 
   <div class="common-bg">
     <div class="information">
-      Macchinetta Batch Framework (2.x) Development Guideline - version 2.3.0.RELEASE, 2021-3-26, commit-id:9b11e9d
+      Macchinetta Batch Framework (2.x) Development Guideline - version 2.3.1.RELEASE, 2022-3-30
     </div>
     <div class="index">
       <a href="index.html">&gt; INDEX</a>

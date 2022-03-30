@@ -14,7 +14,7 @@
 
 <div class="common-bg">
   <div class="information">
-    Macchinetta Batch Framework (2.x) Development Guideline - version 2.3.0.RELEASE, 2021-3-26, commit-id:9b11e9d
+    Macchinetta Batch Framework (2.x) Development Guideline - version 2.3.1.RELEASE, 2022-3-30
   </div>
   <div class="index">
     <a href="index.html">&gt; INDEX</a>
@@ -102,7 +102,7 @@
 <pre class="CodeRay highlight"><code data-lang="console">C:\xxx&gt;mvn archetype:generate ^
   -DarchetypeGroupId=com.github.macchinetta.blank ^
   -DarchetypeArtifactId=macchinetta-batch-archetype ^
-  -DarchetypeVersion=2.3.0.RELEASE</code></pre>
+  -DarchetypeVersion=2.3.1.RELEASE</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -148,7 +148,7 @@
 <pre class="CodeRay highlight"><code data-lang="console">C:\xxx&gt;mvn archetype:generate ^
 More?   -DarchetypeGroupId=com.github.macchinetta.blank ^
 More?   -DarchetypeArtifactId=macchinetta-batch-archetype ^
-More?   -DarchetypeVersion=2.3.0.RELEASE
+More?   -DarchetypeVersion=2.3.1.RELEASE
 [INFO] Scanning for projects&#8230;&#8203;
 [INFO]
 [INFO] ------------------------------------------------------------------------
@@ -168,7 +168,7 @@ version: 1.0.0-SNAPSHOT
 package: com.example.batch.tutorial
  Y: : y
 [INFO] ----------------------------------------------------------------------------
-[INFO] Using following parameters for creating project from Archetype: macchinetta-batch-archetype:2.3.0.RELEASE
+[INFO] Using following parameters for creating project from Archetype: macchinetta-batch-archetype:2.3.1.RELEASE
 [INFO] ----------------------------------------------------------------------------
 [INFO] Parameter: groupId, Value: com.example.batch
 [INFO] Parameter: artifactId, Value: macchinetta-batch-tutorial
@@ -595,7 +595,7 @@ tutorial.insert-data.script=file:sqls/insert-member-info-data.sql
 なお、ファイルアクセスでデータ入出力を行うジョブを作成しない場合は実施する必要はない。</p>
 </div>
 <div class="paragraph">
-<p>入力データの準備は入出力ファイルを格納ディレクトリの作成及び入力ファイルの作成を行う。</p>
+<p>入力データの準備として、入出力ファイルを格納するディレクトリの作成と入力ファイルの作成を行う。</p>
 </div>
 <div class="paragraph">
 <p>プロジェクトルートディレクトリに入出力ファイル格納用として以下の2ディレクトリを作成する。</p>
@@ -772,16 +772,7 @@ DBeaverでデータベースへ接続するまでの手順は以下のとおり�
 <li>
 <p>インストール完了後、STSを再起動する。</p>
 </li>
-<li>
-<p>STSのメニューバーに[SQLエディタ]と[データベース]があることを確認する。</p>
-</li>
 </ol>
-</div>
-<div class="imageblock">
-<div class="content">
-<img src="./images/ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_DBeaver_Install_Menubar.png" alt="STS Menu Bar">
-</div>
-<div class="title">図 7. STS Menu Bar</div>
 </div>
 </div>
 <div class="sect2">
@@ -791,6 +782,25 @@ DBeaverでデータベースへ接続するまでの手順は以下のとおり�
 </div>
 <div class="olist arabic">
 <ol class="arabic">
+<li>
+<p>STSのメニューバーから、[Window] &#8594; [Perspective] &#8594; [Open Perspective] &#8594; [Other&#8230;&#8203;]を選択する。</p>
+</li>
+<li>
+<p>[DBeaver]を選択し、[Open]を押下する。</p>
+</li>
+<li>
+<p>STSのメニューバーに[SQLエディタ]と[データベース]があることを確認する。</p>
+</li>
+</ol>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_DBeaver_Perspective_Menubar.png" alt="STS Menu Bar">
+</div>
+<div class="title">図 7. STS Menu Bar</div>
+</div>
+<div class="olist arabic">
+<ol class="arabic" start="4">
 <li>
 <p>STSのメニューバーから、[データベース] &#8594; [新しい接続]を選択して[新しい接続を作成する]ウィンドウを開く。</p>
 </li>
@@ -809,7 +819,7 @@ DBeaverでデータベースへ接続するまでの手順は以下のとおり�
 <div class="title">図 8. Select Connection Type</div>
 </div>
 <div class="olist arabic">
-<ol class="arabic" start="4">
+<ol class="arabic" start="7">
 <li>
 <p>[ドライバの設定を編集]を押下し、[ドライバーの編集H2 Embedded']ウインドウを開く。</p>
 </li>
@@ -862,7 +872,7 @@ DBeaverでデータベースへ接続するまでの手順は以下のとおり�
 </table>
 </div>
 <div class="olist arabic">
-<ol class="arabic" start="9">
+<ol class="arabic" start="12">
 <li>
 <p>下表のとおりフォームに値を入力し、[パスワードをローカルに保存]のチェックをはずす。</p>
 </li>
@@ -898,7 +908,7 @@ DBeaverでデータベースへ接続するまでの手順は以下のとおり�
 <div class="title">図 11. Setting Connection</div>
 </div>
 <div class="olist arabic">
-<ol class="arabic" start="10">
+<ol class="arabic" start="13">
 <li>
 <p>[テスト接続]を押下する。</p>
 </li>
@@ -930,7 +940,7 @@ DBeaverでデータベースへ接続するまでの手順は以下のとおり�
 </table>
 </div>
 <div class="olist arabic">
-<ol class="arabic" start="12">
+<ol class="arabic" start="15">
 <li>
 <p><a href="#Ch09_EnvironmentConstruction_DBeaver_Connection_Config_Connection_Test">Connection Test</a>のようなウインドウが表示され、接続できたことを確認し、[Finish]を押下する。</p>
 </li>
@@ -941,6 +951,16 @@ DBeaverでデータベースへ接続するまでの手順は以下のとおり�
 <img src="./images/ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_DBeaver_Connection_Test.png" alt="Connection Test">
 </div>
 <div class="title">図 13. Connection Test</div>
+</div>
+<div class="olist arabic">
+<ol class="arabic" start="16">
+<li>
+<p>STSのメニューバーから、[Window] &#8594; [Perspective] &#8594; [Open Perspective] &#8594; [Other&#8230;&#8203;]を選択する。</p>
+</li>
+<li>
+<p>[Java (default)]を選択し、[Open]を押下する。</p>
+</li>
+</ol>
 </div>
 <div class="paragraph">
 <p>以上でSTSからデータベースを参照する準備が完了した。</p>
@@ -1268,7 +1288,7 @@ Spring Batchメタデータテーブル(詳細は<a href="Ch02_SpringBatchArchit
 
   <div class="common-bg">
     <div class="information">
-      Macchinetta Batch Framework (2.x) Development Guideline - version 2.3.0.RELEASE, 2021-3-26, commit-id:9b11e9d
+      Macchinetta Batch Framework (2.x) Development Guideline - version 2.3.1.RELEASE, 2022-3-30
     </div>
     <div class="index">
       <a href="index.html">&gt; INDEX</a>

@@ -1,0 +1,982 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Asciidoctor 2.0.10">
+<title>リスナー</title>
+<link rel="stylesheet" href="./theme/css/readthedocs.css">
+<link rel="stylesheet" href="./theme/css/font-awesome.min.css">
+<link rel="stylesheet" href="./theme/css/coderay-asciidoctor.css">
+<link rel="stylesheet" href="./theme/css/header-footer.css">
+<title>Macchinetta Batch Framework (2.x) Development Guideline</title>
+
+<div class="common-bg">
+  <div class="information">
+    Macchinetta Batch Framework (2.x) Development Guideline - version 2.3.1.RELEASE, 2022-3-30
+  </div>
+  <div class="index">
+    <a href="index.html">&gt; INDEX</a>
+  </div>
+</div>
+</head>
+<body id="Ch04_Listener" class="book toc2 toc-left">
+<div id="header">
+<h1>リスナー</h1>
+<div id="toc" class="toc2">
+<div id="toctitle">Table of Contents</div>
+<ul class="sectlevel1">
+<li><a href="#Ch04_Listener_Overview">Overview</a>
+<ul class="sectlevel2">
+<li><a href="#Ch04_Listener_Overview_Types">リスナーの種類</a>
+<ul class="sectlevel3">
+<li><a href="#Ch04_Listener_Overview_Types_JobListener">JobListener</a></li>
+<li><a href="#Ch04_Listener_Overview_Types_StepListener">StepListener</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="#Ch04_Listener_HowToUse">How to use</a>
+<ul class="sectlevel2">
+<li><a href="#Ch04_Listener_HowToUse_Impl">リスナーの実装</a>
+<ul class="sectlevel3">
+<li><a href="#Ch04_Listener_HowToUse_Impl_WithoutAnnotation">インタフェースを実装する場合</a></li>
+<li><a href="#Ch04_Listener_HowToUse_Impl_WithAnnotation">アノテーションを付与する場合</a></li>
+</ul>
+</li>
+<li><a href="#Ch04_Listener_HowToUse_Configuration">リスナーの設定</a>
+<ul class="sectlevel3">
+<li><a href="#Ch04_Listener_HowToUse_MultipleConfiguration">複数リスナーの設定</a></li>
+</ul>
+</li>
+<li><a href="#Ch04_Listener_HowToUse_SelectionCriteria">インタフェースとアノテーションの使い分け</a></li>
+<li><a href="#Ch04_Listener_HowToUse_Exception">StepExecutionListenerでの前処理における例外発生</a></li>
+<li><a href="#Ch04_Listener_HowToUse_JobAbort">前処理(StepExecutionListener#beforeStep())でのジョブの打ち切り</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div id="content">
+<div class="sect1">
+<h2 id="Ch04_Listener_Overview"><a class="anchor" href="#Ch04_Listener_Overview"></a>Overview</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>リスナーとは、ジョブやステップを実行する前後に処理を挿入するためのインタフェースである。</p>
+</div>
+<div class="paragraph">
+<p>本機能は、チャンクモデルとタスクレットモデルとで使い方が異なるため、それぞれについて説明する。</p>
+</div>
+<div class="paragraph">
+<p>リスナーには多くのインタフェースがあるため、それぞれの役割について説明する。
+その後に、設定および実装方法について説明をする。</p>
+</div>
+<div class="sect2">
+<h3 id="Ch04_Listener_Overview_Types"><a class="anchor" href="#Ch04_Listener_Overview_Types"></a>リスナーの種類</h3>
+<div class="paragraph">
+<p>Spring Batchでは、実に多くのリスナーインタフェースが定義されている。
+ここではそのすべてを説明するのではなく、利用頻度が高いものを中心に扱う。</p>
+</div>
+<div class="paragraph">
+<p>まず、リスナーは2種類に大別される。</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">JobListener</dt>
+<dd>
+<p>ジョブの実行に対して処理を挟み込むためのインタフェース</p>
+</dd>
+<dt class="hdlist1">StepListener</dt>
+<dd>
+<p>ステップの実行に対して処理を挟み込むためのインタフェース</p>
+</dd>
+</dl>
+</div>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-warning" title="Warning"></i>
+</td>
+<td class="content">
+<div class="title">JobListenerについて</div>
+<div class="paragraph">
+<p>Spring Batchには、<code>JobListener</code>という名前のインタフェースは存在しない。
+<code>StepListener</code>との対比のため 、本ガイドラインでは便宜的に定義している。<br>
+Java Batch(jBatch)には、<code>javax.batch.api.listener.JobListener</code>というインタフェースが存在するので、実装時には間違えないように注意すること。
+また、<code>StepListener</code>もシグネチャが異なる同名インタフェース(<code>javax.batch.api.listener.StepListener</code>)が存在するので、同様に注意すること。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="sect3">
+<h4 id="Ch04_Listener_Overview_Types_JobListener"><a class="anchor" href="#Ch04_Listener_Overview_Types_JobListener"></a>JobListener</h4>
+<div class="paragraph">
+<p><code>JobListener</code>のインタフェースは、<code>JobExecutionListener</code>の1つのみとなる。</p>
+</div>
+<div id="Ch04_Listener_Overview_Types_JobExecutionListener" class="dlist">
+<dl>
+<dt class="hdlist1">JobExecutionListener</dt>
+<dd>
+<p>ジョブの開始前、終了後に処理を挟み込む。</p>
+</dd>
+</dl>
+</div>
+<div class="listingblock">
+<div class="title">JobExecutionListenerインタフェース</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="java"><span class="directive">public</span> <span class="type">interface</span> <span class="class">JobExecutionListener</span> {
+  <span class="type">void</span> beforeJob(JobExecution jobExecution);
+  <span class="type">void</span> afterJob(JobExecution jobExecution);
+}</code></pre>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="Ch04_Listener_Overview_Types_StepListener"><a class="anchor" href="#Ch04_Listener_Overview_Types_StepListener"></a>StepListener</h4>
+<div class="paragraph">
+<p><code>StepListener</code>のインタフェースは以下のように多くの種類がある。</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">StepListener</dt>
+<dd>
+<p>以降に紹介する各種リスナーのマーカーインタフェース。</p>
+</dd>
+</dl>
+</div>
+<div id="Ch04_Listener_Overview_Types_StepExecutionListener" class="dlist">
+<dl>
+<dt class="hdlist1">StepExecutionListener</dt>
+<dd>
+<p>ステップ実行の開始前、終了後に処理を挟み込む。</p>
+</dd>
+</dl>
+</div>
+<div class="listingblock">
+<div class="title">StepExecutionListenerインタフェース</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="java"><span class="directive">public</span> <span class="type">interface</span> <span class="class">StepExecutionListener</span> <span class="directive">extends</span> StepListener {
+  <span class="type">void</span> beforeStep(StepExecution stepExecution);
+  ExitStatus afterStep(StepExecution stepExecution);
+}</code></pre>
+</div>
+</div>
+<div id="Ch04_Listener_Overview_Types_ChunkListener" class="dlist">
+<dl>
+<dt class="hdlist1">ChunkListener</dt>
+<dd>
+<p>1つのチャンクを処理する前後と、エラーが発生した場合に処理を挟み込む。</p>
+</dd>
+</dl>
+</div>
+<div class="listingblock">
+<div class="title">ChunkListenerインタフェース</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="java"><span class="directive">public</span> <span class="type">interface</span> <span class="class">ChunkListener</span> <span class="directive">extends</span> StepListener {
+  <span class="directive">static</span> <span class="directive">final</span> <span class="predefined-type">String</span> ROLLBACK_EXCEPTION_KEY = <span class="string"><span class="delimiter">&quot;</span><span class="content">sb_rollback_exception</span><span class="delimiter">&quot;</span></span>;
+  <span class="type">void</span> beforeChunk(ChunkContext context);
+  <span class="type">void</span> afterChunk(ChunkContext context);
+  <span class="type">void</span> afterChunkError(ChunkContext context);
+}</code></pre>
+</div>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+<div class="title">ROLLBACK_EXCEPTION_KEYの用途</div>
+<div class="paragraph">
+<p><code>afterChunkError</code>メソッドにて、発生した例外を取得したい場合に利用する。
+Spring Batchはチャンク処理中にエラーが発生した場合、<code>ChunkContext</code>に<code>sb_rollback_exception</code>というキー名で
+例外を格納した上で<code>ChunkListener</code>を呼び出すため、以下の要領でアクセスできる。</p>
+</div>
+<div class="listingblock">
+<div class="title">使用例</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="java"><span class="directive">public</span> <span class="type">void</span> afterChunkError(ChunkContext context) {
+    logger.error(<span class="string"><span class="delimiter">&quot;</span><span class="content">Exception occurred while chunk. [context:{}]</span><span class="delimiter">&quot;</span></span>, context,
+            context.getAttribute(ChunkListener.ROLLBACK_EXCEPTION_KEY));
+}</code></pre>
+</div>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>例外ハンドリングについては、<a href="Ch06_ExceptionHandling.html#Ch06_ExceptionHandling_HowToUse_StepExceptionHandling_ChunkListener">ChunkListenerインタフェースによる例外ハンドリング</a>を参照。</p>
+</div>
+<div id="Ch04_Listener_Overview_Types_ItemReadListener" class="dlist">
+<dl>
+<dt class="hdlist1">ItemReadListener</dt>
+<dd>
+<p>ItemReaderが1件のデータを取得する前後と、エラーが発生した場合に処理を挟み込む。</p>
+</dd>
+</dl>
+</div>
+<div class="listingblock">
+<div class="title">ItemReadListenerインタフェース</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="java"><span class="directive">public</span> <span class="type">interface</span> <span class="class">ItemReadListener</span>&lt;T&gt; <span class="directive">extends</span> StepListener {
+  <span class="type">void</span> beforeRead();
+  <span class="type">void</span> afterRead(T item);
+  <span class="type">void</span> onReadError(<span class="exception">Exception</span> ex);
+}</code></pre>
+</div>
+</div>
+<div id="Ch04_Listener_Overview_Types_ItemProcessListener" class="dlist">
+<dl>
+<dt class="hdlist1">ItemProcessListener</dt>
+<dd>
+<p>ItemProcessorが1件のデータを加工する前後と、エラーが発生した場合に処理を挟み込む。</p>
+</dd>
+</dl>
+</div>
+<div class="listingblock">
+<div class="title">ItemProcessListenerインタフェース</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="java"><span class="directive">public</span> <span class="type">interface</span> <span class="class">ItemProcessListener</span>&lt;T, S&gt; <span class="directive">extends</span> StepListener {
+  <span class="type">void</span> beforeProcess(T item);
+  <span class="type">void</span> afterProcess(T item, S result);
+  <span class="type">void</span> onProcessError(T item, <span class="exception">Exception</span> e);
+}</code></pre>
+</div>
+</div>
+<div id="Ch04_Listener_Overview_Types_ItemWriteListener" class="dlist">
+<dl>
+<dt class="hdlist1">ItemWriteListener</dt>
+<dd>
+<p>ItemWriterが1つのチャンクを出力する前後と、エラーが発生した場合に処理を挟み込む。</p>
+</dd>
+</dl>
+</div>
+<div class="listingblock">
+<div class="title">ItemWriteListenerインタフェース</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="java"><span class="directive">public</span> <span class="type">interface</span> <span class="class">ItemWriteListener</span>&lt;S&gt; <span class="directive">extends</span> StepListener {
+  <span class="type">void</span> beforeWrite(<span class="predefined-type">List</span>&lt;? <span class="directive">extends</span> S&gt; items);
+  <span class="type">void</span> afterWrite(<span class="predefined-type">List</span>&lt;? <span class="directive">extends</span> S&gt; items);
+  <span class="type">void</span> onWriteError(<span class="exception">Exception</span> exception, <span class="predefined-type">List</span>&lt;? <span class="directive">extends</span> S&gt; items);
+}</code></pre>
+</div>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+<div class="paragraph">
+<p>本ガイドラインでは、以下のリスナーについては説明をしない。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>リトライ系リスナー</p>
+</li>
+<li>
+<p>スキップ系リスナー</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>これらのリスナーは例外ハンドリングでの使用を想定したものであるが、
+本ガイドラインではこれらのリスナーを用いた例外ハンドリングは行わない方針である。
+詳細は、<a href="Ch06_ExceptionHandling.html#Ch06_ExceptionHandling">例外ハンドリング</a>を参照。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-warning" title="Warning"></i>
+</td>
+<td class="content">
+<div class="paragraph">
+<p><code>JobExecutionListener</code>や、<code>StepExecutionListener</code>は、<a href="Ch05_Transaction.html#Ch05_Transaction_Arch_UnderSpringBatch">Spring Batchにおけるトランザクション制御</a>で説明するフレームワークトランザクションによる制御範囲外となる。
+加えて、<a href="Ch05_DBAccess.html#Ch05_DBAccess_HowToUse_MapperInterface_Listener">リスナーでのデータベースアクセス</a>における制約があるため、本ガイドラインではリスナーによるデータベース更新は基本的に推奨しない。</p>
+</div>
+<div class="paragraph">
+<p>前処理でデータベース更新を行う必要がある場合は<a href="Ch08_FlowControll.html#Ch08_FlowControll">フロー制御</a>を参照し、データベース更新を行う前処理と後続処理のステップを分けて、<code>JobExecutionListener</code>、<code>StepExecutionListener</code>ではデータベース更新を行わない設計・実装を行うことを検討してほしい。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="Ch04_Listener_HowToUse"><a class="anchor" href="#Ch04_Listener_HowToUse"></a>How to use</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>リスナーの実装と設定方法について説明する。</p>
+</div>
+<div class="sect2">
+<h3 id="Ch04_Listener_HowToUse_Impl"><a class="anchor" href="#Ch04_Listener_HowToUse_Impl"></a>リスナーの実装</h3>
+<div class="paragraph">
+<p>リスナーの実装と設定方法について説明する。</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>リスナーインタフェースを<code>implements</code>して実装する。</p>
+</li>
+<li>
+<p>コンポーネントにメソッドベースでアノテーションを付与して実装する。</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>どちらで実装するかは、リスナーの役割に応じて選択する。基準は後述する。</p>
+</div>
+<div class="sect3">
+<h4 id="Ch04_Listener_HowToUse_Impl_WithoutAnnotation"><a class="anchor" href="#Ch04_Listener_HowToUse_Impl_WithoutAnnotation"></a>インタフェースを実装する場合</h4>
+<div class="paragraph">
+<p>各種リスナーインタフェースを<code>implements</code>して実装する。必要に応じて、複数のインタフェースを同時に実装してもよい。
+以下に実装例を示す。</p>
+</div>
+<div class="listingblock">
+<div class="title">JobExecutionListenerの実装例</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="java"><span class="annotation">@Component</span>
+<span class="directive">public</span> <span class="type">class</span> <span class="class">JobExecutionLoggingListener</span> <span class="directive">implements</span> JobExecutionListener { <span class="comment">// (1)</span>
+
+    <span class="directive">private</span> <span class="directive">static</span> <span class="directive">final</span> <span class="predefined-type">Logger</span> logger =
+            LoggerFactory.getLogger(JobExecutionLoggingListener.class);
+
+    <span class="annotation">@Override</span>
+    <span class="directive">public</span> <span class="type">void</span> beforeJob(JobExecution jobExecution) { <span class="comment">// (2)</span>
+        logger.info(<span class="string"><span class="delimiter">&quot;</span><span class="content">job started. [JobName:{}]</span><span class="delimiter">&quot;</span></span>, jobExecution.getJobInstance().getJobName());
+    }
+
+    <span class="annotation">@Override</span>
+    <span class="directive">public</span> <span class="type">void</span> afterJob(JobExecution jobExecution) { <span class="comment">// (3)</span>
+
+        logger.info(<span class="string"><span class="delimiter">&quot;</span><span class="content">job finished.[JobName:{}][ExitStatus:{}]</span><span class="delimiter">&quot;</span></span>, jobExecution.getJobInstance().getJobName(),
+                jobExecution.getExitStatus().getExitCode());
+    }
+}</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">リスナーの設定例</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"><span class="tag">&lt;batch:job</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">chunkJobWithListener</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">job-repository</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobRepository</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+     <span class="tag">&lt;batch:step</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">chunkJobWithListener.step01</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+         <span class="tag">&lt;batch:tasklet</span> <span class="attribute-name">transaction-manager</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobTransactionManager</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+             <span class="tag">&lt;batch:chunk</span> <span class="attribute-name">reader</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">reader</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">processor</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">processor</span><span class="delimiter">&quot;</span></span>
+                          <span class="attribute-name">writer</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">writer</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">commit-interval</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">10</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+             <span class="tag">&lt;batch:listeners&gt;</span>
+                 <span class="tag">&lt;batch:listener</span> <span class="attribute-name">ref</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">loggingEachProcessInStepListener</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+             <span class="tag">&lt;/batch:listeners&gt;</span>
+         <span class="tag">&lt;/batch:tasklet&gt;</span>
+     <span class="tag">&lt;/batch:step&gt;</span>
+     <span class="tag">&lt;batch:listeners&gt;</span>
+         <span class="tag">&lt;batch:listener</span> <span class="attribute-name">ref</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobExecutionLoggingListener</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span> <span class="comment">&lt;!-- (4) --&gt;</span>
+     <span class="tag">&lt;/batch:listeners&gt;</span>
+ <span class="tag">&lt;/batch:job&gt;</span></code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 1. 説明</caption>
+<colgroup>
+<col style="width: 10%;">
+<col style="width: 90%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>JobExecutionListener</code>を<code>implements</code>して実装する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(2)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>JobExecutionListener</code>が定義している<code>beforeJob</code>メソッドを実装する。<br>
+この例では、ジョブ開始ログを出力する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(3)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>JobExecutionListener</code>が定義している<code>afterJob</code>メソッドを実装する。<br>
+この例では、ジョブ終了ログを出力する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(4)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Bean定義の<code>&lt;batch:listeners&gt;</code>要素で、(1)で実装したリスナーを設定する。<br>
+設定方法の詳細は、<a href="#Ch04_Listener_HowToUse_Configuration">リスナーの設定</a>で説明する。</p></td>
+</tr>
+</tbody>
+</table>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+<div class="title">リスナーのサポートクラス</div>
+<div class="paragraph">
+<p>複数のリスナーインタフェースを<code>implements</code>した場合、処理が不要な部分についても空実装をする必要がある。
+この作業を簡略化するため、あらかじめ空実装を施したサポートクラスがSpring Batchには用意されている。
+インタフェースではなく、サポートクラスを活用してもよいが、その場合<code>implements</code>ではなく<code>extends</code>になるため注意すること。</p>
+</div>
+<div class="ulist">
+<div class="title">サポートクラス</div>
+<ul>
+<li>
+<p><code>org.springframework.batch.core.listener.ItemListenerSupport</code></p>
+</li>
+<li>
+<p><code>org.springframework.batch.core.listener.StepListenerSupport</code></p>
+</li>
+</ul>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect3">
+<h4 id="Ch04_Listener_HowToUse_Impl_WithAnnotation"><a class="anchor" href="#Ch04_Listener_HowToUse_Impl_WithAnnotation"></a>アノテーションを付与する場合</h4>
+<div class="paragraph">
+<p>各種リスナーインタフェースに対応したアノテーションを付与する。必要に応じて、複数のアノテーションを同時に実装してもよい。</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 2. リスナーインタフェースとの対応表</caption>
+<colgroup>
+<col style="width: 50%;">
+<col style="width: 50%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">リスナーインタフェース</th>
+<th class="tableblock halign-left valign-top">アノテーション</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#Ch04_Listener_Overview_Types_JobExecutionListener">JobExecutionListener</a></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>@BeforeJob</code><br>
+<code>@AfterJob</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#Ch04_Listener_Overview_Types_StepExecutionListener">StepExecutionListener</a></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>@BeforeStep</code><br>
+<code>@AfterStep</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#Ch04_Listener_Overview_Types_ChunkListener">ChunkListener</a></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>@BeforeChunk</code><br>
+<code>@AfterChunk</code><br>
+<code>@AfterChunkError</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#Ch04_Listener_Overview_Types_ItemReadListener">ItemReadListener</a></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>@BeforeRead</code><br>
+<code>@AfterRead</code><br>
+<code>@OnReadError</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#Ch04_Listener_Overview_Types_ItemProcessListener">ItemProcessListener</a></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>@BeforeProcess</code><br>
+<code>@AfterProcess</code><br>
+<code>@OnProcessError</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#Ch04_Listener_Overview_Types_ItemWriteListener">ItemWriteListener</a></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>@BeforeWrite</code><br>
+<code>@AfterWrite</code><br>
+<code>@OnWriteError</code></p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>これらアノテーションはコンポーネント化された実装のメソッドに付与することで目的のスコープで動作する。
+以下に実装例を示す。</p>
+</div>
+<div class="listingblock">
+<div class="title">アノテーションを付与したItemProcessorの実装例</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="java"><span class="annotation">@Component</span>
+<span class="directive">public</span> <span class="type">class</span> <span class="class">AnnotationAmountCheckProcessor</span> <span class="directive">implements</span>
+        ItemProcessor&lt;SalesPlanDetail, SalesPlanDetail&gt; {
+
+    <span class="directive">private</span> <span class="directive">static</span> <span class="directive">final</span> <span class="predefined-type">Logger</span> logger =
+            LoggerFactory.getLogger(AnnotationAmountCheckProcessor.class);
+
+    <span class="annotation">@Override</span>
+    <span class="directive">public</span> SalesPlanDetail process(SalesPlanDetail item) <span class="directive">throws</span> <span class="exception">Exception</span> {
+        <span class="keyword">if</span> (item.getAmount().signum() == -<span class="integer">1</span>) {
+            <span class="keyword">throw</span> <span class="keyword">new</span> <span class="exception">IllegalArgumentException</span>(<span class="string"><span class="delimiter">&quot;</span><span class="content">amount is negative.</span><span class="delimiter">&quot;</span></span>);
+        }
+        <span class="keyword">return</span> item;
+    }
+
+    <span class="comment">// (1)</span>
+    <span class="comment">/*
+    @BeforeProcess
+    public void beforeProcess(Object item) {
+        logger.info(&quot;before process. [Item :{}]&quot;, item);
+    }
+    */</span>
+
+    <span class="comment">// (2)</span>
+    <span class="annotation">@AfterProcess</span>
+    <span class="directive">public</span> <span class="type">void</span> afterProcess(<span class="predefined-type">Object</span> item, <span class="predefined-type">Object</span> result) {
+        logger.info(<span class="string"><span class="delimiter">&quot;</span><span class="content">after process. [Result :{}]</span><span class="delimiter">&quot;</span></span>, result);
+    }
+
+    <span class="comment">// (3)</span>
+    <span class="annotation">@OnProcessError</span>
+    <span class="directive">public</span> <span class="type">void</span> onProcessError(<span class="predefined-type">Object</span> item, <span class="exception">Exception</span> e) {
+        logger.error(<span class="string"><span class="delimiter">&quot;</span><span class="content">on process error.</span><span class="delimiter">&quot;</span></span>, e);
+    }
+}</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">リスナーの設定例</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"><span class="tag">&lt;batch:job</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">chunkJobWithListenerAnnotation</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">job-repository</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobRepository</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+    <span class="tag">&lt;batch:step</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">chunkJobWithListenerAnnotation.step01</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+        <span class="tag">&lt;batch:tasklet</span> <span class="attribute-name">transaction-manager</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobTransactionManager</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+            <span class="tag">&lt;batch:chunk</span> <span class="attribute-name">reader</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">reader</span><span class="delimiter">&quot;</span></span>
+                         <span class="attribute-name">processor</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">annotationAmountCheckProcessor</span><span class="delimiter">&quot;</span></span>
+                         <span class="attribute-name">writer</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">writer</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">commit-interval</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">10</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>  <span class="error">&lt;</span>! -- (4) --<span class="error">&gt;</span>
+        <span class="tag">&lt;/batch:tasklet&gt;</span>
+    <span class="tag">&lt;/batch:step&gt;</span>
+<span class="tag">&lt;/batch:job&gt;</span></code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 3. 説明</caption>
+<colgroup>
+<col style="width: 10%;">
+<col style="width: 90%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">アノテーションで実装する場合は、処理が必要なタイミングのアノテーションのみを付与すればよい。<br>
+この例では、ItemProcessの処理前には何もする必要がないため、<code>@BeforeProcess</code>を付与した実装は不要となる。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(2)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ItemProcessの処理後に行う処理を実装する。<br>
+この例では処理結果をログを出力している。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(3)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ItemProcessでエラーが発生したときの処理を実装する。<br>
+この例では発生した例外をログを出力している。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(4)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">アノテーションでリスナー実装がされているItemProcessを<code>&lt;batch:chunk&gt;</code>要素に設定する。<br>
+リスナーインタフェースとは異なり、<code>&lt;batch:listener&gt;</code>要素で設定しなくても、自動的にリスナーが登録される。</p></td>
+</tr>
+</tbody>
+</table>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-important" title="Important"></i>
+</td>
+<td class="content">
+<div class="title">アノテーションを付与するメソッドの制約</div>
+<div class="paragraph">
+<p>アノテーションを付与するメソッドはどのようなメソッドでもよいわけではない。
+対応するリスナーインタフェースのメソッドと、シグネチャを一致させる必要がある。
+この点は、各アノテーションのjavadocに明記されている。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-warning" title="Warning"></i>
+</td>
+<td class="content">
+<div class="title">JobExecutionListenerをアノテーションで実装したときの注意</div>
+<div class="paragraph">
+<p>JobExecutionListenerは、他のリスナーとスコープが異なるため、上記の設定では自動的にリスナー登録がされない。
+そのため、<code>&lt;batch:listener&gt;</code>要素で明示的に設定する必要がある。詳細は、<a href="#Ch04_Listener_HowToUse_Configuration">リスナーの設定</a>を参照。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-warning" title="Warning"></i>
+</td>
+<td class="content">
+<div class="title">Tasklet実装へのアノテーションによるリスナー実装</div>
+<div class="paragraph">
+<p>Tasklet実装へのアノテーションによるリスナー実装した場合、以下の設定では一切リスナーが起動しないため注意する。</p>
+</div>
+<div class="listingblock">
+<div class="title">Taskletの場合</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"><span class="tag">&lt;batch:job</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">taskletJobWithListenerAnnotation</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">job-repository</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobRepository</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+    <span class="tag">&lt;batch:step</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">taskletJobWithListenerAnnotation.step01</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+        <span class="tag">&lt;batch:tasklet</span> <span class="attribute-name">transaction-manager</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobTransactionManager</span><span class="delimiter">&quot;</span></span>
+                       <span class="attribute-name">ref</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">annotationSalesPlanDetailRegisterTasklet</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+    <span class="tag">&lt;/batch:step&gt;</span>
+<span class="tag">&lt;/batch:job&gt;</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>タスクレットモデルの場合は、<a href="#Ch04_Listener_HowToUse_SelectionCriteria">インタフェースとアノテーションの使い分け</a>に従ってリスナーインタフェースを利用するのがよい。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="Ch04_Listener_HowToUse_Configuration"><a class="anchor" href="#Ch04_Listener_HowToUse_Configuration"></a>リスナーの設定</h3>
+<div class="paragraph">
+<p>リスナーは、Bean定義の<code>&lt;batch:listeners&gt;</code>.<code>&lt;batch:listener&gt;</code>要素によって設定する。
+XMLスキーマ定義では様々な箇所に記述できるが、インタフェースの種類によっては意図とおり動作しないものが存在するため、
+以下の位置に設定すること。</p>
+</div>
+<div class="listingblock">
+<div class="title">リスナーを設定する位置</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"><span class="comment">&lt;!-- for chunk mode --&gt;</span>
+<span class="tag">&lt;batch:job</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">chunkJob</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">job-repository</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobRepository</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+    <span class="tag">&lt;batch:step</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">chunkJob.step01</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+        <span class="tag">&lt;batch:tasklet</span> <span class="attribute-name">transaction-manager</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobTransactionManager</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+            <span class="tag">&lt;batch:chunk</span> <span class="attribute-name">reader</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">(1)</span><span class="delimiter">&quot;</span></span>
+                         <span class="attribute-name">processor</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">(1)</span><span class="delimiter">&quot;</span></span>
+                         <span class="attribute-name">writer</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">(1)</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">commit-interval</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">10</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+            <span class="tag">&lt;batch:listeners&gt;</span>
+                <span class="tag">&lt;batch:listener</span> <span class="attribute-name">ref</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">(2)</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+            <span class="tag">&lt;/batch:listeners&gt;</span>
+        <span class="tag">&lt;/batch:tasklet&gt;</span>
+    <span class="tag">&lt;/batch:step&gt;</span>
+    <span class="tag">&lt;batch:listeners&gt;</span>
+        <span class="tag">&lt;batch:listener</span> <span class="attribute-name">ref</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">(3)</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+    <span class="tag">&lt;/batch:listeners&gt;</span>
+<span class="tag">&lt;/batch:job&gt;</span>
+
+<span class="comment">&lt;!-- for tasklet mode --&gt;</span>
+<span class="tag">&lt;batch:job</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">taskletJob</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">job-repository</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobRepository</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+    <span class="tag">&lt;batch:step</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">taskletJob.step01</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+        <span class="tag">&lt;batch:tasklet</span> <span class="attribute-name">transaction-manager</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobTransactionManager</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">ref</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">tasklet</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+            <span class="tag">&lt;batch:listeners&gt;</span>
+                <span class="tag">&lt;batch:listener</span> <span class="attribute-name">ref</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">(2)</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+            <span class="tag">&lt;/batch:listeners&gt;</span>
+        <span class="tag">&lt;/batch:tasklet&gt;</span>
+    <span class="tag">&lt;/batch:step&gt;</span>
+    <span class="tag">&lt;batch:listeners&gt;</span>
+        <span class="tag">&lt;batch:listener</span> <span class="attribute-name">ref</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">(3)</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+    <span class="tag">&lt;/batch:listeners&gt;</span>
+<span class="tag">&lt;/batch:job&gt;</span></code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 4. 設定値の説明</caption>
+<colgroup>
+<col style="width: 10%;">
+<col style="width: 90%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#Ch04_Listener_Overview_Types_StepListener">StepListener</a>に属するアノテーションによる実装を含んだコンポーネントを設定する。<br>
+アノテーションの場合、必然的にこの場所に設定することになる。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(2)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#Ch04_Listener_Overview_Types_StepListener">StepListener</a>に属するリスナーインタフェース実装を設定する。<br>
+タスクレットモデルの場合、<code>ItemReadListener</code>,<code>ItemProcessListener</code>,<code>ItemWriteListener</code>は利用できない。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(3)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#Ch04_Listener_Overview_Types_JobListener">JobListener</a>に属するリスナーを設定する。<br>
+インタフェースとアノテーション、どちらの実装でもここに設定する必要がある。</p></td>
+</tr>
+</tbody>
+</table>
+<div class="sect3">
+<h4 id="Ch04_Listener_HowToUse_MultipleConfiguration"><a class="anchor" href="#Ch04_Listener_HowToUse_MultipleConfiguration"></a>複数リスナーの設定</h4>
+<div class="paragraph">
+<p><code>&lt;batch:listeners&gt;</code>要素には複数のリスナーを設定することができる。</p>
+</div>
+<div class="paragraph">
+<p>複数のリスナーを登録したときに、リスナーがどのような順番で起動されるかを以下に示す。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>ItemProcessListener実装</p>
+<div class="ulist">
+<ul>
+<li>
+<p>listenerA, listenerB</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>JobExecutionListener実装</p>
+<div class="ulist">
+<ul>
+<li>
+<p>listenerC, listenerD</p>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+<div class="listingblock">
+<div class="title">複数リスナーの設定例</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"><span class="tag">&lt;batch:job</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">chunkJob</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">job-repository</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobRepository</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+    <span class="tag">&lt;batch:step</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">chunkJob.step01</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+        <span class="tag">&lt;batch:tasklet</span> <span class="attribute-name">transaction-manager</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobTransactionManager</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+            <span class="tag">&lt;batch:chunk</span> <span class="attribute-name">reader</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">reader</span><span class="delimiter">&quot;</span></span>
+                         <span class="attribute-name">processor</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">pocessor</span><span class="delimiter">&quot;</span></span>
+                         <span class="attribute-name">writer</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">writer</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">commit-interval</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">10</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+            <span class="tag">&lt;batch:listeners&gt;</span>
+                <span class="tag">&lt;batch:listener</span> <span class="attribute-name">ref</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">listenerA</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+                <span class="tag">&lt;batch:listener</span> <span class="attribute-name">ref</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">listenerB</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+            <span class="tag">&lt;/batch:listeners&gt;</span>
+        <span class="tag">&lt;/batch:tasklet&gt;</span>
+    <span class="tag">&lt;/batch:step&gt;</span>
+    <span class="tag">&lt;batch:listeners&gt;</span>
+        <span class="tag">&lt;batch:listener</span> <span class="attribute-name">ref</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">listenerC</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+        <span class="tag">&lt;batch:listener</span> <span class="attribute-name">ref</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">listenerD</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+    <span class="tag">&lt;/batch:listeners&gt;</span>
+<span class="tag">&lt;/batch:job&gt;</span></code></pre>
+</div>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/Ch04_Listener_composite.png" alt="Listener execution order">
+</div>
+<div class="title">図 1. リスナーの起動順序</div>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>前処理に該当する処理は、リスナーの登録順に起動される。</p>
+</li>
+<li>
+<p>後処理またはエラー処理に該当する処理は、リスナー登録の逆順に起動される。</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="Ch04_Listener_HowToUse_SelectionCriteria"><a class="anchor" href="#Ch04_Listener_HowToUse_SelectionCriteria"></a>インタフェースとアノテーションの使い分け</h3>
+<div class="paragraph">
+<p>リスナーインタフェースとアノテーションによるリスナーの使い分けを説明する。</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">リスナーインタフェース</dt>
+<dd>
+<p>job、step、chunkにおいて共通する横断的な処理の場合に利用する。</p>
+</dd>
+<dt class="hdlist1">アノテーション</dt>
+<dd>
+<p>ビジネスロジック固有の処理を行いたい場合に利用する。<br>
+原則として、ItemProcessorに対してのみ実装する。</p>
+</dd>
+</dl>
+</div>
+</div>
+<div class="sect2">
+<h3 id="Ch04_Listener_HowToUse_Exception"><a class="anchor" href="#Ch04_Listener_HowToUse_Exception"></a>StepExecutionListenerでの前処理における例外発生</h3>
+<div class="paragraph">
+<p>前処理(<code>beforeStep</code>メソッド)で例外が発生した場合、モデルによりリソースのオープン/クローズの実行有無が変わる。それぞれのモデルにおいて前処理で例外が発生した場合について説明する。</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">チャンクモデル</dt>
+<dd>
+<p>リソースのオープン前に前処理が実行されるため、リソースのオープンは行われない。<br>
+リソースのクローズは、リソースのオープンがされていない場合でも実行されるため、<code>ItemReader</code>/<code>ItemWriter</code>を実装する場合にはこのことに注意する必要がある。</p>
+</dd>
+<dt class="hdlist1">タスクレットモデル</dt>
+<dd>
+<p>タスクレットモデルでは、<code>execute</code>メソッド内で明示的にリソースのオープン/クローズを行う。<br>
+前処理で例外が発生すると、<code>execute</code>メソッドは実行されないため、当然リソースのオープン/クローズも行われない。</p>
+</dd>
+</dl>
+</div>
+</div>
+<div class="sect2">
+<h3 id="Ch04_Listener_HowToUse_JobAbort"><a class="anchor" href="#Ch04_Listener_HowToUse_JobAbort"></a>前処理(StepExecutionListener#beforeStep())でのジョブの打ち切り</h3>
+<div class="paragraph">
+<p>ジョブを実行する条件が整っていない場合、ジョブを実行する前に処理を打ち切りたい場合がある。</p>
+</div>
+<div class="paragraph">
+<p>そのような場合は、前処理(<code>beforeStep</code>メソッド)にて例外をスローすることでジョブ実行前に処理を打ち切ることができる。<br>
+ここでは以下の要件を実装する場合を例に説明する。</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p><code>StepExecutionListener</code>が定義している<code>beforeStep</code>メソッドで入力ファイルと出力ファイルの起動パラメータの妥当性検証を行う。<br></p>
+</li>
+<li>
+<p>起動パラメータのいずれかが未指定の場合、例外をスローする。</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>しかし、Macchinetta Batch 2.xでは起動パラメータの妥当性検証は、<code>JobParametersValidator</code>の使用を推奨している。
+ここでは、あくまでも前処理中断のサンプルとしてわかりやすい妥当性検証を利用しているため、実際に起動パラメータの妥当性検証を行う場合は<a href="Ch04_JobParameter.html#Ch04_JobParameter_HowToUse_ParamsValidation">"パラメータの妥当性検証"</a>を参照。</p>
+</div>
+<div class="paragraph">
+<p>以下に実装例を示す。</p>
+</div>
+<div class="listingblock">
+<div class="title">起動パラメータの妥当性検証を行うStepExecutionListenerの実装例</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="java"><span class="annotation">@Component</span>
+<span class="annotation">@Scope</span>(<span class="string"><span class="delimiter">&quot;</span><span class="content">step</span><span class="delimiter">&quot;</span></span>)
+<span class="directive">public</span> <span class="type">class</span> <span class="class">CheckingJobParameterErrorStepExecutionListener</span> <span class="directive">implements</span> StepExecutionListener {
+
+    <span class="annotation">@Value</span>(<span class="string"><span class="delimiter">&quot;</span><span class="content">#{jobParameters['inputFile']}</span><span class="delimiter">&quot;</span></span>) <span class="comment">// (1)</span>
+    <span class="directive">private</span> <span class="predefined-type">File</span> inputFile;
+
+    <span class="annotation">@Value</span>(<span class="string"><span class="delimiter">&quot;</span><span class="content">#{jobParameters['outputFile']}</span><span class="delimiter">&quot;</span></span>) <span class="comment">// (1)</span>
+    <span class="directive">private</span> <span class="predefined-type">File</span> outputFile;
+
+    <span class="annotation">@Override</span>
+    <span class="directive">public</span> <span class="type">void</span> beforeStep(StepExecution stepExecution) {
+        <span class="keyword">if</span> (inputFile == <span class="predefined-constant">null</span>) {
+            <span class="keyword">throw</span> <span class="keyword">new</span> BeforeStepException(<span class="string"><span class="delimiter">&quot;</span><span class="content">The input file must be not null.</span><span class="delimiter">&quot;</span></span>); <span class="comment">// (2)</span>
+        }
+        <span class="keyword">else</span> <span class="keyword">if</span> (outputFile == <span class="predefined-constant">null</span>) {
+            <span class="keyword">throw</span> <span class="keyword">new</span> BeforeStepException(<span class="string"><span class="delimiter">&quot;</span><span class="content">The output file must be not null.</span><span class="delimiter">&quot;</span></span>); <span class="comment">// (2)</span>
+        }
+    }
+
+    <span class="annotation">@Override</span>
+    <span class="directive">public</span> ExitStatus afterStep(StepExecution stepExecution) {
+        <span class="comment">// omitted.</span>
+    }
+}</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">リスナーの設定例</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"><span class="tag">&lt;bean</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">reader</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jp.co.ntt.fw.macchinetta.batch.functionaltest.ch04.listener.LoggingReader</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">scope</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">step</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">p:resource</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">file:#{jobParameters['inputFile']}</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span> <span class="comment">&lt;!-- (3) --&gt;</span>
+<span class="tag">&lt;bean</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">writer</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jp.co.ntt.fw.macchinetta.batch.functionaltest.ch04.listener.LoggingWriter</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">scope</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">step</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">p:resource</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">file:#{jobParameters['outputFile']}</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span> <span class="comment">&lt;!-- (3) --&gt;</span>
+
+<span class="tag">&lt;batch:job</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">chunkJobWithAbortListener</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">job-repository</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobRepository</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+    <span class="tag">&lt;batch:step</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">chunkJobWithAbortListener.step01</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+        <span class="tag">&lt;batch:tasklet</span> <span class="attribute-name">transaction-manager</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobTransactionManager</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+            <span class="tag">&lt;batch:chunk</span> <span class="attribute-name">reader</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">reader</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">writer</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">writer</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">commit-interval</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">10</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+        <span class="tag">&lt;/batch:tasklet&gt;</span>
+        <span class="tag">&lt;batch:listeners&gt;</span>
+            <span class="tag">&lt;batch:listener</span> <span class="attribute-name">ref</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">checkingJobParameterErrorStepExecutionListener</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span> <span class="comment">&lt;!-- (4) --&gt;</span>
+        <span class="tag">&lt;/batch:listeners&gt;</span>
+    <span class="tag">&lt;/batch:step&gt;</span>
+<span class="tag">&lt;/batch:job&gt;</span></code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 5. 説明</caption>
+<colgroup>
+<col style="width: 10%;">
+<col style="width: 90%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">@Valueアノテーションを使用して参照するパラメータを指定する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(2)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">例外をスローする。<br>
+この例では<code>RuntimeException</code>クラスを継承し、自作した例外クラスを使用している。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(3)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">参照するパラメータを指定する。<br>
+パラメータをセットしているクラスはそれぞれ<code>ItemStreamReader</code>、<code>ItemStreamWriter</code>を実装した独自クラスである。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(4)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">リスナーインタフェース実装を設定する。</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
+<link rel="stylesheet" href="./theme/css/coderay-asciidoctor.css">
+<div class="container">
+
+  <div class="common-bg">
+    <div class="information">
+      Macchinetta Batch Framework (2.x) Development Guideline - version 2.3.1.RELEASE, 2022-3-30
+    </div>
+    <div class="index">
+      <a href="index.html">&gt; INDEX</a>
+    </div>
+  </div>
+
+  <div class="footer-bg">
+    <div class="copyright">
+      &copy; Copyright 2017 NTT Corporation.
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
