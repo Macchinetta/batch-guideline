@@ -414,7 +414,7 @@ image::Ch04_AsyncJobWithWebContainer_DirectoryStructure.png[directory structure]
 
 ここではWebアプリケーションとして、以下{server5_guide}を参考に、RESTful Webサービスを作成する。
 
-{server5_url}/ArchitectureInDetail/WebServiceDetail/REST.html[RESTful Web Serviceで必要となるSpring MVCのコンポーネントを有効化するための設定]
+{server5_url}/ArchitectureInDetail/WebServiceDetail/REST.html#restful-web-servicespring-mvc[RESTful Web Serviceで必要となるSpring MVCのコンポーネントを有効化するための設定]
 
 
 [[Ch04_AsyncJobWithWeb_HowToUse_WebApp_Config]]

@@ -74,12 +74,6 @@ Multi Thread Stepとは::
   ItemReader/ItemProcessor/ItemWriterを自作する場合でもスレッドセーフなど``Multi Thread Step``を使うためには考慮すべき点が多く実装および運用の難易度が高くなる。
   これらの理由により、``Multi Thread Step``は非推奨としている。 +
   代わりに<<Ch08_ParallelAndMultiple_HowToUse_Partitioning>>を利用することを推奨する。
-
-[WARNING]
-=====
-``org.springframework.batch.item.support.SynchronizedItemStreamReader``を利用することで、既存のItemReaderをスレッドセーフにすることは可能である。
-それでも処理順序の課題は残るため、{batch5_shortname}では``Multi Thread Step``は利用しないこと。
-=====
 ====
 
 [WARNING]

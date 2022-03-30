@@ -412,42 +412,45 @@ javaプロセスの終了コードをカスタマイズするのに必要な作�
 
 チャンクモデルにおけるステップの終了コードの変更::
 
-  ステップ終了時の処理としてStepExecutionListenerのafterStepメソッドを実装し、任意のステップの終了コードを返却する。
+  ステップ終了時の処理として、StepExecutionListenerのafterStepメソッドもしくは@AfterStepアノテーションを付与したメソッドを実装し、
+  任意のステップの終了コードを返却する。
 
 [source,java]
-.StepExecutionListener実装例
+.リスナーを含むItemProcessor実装例
 ----
 @Component
-public class StepExitStatusChangeListener implements StepExecutionListener {
+@Scope("step")
+public class CheckAmountItemProcessor implements ItemProcessor<SalesPlanSummary, SalesPlanSummary> {
+
+    // omitted.
 
     @Override
-    public ExitStatus afterStep(StepExecution stepExecution) {
+    public SalesPlanSummary process(SalesPlanSummary item) throws Exception {
+        if (item.getAmount().signum() == -1) {
+            logger.warn("amount is negative. skip item [item: {}]", item);
 
-        ExitStatus exitStatus = stepExecution.getExitStatus();
-        if (conditionalCheck(stepExecution)) {
-            // (1)
-            exitStatus = new ExitStatus("CUSTOM STEP FAILED");
+            if (!stepExecution.getExecutionContext().containsKey(ERROR_ITEMS_KEY)) {
+                stepExecution.getExecutionContext().put(ERROR_ITEMS_KEY, new ArrayList<SalesPlanSummary>());
+            }
+            @SuppressWarnings("unchecked")
+            List<SalesPlanSummary> errorItems = (List<SalesPlanSummary>) stepExecution.getExecutionContext().get(ERROR_ITEMS_KEY);
+            errorItems.add(item);
+
+            return null;
         }
-        return exitStatus;
+        return item;
     }
 
-    private boolean conditionalCheck(StepExecution stepExecution) {
-        // omitted.
+    @AfterStep
+    public ExitStatus afterStep(StepExecution stepExecution) {
+        if (stepExecution.getExecutionContext().containsKey(ERROR_ITEMS_KEY)) {
+            logger.info("Change status 'STEP COMPLETED WITH SKIPS'");
+            // (1)
+            return new ExitStatus("STEP COMPLETED WITH SKIPS");
+        }
+        return stepExecution.getExitStatus();
     }
 }
-----
-
-[source,xml]
-.ジョブ定義
-----
-<batch:step id="exitstatusjob.step">
-    <batch:tasklet transaction-manager="transactionManager">
-        <batch:chunk reader="reader" writer="writer" commit-interval="10" />
-    </batch:tasklet>
-    <batch:listeners>
-        <batch:listener ref="stepExitStatusChangeListener"/>
-    </batch:listeners>
-</batch:step>
 ----
 
 [cols="20,80", options="header"]
@@ -535,8 +538,8 @@ public class JobExitCodeChangeListener extends JobExecutionListenerSupport {
 
 |(1)
 |ジョブの実行結果に応じて、最終的なジョブの終了コードを``JobExecution``に設定する。 +
-ここではステップから返却された終了コードのいずれかに``CUSTOM STEP FAILED``が含まれている場合、
-終了コード``CUSTOM FAILED``としている。
+ここではステップから返却された終了コードのいずれかに``STEP COMPLETED WITH SKIPS``が含まれている場合、
+終了コード``JOB COMPLETED WITH SKIPS``としている。
 
 |===
 
@@ -559,7 +562,7 @@ public class JobExitCodeChangeListener extends JobExecutionListenerSupport {
             <entry key="STOPPED" value="255" />
             <entry key="FAILED" value="255" />
             <entry key="UNKNOWN" value="255" />
-            <entry key="CUSTOM FAILED" value="100" /> <!-- Custom Exit Status -->
+            <entry key="JOB COMPLETED WITH SKIPS" value="100" />
         </util:map>
     </property>
 </bean>

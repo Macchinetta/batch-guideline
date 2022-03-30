@@ -383,7 +383,7 @@ MyBatis-Springが提供するItemReaderとして下記の2つが存在する。
 
 <!-- (2) (3) (4) -->
 <bean id="reader" class="org.mybatis.spring.batch.MyBatisCursorItemReader"
-      p:queryId="jp.co.ntt.fw.macchinetta.batch.functionaltest.app.repository.mst.CustomerRepository.cursor"
+      p:queryId="jp.co.ntt.fw.macchinetta.batch.functionaltest.app.repository.mst.CustomerRepository.findAll"
       p:sqlSessionFactory-ref="jobSqlSessionFactory"/>
 
 <batch:job id="outputAllCustomerList01" job-repository="jobRepository">
@@ -408,7 +408,7 @@ MyBatis-Springが提供するItemReaderとして下記の2つが存在する。
     <!-- omitted -->
 
     <!-- (7) -->
-    <select id="cursor" resultType="jp.co.ntt.fw.macchinetta.batch.functionaltest.app.model.mst.Customer">
+    <select id="findAll" resultType="jp.co.ntt.fw.macchinetta.batch.functionaltest.app.model.mst.Customer">
         <![CDATA[
         SELECT
             customer_id AS customerId,
@@ -434,7 +434,7 @@ MyBatis-Springが提供するItemReaderとして下記の2つが存在する。
 ----
 public interface CustomerRepository {
     // (8)
-    Cursor<Customer> cursor();
+    Cursor<Customer> findAll();
 
     // omitted.
 }
@@ -559,7 +559,7 @@ public class RetrieveBranchFromContextItemProcessor implements ItemProcessor<Cus
 ----
 public interface SalesPlanDetailRepository {
     // (7)
-    List<SalesPlanSummary> summarizeDetails();
+    Cursor<SalesPlanSummary> summarizeDetails();
 
     // omitted.
 }
@@ -893,7 +893,7 @@ ResultHandlerについては、{server5_guide}の
     <!-- omitted -->
 
     <!-- (3) -->
-    <select id="cursor" resultType="jp.co.ntt.fw.macchinetta.batch.functionaltest.app.model.plan.SalesPlanDetail">
+    <select id="findAll" resultType="jp.co.ntt.fw.macchinetta.batch.functionaltest.app.model.plan.SalesPlanDetail">
         <![CDATA[
         SELECT
             branch_id AS branchId, year, month, customer_id AS customerId, amount
@@ -912,7 +912,7 @@ ResultHandlerについては、{server5_guide}の
 ----
 public interface SalesRepository {
     // (4)
-    Cursor<SalesPlanDetail> cursor();
+    Cursor<SalesPlanDetail> findAll();
 }
 ----
 
@@ -932,7 +932,7 @@ public class SalesPlanCursorTasklet implements Tasklet {
     public RepeatStatus execute(StepContribution contribution,
             ChunkContext chunkContext) throws Exception {
 
-        try (Cursor<SalesPlanDetail> cursor = repository.cursor()) {  // (6)
+        try (Cursor<SalesPlanDetail> cursor = repository.findAll()) {  // (6)
             for (SalesPlanDetail salesPlan : cursor) { // (7)
                 // omitted.
             }
@@ -988,7 +988,12 @@ Cursorで読み取り中のテーブルを他の処理で更新をかけると�
 [[Ch05_DBAccess_HowToUse_Output]]
 === 出力
 
-データベースアクセスの出力について以下のとおり説明する。
+データベースへの出力は、``MyBatisBatchItemWriter``もしくはMapperインタフェースを利用することで実現できる。 +
+``MyBatisBatchItemWriter``とMapperインタフェースによる出力を併用した場合、``MyBatisBatchItemWriter``でエラーが発生する。
+よって、Mapperインタフェースを用いた出力はチャンクモデルでの利用に適さないため、利用方法を記載していない。 +
+詳細は<<Ch05_DBAccess_HowToUse_Output_MapperInterface_Overview,Mapperインタフェース(出力)の機能概要>>で後述するため、そちらを参照されたい。
+
+上記の内容について以下のとおり説明する。
 
 . <<Ch05_DBAccess_HowToUse_Output_MyBatisItemWriter>>
 .. <<Ch05_DBAccess_HowToUse_Output_MyBatisItemWriter_Overview,機能概要>>
@@ -996,7 +1001,6 @@ Cursorで読み取り中のテーブルを他の処理で更新をかけると�
 .. <<Ch05_DBAccess_HowToUse_Output_MyBatisItemWriter_Tasklet,タスクレットモデルにおける利用方法>>
 . <<Ch05_DBAccess_HowToUse_Output_MapperInterface>>
 .. <<Ch05_DBAccess_HowToUse_Output_MapperInterface_Overview,機能概要>>
-.. <<Ch05_DBAccess_HowToUse_Output_MapperInterface_Chunk,チャンクモデルにおける利用方法>>
 .. <<Ch05_DBAccess_HowToUse_Output_MapperInterface_Tasklet,タスクレットモデルにおける利用方法>>
 
 [[Ch05_DBAccess_HowToUse_Output_MyBatisItemWriter]]
@@ -1018,37 +1022,35 @@ MyBatis-Springが提供するItemWriterは以下の1つのみである。
 ``MyBatisBatchItemWriter``では、<<Ch05_DBAccess_HowToUse_Config_MyBatisConfig>>で説明した
 ``batchModeSqlSessionTemplate``を指定する必要がある。
 
-``MyBatisBatchItemWriter``を利用してデータベースを更新するための実装例を以下に示す。
+``MyBatisBatchItemWriter``を利用してデータベースに登録する実装例を以下に示す。
 
 [[Ch05_DBAccess_HowToUse_Output_MyBatisItemWriter_Chunk]]
 チャンクモデルにおける利用方法::
 
-チャンクモデルで``MyBatisBatchItemWriter``を利用してデータベースを更新(登録)する実装例を以下に示す。 +
-ここでは、``MyBatisBatchItemWriter``の実装例と、実装した``MyBatisBatchItemWriter``を利用する``ItemProcessor``の実装例を説明する。
-``ItemProcessor``実装では取得したデータを``MyBatisBatchItemWriter``を利用してデータベースの更新を行っている。
+チャンクモデルで``MyBatisBatchItemWriter``を利用してデータベースに登録する実装例を以下に示す。
 
 [source,xml]
 .Bean定義
 ----
 <!-- (1) -->
-<mybatis:scan
-    base-package="jp.co.ntt.fw.macchinetta.batch.functionaltest.ch05.exclusivecontrol.repository"
-    factory-ref="jobSqlSessionFactory"/>
+<mybatis:scan base-package="jp.co.ntt.fw.macchinetta.batch.functionaltest.app.repository.performance"
+                  factory-ref="jobSqlSessionFactory"/>
+
+<!-- omitted -->
 
 <!-- (2) (3) (4) -->
-<bean id="writer"
-      class="org.mybatis.spring.batch.MyBatisBatchItemWriter" scope="step"
-      p:statementId="jp.co.ntt.fw.macchinetta.batch.functionaltest.ch05.exclusivecontrol.repository.ExclusiveControlRepository.branchExclusiveUpdate"
-      p:sqlSessionTemplate-ref="batchModeSqlSessionTemplate"
-      p:assertUpdates="#{new Boolean(jobParameters['assertUpdates'])}"/>
+<bean id="writer" class="org.mybatis.spring.batch.MyBatisBatchItemWriter"
+      p:statementId="jp.co.ntt.fw.macchinetta.batch.functionaltest.app.repository.performance.SalesPerformanceSummaryRepository.create"
+      p:sqlSessionTemplate-ref="batchModeSqlSessionTemplate"/>
 
-<batch:job id="chunkOptimisticLockCheckJob" job-repository="jobRepository">
-    <batch:step id="chunkOptimisticLockCheckJob.step01">
+<batch:job id="DBAccessByMaybatisScan" job-repository="jobRepository">
+    <batch:step id="DBAccessByMaybatisScan.step01">
         <batch:tasklet transaction-manager="jobTransactionManager">
-            <batch:chunk reader="reader" processor="branchEditItemProcessor"
+            <batch:chunk reader="reader"
                          writer="writer" commit-interval="10"/> <!-- (5) -->
         </batch:tasklet>
     </batch:step>
+    <!-- omitted -->
 </batch:job>
 ----
 
@@ -1056,24 +1058,18 @@ MyBatis-Springが提供するItemWriterは以下の1つのみである。
 .Mapper XML
 ----
 <!-- (6) -->
-<mapper namespace="jp.co.ntt.fw.macchinetta.batch.functionaltest.ch05.exclusivecontrol.repository.ExclusiveControlRepository">
+<mapper namespace="jp.co.ntt.fw.macchinetta.batch.functionaltest.app.repository.performance.SalesPerformanceSummaryRepository">
 
     <!-- (7) -->
-    <update id="branchExclusiveUpdate" parameterType="jp.co.ntt.fw.macchinetta.batch.functionaltest.ch05.exclusivecontrol.model.ExclusiveBranch">
+    <insert id="create" parameterType="jp.co.ntt.fw.macchinetta.batch.functionaltest.app.model.performance.SalesPerformanceSummary">
         <![CDATA[
-        UPDATE
-            branch_mst
-        SET
-            branch_name = #{branchName,jdbcType=VARCHAR},
-            branch_address = #{branchAddress,jdbcType=VARCHAR},
-            branch_tel = #{branchTel,jdbcType=VARCHAR},
-            update_date = #{updateDate,jdbcType=TIMESTAMP}
-        WHERE
-            branch_id = #{branchId}
-        AND
-            branch_name = #{oldBranchName}
+        INSERT INTO
+            sales_performance_summary(branch_id, year, month, amount)
+        VALUES (
+            #{branchId}, #{year}, #{month}, #{amount}
+        )
         ]]>
-    </update>
+    </insert>
 
     <!-- omitted -->
 </mapper>
@@ -1082,37 +1078,12 @@ MyBatis-Springが提供するItemWriterは以下の1つのみである。
 [source,java]
 .Mapperインタフェース
 ----
-public interface ExclusiveControlRepository {
+public interface SalesPerformanceSummaryRepository {
 
     // (8)
-    int branchExclusiveUpdate(ExclusiveBranch branch);
+    void create(SalesPerformanceSummary salesPerformanceSummary);
 
     // omitted.
-}
-----
-
-[source,java]
-.ItemProcessor実装
-----
-@Component
-@Scope("step")
-public class BranchEditItemProcessor implements ItemProcessor<Branch, ExclusiveBranch> {
-    // omitted.
-
-    @Override
-    public ExclusiveBranch process(Branch item) throws Exception { // (9)
-        ExclusiveBranch branch = new ExclusiveBranch();
-        branch.setBranchId(item.getBranchId());
-        branch.setBranchName(item.getBranchName() + " - " + identifier);
-        branch.setBranchAddress(item.getBranchAddress() + " - " + identifier);
-        branch.setBranchTel(item.getBranchTel());
-        branch.setCreateDate(item.getUpdateDate());
-        branch.setUpdateDate(new Timestamp(clock.millis()));
-        branch.setOldBranchName(item.getBranchName());
-
-        // (10)
-        return branch;
-    }
 }
 ----
 
@@ -1147,18 +1118,12 @@ public class BranchEditItemProcessor implements ItemProcessor<Branch, ExclusiveB
 |(8)
 |(7)で定義したSQLのIDに対応するメソッドをインタフェースに定義する。
 
-|(9)
-|返り値の型は、このクラスで実装しているItemProcessorインタフェースの型引数で指定した 出力オブジェクトの型である``ExclusiveBranch``とする。
-
-|(10)
-|更新データを設定したDTOオブジェクトを返すことでデータベースへ出力する。
-
 |===
 
 [[Ch05_DBAccess_HowToUse_Output_MyBatisItemWriter_Tasklet]]
 タスクレットモデルにおける利用方法::
 
-タスクレットモデルで``MyBatisBatchItemWriter``を利用してデータベースを更新(登録)する実装例を以下に示す。 +
+タスクレットモデルで``MyBatisBatchItemWriter``を利用してデータベースに登録する実装例を以下に示す。 +
 ここでは、``MyBatisBatchItemWriter``の実装例と実装した``MyBatisBatchItemWriter``を利用する``Tasklet``の実装例を説明する。
 タスクレットモデルでチャンクモデルのコンポーネントを利用する際の留意点については<<Ch03_CreateTaskletJob#Ch03_CreateTaskletJob_HowToUse_InOutImpl,チャンクモデルのコンポーネントを利用するTasklet実装>>を参照。
 
@@ -1457,7 +1422,7 @@ public class CacheSetListener extends StepExecutionListenerSupport {
     @Override
     public void beforeStep(StepExecution stepExecution) {
         // (3)
-        for(Customer customer : customerRepository.findAll()) {
+        for(Customer customer : customerRepository.findAllAtOnce()) {
             cache.addCustomer(customer.getCustomerId(), customer);
         }
     }
@@ -1795,91 +1760,4 @@ public class SalesDTO implements Serializable {
 
 また、CompositeItemWriterは、ItemWriter実装であれば連結できるので、
 MyBatisBatchItemWriterとFlatFileItemWriterを設定することで、データベース出力とファイル出力を同時に行うこともできる。
-====
-
-[[Ch05_DBAccess_HowToExtend_SearchCondition]]
-=== 検索条件の指定方法
-データベースアクセスの際に検索条件を指定して検索を行いたい場合は、
-Bean定義にてMap形式でジョブパラメータから値を取得し、キーを設定することで検索条件を指定することができる。
-以下にジョブパラメータを指定したジョブ起動コマンドの例と実装例を示す。
-
-[source,sh]
-.ジョブパラメータを指定した場合のジョブ起動コマンド
-----
-$ java -cp ${CLASSPATH} org.springframework.batch.core.launch.support.CommandLineJobRunner /META-INF/job/job001 job001 year=2017 month=12
-----
-
-[source,xml]
-.MapperXMLの実装例
-----
-<!-- (1) -->
-<select id="findByYearAndMonth"
-    resultType="jp.co.ntt.fw.macchinetta.batch.functionaltest.app.model.performance.SalesPerformanceSummary">
-    <![CDATA[
-    SELECT
-        branch_id AS branchId, year, month, amount
-    FROM
-        sales_performance_summary
-    WHERE
-        year = #{year} AND month = #{month}
-    ORDER BY
-        branch_id ASC
-    ]]>
-</select>
-
-<!-- omitted -->
-
-----
-
-[source,xml]
-.Bean定義
-----
-
-<!-- omitted -->
-
-<!-- (2) -->
-<bean id="reader"
-      class="org.mybatis.spring.batch.MyBatisCursorItemReader" scope="step"
-      p:queryId="jp.co.ntt.fw.macchinetta.batch.functionaltest.ch08.parallelandmultiple.repository.SalesSummaryRepository.findByYearAndMonth"
-      p:sqlSessionFactory-ref="jobSqlSessionFactory">
-    <property name="parameterValues"> <!-- (3) -->
-        <map>
-            <!-- (4) -->
-            <entry key="year" value="#{jobParameters['year']}" value-type="java.lang.Integer"/>
-            <entry key="month" value="#{jobParameters['month']}" value-type="java.lang.Integer"/>
-
-            <!-- omitted -->
-        </map>
-    </property>
-</bean>
-
-<!-- omitted -->
-
-----
-
-[cols="10,90",options="header"]
-.説明
-|===
-|項番
-|説明
-
-|(1)
-|検索条件を指定して取得するSQLを定義する。
-
-|(2)
-|データベースからデータを取得するための``ItemReader``を定義する。
-
-|(3)
-|``<property>``要素の``name``属性に``parameterValues``を設定する。
-
-|(4)
-|検索条件にする値をジョブパラメータから取得し、キーに設定することで検索条件を指定する。
-SQLの引数が数値型で定義されているため、``value-type``で``Integer``に変換して渡している。
-
-|===
-
-[NOTE]
-.StepExectionContextによる検索指定方法について
-====
-@BeforeStepなどジョブの前処理で検索条件を指定する場合は、``StepExecutionContext``に設定することで、``JobParameters``同様に取得することができる。
 ====

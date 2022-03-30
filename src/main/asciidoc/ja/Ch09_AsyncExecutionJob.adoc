@@ -287,7 +287,7 @@ VALUES ('jobPointAddChunk', '', 'INIT', current_timestamp);
 .ファイルアクセスするジョブの実行要求用SQL
 ----
 INSERT INTO batch_job_request(job_name,job_parameter,polling_status,create_date)
-VALUES ('jobPointAddChunk', 'inputFile=files/input/input-member-info-data.csv,outputFile=files/output/output-member_info_out.csv', 'INIT', current_timestamp);
+VALUES ('jobPointAddChunk', 'inputFile=files/input/input-member-info-data.csv,outputFile=files/output/output-member-info-data.csv', 'INIT', current_timestamp);
 ----
 
 SQL記述後のイメージを以下に記す。 +

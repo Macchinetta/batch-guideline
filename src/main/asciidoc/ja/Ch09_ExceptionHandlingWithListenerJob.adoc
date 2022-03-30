@@ -434,7 +434,7 @@ tutorial.insert-data.script=file:sqls/insert-member-info-error-data.sql
 で作成した実行構成を使ってジョブを実行する。
 
 異常系データを利用するために、実行構成で設定する引数のうち、
-入力ファイル(inputFile)のパスを正常系データ(insert-member-info-data.csv)から異常系データ(insert-member-info-error-data.csv)に変更する。
+入力ファイル(inputFile)のパスを正常系データ(input-member-info-data.csv)から異常系データ(input-member-info-error-data.csv)に変更する。
 
 [[Ch09_Impl_ExceptionHandlingWithListenerJob_Chunk_Execution_Console]]
 ==== コンソールログの確認
@@ -745,7 +745,7 @@ tutorial.insert-data.script=file:sqls/insert-member-info-error-data.sql
 で作成した実行構成を使ってジョブを実行する。
 
 異常系データを利用するために、実行構成で設定する引数のうち、
-入力ファイル(inputFile)のパスを正常系データ(insert-member-info-data.csv)から異常系データ(insert-member-info-error-data.csv)に変更する。
+入力ファイル(inputFile)のパスを正常系データ(input-member-info-data.csv)から異常系データ(input-member-info-error-data.csv)に変更する。
 
 [[Ch09_Impl_ExceptionHandlingWithListenerJob_Tasklet_Execution_Console]]
 ==== コンソールログの確認

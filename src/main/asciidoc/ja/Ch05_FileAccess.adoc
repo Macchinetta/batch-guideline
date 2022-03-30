@@ -375,11 +375,11 @@ public class SalesPlanDetail {
 
 |(2)
 |encoding
-|入力ファイルの文字コードを設定する。 +
-icon:warning[] {SB}が提供するコンポーネントの文字コードのデフォルト値はItemReaderとItemWriterで異なっている(ItemWriterのデフォルト値は「UTF-8」)。 +
-そのため、デフォルト値の値を使用する場合においても明示的に文字コードを設定することを推奨する。
+|入力ファイルのエンコーディングを設定する。 +
+icon:warning[] {SB}が提供するコンポーネントのエンコーディングのデフォルト値はItemReaderとItemWriterで異なっている(ItemWriterのデフォルト値は「UTF-8」)。 +
+そのため、デフォルト値をそのまま使用する意図である場合でも明示的にエンコーディングを設定することを推奨する。
 |
-|JavaVMのデフォルト文字セット
+|JavaVMのデフォルトエンコーディング
 
 |(3)
 |strict
@@ -547,9 +547,9 @@ public class Customer {
 
 |(2)
 |encoding
-|出力ファイルの文字コードを設定する。 +
-icon:warning[] {SB}が提供するコンポーネントの文字コードのデフォルト値はItemReaderとItemWriterで異なっている(ItemReaderのデフォルト値は「JavaVMのデフォルト文字セット」)。 +
-そのため、デフォルト値の値を使用する場合においても明示的に文字コードを設定することを推奨する。
+|出力ファイルのエンコーディングを設定する。 +
+icon:warning[] {SB}が提供するコンポーネントのエンコーディングのデフォルト値はItemReaderとItemWriterで異なっている(ItemReaderのデフォルト値は「JavaVMのデフォルトエンコーディング」)。 +
+そのため、デフォルト値をそのまま使用する意図である場合でも明示的にエンコーディングを設定することを推奨する。
 |
 |UTF-8
 
@@ -883,11 +883,11 @@ public class SalesPlanDetail {
 
 |(2)
 |encoding
-|入力ファイルの文字コードを設定する。 +
-icon:warning[] {SB}が提供するコンポーネントの文字コードのデフォルト値はItemReaderとItemWriterで異なっている(ItemWriterのデフォルト値は「UTF-8」)。 +
-そのため、デフォルト値の値を使用する場合においても明示的に文字コードを設定することを推奨する。
+|入力ファイルのエンコーディングを設定する。 +
+icon:warning[] {SB}が提供するコンポーネントのエンコーディングのデフォルト値はItemReaderとItemWriterで異なっている(ItemWriterのデフォルト値は「UTF-8」)。 +
+そのため、デフォルト値をそのまま使用する意図である場合でも明示的にエンコーディングを設定することを推奨する。
 |
-|JavaVMのデフォルト文字セット
+|JavaVMのデフォルトエンコーディング
 
 |(3)
 |strict
@@ -940,7 +940,7 @@ icon:warning[] {SB}が提供するコンポーネントの文字コードのデ�
 |(9)
 |charset +
 (コンストラクタ引数)
-|(2)で指定した文字コードと同じ値を設定する。
+|(2)で指定したエンコーディングと同じ値を設定する。
 |icon:check[]
 |なし
 
@@ -1012,7 +1012,7 @@ FieldSetMapperを独自に実装する場合については、<<Ch05_FileAccess_
 固定長ファイルを扱う場合は、{batch5_shortname}が提供するコンポーネントを使うことを前提にしている。
 
 FixedByteLengthBufferedReaderFactory::
-改行なし固定長ファイルから、指定した文字コードのバイト数で1レコードを読み込む``BufferedReader``生成クラス
+改行なし固定長ファイルから、指定したエンコーディングのバイト数で1レコードを読み込む``BufferedReader``生成クラス
 FixedByteLengthLineTokenizer::
 マルチバイト文字列に対応したバイト数区切りの``FixedLengthTokenizer``拡張クラス
 ====
@@ -1151,9 +1151,9 @@ public class SalesPlanDetail {
 
 |(2)
 |encoding
-|出力ファイルの文字コードを設定する。 +
-icon:warning[] {SB}が提供するコンポーネントの文字コードのデフォルト値はItemReaderとItemWriterで異なっている(ItemReaderのデフォルト値は「JavaVMのデフォルト文字セット」)。 +
-そのため、デフォルト値の値を使用する場合においても明示的に文字コードを設定することを推奨する。
+|出力ファイルのエンコーディングを設定する。 +
+icon:warning[] {SB}が提供するコンポーネントのエンコーディングのデフォルト値はItemReaderとItemWriterで異なっている(ItemReaderのデフォルト値は「JavaVMのデフォルトエンコーディング」)。 +
+そのため、デフォルト値をそのまま使用する意図である場合でも明示的にエンコーディングを設定することを推奨する。
 |
 |UTF-8
 
@@ -1453,11 +1453,11 @@ Summary3:6,000,000,000
 
 |(2)
 |encoding
-|入力ファイルの文字コードを設定する。 +
-icon:warning[] {SB}が提供するコンポーネントの文字コードのデフォルト値はItemReaderとItemWriterで異なっている(ItemWriterのデフォルト値は「UTF-8」)。 +
-そのため、デフォルト値の値を使用する場合においても明示的に文字コードを設定することを推奨する。
+|入力ファイルのエンコーディングを設定する。 +
+icon:warning[] {SB}が提供するコンポーネントのエンコーディングのデフォルト値はItemReaderとItemWriterで異なっている(ItemWriterのデフォルト値は「UTF-8」)。 +
+そのため、デフォルト値をそのまま使用する意図である場合でも明示的にエンコーディングを設定することを推奨する。
 |
-|JavaVMのデフォルト文字セット
+|JavaVMのデフォルトエンコーディング
 
 |(3)
 |strict
@@ -1523,9 +1523,9 @@ Summary3:6,000,000,000
 
 |(2)
 |encoding
-|出力ファイルの文字コードを設定する。 +
-icon:warning[] {SB}が提供するコンポーネントの文字コードのデフォルト値はItemReaderとItemWriterで異なっている(ItemReaderのデフォルト値は「JavaVMのデフォルト文字セット」)。 +
-そのため、デフォルト値の値を使用する場合においても明示的に文字コードを設定することを推奨する。
+|出力ファイルのエンコーディングを設定する。 +
+icon:warning[] {SB}が提供するコンポーネントのエンコーディングのデフォルト値はItemReaderとItemWriterで異なっている(ItemReaderのデフォルト値は「JavaVMのデフォルトエンコーディング」)。 +
+そのため、デフォルト値をそのまま使用する意図である場合でも明示的にエンコーディングを設定することを推奨する。
 |
 |UTF-8
 
@@ -2576,7 +2576,6 @@ sales_plan_detail_03.csv
       p:resourceSuffixCreator-ref="customerListResourceSuffixCreator"
       p:delegate-ref="writer"
       p:itemCountLimitPerResource="4"/>
-</bean>
 
 <!-- (5) -->
 <bean id="writer"
@@ -2615,7 +2614,7 @@ sales_plan_detail_03.csv
 
 |(3)
 |delegate
-|実際にファイルを読み込み処理する``ItemWriter``を設定する。
+|実際にファイルを書き込み処理する``ItemWriter``を設定する。
 |icon:check[]
 |なし
 
@@ -2626,7 +2625,7 @@ sales_plan_detail_03.csv
 |``Integer.MAX_VALUE``
 
 |(5)
-|実際にファイルを読み込み処理する``ItemWriter``
+|実際にファイルを書き込み処理する``ItemWriter``
 |``resource``プロパティは、``MultiResourceItemWriter``から自動的に設定されるため、Bean定義に設定は不要である。
 |icon:check[]
 |
@@ -3193,9 +3192,17 @@ XMLファイルの入力には{SB}が提供する``org.springframework.batch.ite
 [IMPORTANT]
 .依存ライブラリの追加
 ====
+JavaクラスとXML間のマッピングに``@XmlRootElement``などを使用するため、pom.xmlに下記の依存関係を追加する。
+[source, xml]
+----
+<dependency>
+    <groupId>jakarta.xml.bind</groupId>
+    <artifactId>jakarta.xml.bind-api</artifactId>
+</dependency>
+----
+
 ``org.springframework.oxm.jaxb.Jaxb2Marshaller``など、
-Spring Frameworkが提供するライブラリであるSpring Object/XML Marshallingを使用する場合は、
-ライブラリの依存関係に以下の設定を追加する必要がある。
+Spring Frameworkが提供するライブラリであるSpring Object/XML Marshallingを使用する場合は、pom.xmlに下記の依存関係を追加する。
 
 [source, xml]
 ----
@@ -3206,18 +3213,20 @@ Spring Frameworkが提供するライブラリであるSpring Object/XML Marshal
 ----
 
 Java SE 11でJAXBを利用する場合、jaxb-core及びjaxb-implが必要となる。
-アプリケーションの依存ライブラリやバッチから提供されるライブラリにjaxb-core及びjaxb-implがない場合は、下記のようにpom.xmlに依存関係を追加すること。
+アプリケーションの依存ライブラリやバッチから提供されるライブラリにjaxb-core及びjaxb-implがない場合は、pom.xmlに下記の依存関係を追加する。
 [source, xml]
 ----
 <dependency>
     <groupId>com.sun.xml.bind</groupId>
     <artifactId>jaxb-core</artifactId>
     <version>${jaxb-core.version}</version> <!-- (1) -->
+    <scope>runtime</scope> <!-- (2) -->
 </dependency>
 <dependency>
     <groupId>com.sun.xml.bind</groupId>
     <artifactId>jaxb-impl</artifactId>
-    <version>${jaxb-impl.version}</version> <!-- (2) -->
+    <version>${jaxb-impl.version}</version> <!-- (3) -->
+    <scope>runtime</scope> <!-- (4) -->
 </dependency>
 ----
 
@@ -3231,8 +3240,13 @@ Java SE 11でJAXBを利用する場合、jaxb-core及びjaxb-implが必要とな
 |<<Ch02_MacchinettaBatchStack#Ch02_MacchinettaBatchStack_Stack_OSS,「表 1. OSSバージョン一覧」>>のjaxb-coreのバージョンを指定する。
 
 |(2)
+|jaxb-coreはアプリケーションの実行時にのみ利用されるため、スコープはruntimeとする。
+
+|(3)
 |<<Ch02_MacchinettaBatchStack#Ch02_MacchinettaBatchStack_Stack_OSS,「表 1. OSSバージョン一覧」>>のjaxb-implのバージョンを指定する。
 
+|(4)
+|jaxb-implはアプリケーションの実行時にのみ利用されるため、スコープはruntimeとする。
 |===
 
 ====
@@ -3577,9 +3591,17 @@ XMLファイルの出力には{SB}が提供する``org.springframework.batch.ite
 [IMPORTANT]
 .依存ライブラリの追加
 ====
+JavaクラスとXML間のマッピングに``@XmlRootElement``などを使用するため、pom.xmlに下記の依存関係を追加する。
+[source, xml]
+----
+<dependency>
+    <groupId>jakarta.xml.bind</groupId>
+    <artifactId>jakarta.xml.bind-api</artifactId>
+</dependency>
+----
+
 ``org.springframework.oxm.jaxb.Jaxb2Marshaller``など、
-Spring Frameworkが提供するライブラリであるSpring Object/XML Marshallingを使用する場合は、
-ライブラリの依存関係に以下の設定を追加する必要がある。
+Spring Frameworkが提供するライブラリであるSpring Object/XML Marshallingを使用する場合は、pom.xmlに下記の依存関係を追加する。
 
 [source, xml]
 ----
@@ -3590,19 +3612,20 @@ Spring Frameworkが提供するライブラリであるSpring Object/XML Marshal
 ----
 
 Java SE 11でJAXBを利用する場合、jaxb-core及びjaxb-implが必要となる。
-アプリケーションの依存ライブラリやバッチから提供されるライブラリにjaxb-core及びjaxb-implがない場合は、下記のようにpom.xmlに依存関係を追加すること。
-
+アプリケーションの依存ライブラリやバッチから提供されるライブラリにjaxb-core及びjaxb-implがない場合は、pom.xmlに下記の依存関係を追加する。
 [source, xml]
 ----
 <dependency>
     <groupId>com.sun.xml.bind</groupId>
     <artifactId>jaxb-core</artifactId>
     <version>${jaxb-core.version}</version> <!-- (1) -->
+    <scope>runtime</scope> <!-- (2) -->
 </dependency>
 <dependency>
     <groupId>com.sun.xml.bind</groupId>
     <artifactId>jaxb-impl</artifactId>
-    <version>${jaxb-impl.version}</version> <!-- (2) -->
+    <version>${jaxb-impl.version}</version> <!-- (3) -->
+    <scope>runtime</scope> <!-- (4) -->
 </dependency>
 ----
 
@@ -3616,8 +3639,13 @@ Java SE 11でJAXBを利用する場合、jaxb-core及びjaxb-implが必要とな
 |<<Ch02_MacchinettaBatchStack#Ch02_MacchinettaBatchStack_Stack_OSS,「表 1. OSSバージョン一覧」>>のjaxb-coreのバージョンを指定する。
 
 |(2)
+|jaxb-coreはアプリケーションの実行時にのみ利用されるため、スコープはruntimeとする。
+
+|(3)
 |<<Ch02_MacchinettaBatchStack#Ch02_MacchinettaBatchStack_Stack_OSS,「表 1. OSSバージョン一覧」>>のjaxb-implのバージョンを指定する。
 
+|(4)
+|jaxb-implはアプリケーションの実行時にのみ利用されるため、スコープはruntimeとする。
 |===
 
 ====

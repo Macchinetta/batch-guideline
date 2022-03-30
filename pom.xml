@@ -4,43 +4,19 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>jp.co.ntt.fw.macchinetta.batch</groupId>
     <artifactId>macchinetta-batch-guideline</artifactId>
-    <version>2.3.0.RELEASE</version>
+    <version>2.3.1.RELEASE</version>
     <name>Macchinetta Batch Framework (2.x) Development Guideline</name>
     <description>Macchinetta Batch Framework (2.x) Development Guideline.</description>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.author>NTT Corporation.</project.author>
-        <project.date.ja>2021-3-26</project.date.ja>
+        <project.date.ja>2022-3-30</project.date.ja>
         <asciidoctor.maven.plugin.version>2.0.0-RC.1</asciidoctor.maven.plugin.version>
         <asciidoctorj.pdf.version>1.5.0-beta.8</asciidoctorj.pdf.version>
         <asciidoctorj.version>2.2.0</asciidoctorj.version>
         <jruby.version>9.2.9.0</jruby.version>
-        <rubygems.prawn.version>2.2.2</rubygems.prawn.version>
     </properties>
-
-    <repositories>
-        <repository>
-            <id>rubygems-proxy-releases</id>
-            <name>RubyGems.org Proxy (Releases)</name>
-            <url>http://rubygems-proxy.torquebox.org/releases</url>
-            <releases>
-                <enabled>true</enabled>
-            </releases>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-        </repository>
-    </repositories>
-    <dependencies>
-        <dependency>
-            <groupId>rubygems</groupId>
-            <artifactId>prawn</artifactId>
-            <version>${rubygems.prawn.version}</version>
-            <type>gem</type>
-            <scope>provided</scope>
-        </dependency>
-    </dependencies>
 
     <profiles>
         <profile>
@@ -82,23 +58,6 @@
     <build>
         <defaultGoal>process-resources</defaultGoal>
         <plugins>
-            <plugin>
-                <groupId>de.saumya.mojo</groupId>
-                <artifactId>gem-maven-plugin</artifactId>
-                <version>1.0.10</version>
-                <configuration>
-                    <jrubyVersion>${jruby.version}</jrubyVersion>
-                    <gemHome>${project.build.directory}/gems</gemHome>
-                    <gemPath>${project.build.directory}/gems</gemPath>
-                </configuration>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>initialize</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
             <plugin>
                 <groupId>org.asciidoctor</groupId>
                 <artifactId>asciidoctor-maven-plugin</artifactId>
@@ -157,7 +116,6 @@
                                 <author-index>${project.author}</author-index>
                                 <revdate-index>${project.date}</revdate-index>
                                 <revnumber-index>${project.revnumber}</revnumber-index>
-                                <commit-id>commit-id:9b11e9d</commit-id>
                             </attributes>
                         </configuration>
                     </execution>
@@ -193,7 +151,6 @@
                                 <author-index>${project.author}</author-index>
                                 <revdate-index>${project.date}</revdate-index>
                                 <revnumber-index>${project.revnumber}</revnumber-index>
-                                <commit-id>commit-id:9b11e9d</commit-id>
                             </attributes>
                         </configuration>
                     </execution>
@@ -203,7 +160,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-resources-plugin</artifactId>
-                <version>2.6</version>
+                <version>3.2.0</version>
                 <executions>
                     <execution>
                         <id>copy-asciidoc-resources-images</id>

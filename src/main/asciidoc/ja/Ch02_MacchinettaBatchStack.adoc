@@ -26,7 +26,7 @@ image::Ch02_MacchinettaBatchStack_Stack.png[{batch5_fullname} Stack]
 ====
 {batch5_fullname}で使用するOSSのバージョンは、原則として、Spring Boot Dependenciesの定義に準じている。
 なお、バージョン{batch5_version}におけるSpring Boot Dependenciesのバージョンは、
-https://docs.spring.io/spring-boot/docs/2.4.1/reference/htmlsingle/[2.4.1]である。
+https://docs.spring.io/spring-boot/docs/2.6.1/reference/htmlsingle/[2.6.1]である。
 ====
 
 [cols="25,25,25,15,5,5", options="header"]
@@ -112,7 +112,7 @@ https://docs.spring.io/spring-boot/docs/2.4.1/reference/htmlsingle/[2.4.1]であ
 |Spring Retry
 |org.springframework.retry
 |spring-retry
-|1.3.0
+|1.3.1
 ^|*
 |
 
@@ -126,7 +126,7 @@ https://docs.spring.io/spring-boot/docs/2.4.1/reference/htmlsingle/[2.4.1]であ
 |MyBatis3
 |org.mybatis
 |mybatis
-|3.5.6
+|3.5.7
 |
 |
 
@@ -140,28 +140,28 @@ https://docs.spring.io/spring-boot/docs/2.4.1/reference/htmlsingle/[2.4.1]であ
 |DI
 |jakarta.inject
 |jakarta.inject-api
-|1.0.3
+|1.0.5
 ^|
 |
 
 |ログ出力
 |ch.qos.logback
 |logback-classic
-|1.2.3
+|1.2.7
 ^|*
 |
 
 |ログ出力
 |org.slf4j
 |jcl-over-slf4j
-|1.7.30
+|1.7.32
 ^|*
 |
 
 |ログ出力
 |org.slf4j
 |slf4j-api
-|1.7.30
+|1.7.32
 ^|*
 |
 
@@ -175,22 +175,22 @@ https://docs.spring.io/spring-boot/docs/2.4.1/reference/htmlsingle/[2.4.1]であ
 |入力チェック
 |org.hibernate.validator
 |hibernate-validator
-|6.1.6.Final
+|6.2.0.Final
 ^|*
 |
 
 |コネクションプール
 |org.apache.commons
 |commons-dbcp2
-|2.8.0
+|2.9.0
 ^|*
 |
 
 |EL式
 |org.glassfish
 |jakarta.el
-|3.0.3
-^|
+|3.0.4
+^|*
 |
 
 |インメモリデータベース
@@ -203,14 +203,14 @@ https://docs.spring.io/spring-boot/docs/2.4.1/reference/htmlsingle/[2.4.1]であ
 |JDBCドライバ
 |org.postgresql
 |postgresql
-|42.2.18
+|42.3.1
 ^|*
 |
 
 |JSON
 |com.fasterxml.jackson.core
 |jackson-databind
-|2.11.3
+|2.13.0
 ^|
 ^|*1
 
@@ -238,14 +238,14 @@ https://docs.spring.io/spring-boot/docs/2.4.1/reference/htmlsingle/[2.4.1]であ
 |XML
 |com.sun.xml.bind
 |jaxb-impl
-|2.3.2
+|2.3.5
 ^|
 |
 
 |TERASOLUNA Batch
 |org.terasoluna.batch
 |terasoluna-batch
-|5.4.0.RELEASE
+|5.4.1.RELEASE
 |
 |
 
@@ -304,8 +304,21 @@ O/R Mapper::
 ロギング::
   ロガーはAPIにSLF4J、実装にLogbackを利用する。
 
-  ** http://www.slf4j.org/[SLF4J]
-  ** http://logback.qos.ch/[Logback]
+  ** https://www.slf4j.org/[SLF4J]
+  ** https://logback.qos.ch/[Logback]
+
+[NOTE]
+.Logback 1.2.7について
+====
+Logback1.2.7には、攻撃者が設定ファイルを変更できる場合、JNDIを用いる機能を利用してリモートコード実行が可能な脆弱性(https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2021-42550[CVE-2021-42550])が存在している。
+ただし、この脆弱性を利用できる状況は攻撃者が設定ファイルを変更できる状態であり、その状況自体がアプリケーション起因や環境起因の重大な脆弱性となる。 +
+ +
+このような重大な脆弱性がアプリケーションや環境にない限り、本脆弱性の影響を受けることはない。 +
+(このような環境にある場合、本脆弱性を利用せずとも、RCEが可能である) +
+ +
+この脆弱性に対応するために、Logback1.2.8ではJNDIに関する機能をすべて削除し、以降のバージョンで脆弱性に対応した機能を復活させているが、削除された機能がすべて復活しているわけではない。 +
+バージョンを上げることによりアプリケーションが動かなくなる可能性を考慮し、Logbackのバージョンを1.2.7のままにしているため、必要に応じてLogbackのバージョンアップを検討されたい。
+====
 
 バリデーション::
   単項目チェック:::

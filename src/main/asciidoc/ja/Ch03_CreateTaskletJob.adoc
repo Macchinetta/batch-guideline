@@ -459,7 +459,6 @@ public class SalesPerformanceTasklet implements Tasklet {
 
 <context:component-scan
     base-package="jp.co.ntt.fw.macchinetta.batch.functionaltest.app.common,
-        jp.co.ntt.fw.macchinetta.batch.functionaltest.app.performance,
         jp.co.ntt.fw.macchinetta.batch.functionaltest.ch06.exceptionhandling"/>
 <mybatis:scan
     base-package="jp.co.ntt.fw.macchinetta.batch.functionaltest.app.repository.performance"

@@ -497,8 +497,7 @@ MyBatisによるデータベースアクセスするための設定として、�
 ItemReader・ItemWriter以外でデータベースアクセスする方法として、Mapperインタフェースを利用する方法がある。
 Mapperインタフェースを利用するにあたっては、{batch5_shortname}として制約を設けているため、
 <<Ch05_DBAccess.adoc#Ch05_DBAccess_HowToUse_Input_MapperInterface,Mapperインタフェース(入力)>>、<<Ch05_DBAccess.adoc#Ch05_DBAccess_HowToUse_Output_MapperInterface,Mapperインタフェース(出力)>>を参照してほしい。
-ItemProcessorの実装例は、<<Ch05_DBAccess.adoc#Ch05_DBAccess_HowToUse_Input_MapperInterface_Chunk,チャンクモデルにおける利用方法>>(入力)、
-<<Ch05_DBAccess.adoc#Ch05_DBAccess_HowToUse_Output_MapperInterface_Chunk,チャンクモデルにおける利用方法>>(出力)を参照。
+ItemProcessorの実装例は、<<Ch05_DBAccess.adoc#Ch05_DBAccess_HowToUse_Input_MapperInterface_Chunk,チャンクモデルにおける利用方法>>(入力)を参照。
 ====
 
 [[Ch09_Impl_DBAccessJob_Chunk_Logic]]

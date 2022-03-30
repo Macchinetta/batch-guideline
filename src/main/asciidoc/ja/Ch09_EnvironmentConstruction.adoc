@@ -389,7 +389,7 @@ launch-context.xmlを開き、``<beans>``要素内に``<jdbc:initialize-database
 <<Ch09_FileAccessJob.adoc#Ch09_Impl_FileAccessJob,ファイルアクセスでデータ入出力を行うジョブ>>で使用する入力データの準備を行う。 +
 なお、ファイルアクセスでデータ入出力を行うジョブを作成しない場合は実施する必要はない。
 
-入力データの準備は入出力ファイルを格納ディレクトリの作成及び入力ファイルの作成を行う。
+入力データの準備として、入出力ファイルを格納するディレクトリの作成と入力ファイルの作成を行う。
 
 プロジェクトルートディレクトリに入出力ファイル格納用として以下の2ディレクトリを作成する。
 
@@ -500,16 +500,20 @@ image::ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_DBeaver_Install
 
 [start=6]
 . インストール完了後、STSを再起動する。
-. STSのメニューバーに[SQLエディタ]と[データベース]があることを確認する。
-
-.STS Menu Bar
-image::ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_DBeaver_Install_Menubar.png[STS Menu Bar]
 
 [[Ch09_EnvironmentConstruction_DBeaver_Connection_Config]]
 === DBeaverのデータベース接続設定
 
 ここでは、DBeaverでデータベースに接続するための設定を説明する。
 
+. STSのメニューバーから、[Window] -> [Perspective] -> [Open Perspective] -> [Other...]を選択する。
+. [DBeaver]を選択し、[Open]を押下する。
+. STSのメニューバーに[SQLエディタ]と[データベース]があることを確認する。
+
+.STS Menu Bar
+image::ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_DBeaver_Perspective_Menubar.png[STS Menu Bar]
+
+[start=4]
 . STSのメニューバーから、[データベース] -> [新しい接続]を選択して[新しい接続を作成する]ウィンドウを開く。
 . フォームに``H2``を入力し、サイドメニューから[All]を選択する。
 . [H2 Embedded]を選択し、[Next >]を押下する。
@@ -517,7 +521,7 @@ image::ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_DBeaver_Install
 .Select Connection Type
 image::ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_DBeaver_Select_Connection_Type.png[Select Connection Type]
 
-[start=4]
+[start=7]
 . [ドライバの設定を編集]を押下し、[ドライバーの編集H2 Embedded']ウインドウを開く。
 . [URLテンプレート]フォームに``jdbc:h2:~/batch-admin;AUTO_SERVER=TRUE``を入力する。
 . [空のパスワードを許可する]にチェックする。
@@ -543,7 +547,7 @@ C:\xxx>mvn clean dependency:copy-dependencies -DoutputDirectory=lib package
 ----
 ====
 
-[start=9]
+[start=12]
 . 下表のとおりフォームに値を入力し、[パスワードをローカルに保存]のチェックをはずす。
 
 [cols="30,70", options="header"]
@@ -562,7 +566,7 @@ C:\xxx>mvn clean dependency:copy-dependencies -DoutputDirectory=lib package
 .Setting Connection
 image::ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_DBeaver_Setting_Connection.png[Setting Connection]
 
-[start=10]
+[start=13]
 . [テスト接続]を押下する。
 . [ユーザ資格情報]の入力を要求するウインドウが出た場合、[ユーザ名]フォームに``sa``を入力し、[OK]を押下する。 +
 **[パスワード]フォームには値を入力しない。**
@@ -576,12 +580,16 @@ H2 Embeddedドライバファイルが見つからず、以下のウインドウ
 image::ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_DBeaver_Download_Driver.png[Download Driver]
 ====
 
-[start=12]
+[start=15]
 . <<Ch09_EnvironmentConstruction_DBeaver_Connection_Config_Connection_Test>>のようなウインドウが表示され、接続できたことを確認し、[Finish]を押下する。
 
 [[Ch09_EnvironmentConstruction_DBeaver_Connection_Config_Connection_Test]]
 .Connection Test
 image::ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_DBeaver_Connection_Test.png[Connection Test]
+
+[start=16]
+. STSのメニューバーから、[Window] -> [Perspective] -> [Open Perspective] -> [Other...]を選択する。
+. [Java (default)]を選択し、[Open]を押下する。
 
 以上でSTSからデータベースを参照する準備が完了した。
 

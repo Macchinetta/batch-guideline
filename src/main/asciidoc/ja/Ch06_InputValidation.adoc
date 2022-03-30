@@ -39,8 +39,10 @@ include::_include_all.adoc[]
 |``ValidatorクラスのAPIをコールする``
 
 |エラーメッセージの設定
-2+^|{server5_guide}の
-{server5_url}/ArchitectureInDetail/WebApplicationDetail/Validation.html#validation-message-def[エラーメッセージの定義]と同様
+2+|{server5_guide}の
+{server5_url}/ArchitectureInDetail/WebApplicationDetail/Validation.html#validation-message-def[エラーメッセージの定義]と概ね同様だが、
+{server5_shortname}ではメッセージキーにフォーム名を含められるのに対し、{batch5_shortname}ではDTO名をメッセージキーに含めることができない。
+この差異はチェックの実行方法の違いによるものである。
 
 |エラーメッセージの出力先
 |画面

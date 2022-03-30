@@ -290,8 +290,8 @@ CREATE SEQUENCE batch_job_request_seq MAXVALUE 9223372036854775807 NO CYCLE;
 ジョブ要求取得SQLは使用するデータベース製品およびバージョンによって異なる記述になる。
 そのため、{terasoluna_batch5_shortname}が提供しているSQLでは対応できない場合がある。 +
 その場合は<<Ch04_AsyncJobWithDB_HowToExtend_CustomTable>>を参考に、
-``BatchJobRequestMapper.xml``のSQLMapを再定義する必要がある。 +
-提供しているSQLについては、{terasoluna_batch5_shortname}のjarに同梱されている``BatchJobRequestMapper.xml``を参照。
+``BatchJobRequestRepository.xml``のSQLMapを再定義する必要がある。 +
+提供しているSQLについては、{terasoluna_batch5_shortname}のjarに同梱されている``BatchJobRequestRepository.xml``を参照。
 
 [[Ch04_AsyncJobWithDB_Arch_JobLaunching]]
 === ジョブの起動について
@@ -636,7 +636,7 @@ INSERT文のSQLを発行することでジョブ要求テーブルに登録を�
 .PostgreSQLの場合
 ----
 INSERT INTO batch_job_request(job_name,job_parameter,polling_status,create_date)
-VALUES ('JOB01', 'param1=dummy,param2=100', 'INIT', current_timestamp);
+VALUES ('job01', 'param1=dummy,param2=100', 'INIT', current_timestamp);
 ----
 
 [[Ch04_AsyncJobWithDB_HowToUse_Daemon_Stop]]

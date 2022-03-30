@@ -28,17 +28,17 @@ include::_include_all.adoc[]
 |製品名
 
 |OS
-|Microsoft Windows 10 Enterprise 2016 LTSB (64bit)
+|Microsoft Windows 10 Enterprise (64bit)
 
 |JDK
-|RedHat OpenJDK 8u272 Windows 64-bit/ +
-RedHat OpenJDK 11.0.9 Windows 64-bit
+|RedHat OpenJDK 8u312 Windows 64-bit/ +
+RedHat OpenJDK 11.0.13 Windows 64-bit
 
 |IDE
-|Spring Tool Suite 3.9.15 released
+|Spring Tool Suite 4.11.0 released
 
 |Build Tool
-|Apache Maven 3.3.9
+|Apache Maven 3.8.3
 
 |RDBMS
 |H2 Database 1.4.200

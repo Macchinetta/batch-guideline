@@ -407,9 +407,9 @@ public class FileExclusiveTasklet implements Tasklet {
 {batch5_shortname}におけるデータベースの排他制御について説明する。
 
 データベースの排他制御実装は、{server5_guide}にある
-{server5_url}/ArchitectureInDetail/DataAccessDetail/ExclusionControl.html#mybatis3[MyBatis3使用時の実装方法]が基本である。
+{server5_url}/ArchitectureInDetail/DataAccessDetail/ExclusionControl.html#exclusioncontrolhowtousemybatis3[MyBatis3使用時の実装方法]が基本である。
 本ガイドラインでは、
-{server5_url}/ArchitectureInDetail/DataAccessDetail/ExclusionControl.html#mybatis3[MyBatis3使用時の実装方法]ができている前提で説明を行う。
+{server5_url}/ArchitectureInDetail/DataAccessDetail/ExclusionControl.html#exclusioncontrolhowtousemybatis3[MyBatis3使用時の実装方法]ができている前提で説明を行う。
 
 <<Ch05_ExclusiveControl_Overview_Component>>にあるとおり、処理モデル・コンポーネントの組み合わせによるバリエーションがある。
 
@@ -439,7 +439,7 @@ public class FileExclusiveTasklet implements Tasklet {
 |===
 
 タスクレットモデルでMapperインタフェースを使用する場合は、
-{server5_url}/ArchitectureInDetail/DataAccessDetail/ExclusionControl.html#mybatis3[MyBatis3使用時の実装方法]のとおりであるため、説明を割愛する。
+{server5_url}/ArchitectureInDetail/DataAccessDetail/ExclusionControl.html#exclusioncontrolhowtousemybatis3[MyBatis3使用時の実装方法]のとおりであるため、説明を割愛する。
 
 タスクレットモデルでItemReader/ItemWriterを使用する場合は、Mapperインタフェースでの呼び出し部分がItemReader/ItemWriterに代わるだけなので、これも説明を割愛する。
 

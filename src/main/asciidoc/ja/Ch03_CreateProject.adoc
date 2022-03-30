@@ -621,45 +621,34 @@ $ mvn clean dependency:copy-dependencies -DoutputDirectory=lib package
 .環境ごとに設定ファイルを切替えるpom.xmlの記述例
 [source,xml]
 ----
-<build>
-    <resources>
-        <resource>
-            <directory>src/main/resources</directory>
-        </resource>
-        <resource>
-            <directory>${project.root.basedir}/${project.config.resource.directory.rdbms}</directory>
-        </resource>
-    </resources>
-</build>
+<dependencies>
+    <!-- omitted -->
+    <dependency>
+        <groupId>${jdbc.driver.groupId}</groupId>
+        <artifactId>${jdbc.driver.artifactId}</artifactId>
+        <scope>runtime</scope>
+    </dependency>
+</dependencies>
+
+<!-- omitted -->
 
 <profiles>
+    <!-- omitted -->
     <profile>
-        <id>postgresql9-local</id>
-        <activation>
-            <activeByDefault>true</activeByDefault>
-        </activation>
-        <dependencies>
-            <dependency>
-                <groupId>org.postgresql</groupId>
-                <artifactId>postgresql</artifactId>
-                <scope>runtime</scope>
-            </dependency>
-        </dependencies>
+        <id>postgresql12-local</id>
         <properties>
-            <project.config.resource.directory.rdbms>config/rdbms/postgresql9/local</project.config.resource.directory.rdbms>
+            <jdbc.driver.groupId>org.postgresql</jdbc.driver.groupId>
+            <jdbc.driver.artifactId>postgresql</jdbc.driver.artifactId>
+            <!-- omitted -->
         </properties>
     </profile>
+    <!-- omitted -->
     <profile>
-        <id>postgresql9-it</id>
-        <dependencies>
-            <dependency>
-                <groupId>org.postgresql</groupId>
-                <artifactId>postgresql</artifactId>
-                <scope>runtime</scope>
-            </dependency>
-        </dependencies>
+        <id>oracle19c-local</id>
         <properties>
-            <project.config.resource.directory.rdbms>config/rdbms/postgresql9/it</project.config.resource.directory.rdbms>
+            <jdbc.driver.groupId>com.oracle.database.jdbc</jdbc.driver.groupId>
+            <jdbc.driver.artifactId>ojdbc8</jdbc.driver.artifactId>
+            <!-- omitted -->
         </properties>
     </profile>
 </profiles>
