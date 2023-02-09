@@ -417,9 +417,9 @@ image::ch09/Validation/Ch09_ValidationJob_Confirm_ExitCode_ChunkModel.png[Confi�
 
 [[Ch09_Impl_ValidationJob_Chunk_Execution_Output_Table]]
 ===== 会員情報テーブルの確認
-DBeaverを使用して会員情報テーブルの確認を行う。 +
+H2 Consoleを使用して会員情報テーブルの確認を行う。 +
 更新前後の会員情報テーブルの内容を比較し、確認内容のとおりとなっていることを確認する。 +
-確認手順は<<Ch09_EnvironmentConstruction.adoc#Ch09_EnvironmentConstruction_OperationCheck_RefDB,DBeaverを使用してデータベースを参照する>>を参照。
+確認手順は<<Ch09_EnvironmentConstruction.adoc#Ch09_EnvironmentConstruction_OperationCheck_RefDB,H2 Consoleを使用してデータベースを参照する>>を参照。
 
 確認内容::
 * 1から10番目のレコード(会員番号が"00000001"から"00000010"のレコード)について
@@ -661,9 +661,9 @@ image::ch09/Validation/Ch09_ValidationJob_Confirm_ExitCode_TaskletModel.png[Conf
 
 [[Ch09_Impl_ValidationJob_Tasklet_Execution_Output_Table]]
 ===== 会員情報テーブルの確認
-DBeaverを使用して会員情報テーブルの確認を行う。 +
+H2 Consoleを使用して会員情報テーブルの確認を行う。 +
 更新前後の会員情報テーブルの内容を比較し、確認内容のとおりとなっていることを確認する。 +
-確認手順は<<Ch09_EnvironmentConstruction.adoc#Ch09_EnvironmentConstruction_OperationCheck_RefDB,DBeaverを使用してデータベースを参照する>>を参照。
+確認手順は<<Ch09_EnvironmentConstruction.adoc#Ch09_EnvironmentConstruction_OperationCheck_RefDB,H2 Consoleを使用してデータベースを参照する>>を参照。
 
 確認内容::
 * すべてのレコードについて、データが更新されていないこと

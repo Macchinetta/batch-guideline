@@ -662,7 +662,7 @@ image::ch09/ExceptionHandlingWithTryCatch/Ch09_ExceptionHandlingWithTryCatchJob_
 [[Ch09_Impl_ExceptionHandlingWithTryCatchJob_Chunk_Execution_Output_Table]]
 ===== 会員情報テーブルの確認
 更新前後の会員情報テーブルの内容を比較し、確認内容のとおりとなっていることを確認する。 +
-確認手順は<<Ch09_EnvironmentConstruction.adoc#Ch09_EnvironmentConstruction_OperationCheck_RefDB,DBeaverを使用してデータベースを参照する>>を参照。
+確認手順は<<Ch09_EnvironmentConstruction.adoc#Ch09_EnvironmentConstruction_OperationCheck_RefDB,H2 Consoleを使用してデータベースを参照する>>を参照。
 
 確認内容::
 * エラーレコード(会員番号が"000000013")を除くすべてのレコードについて
@@ -1093,7 +1093,7 @@ image::ch09/ExceptionHandlingWithTryCatch/Ch09_ExceptionHandlingWithTryCatchJob_
 [[Ch09_Impl_ExceptionHandlingWithTryCatchJob_Tasklet_Execution_Output_Table]]
 ===== 会員情報テーブルの確認
 更新前後の会員情報テーブルの内容を比較し、確認内容のとおりとなっていることを確認する。 +
-確認手順は<<Ch09_EnvironmentConstruction.adoc#Ch09_EnvironmentConstruction_OperationCheck_RefDB,DBeaverを使用してデータベースを参照する>>を参照。
+確認手順は<<Ch09_EnvironmentConstruction.adoc#Ch09_EnvironmentConstruction_OperationCheck_RefDB,H2 Consoleを使用してデータベースを参照する>>を参照。
 
 確認内容::
 * エラーレコード(会員番号が"000000013")を除くすべてのレコードについて

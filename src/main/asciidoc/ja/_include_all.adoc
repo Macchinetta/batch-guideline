@@ -25,5 +25,5 @@
 :terasoluna_batch5_fullname: TERASOLUNA Batch Framework for Java (5.x)
 :terasoluna_batch5_shortname: TERASOLUNA Batch 5.x
 
-:spring_fw_version: 5.3.13
+:spring_fw_version: 5.3.24
 :spring_batch_version: 4.3.4

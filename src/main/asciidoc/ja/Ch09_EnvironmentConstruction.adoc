@@ -460,95 +460,49 @@ launch-context.xmlを開き、``<beans>``要素内に``<jdbc:initialize-database
 00000015,G,1,999901
 ----
 
-[[Ch09_EnvironmentConstruction_DBeaver]]
-== STSからデータベースを参照する準備
+[[Ch09_EnvironmentConstruction_H2Console]]
+== データベースを参照する準備
 
-チュートリアルでは、STS上でデータベースの参照やSQL実行を行うためにlink:https://dbeaver.com/eclipse/[DBeaver]を使用する。  +
-DBeaverでデータベースへ接続するまでの手順は以下のとおり。
+チュートリアルでは、データベースの参照やSQL実行を行うためにlink:https://www.h2database.com/html/quickstart.html#h2_console[H2 Console]を使用する。  +
+H2 Consoleでデータベースへ接続するまでの手順は以下のとおり。
 
-. <<Ch09_EnvironmentConstruction_DBeaver_Install>>
-. <<Ch09_EnvironmentConstruction_DBeaver_Connection_Config>>
+. <<Ch09_EnvironmentConstruction_H2Console_Install>>
+. <<Ch09_EnvironmentConstruction_H2Console_Connection_Config>>
 
 チュートリアルで参照するデータベースの対象は以下のとおり。
 
 * JobRepositoryに永続化されているバッチアプリケーション実行結果や状態を管理するためのデータ
 * <<Ch09_DBAccessJob.adoc#Ch09_Impl_DBAccessJob,データベースアクセスでデータ入出力を行うジョブ>>が使用するデータ
 
-[[Ch09_EnvironmentConstruction_DBeaver_Install]]
-=== DBeaverのインストール
+[[Ch09_EnvironmentConstruction_H2Console_Install]]
+=== H2のインストール
 
-ここでは、DBeaverのインストールを説明する。
+ここでは、H2のインストールを説明する。
 
-. STSのメニューバーから、[Help] -> [Install New Software...] を選択して[Install]ウィンドウを開く。
-. [Work with]フォームに``https://dbeaver.io/update/latest/``を入力し、[Enter]キーを押下する。
-. [DBeaver]と[DBeaver IDE]にチェックし、[Next >]を押下する。
+. `` https://www.h2database.com/html/main.html``を開く。
+. Windows Installerを押下し、インストーラを適当な場所に保存する。
 
-.Available Software
-image::ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_DBeaver_Install_AvailableSoftware.png[Available Software]
+.H2 Database Engine
+image::ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_H2Console_Install_Engine.png[H2 Database Engine]
 
-[start=4]
-. インストール対象に[DBeaver IDE]があることを確認し、[Next >]を押下する。
+[start=3]
+. インストーラを実行し、画面に従ってインストールする。
 
-.Install Details
-image::ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_DBeaver_Install_InstallDetails.png[Install Details]
+.Installer
+image::ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_H2Console_Install_Installer.png[Installer]
 
-[start=5]
-. [Licenses text]を確認して、[I accept the terms of the license agreement]にチェックし、[Finish]を押下する。 +
+[[Ch09_EnvironmentConstruction_H2Console_Connection_Config]]
+=== H2 Consoleのデータベース接続設定
 
-.Review Licenses
-image::ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_DBeaver_Install_ReviewLicenses.png[Review Licenses]
+ここでは、H2 Consoleでデータベースに接続するための設定を説明する。
 
-[start=6]
-. インストール完了後、STSを再起動する。
+. スタートメニューに作成された[H2]から、H2 Consoleを実行する。
 
-[[Ch09_EnvironmentConstruction_DBeaver_Connection_Config]]
-=== DBeaverのデータベース接続設定
+.Start
+image::ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_H2Console_Start.png[Start]
 
-ここでは、DBeaverでデータベースに接続するための設定を説明する。
-
-. STSのメニューバーから、[Window] -> [Perspective] -> [Open Perspective] -> [Other...]を選択する。
-. [DBeaver]を選択し、[Open]を押下する。
-. STSのメニューバーに[SQLエディタ]と[データベース]があることを確認する。
-
-.STS Menu Bar
-image::ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_DBeaver_Perspective_Menubar.png[STS Menu Bar]
-
-[start=4]
-. STSのメニューバーから、[データベース] -> [新しい接続]を選択して[新しい接続を作成する]ウィンドウを開く。
-. フォームに``H2``を入力し、サイドメニューから[All]を選択する。
-. [H2 Embedded]を選択し、[Next >]を押下する。
-
-.Select Connection Type
-image::ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_DBeaver_Select_Connection_Type.png[Select Connection Type]
-
-[start=7]
-. [ドライバの設定を編集]を押下し、[ドライバーの編集H2 Embedded']ウインドウを開く。
-. [URLテンプレート]フォームに``jdbc:h2:~/batch-admin;AUTO_SERVER=TRUE``を入力する。
-. [空のパスワードを許可する]にチェックする。
-. [ライブラリ]タブを開き、[ファイルの追加]から``C:\xxx\macchinetta-batch-tutorial\lib\h2-1.4.200.jar``を選択し、[開く]を押下する。
-. [クラスを見つける]を押下し、[ドライバクラス]で[org.h2.Driver]を選択する。
-
-.Edit Driver
-image::ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_DBeaver_Edit_Driver.png[Edit Driver]
-
-.Edit Library
-image::ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_DBeaver_Edit_Lib.png[Edit Library]
-
-[NOTE]
-.H2 Databaseのjarが格納されている場所
-====
-H2 Databaseのjarは、プロジェクトのルートディレクトリの``lib``ディレクトリ配下に格納されている。 +
-これは、<<Ch09_EnvironmentConstruction_BlankProject_ExecSample,サンプルジョブの実行(正しく作成できたことの確認)>>の下記のコマンドの実行によって依存ライブラリが``lib``ディレクトリ配下にコピーされたからである。
-``lib``ディレクトリは以下にH2 Databaseのjarが格納されていない場合は下記のコマンドを実行すること。
-
-[source, console]
-----
-C:\xxx>mvn clean dependency:copy-dependencies -DoutputDirectory=lib package
-----
-====
-
-[start=12]
-. 下表のとおりフォームに値を入力し、[パスワードをローカルに保存]のチェックをはずす。
+[start=2]
+. 下表のとおりフォームを入力する。
 
 [cols="30,70", options="header"]
 .H2 Embedded接続設定
@@ -556,40 +510,22 @@ C:\xxx>mvn clean dependency:copy-dependencies -DoutputDirectory=lib package
 |フォーム
 |値
 
-|データベース/スキーマ
-|macchinetta-batch-tutorial
+|JDBC URL
+|jdbc:h2:~/batch-admin;AUTO_SERVER=TRUE
 
-|ユーザ名
+|user
 |sa
 |===
 
-.Setting Connection
-image::ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_DBeaver_Setting_Connection.png[Setting Connection]
+.Login
+image::ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_H2Console_Login.png[Login]
 
-[start=13]
-. [テスト接続]を押下する。
-. [ユーザ資格情報]の入力を要求するウインドウが出た場合、[ユーザ名]フォームに``sa``を入力し、[OK]を押下する。 +
-**[パスワード]フォームには値を入力しない。**
+[start=3]
+. [Test Connection]を押下する。
+. 入力フォーム下部にTest successfulが表示され、接続できたことを確認し、[Connect]を押下する。
 
-[CAUTION]
-.ドライバファイルをダウンロードする
-====
-H2 Embeddedドライバファイルが見つからず、以下のウインドウが表示された場合、[ダウンロード]を押下する。
-
-.Download Driver
-image::ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_DBeaver_Download_Driver.png[Download Driver]
-====
-
-[start=15]
-. <<Ch09_EnvironmentConstruction_DBeaver_Connection_Config_Connection_Test>>のようなウインドウが表示され、接続できたことを確認し、[Finish]を押下する。
-
-[[Ch09_EnvironmentConstruction_DBeaver_Connection_Config_Connection_Test]]
 .Connection Test
-image::ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_DBeaver_Connection_Test.png[Connection Test]
-
-[start=16]
-. STSのメニューバーから、[Window] -> [Perspective] -> [Open Perspective] -> [Other...]を選択する。
-. [Java (default)]を選択し、[Open]を押下する。
+image::ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_H2Console_Test.png[Connection Test]
 
 以上でSTSからデータベースを参照する準備が完了した。
 
@@ -726,24 +662,23 @@ STSのメニューから、[project] -> [clean]を選択する。
 ====
 
 [[Ch09_EnvironmentConstruction_OperationCheck_RefDB]]
-=== DBeaverを使用してデータベースを参照する
+=== H2 Consoleを使用してデータベースを参照する
 
-ここでは、DBeaverを使用してデータベースを参照する方法について説明する。
+ここでは、H2 Consoleを使用してデータベースを参照する方法について説明する。
 
-. STSのメニューから、[Window] -> [Show View] -> [Other...]を選択し、[データベース]配下の[Database Browser]を選択した状態で[OK]を押下する。
-
-.Show View
-image::ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_OperationCheck_RefDB_ShowView.png[Show View]
-
-[start=2]
-. [Database Browser]にて[H2 Server -macchinetta-batch-tutorial] -> [PUBLIC] -> [テーブル]を開き、テーブル一覧を確認する。 +
+. <<Ch09_EnvironmentConstruction_H2Console_Connection_Config,データベースに接続する。>>
+. テーブル一覧を確認する。 +
 {SB}メタデータテーブル(詳細は<<Ch02_SpringBatchArchitecture.adoc#Ch02_SpringBatchArch_Arch_MetadataSchema,JobRepositoryのメタデータスキーマ>>を参照)及び、<<Ch09_EnvironmentConstruction_InputDataPreparation_DB,データベースアクセスでデータ入出力を行うジョブの入力データの準備>>を実施した場合には``MEMBER_INFO``テーブルが作成されていることが確認できる。
 
 .Show Tables
 image::ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_OperationCheck_RefDB_Tables.png[Show Tables]
 
 [start=3]
-. 参照したいテーブルをダブルクリックし、開いたViewの[データ]タブを選択することでテーブルに格納されているレコードを参照する。 +
+. 参照したいテーブルをクリックし、[Run]を押下する。
+
+.Sql
+image::ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_OperationCheck_RefDB_Sql.png[Sql]
+
 以下は``BATCH_JOB_EXECUTION``テーブルを参照した例である。
 
 .Show BATCH_JOB_EXECUTION

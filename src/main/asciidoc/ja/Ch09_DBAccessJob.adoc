@@ -729,7 +729,7 @@ image::ch09/DBAccess/Ch09_DBAccessJob_Confirm_ExitCode_ChunkModel.png[Confiｒm 
 [[Ch09_Impl_DBAccessJob_Chunk_Execution_Table]]
 ==== 会員情報テーブルの確認
 更新前後の会員情報テーブルの内容を比較し、確認内容のとおりとなっていることを確認する。 +
-確認手順は<<Ch09_EnvironmentConstruction.adoc#Ch09_EnvironmentConstruction_OperationCheck_RefDB,DBeaverを使用してデータベースを参照する>>を参照。
+確認手順は<<Ch09_EnvironmentConstruction.adoc#Ch09_EnvironmentConstruction_OperationCheck_RefDB,H2 Consoleを使用してデータベースを参照する>>を参照。
 
 確認内容::
 * statusカラム
@@ -1350,7 +1350,7 @@ image::ch09/DBAccess/Ch09_DBAccessJob_Confirm_ExitCode_TaskletModel.png[Confiｒ
 [[Ch09_Impl_DBAccessJob_Tasklet_Execution_Table]]
 ==== 会員情報テーブルの確認
 更新前後の会員情報テーブルの内容を比較し、確認内容のとおりとなっていることを確認する。 +
-確認手順は<<Ch09_EnvironmentConstruction.adoc#Ch09_EnvironmentConstruction_OperationCheck_RefDB,DBeaverを使用してデータベースを参照する>>を参照。
+確認手順は<<Ch09_EnvironmentConstruction.adoc#Ch09_EnvironmentConstruction_OperationCheck_RefDB,H2 Consoleを使用してデータベースを参照する>>を参照。
 
 確認内容::
 * statusカラム

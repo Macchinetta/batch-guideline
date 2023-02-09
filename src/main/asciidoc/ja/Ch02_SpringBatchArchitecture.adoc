@@ -498,7 +498,7 @@ JobRepositoryは、各Javaオブジェクトに保存された内容を、テー
 提供するDDLは、{terasoluna_batch5_shortname}のjarに同梱されているorg.terasoluna.batchパッケージに含まれている。
 ====
 
-6つの全テーブルと相互関係のERDモデルはを以下に示す。
+6つの全テーブルと相互関係のERDモデルを以下に示す。
 
 .ER図
 image::Ch02_SpringBatchArchitecture_Architecture_ER.png[ER Diagram]

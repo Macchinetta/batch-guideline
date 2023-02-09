@@ -251,20 +251,10 @@ tutorial.insert-data.script=file:sqls/insert-member-info-data.sql
 STS上でSQLを実行する方法を以下に記す。
 
 .SQL実行手順
-. Database Browserを表示する。 +
-Database Browserの表示手順は<<Ch09_EnvironmentConstruction.adoc#Ch09_EnvironmentConstruction_OperationCheck_RefDB,DBeaverを使用してデータベースを参照する>>を参照。
-
-.Data Source Explorer View
-image::ch09/AsyncExecution/Ch09_AsyncExecutionJob_DataSourceExplorer.png[Data Source Explorer View]
+. H2 Consoleを表示する。 +
+H2 Consoleの表示手順は<<Ch09_EnvironmentConstruction.adoc#Ch09_EnvironmentConstruction_OperationCheck_RefDB,H2 Consoleを使用してデータベースを参照する>>を参照。
 
 [start=2]
-. SQLエディタを開く。 +
-[H2 Embedded]を右クリックし、[最近のSQLエディタ]をクリックする。
-
-.SQL Editor
-image::ch09/AsyncExecution/Ch09_AsyncExecutionJob_SQLEditor.png[Open SQL Editor]
-
-[start=3]
 . SQLを記述する。 +
 データベースアクセスするジョブとファイルアクセスするジョブを実行するためのSQLをチャンクモデルの例で以下に示す。
 
@@ -293,15 +283,13 @@ VALUES ('jobPointAddChunk', 'inputFile=files/input/input-member-info-data.csv,ou
 SQL記述後のイメージを以下に記す。 +
 ここでは、データベースアクセスするジョブの実行要求用SQLを記述している。
 
-[start=4]
-. ジョブの実行要求用SQLを入力し、[Ctrl]キー + [S]キーで保存する。
-. [Ctrl]キー + [Enter]キーでSQLを実行する。
-. [Statistics]に更新したRowカウント、実行したクエリ、クエリが完了した時間が出力される。
+[start=3]
+. [Shift]キー + [Enter]キーでSQLを実行する。
 
 .Execute SQL
 image::ch09/AsyncExecution/Ch09_AsyncExecutionJob_ExecuteSQL.png[Execute SQL]
 
-[start=7]
+[start=4]
 . ジョブ要求テーブルを確認する。 +
 下図のとおり、ジョブ要求テーブルにジョブを実行するための情報が登録されていることを確認する。 +
 ``POLLING_STATUS``は``INIT``で登録したが、既にポーリングが行われた場合は、``POLLING_STATUS``が``POLLED``もしくは``EXECUTED``となっている。 +
@@ -347,7 +335,7 @@ Console Viewを開き、以下の内容のログが出力されていること�
 [[Ch09_Impl_AsyncExecutionJob_ExecutionResultCheck_Output_Table]]
 ==== データベースアクセスするジョブの場合
 更新前後の会員情報テーブルの内容を比較し、確認内容のとおりとなっていることを確認する。 +
-確認手順は<<Ch09_EnvironmentConstruction.adoc#Ch09_EnvironmentConstruction_OperationCheck_RefDB,Data Source Explorerを使用してデータベースを参照する>>を参照。
+確認手順は<<Ch09_EnvironmentConstruction.adoc#Ch09_EnvironmentConstruction_OperationCheck_RefDB,H2 Consoleを使用してデータベースを参照する>>を参照。
 
 確認内容::
 * statusカラム
