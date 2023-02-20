@@ -37,7 +37,7 @@ include::_include_all.adoc[]
 ====
 以下を前提とし説明する。
 
-* Java SE Development Kit 8
+* Java SE Development Kit 17
 * Apache Maven 3.x
 ** インターネットに繋がっていること
 ** インターネットにプロキシ経由で繋ぐ場合は、Mavenのプロキシ設定 が行われていること
@@ -45,8 +45,54 @@ include::_include_all.adoc[]
 ** Spring Tool Suite / Eclipse 等
 ====
 
+[IMPORTANT]
+.JavaConfigの採用
+====
+バージョン``{batch5_version}``のブランクプロジェクトでは、ジョブ定義以外のBean定義として JavaConfig または XMLConfig のいずれかを選択することができる。
+
+* JavaConfig：``artifactId``に``macchinetta-batch-archetype``を指定
+* XMLConfig：``artifactId``に``macchinetta-batch**-xmlconfig**-archetype``を指定
+
+ブランクプロジェクトで作成されるBean定義ファイルは下記となる。
+
+[cols="20,40,40", options="header"]
+.ブランクプロジェクトのBean定義ファイル
+|===
+|Bean定義
+|macchinetta-batch-archetype
+|macchinetta-batch-xmlconfig-archetype
+
+|ジョブ定義 *1
+|job01.xml
+|job01.xml
+
+.3+.^|ジョブ定義以外
+|AsyncBatchDaemonConfig.java
+|async-batch-daemon.xml
+
+|JobBaseContextConfig.java
+|job-base-context.xml
+
+|LaunchContextConfig.java
+|launch-context.xml
+|===
+
+. バージョン ``2.4.0.RELEASE`` の経過措置として ``artifactId``に JavaConfigが選択された場合であっても、ジョブ定義はXMLConfigを使用する。
+
+公式からの正式なアナウンスは現状ないものの、Springのドキュメントでコード例の説明がJavaConfigしかないケースが増えているため、
+今後はSpring Framework本体がXMLConfigよりもJavaConfigにより注力すると考えられる。
+====
+
 プロジェクトを作成するディレクトリにて、以下のコマンドを実行する。
 
+// ============ Java/XML Config Tab start. ============ 
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup030101" class="JavaConfigTab" id="tabgroup030101_1" checked><label for="tabgroup030101_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup030101" class="XMLConfigTab" id="tabgroup030101_2"><label for="tabgroup030101_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
 .コマンドプロンプト(Windows)
 [source,console,subs="normal,attributes"]
 ----
@@ -64,6 +110,41 @@ $ mvn archetype:generate \
   -DarchetypeArtifactId=macchinetta-batch-archetype \
   -DarchetypeVersion={batch5_version}
 ----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
+.コマンドプロンプト(Windows)
+[source,console,subs="normal,attributes"]
+----
+C:\xxx>mvn archetype:generate ^
+  -DarchetypeGroupId=com.github.macchinetta.blank ^
+  -DarchetypeArtifactId=macchinetta-batch-xmlconfig-archetype ^
+  -DarchetypeVersion={batch5_version}
+----
+
+.Bash(Unix, Linux, ...)
+[source,console,subs="normal,attributes"]
+----
+$ mvn archetype:generate \
+  -DarchetypeGroupId=com.github.macchinetta.blank \
+  -DarchetypeArtifactId=macchinetta-batch-xmlconfig-archetype \
+  -DarchetypeVersion={batch5_version}
+----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============ 
+
+[NOTE]
+.JavaConfig/XMLConfigの説明の併記
+====
+以降、説明対象が同じであるがBean定義の媒体が異なる場合、JavaConfig/XMLConfigという形式で併記する。また、JavaConfig/XMLConfigで異なる説明が必要な箇所では、上記のようにタブ切り替えを用いる。
+====
 
 その後、利用者の状況に合わせて、以下を対話式に設定する。
 
@@ -288,8 +369,31 @@ $ java -cp 'lib/*:target/*' \
 以下に構成を示し、各要素について説明する。 +
 (わかりやすさのため、前述の``mvn archetype:generate``実行時の出力をもとに説明する。)
 
+// ============ Java/XML Config Tab start. ============ 
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup030102" class="JavaConfigTab" id="tabgroup030102_1" checked><label for="tabgroup030102_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup030102" class="XMLConfigTab" id="tabgroup030102_2"><label for="tabgroup030102_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
 .プロジェクトのディレクトリ構造
 image::Ch03_CreateProject_BlankProjectDir.png[BlankProject Structure]
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
+.プロジェクトのディレクトリ構造
+image::Ch03_CreateProject_BlankProjectDir_XMLConfig.png[BlankProject Structure]
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============ 
+
 
 [cols="10,90", options="header"]
 .ブランクプロジェクトの各要素の説明
@@ -301,56 +405,78 @@ image::Ch03_CreateProject_BlankProjectDir.png[BlankProject Structure]
 |バッチアプリケーション全体の各種クラスを格納するrootパッケージ。
 
 |(2)
+|バッチアプリケーション全体に関わるBean定義ファイルを格納するディレクトリ。 +
+{SB}やMyBatisの初期設定や、同期/非同期といった起動契機に依らずにジョブを起動するための設定を行っている。
+
+|(3)
+|非同期実行(DBポーリング)機能に関連する設定を記述したBean定義ファイル。
+
+|(4)
+|ジョブ固有のBean定義ファイルにてimportすることで、各種設定を削減するためのBean定義ファイル。 +
+これをimportすることで、ジョブは起動契機によるBean定義の差を吸収することが出来る。
+
+|(5)
+|{SB}の挙動や、ジョブ共通の設定に対するBean定義ファイル。
+
+|(6)
 |1ジョブに関する各種クラスを格納するパッケージ。 +
 ここには、DTO、TaskletやProcessorの実装、MyBatis3のMapperインタフェースを格納する。 +
 初期状態を参考にユーザにて自由にカスタムしてよいが、各ジョブで利用する資材をジョブごとにまとめて格納することで、
 ``<context:component-scan>``や``<mybatis:scan>``によるスキャン範囲を最小限にする構成が望ましい。 +
 スキャン範囲の影響や設定方法ついては<<Ch05_DBAccess.adoc#Ch05_DBAccess_HowToUse_Config_Scan,MyBatis-Springの設定>>を参考にすること。
 
-|(3)
+|(7)
 |バッチアプリケーション全体に関わる設定ファイル。 +
 初期状態では、データベースの接続や、非同期実行に関する設定を記述している。
 ユーザにて、自由に追記してよい。
 
-|(4)
+|(8)
 |Logback(ログ出力)の設定ファイル。
 
-|(5)
+|(9)
 |BeanValidationを用いた入力チェックにて、エラーとなった際に表示するメッセージを定義する設定ファイル。 +
 初期状態では、BeanValidationと、その実装であるHibernateValidatorのデフォルトメッセージを定義したうえで、
 すべてコメントアウトしている。 +
 この状態ではデフォルトメッセージを使うため、メッセージをカスタマイズしたい場合にのみ
 アンコメントし任意のメッセージに修正すること。
 
-|(6)
+|(10)
 |MyBatis3のMapperインタフェースの対となるMapper XMLファイル。
 
-|(7)
+|(11)
 |主にログ出力時に用いるメッセージを定義するプロパティファイル。
 
-|(8)
+|(12)
 |ジョブ固有のBean定義ファイルを格納するディレクトリ。 +
 階層構造はジョブ数に応じて自由に構成してよい。
-
-|(9)
-|バッチアプリケーション全体に関わるBean定義ファイルを格納するディレクトリ。 +
-{SB}やMyBatisの初期設定や、同期/非同期といった起動契機に依らずにジョブを起動するための設定を行っている。
-
-|(10)
-|非同期実行(DBポーリング)機能に関連する設定を記述したBean定義ファイル。
-
-|(11)
-|ジョブ固有のBean定義ファイルにてimportすることで、各種設定を削減するためのBean定義ファイル。 +
-これをimportすることで、ジョブは起動契機によるBean定義の差を吸収することが出来る。
-
-|(12)
-|{SB}の挙動や、ジョブ共通の設定に対するBean定義ファイル。
 |===
 
 また、各ファイルの関連図を以下に示す。
 
+// ============ Java/XML Config Tab start. ============ 
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup030103" class="JavaConfigTab" id="tabgroup030103_1" checked><label for="tabgroup030103_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup030103" class="XMLConfigTab" id="tabgroup030103_2"><label for="tabgroup030103_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
 .各ファイルの関連図
 image::Ch03_CreateProject_FilesRelation.png[Files Relation]
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
+.各ファイルの関連図
+image::Ch03_CreateProject_FilesRelation_XMLConfig.png[Files Relation]
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============ 
 
 [[Ch03_CreateProject_Make]]
 == 開発の流れ
@@ -434,6 +560,91 @@ spring-batch.schema.script=classpath:org/springframework/batch/core/schema-h2.sq
 terasoluna-batch.commit.script=classpath:org/terasoluna/batch/async/db/schema-commit.sql
 ----
 
+// ============ Java/XML Config Tab start. ============ 
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup030104" class="JavaConfigTab" id="tabgroup030104_1" checked><label for="tabgroup030104_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup030104" class="XMLConfigTab" id="tabgroup030104_2"><label for="tabgroup030104_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+.com.example.batch.config.LaunchContextConfig.java
+[source,java]
+----
+// (3)
+@Bean
+public DataSourceInitializer dataSourceInitializer(@Qualifier("adminDataSource") DataSource adminDataSource,
+                                                   @Value("${data-source.initialize.enabled:false}") boolean enabled,
+                                                   @Value("${spring-batch.schema.script}") Resource script,
+                                                   @Value("${terasoluna-batch.commit.script}") Resource commitScript) {
+    final DataSourceInitializer dataSourceInitializer = new DataSourceInitializer();
+    dataSourceInitializer.setDataSource(adminDataSource);
+    dataSourceInitializer.setEnabled(enabled);
+    ResourceDatabasePopulator resourceDatabasePopulator = new ResourceDatabasePopulator(script, commitScript);
+    resourceDatabasePopulator.setContinueOnError(true);
+    dataSourceInitializer.setDatabasePopulator(resourceDatabasePopulator);
+    return dataSourceInitializer;
+}
+
+// (4) 
+@Bean(destroyMethod = "close")
+public BasicDataSource adminDataSource(@Value("${admin.jdbc.driver}") String driverClassName,
+                                       @Value("${admin.jdbc.url}") String url,
+                                       @Value("${admin.jdbc.username}") String username,
+                                       @Value("${admin.jdbc.password}") String password) {
+    final BasicDataSource dataSource = new BasicDataSource();
+    dataSource.setDriverClassName(driverClassName);
+    dataSource.setUrl(url);
+    dataSource.setUsername(username);
+    dataSource.setPassword(password);
+    dataSource.setMaxTotal(10);
+    dataSource.setMinIdle(1);
+    dataSource.setMaxWaitMillis(5000);
+    dataSource.setDefaultAutoCommit(false);
+    return dataSource;
+}
+
+// (4)
+@Bean(destroyMethod = "close")
+public BasicDataSource jobDataSource(@Value("${jdbc.driver}") String driverClassName,
+                                     @Value("${jdbc.url}") String url,
+                                     @Value("${jdbc.username}") String username,
+                                     @Value("${jdbc.password}") String password) {
+    final BasicDataSource basicDataSource = new BasicDataSource();
+    basicDataSource.setDriverClassName(driverClassName);
+    basicDataSource.setUrl(url);
+    basicDataSource.setUsername(username);
+    basicDataSource.setPassword(password);
+    basicDataSource.setMaxTotal(10);
+    basicDataSource.setMinIdle(1);
+    basicDataSource.setMaxWaitMillis(5000);
+    basicDataSource.setDefaultAutoCommit(false);
+    return basicDataSource;
+}
+
+// (5)
+@Bean
+public SqlSessionFactory jobSqlSessionFactory(@Qualifier("jobDataSource") DataSource jobDataSource) throws Exception {
+    final SqlSessionFactoryBean sqlSessionFactoryBean = new SqlSessionFactoryBean();
+    sqlSessionFactoryBean.setDataSource(jobDataSource);
+
+    final org.apache.ibatis.session.Configuration configuration = new org.apache.ibatis.session.Configuration();
+    configuration.setLocalCacheScope(LocalCacheScope.STATEMENT);
+    configuration.setLazyLoadingEnabled(true);
+    configuration.setAggressiveLazyLoading(false);
+    configuration.setDefaultFetchSize(1000);
+    configuration.setDefaultExecutorType(ExecutorType.REUSE);
+
+    sqlSessionFactoryBean.setConfiguration(configuration);
+    return sqlSessionFactoryBean.getObject();
+}
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
 .META-INF/spring/launch-context.xml
 [source,xml]
 ----
@@ -482,7 +693,47 @@ terasoluna-batch.commit.script=classpath:org/terasoluna/batch/async/db/schema-co
     </property>
 </bean>
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============ 
 
+// ============ Java/XML Config Tab start. ============ 
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup030105" class="JavaConfigTab" id="tabgroup030105_1" checked><label for="tabgroup030105_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup030105" class="XMLConfigTab" id="tabgroup030105_2"><label for="tabgroup030105_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+.com.example.batch.config.AsyncBatchDaemonConfig.java
+[source,java]
+----
+// (5) 
+@Bean
+public SqlSessionFactory adminSqlSessionFactory(@Qualifier("adminDataSource") DataSource adminDataSource,
+                                                DatabaseIdProvider databaseIdProvider) throws Exception {
+    final SqlSessionFactoryBean sqlSessionFactoryBean = new SqlSessionFactoryBean();
+    sqlSessionFactoryBean.setDataSource(adminDataSource);
+    sqlSessionFactoryBean.setDatabaseIdProvider(databaseIdProvider);
+    final org.apache.ibatis.session.Configuration configuration = new org.apache.ibatis.session.Configuration();
+    configuration.setLocalCacheScope(LocalCacheScope.STATEMENT);
+    configuration.setLazyLoadingEnabled(true);
+    configuration.setAggressiveLazyLoading(false);
+    configuration.setDefaultFetchSize(1000);
+    configuration.setDefaultExecutorType(ExecutorType.REUSE);
+    sqlSessionFactoryBean.setConfiguration(configuration);
+    return sqlSessionFactoryBean.getObject();
+}
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
 .META-INF/spring/async-batch-daemon.xml
 [source,xml]
 ----
@@ -499,6 +750,12 @@ terasoluna-batch.commit.script=classpath:org/terasoluna/batch/async/db/schema-co
     </property>
 </bean>
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============ 
 
 [cols="10,90", options="header"]
 .データベース関連の設定における各要素の説明

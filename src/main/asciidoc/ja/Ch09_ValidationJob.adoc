@@ -216,8 +216,40 @@ image::Ch09_ValidationJob_ProcessSequence_TaskletModel.png[ProcessSequence of Va
 </dependency>
 ----
 
+// ============ Java/XML Config Tab start. ============ 
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup09040301" class="JavaConfigTab" id="tabgroup09040301_1" checked><label for="tabgroup09040301_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup09040301" class="XMLConfigTab" id="tabgroup09040301_2"><label for="tabgroup09040301_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+[source, java]
+.com.example.batch.tutorial.config.LaunchContextConfig.java
+----
+@Bean
+public SpringValidator<?> validator(Validator beanValidator) {
+    final SpringValidator<?> springValidator = new SpringValidator<>();
+    springValidator.setValidator(beanValidator);
+    return springValidator;
+}
+
+@Bean
+public Validator beanValidator() {
+    try (LocalValidatorFactoryBean localValidatorFactoryBean = new LocalValidatorFactoryBean()) {
+        localValidatorFactoryBean.afterPropertiesSet();
+        return localValidatorFactoryBean;
+    }
+}
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
 [source, xml]
-.src/main/resources/META-INF/spring/launch-context.xml
+.META-INF/spring/launch-context.xml
 ----
 <bean id="validator" class="org.springframework.batch.item.validator.SpringValidator"
       p:validator-ref="beanValidator"/>
@@ -225,6 +257,12 @@ image::Ch09_ValidationJob_ProcessSequence_TaskletModel.png[ProcessSequence of Va
 <bean id="beanValidator"
       class="org.springframework.validation.beanvalidation.LocalValidatorFactoryBean" />
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============ 
 ====
 
 以降で、チャンクモデル、タスクレットモデルそれぞれの実装方法を説明する。
@@ -255,7 +293,7 @@ image::Ch09_ValidationJob_ProcessSequence_TaskletModel.png[ProcessSequence of Va
 ----
 package com.example.batch.tutorial.common.dto;
 
-import javax.validation.constraints.Max;
+import jakarta.validation.constraints.Max;
 
 public class MemberInfoDto {
     private String id;
@@ -295,7 +333,7 @@ public class MemberInfoDto {
 ----
 // Package and the other import are omitted.
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import org.springframework.batch.item.validator.Validator;
 
 @Component
@@ -417,9 +455,9 @@ image::ch09/Validation/Ch09_ValidationJob_Confirm_ExitCode_ChunkModel.png[Confi�
 
 [[Ch09_Impl_ValidationJob_Chunk_Execution_Output_Table]]
 ===== 会員情報テーブルの確認
-DBeaverを使用して会員情報テーブルの確認を行う。 +
+H2 Consoleを使用して会員情報テーブルの確認を行う。 +
 更新前後の会員情報テーブルの内容を比較し、確認内容のとおりとなっていることを確認する。 +
-確認手順は<<Ch09_EnvironmentConstruction.adoc#Ch09_EnvironmentConstruction_OperationCheck_RefDB,DBeaverを使用してデータベースを参照する>>を参照。
+確認手順は<<Ch09_EnvironmentConstruction.adoc#Ch09_EnvironmentConstruction_OperationCheck_RefDB,H2 Consoleを使用してデータベースを参照する>>を参照。
 
 確認内容::
 * 1から10番目のレコード(会員番号が"00000001"から"00000010"のレコード)について
@@ -483,7 +521,7 @@ image::ch09/Validation/Ch09_ValidationJob_Result_MemberInfoFile.png[File of memb
 ----
 package com.example.batch.tutorial.common.dto;
 
-import javax.validation.constraints.Max;
+import jakarta.validation.constraints.Max;
 
 public class MemberInfoDto {
     private String id;
@@ -523,7 +561,7 @@ public class MemberInfoDto {
 ----
 // Package and the other import are omitted.
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import org.springframework.batch.item.validator.Validator;
 
 @Component
@@ -548,7 +586,7 @@ public class PointAddTasklet implements Tasklet {
                 // The other codes of bussiness logic are omitted.
             }
 
-            writer.write(items);
+            writer.write(new Chunk(items));
         } finally {
             reader.close();
         }
@@ -621,7 +659,7 @@ tutorial.insert-data.script=file:sqls/insert-member-info-error-data.sql
 Console Viewを開き、以下の内容のログが出力されていることを確認する。
 
 * 処理が異常終了(FAILED)していること。
-* ``org.springframework.batch.item.validator.ValidationException``が発生していること
+* ``org.springframework.batch.item.validator.ValidationException``が発生していること。
 
 [source, console]
 .コンソールログ出力例
@@ -661,9 +699,9 @@ image::ch09/Validation/Ch09_ValidationJob_Confirm_ExitCode_TaskletModel.png[Conf
 
 [[Ch09_Impl_ValidationJob_Tasklet_Execution_Output_Table]]
 ===== 会員情報テーブルの確認
-DBeaverを使用して会員情報テーブルの確認を行う。 +
+H2 Consoleを使用して会員情報テーブルの確認を行う。 +
 更新前後の会員情報テーブルの内容を比較し、確認内容のとおりとなっていることを確認する。 +
-確認手順は<<Ch09_EnvironmentConstruction.adoc#Ch09_EnvironmentConstruction_OperationCheck_RefDB,DBeaverを使用してデータベースを参照する>>を参照。
+確認手順は<<Ch09_EnvironmentConstruction.adoc#Ch09_EnvironmentConstruction_OperationCheck_RefDB,H2 Consoleを使用してデータベースを参照する>>を参照。
 
 確認内容::
 * すべてのレコードについて、データが更新されていないこと

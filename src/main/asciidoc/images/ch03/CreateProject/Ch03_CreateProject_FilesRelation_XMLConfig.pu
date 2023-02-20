@@ -5,9 +5,9 @@ artifact "Employee.class\n EmployeeProcessor.class\n EmployeeRepository.class\n 
 artifact "batch-application.properties" as 2
 artifact "application-messages.properties" as 3
 artifact "META-INF/jobs/job01.xml" as 4
-artifact "AsyncBatchDaemonConfig.class" as 5
-artifact "JobBaseContextConfig.class" as 6
-artifact "LaunchContextConfig.class" as 7
+artifact "async-batch-daemon.xml" as 5
+artifact "job-base-context.xml" as 6
+artifact "launch-context.xml" as 7
 
 node "Job Sync Execution" as sync
 node "Job ASync Execution" as async

@@ -73,7 +73,87 @@ include::_include_all.adoc[]
 Bean定義ファイルにて、チャンクモデルジョブを構成する要素の組み合わせ方を定義する。
 以下に例を示し、構成要素の繋がりを説明する。
 
-[[Ch03_CreateChunkJob_HowToUse_JobConfig_exmaple]]
+// ============ Java/XML Config Tab start. ============ 
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup030201" class="JavaConfigTab" id="tabgroup030201_1" checked><label for="tabgroup030201_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup030201" class="XMLConfigTab" id="tabgroup030201_2"><label for="tabgroup030201_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+[[Ch03_CreateChunkJob_HowToUse_JobConfig_example]]
+[source,xml]
+.Bean定義ファイルの例(チャンクモデル)
+----
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:batch="http://www.springframework.org/schema/batch"
+       xmlns:p="http://www.springframework.org/schema/p"
+       xmlns:mybatis="http://mybatis.org/schema/mybatis-spring"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd
+             http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd
+             http://www.springframework.org/schema/batch https://www.springframework.org/schema/batch/spring-batch.xsd
+             http://mybatis.org/schema/mybatis-spring http://mybatis.org/schema/mybatis-spring.xsd">
+
+    <!-- (1) -->
+    <bean class="jp.co.ntt.fw.macchinetta.batch.functionaltest.config.JobBaseContextConfig"/>
+
+    <!-- (2) -->
+    <context:component-scan
+        base-package="jp.co.ntt.fw.macchinetta.batch.functionaltest.app.common" />
+
+    <!-- (3) -->
+    <mybatis:scan
+        base-package="jp.co.ntt.fw.macchinetta.batch.functionaltest.app.repository.mst"
+        factory-ref="jobSqlSessionFactory"/>
+
+    <!-- (4) -->
+    <bean id="reader"
+          class="org.mybatis.spring.batch.MyBatisCursorItemReader" scope="step"
+          p:queryId="jp.co.ntt.fw.macchinetta.batch.functionaltest.app.repository.mst.CustomerRepository.findAll"
+          p:sqlSessionFactory-ref="jobSqlSessionFactory"/>
+
+    <!-- (5) -->
+    <!-- Item Processor -->
+    <!-- Item Processor in order that based on the Bean defined by the annotations, not defined here -->
+
+    <!-- (6) -->
+    <bean id="writer"
+          class="org.springframework.batch.item.file.FlatFileItemWriter"
+          scope="step"
+          p:resource="file:#{jobParameters['outputFile']}">
+        <property name="lineAggregator">
+            <bean class="org.springframework.batch.item.file.transform.DelimitedLineAggregator">
+                <property name="fieldExtractor">
+                    <bean class="org.springframework.batch.item.file.transform.BeanWrapperFieldExtractor"
+                          p:names="customerId,customerName,customerAddress,customerTel,chargeBranchId"/>
+                </property>
+            </bean>
+        </property>
+    </bean>
+
+    <!-- (7) -->
+    <batch:job id="jobCustomerList01" job-repository="jobRepository"> <!-- (8) -->
+        <batch:step id="jobCustomerList01.step01"> <!-- (9) -->
+            <batch:tasklet transaction-manager="jobTransactionManager"> <!-- (10) -->
+                <batch:chunk reader="reader"
+                             processor="processor"
+                             writer="writer"
+                             commit-interval="10" /> <!-- (11) -->
+            </batch:tasklet>
+        </batch:step>
+    </batch:job>
+</beans>
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
+[[Ch03_CreateChunkJob_HowToUse_JobConfig_example_XMLConfig]]
 [source,xml]
 .Bean定義ファイルの例(チャンクモデル)
 ----
@@ -139,6 +219,16 @@ Bean定義ファイルにて、チャンクモデルジョブを構成する要�
     </batch:job>
 </beans>
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============ 
+
+
+
+
 
 [[Ch03_CreateChunkJob_HowToUse_Components_exmaple]]
 [source,java]

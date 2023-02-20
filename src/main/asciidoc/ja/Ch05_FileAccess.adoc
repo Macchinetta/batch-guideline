@@ -8,7 +8,7 @@ include::_include_all.adoc[]
 
 本節では、ファイルの入出力を行う方法について説明する。
 
-本機能は、チャンクモデルとタスクレットモデルとで同じ使い方になる。
+本章における、ファイルのReader/WriterのBean定義については、チャンクモデルとタスクレットモデルとで同じ定義になる。
 
 [[Ch05_FileAccess_Overview_FileType]]
 === 扱えるファイルの種類
@@ -376,10 +376,9 @@ public class SalesPlanDetail {
 |(2)
 |encoding
 |入力ファイルのエンコーディングを設定する。 +
-icon:warning[] {SB}が提供するコンポーネントのエンコーディングのデフォルト値はItemReaderとItemWriterで異なっている(ItemWriterのデフォルト値は「UTF-8」)。 +
-そのため、デフォルト値をそのまま使用する意図である場合でも明示的にエンコーディングを設定することを推奨する。
+ 未指定の場合のデフォルト値は「UTF-8」。
 |
-|JavaVMのデフォルトエンコーディング
+|UTF-8
 
 |(3)
 |strict
@@ -548,8 +547,7 @@ public class Customer {
 |(2)
 |encoding
 |出力ファイルのエンコーディングを設定する。 +
-icon:warning[] {SB}が提供するコンポーネントのエンコーディングのデフォルト値はItemReaderとItemWriterで異なっている(ItemReaderのデフォルト値は「JavaVMのデフォルトエンコーディング」)。 +
-そのため、デフォルト値をそのまま使用する意図である場合でも明示的にエンコーディングを設定することを推奨する。
+ 未指定の場合のデフォルト値は「UTF-8」。
 |
 |UTF-8
 
@@ -884,10 +882,9 @@ public class SalesPlanDetail {
 |(2)
 |encoding
 |入力ファイルのエンコーディングを設定する。 +
-icon:warning[] {SB}が提供するコンポーネントのエンコーディングのデフォルト値はItemReaderとItemWriterで異なっている(ItemWriterのデフォルト値は「UTF-8」)。 +
-そのため、デフォルト値をそのまま使用する意図である場合でも明示的にエンコーディングを設定することを推奨する。
+ 未指定の場合のデフォルト値は「UTF-8」。
 |
-|JavaVMのデフォルトエンコーディング
+|UTF-8
 
 |(3)
 |strict
@@ -1152,8 +1149,7 @@ public class SalesPlanDetail {
 |(2)
 |encoding
 |出力ファイルのエンコーディングを設定する。 +
-icon:warning[] {SB}が提供するコンポーネントのエンコーディングのデフォルト値はItemReaderとItemWriterで異なっている(ItemReaderのデフォルト値は「JavaVMのデフォルトエンコーディング」)。 +
-そのため、デフォルト値をそのまま使用する意図である場合でも明示的にエンコーディングを設定することを推奨する。
+ 未指定の場合のデフォルト値は「UTF-8」。
 |
 |UTF-8
 
@@ -1454,10 +1450,8 @@ Summary3:6,000,000,000
 |(2)
 |encoding
 |入力ファイルのエンコーディングを設定する。 +
-icon:warning[] {SB}が提供するコンポーネントのエンコーディングのデフォルト値はItemReaderとItemWriterで異なっている(ItemWriterのデフォルト値は「UTF-8」)。 +
-そのため、デフォルト値をそのまま使用する意図である場合でも明示的にエンコーディングを設定することを推奨する。
-|
-|JavaVMのデフォルトエンコーディング
+ 未指定の場合のデフォルト値は「UTF-8」。|
+|UTF-8
 
 |(3)
 |strict
@@ -1524,8 +1518,7 @@ Summary3:6,000,000,000
 |(2)
 |encoding
 |出力ファイルのエンコーディングを設定する。 +
-icon:warning[] {SB}が提供するコンポーネントのエンコーディングのデフォルト値はItemReaderとItemWriterで異なっている(ItemReaderのデフォルト値は「JavaVMのデフォルトエンコーディング」)。 +
-そのため、デフォルト値をそのまま使用する意図である場合でも明示的にエンコーディングを設定することを推奨する。
+ 未指定の場合のデフォルト値は「UTF-8」。
 |
 |UTF-8
 
@@ -2815,7 +2808,7 @@ public class ControlBreakTasklet implements Tasklet {
                     afterBreakData.setAmount(summary);
                     items.add(afterBreakData);
                     summary = new BigDecimal(0);
-                    writer.write(items);  // (11)
+                    writer.write(new Chunk(items));  // (11)
                     items.clear();
                 }
                 previousData = data;  // (12)
@@ -3146,7 +3139,7 @@ XMLの入出力には{SB}が提供する``org.springframework.batch.item.xml.Sta
 |(1)
 |``StaxEventItemReader``
 |Bean定義においてencodingプロパティを設定する。
-|JavaVMのデフォルトエンコーディング
+|UTF-8
 
 |(2)
 |``StaxEventItemWriter``
@@ -3212,7 +3205,7 @@ Spring Frameworkが提供するライブラリであるSpring Object/XML Marshal
 </dependency>
 ----
 
-Java SE 11でJAXBを利用する場合、jaxb-core及びjaxb-implが必要となる。
+JAXBを利用する場合、jaxb-core及びjaxb-implが必要となる。
 アプリケーションの依存ライブラリやバッチから提供されるライブラリにjaxb-core及びjaxb-implがない場合は、pom.xmlに下記の依存関係を追加する。
 [source, xml]
 ----
@@ -3250,6 +3243,7 @@ Java SE 11でJAXBを利用する場合、jaxb-core及びjaxb-implが必要とな
 |===
 
 ====
+
 
 [source, xml]
 .入力ファイル例
@@ -3611,7 +3605,7 @@ Spring Frameworkが提供するライブラリであるSpring Object/XML Marshal
 </dependency>
 ----
 
-Java SE 11でJAXBを利用する場合、jaxb-core及びjaxb-implが必要となる。
+JAXBを利用する場合、jaxb-core及びjaxb-implが必要となる。
 アプリケーションの依存ライブラリやバッチから提供されるライブラリにjaxb-core及びjaxb-implがない場合は、pom.xmlに下記の依存関係を追加する。
 [source, xml]
 ----
@@ -3649,6 +3643,7 @@ Java SE 11でJAXBを利用する場合、jaxb-core及びjaxb-implが必要とな
 |===
 
 ====
+
 
 [source, xml]
 .出力ファイル例
@@ -3800,8 +3795,7 @@ public class CustomerToJaxb {
 |(2)
 |encoding
 |出力ファイルのエンコーディングを設定する。 +
-<<Ch05_FileAccess_HowToExtend_Xml_Encoding>>で述べたように、ItemReader/Writer間のデフォルト値の違いによって意図しないエンコーディングで
-出力が行われることを防ぐため、デフォルト値をそのまま使用する意図である場合でも明示的にエンコーディングを設定することを推奨する。
+ 未指定の場合のデフォルト値は「UTF-8」。
 |
 |UTF-8
 
@@ -3851,15 +3845,6 @@ JAXBを利用する場合は、``org.springframework.oxm.jaxb.Jaxb2Marshaller``�
 |なし
 |===
 
-[WARNING]
-.JDK8の環境では現在``standalone``プロパティの指定が不可能となっている
-====
-JDK8の場合、``standalone``を設定してもXMLファイルに出力されない。 +
-これはJDK8の不具合として報告され現在解消しているが、JDK9の対応となっているためである。 +
-https://bugs.openjdk.java.net/browse/JDK-8139584[JDK Bug System/JDK-8139584] +
-{SB}によるこの不具合報告の状況としては以下を参照されたい。 +
-https://github.com/spring-projects/spring-batch/issues/758[{SB}/BATCH-2856] +
-====
 
 [[Ch05_FileAccess_HowToExtend_Xml_HeaderFooter]]
 ===== ヘッダ・フッタの出力

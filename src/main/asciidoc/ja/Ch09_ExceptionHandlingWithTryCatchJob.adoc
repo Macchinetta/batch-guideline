@@ -238,8 +238,8 @@ ItemReader、ItemWriterでのスキップは<<Ch06_ExceptionHandling.adoc#Ch06_E
 
 チャンクモデル/タスクレットモデルで共通して利用するため、既に作成している場合は読み飛ばしてよい。
 
-``application-messages.properties``および``launch-context.xml``を以下のとおり設定する。 +
-なお、``launch-context.xml``の設定はブランクプロジェクトに設定済みである。
+``application-messages.properties``および``LaunchContextConfig.java/launch-context.xml``を以下のとおり設定する。 +
+なお、``LaunchContextConfig.java/launch-context.xml``の設定はブランクプロジェクトに設定済みである。
 
 [source, xml]
 .src/main/resources/i18n/application-messages.properties
@@ -248,8 +248,34 @@ ItemReader、ItemWriterでのスキップは<<Ch06_ExceptionHandling.adoc#Ch06_E
 errors.maxInteger=The {0} exceeds {1}.
 ----
 
+// ============ Java/XML Config Tab start. ============ 
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup09040501" class="JavaConfigTab" id="tabgroup09040501_1" checked><label for="tabgroup09040501_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup09040501" class="XMLConfigTab" id="tabgroup09040501_2"><label for="tabgroup09040501_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+[source, java]
+.com.example.batch.tutorial.config.LaunchContextConfig.java
+----
+// omitted
+@Bean
+public MessageSource messageSource() {
+    final ResourceBundleMessageSource resourceBundleMessageSource = new ResourceBundleMessageSource();
+    resourceBundleMessageSource.setBasename("i18n/application-messages"); // (2)
+    return resourceBundleMessageSource;
+}
+// omitted
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
 [source, xml]
-.src/main/resources/META-INF/spring/launch-context.xml
+.META-INF/spring/launch-context.xml
 ----
 <!-- omitted -->
 
@@ -258,6 +284,12 @@ errors.maxInteger=The {0} exceeds {1}.
 
 <!-- omitted -->
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============ 
 
 [cols="10,90", options="header"]
 .説明
@@ -267,11 +299,10 @@ errors.maxInteger=The {0} exceeds {1}.
 
 |(1)
 |ポイント上限超過時に出力するメッセージを設定する。 +
-{0)に項目名、{1}に上限値を割り当てる。
+{0}に項目名、{1}に上限値を割り当てる。
 
 |(2)
-|プロパティファイルからメッセージを使用するために、``MessageSource``を設定する。 +
-``basenames``に、プロパティファイルの格納場所を指定する。
+|プロパティファイルからメッセージを使用するために、``MessageSource``を設定する。
 
 |===
 
@@ -478,10 +509,48 @@ public class JobExitCodeChangeListener implements JobExecutionListener {
 ==== 終了コードのマッピング定義
 終了コードのマッピングを追加で設定する。
 
+// ============ Java/XML Config Tab start. ============ 
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup09040502" class="JavaConfigTab" id="tabgroup09040502_1" checked><label for="tabgroup09040502_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup09040502" class="XMLConfigTab" id="tabgroup09040502_2"><label for="tabgroup09040502_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+``LaunchContextConfig.java``に以下のとおり、独自の終了コードを追加する。
+
+[source, java]
+.com.example.batch.tutorial.config.LaunchContextConfig.java
+----
+// omitted
+
+@Bean
+public ExitCodeMapper exitCodeMapper() {
+    final SimpleJvmExitCodeMapper simpleJvmExitCodeMapper = new SimpleJvmExitCodeMapper();
+    final Map<String, Integer> exitCodeMapper = new HashMap<>();
+    // ExitStatus
+    exitCodeMapper.put("NOOP", 0);
+    exitCodeMapper.put("COMPLETED", 0);
+    exitCodeMapper.put("STOPPED", 255);
+    exitCodeMapper.put("FAILED", 255);
+    exitCodeMapper.put("UNKNOWN", 255);
+    exitCodeMapper.put("SKIPPED", 200); // (1)
+    simpleJvmExitCodeMapper.setMapping(exitCodeMapper);
+    return simpleJvmExitCodeMapper;
+}
+
+// omitted
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
 ``launch-context.xml``に以下のとおり、独自の終了コードを追加する。
 
 [source, xml]
-.src/main/resources/META-INF/spring/launch-context.xml
+.META-INF/spring/launch-context.xml
 ----
 <!-- omitted -->
 
@@ -502,6 +571,12 @@ public class JobExitCodeChangeListener implements JobExecutionListener {
 
 <!-- omitted -->
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============ 
 
 [cols="10,90", options="header"]
 .説明
@@ -662,7 +737,7 @@ image::ch09/ExceptionHandlingWithTryCatch/Ch09_ExceptionHandlingWithTryCatchJob_
 [[Ch09_Impl_ExceptionHandlingWithTryCatchJob_Chunk_Execution_Output_Table]]
 ===== 会員情報テーブルの確認
 更新前後の会員情報テーブルの内容を比較し、確認内容のとおりとなっていることを確認する。 +
-確認手順は<<Ch09_EnvironmentConstruction.adoc#Ch09_EnvironmentConstruction_OperationCheck_RefDB,DBeaverを使用してデータベースを参照する>>を参照。
+確認手順は<<Ch09_EnvironmentConstruction.adoc#Ch09_EnvironmentConstruction_OperationCheck_RefDB,H2 Consoleを使用してデータベースを参照する>>を参照。
 
 確認内容::
 * エラーレコード(会員番号が"000000013")を除くすべてのレコードについて
@@ -719,8 +794,8 @@ image::ch09/ExceptionHandlingWithTryCatch/Ch09_ExceptionHandlingWithTryCatchJob_
 
 チャンクモデル/タスクレットモデルで共通して利用するため、既に作成している場合は読み飛ばしてよい。
 
-``application-messages.properties``および``launch-context.xml``を以下のとおり設定する。 +
-なお、``launch-context.xml``の設定はブランクプロジェクトに設定済みである。
+``application-messages.properties``および``LaunchContextConfig.java/launch-context.xml``を以下のとおり設定する。 +
+なお、``LaunchContextConfig.java/launch-context.xml``の設定はブランクプロジェクトに設定済みである。
 
 [source, xml]
 .src/main/resources/i18n/application-messages.properties
@@ -729,8 +804,34 @@ image::ch09/ExceptionHandlingWithTryCatch/Ch09_ExceptionHandlingWithTryCatchJob_
 errors.maxInteger=The {0} exceeds {1}.
 ----
 
+// ============ Java/XML Config Tab start. ============ 
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup09040503" class="JavaConfigTab" id="tabgroup09040503_1" checked><label for="tabgroup09040503_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup09040503" class="XMLConfigTab" id="tabgroup09040503_2"><label for="tabgroup09040503_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+[source, java]
+.com.example.batch.tutorial.config.LaunchContextConfig.java
+----
+// omitted
+@Bean
+public MessageSource messageSource() {
+    final ResourceBundleMessageSource resourceBundleMessageSource = new ResourceBundleMessageSource();
+    resourceBundleMessageSource.setBasename("i18n/application-messages"); // (2)
+    return resourceBundleMessageSource;
+}
+// omitted
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
 [source, xml]
-.src/main/resources/META-INF/spring/launch-context.xml
+.META-INF/spring/launch-context.xml
 ----
 <!-- omitted -->
 
@@ -739,6 +840,12 @@ errors.maxInteger=The {0} exceeds {1}.
 
 <!-- omitted -->
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============ 
 
 [cols="10,90", options="header"]
 .説明
@@ -748,11 +855,10 @@ errors.maxInteger=The {0} exceeds {1}.
 
 |(1)
 |ポイント上限超過時に出力するメッセージを設定する。 +
-{0)に項目名、{1}に上限値を割り当てる。
+{0}に項目名、{1}に上限値を割り当てる。
 
 |(2)
-|プロパティファイルからメッセージを使用するために、``MessageSource``を設定する。 +
-``basenames``に、プロパティファイルの格納場所を指定する。
+|プロパティファイルからメッセージを使用するために、``MessageSource``を設定する。
 
 |===
 
@@ -882,10 +988,50 @@ public class JobExitCodeChangeListener implements JobExecutionListener {
 
 チャンクモデル/タスクレットモデルで共通して利用するため、既に実施している場合は読み飛ばしてよい。
 
+
+
+// ============ Java/XML Config Tab start. ============ 
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup09040504" class="JavaConfigTab" id="tabgroup09040504_1" checked><label for="tabgroup09040504_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup09040504" class="XMLConfigTab" id="tabgroup09040504_2"><label for="tabgroup09040504_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+``LaunchContextConfig.java``に以下のとおり、独自の終了コードを追加する。
+
+[source, java]
+.com.example.batch.tutorial.config.LaunchContextConfig.java
+----
+// omitted
+
+@Bean
+public ExitCodeMapper exitCodeMapper() {
+    final SimpleJvmExitCodeMapper simpleJvmExitCodeMapper = new SimpleJvmExitCodeMapper();
+    final Map<String, Integer> exitCodeMapper = new HashMap<>();
+    // ExitStatus
+    exitCodeMapper.put("NOOP", 0);
+    exitCodeMapper.put("COMPLETED", 0);
+    exitCodeMapper.put("STOPPED", 255);
+    exitCodeMapper.put("FAILED", 255);
+    exitCodeMapper.put("UNKNOWN", 255);
+    exitCodeMapper.put("SKIPPED", 200);  // (1)
+    simpleJvmExitCodeMapper.setMapping(exitCodeMapper);
+    return simpleJvmExitCodeMapper;
+}
+
+// omitted
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
 ``launch-context.xml``に以下のとおり、独自の終了コードを追加する。
 
 [source, xml]
-.src/main/resources/META-INF/spring/launch-context.xml
+.META-INF/spring/launch-context.xml
 ----
 <!-- omitted -->
 
@@ -906,6 +1052,12 @@ public class JobExitCodeChangeListener implements JobExecutionListener {
 
 <!-- omitted -->
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============ 
 
 [cols="10,90", options="header"]
 .説明
@@ -974,7 +1126,7 @@ public class PointAddTasklet implements Tasklet {
                 // The other codes of bussiness logic are omitted.
             }
 
-            writer.write(items);
+            writer.write(new Chunk(items));
         } finally {
             reader.close();
         }
@@ -1093,7 +1245,7 @@ image::ch09/ExceptionHandlingWithTryCatch/Ch09_ExceptionHandlingWithTryCatchJob_
 [[Ch09_Impl_ExceptionHandlingWithTryCatchJob_Tasklet_Execution_Output_Table]]
 ===== 会員情報テーブルの確認
 更新前後の会員情報テーブルの内容を比較し、確認内容のとおりとなっていることを確認する。 +
-確認手順は<<Ch09_EnvironmentConstruction.adoc#Ch09_EnvironmentConstruction_OperationCheck_RefDB,DBeaverを使用してデータベースを参照する>>を参照。
+確認手順は<<Ch09_EnvironmentConstruction.adoc#Ch09_EnvironmentConstruction_OperationCheck_RefDB,H2 Consoleを使用してデータベースを参照する>>を参照。
 
 確認内容::
 * エラーレコード(会員番号が"000000013")を除くすべてのレコードについて

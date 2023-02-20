@@ -498,7 +498,7 @@ JobRepositoryは、各Javaオブジェクトに保存された内容を、テー
 提供するDDLは、{terasoluna_batch5_shortname}のjarに同梱されているorg.terasoluna.batchパッケージに含まれている。
 ====
 
-6つの全テーブルと相互関係のERDモデルはを以下に示す。
+6つの全テーブルと相互関係のERDモデルを以下に示す。
 
 .ER図
 image::Ch02_SpringBatchArchitecture_Architecture_ER.png[ER Diagram]
@@ -615,23 +615,14 @@ BATCH_JOB_EXECUTION_PARAMSテーブルは、JobParametersオブジェクトに�
 |JOB_EXECUTION_ID
 |このジョブパラメータが属するジョブ実行を示すBATCH_JOB_EXECUTIONテーブルからの外部キー。
 
-|TYPE_CD
-|String、date、long、またはdoubleのいずれかのデータ型であることを示す文字列。
-
-|KEY_NAME
+|PARAMETER_NAME
 |パラメータキー。
 
-|STRING_VAL
-|データ型が文字列である場合のパラメータ値。
+|PARAMETER_TYPE
+|データ型を示す文字列。
 
-|DATE_VAL
-|データ型が日時である場合のパラメータ値。
-
-|LONG_VAL
-|データ型が整数値である場合のパラメータ値。
-
-|DOUBLE_VAL
-|データ型が実数である場合のパラメータ値。
+|PARAMETER_VALUE
+|パラメータ値を示す文字列。
 
 |IDENTIFYING
 |パラメータがジョブインスタンスが一意であることを識別するための値であることを示すフラグ。

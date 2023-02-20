@@ -58,7 +58,7 @@ Linux環境でのOracle JDBCを利用時は、Oracle JDBCが使用するOSの乱
 [[Ch05_DBAccess_HowToUse_Config_DataSource]]
 ==== データソースの設定
 {batch5_shortname}では、2つのデータソースを前提としている。
-``launch-context.xml``でデフォルト設定している2つのデータソースを示す。
+``LaunchContextConfig.java/launch-context.xml``でデフォルト設定している2つのデータソースを示す。
 
 [cols="30,70", options="header"]
 .データソース一覧
@@ -84,9 +84,62 @@ JobRepositoryや<<Ch04_AsyncJobWithDB.adoc#Ch04_AsyncJobWithDB,非同期実行(D
 
 ====
 
-以下に、launch-context.xmlと接続情報のプロパティを示す。 +
+以下に、LaunchContextConfig.java/launch-context.xmlと接続情報のプロパティを示す。 +
 これらをユーザの環境に合わせて設定すること。
 
+// ============ Java/XML Config Tab start. ============ 
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup050201" class="JavaConfigTab" id="tabgroup050201_1" checked><label for="tabgroup050201_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup050201" class="XMLConfigTab" id="tabgroup050201_2"><label for="tabgroup050201_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+[source, java]
+.jp.co.ntt.fw.macchinetta.batch.functionaltest.config.LaunchContextConfig.java
+----
+// (1)
+@Bean
+public BasicDataSource adminDataSource(@Value("${admin.h2.jdbc.driver}") String driverClassName,
+                                       @Value("${admin.h2.jdbc.url}") String url,
+                                       @Value("${admin.h2.jdbc.username}") String username,
+                                       @Value("${admin.h2.jdbc.password}") String password) {
+    final BasicDataSource dataSource = new BasicDataSource();
+    dataSource.setDriverClassName(driverClassName);
+    dataSource.setUrl(url);
+    dataSource.setUsername(username);
+    dataSource.setPassword(password);
+    dataSource.setMaxTotal(10);
+    dataSource.setMinIdle(1);
+    dataSource.setMaxWaitMillis(5000);
+    dataSource.setDefaultAutoCommit(false);
+    return dataSource;
+}
+
+// (2)
+@Bean
+public BasicDataSource jobDataSource(@Value("${jdbc.driver}") String driverClassName,
+                                     @Value("${jdbc.url}") String url,
+                                     @Value("${jdbc.username}") String username,
+                                     @Value("${jdbc.password}") String password) {
+    final BasicDataSource basicDataSource = new BasicDataSource();
+    basicDataSource.setDriverClassName(driverClassName);
+    basicDataSource.setUrl(url);
+    basicDataSource.setUsername(username);
+    basicDataSource.setPassword(password);
+    basicDataSource.setMaxTotal(10);
+    basicDataSource.setMinIdle(1);
+    basicDataSource.setMaxWaitMillis(5000);
+    basicDataSource.setDefaultAutoCommit(false);
+    return basicDataSource;
+}
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
 [source, xml]
 .resources\META-INF\spring\launch-context.xml
 ----
@@ -114,6 +167,12 @@ JobRepositoryや<<Ch04_AsyncJobWithDB.adoc#Ch04_AsyncJobWithDB,非同期実行(D
       p:maxWaitMillis="5000"
       p:defaultAutoCommit="false" />
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============ 
 
 [source, properties]
 .batch-application.properties
@@ -192,6 +251,45 @@ https://mybatis.org/mybatis-3/configuration.html
 
 以下にデフォルト提供されている設定を示す。
 
+// ============ Java/XML Config Tab start. ============ 
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup050202" class="JavaConfigTab" id="tabgroup050202_1" checked><label for="tabgroup050202_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup050202" class="XMLConfigTab" id="tabgroup050202_2"><label for="tabgroup050202_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+[source, java]
+.jp.co.ntt.fw.macchinetta.batch.functionaltest.config.LaunchContextConfig.java
+----
+// (1)
+@Bean
+public SqlSessionFactory jobSqlSessionFactory(@Qualifier("jobDataSource") DataSource jobDataSource) throws Exception {
+    final SqlSessionFactoryBean sqlSessionFactoryBean = new SqlSessionFactoryBean();
+    sqlSessionFactoryBean.setDataSource(jobDataSource);
+
+    final org.apache.ibatis.session.Configuration configuration = new org.apache.ibatis.session.Configuration();
+    configuration.setLocalCacheScope(LocalCacheScope.STATEMENT);
+    configuration.setLazyLoadingEnabled(true);
+    configuration.setAggressiveLazyLoading(false);
+    configuration.setDefaultFetchSize(1000);
+    configuration.setDefaultExecutorType(ExecutorType.REUSE);
+     sqlSessionFactoryBean.setConfiguration(configuration);
+    return sqlSessionFactoryBean.getObject();
+}
+
+// (2)
+@Bean
+public SqlSessionTemplate batchModeSqlSessionTemplate(@Qualifier("jobSqlSessionFactory") SqlSessionFactory jobSqlSessionFactory) {
+    return new SqlSessionTemplate(jobSqlSessionFactory, ExecutorType.BATCH);
+}
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
 [source, xml]
 .META-INF/spring/launch-context.xml
 ----
@@ -215,6 +313,12 @@ https://mybatis.org/mybatis-3/configuration.html
       c:sqlSessionFactory-ref="jobSqlSessionFactory"
       c:executorType="BATCH"/>
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============ 
 
 [cols="10,90", options="header"]
 .説明
@@ -236,8 +340,42 @@ https://mybatis.org/mybatis-3/configuration.html
 ====
 同期実行をする場合は、adminDataSourceを利用した``SqlSessionFactory``は不要であるため、定義がされていない。
 <<Ch04_AsyncJobWithDB.adoc#Ch04_AsyncJobWithDB,非同期実行(DBポーリング)>>を利用する場合、ジョブ要求テーブルへアクセスするために
-``META-INF/spring/async-batch-daemon.xml``内に定義されている。
+``AsyncBatchDaemonConfig.java/META-INF/spring/async-batch-daemon.xml``内に定義されている。
 
+// ============ Java/XML Config Tab start. ============ 
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup050203" class="JavaConfigTab" id="tabgroup050203_1" checked><label for="tabgroup050203_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup050203" class="XMLConfigTab" id="tabgroup050203_2"><label for="tabgroup050203_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+
+[source,java]
+.jp.co.ntt.fw.macchinetta.batch.functionaltest.config.AsyncBatchDaemonConfig.java
+----
+@Bean
+public SqlSessionFactory adminSqlSessionFactory(@Qualifier("adminDataSource") DataSource adminDataSource,
+                                                DatabaseIdProvider databaseIdProvider) throws Exception {
+    final SqlSessionFactoryBean sqlSessionFactoryBean = new SqlSessionFactoryBean();
+    sqlSessionFactoryBean.setDataSource(adminDataSource);
+    sqlSessionFactoryBean.setDatabaseIdProvider(databaseIdProvider);
+    final org.apache.ibatis.session.Configuration configuration = new org.apache.ibatis.session.Configuration();
+    configuration.setLocalCacheScope(LocalCacheScope.STATEMENT);
+    configuration.setLazyLoadingEnabled(true);
+    configuration.setAggressiveLazyLoading(false);
+    configuration.setDefaultFetchSize(1000);
+    configuration.setDefaultExecutorType(ExecutorType.REUSE);
+    sqlSessionFactoryBean.setConfiguration(configuration);
+    return sqlSessionFactoryBean.getObject();
+}
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
 [source,xml]
 .META-INF/spring/async-batch-daemon.xml
 ----
@@ -254,6 +392,12 @@ https://mybatis.org/mybatis-3/configuration.html
     </property>
 </bean>
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============ 
 ====
 
 [[Ch05_DBAccess_HowToUse_Config_MapperXML]]
@@ -389,7 +533,7 @@ MyBatis-Springが提供するItemReaderとして下記の2つが存在する。
 <batch:job id="outputAllCustomerList01" job-repository="jobRepository">
     <batch:step id="outputAllCustomerList01.step01">
         <batch:tasklet transaction-manager="jobTransactionManager">
-            <!-- (5) -->>
+            <!-- (5) -->
             <batch:chunk reader="reader"
                          processor="retrieveBranchFromContextItemProcessor"
                          writer="writer" commit-interval="10"/>
@@ -1205,7 +1349,7 @@ public class SalesPlanDetailRegisterTasklet implements Tasklet {
 
                 items.add(processor.process(item)); // (10)
                 if (items.size() == 10) {
-                    writer.write(items); // (11)
+                    writer.write(new Chunk(items)); // (11)
                     items.clear();
                 }
             }
@@ -1409,7 +1553,7 @@ MapperインタフェースとMapper XMLは省略する。
 [source,java]
 .リスナーでの実装例
 ----
-public class CacheSetListener extends StepExecutionListenerSupport {
+public class CacheSetListener implements StepExecutionListener {
 
     // (1)
     @Inject

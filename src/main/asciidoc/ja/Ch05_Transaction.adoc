@@ -397,6 +397,54 @@ image::Ch05_transaction_AsyncWithWeb_Transaction_Difference.png[With Web Applica
 
 以下に{batch5_shortname}での設定例を示す。
 
+// ============ Java/XML Config Tab start. ============ 
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup050101" class="JavaConfigTab" id="tabgroup050101_1" checked><label for="tabgroup050101_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup050101" class="XMLConfigTab" id="tabgroup050101_2"><label for="tabgroup050101_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+[source,java]
+.データソースの設定(com.example.batch.config.LaunchContextConfig.java)
+----
+// Job-common definitions
+public BasicDataSource jobDataSource(@Value("${jdbc.driver}") String driverClassName,
+                                     @Value("${jdbc.url}") String url,
+                                     @Value("${jdbc.username}") String username,
+                                     @Value("${jdbc.password}") String password) {
+    final BasicDataSource basicDataSource = new BasicDataSource();
+    basicDataSource.setDriverClassName(driverClassName);
+    basicDataSource.setUrl(url);
+    basicDataSource.setUsername(username);
+    basicDataSource.setPassword(password);
+    basicDataSource.setMaxTotal(10);
+    basicDataSource.setMinIdle(1);
+    basicDataSource.setMaxWaitMillis(5000);
+    basicDataSource.setDefaultAutoCommit(false);
+    return basicDataSource;
+}
+
+----
+
+[source,java]
+.トランザクションマネージャの設定(com.example.batch.config.LaunchContextConfig.java)
+----
+// (1)
+@Bean
+public PlatformTransactionManager jobTransactionManager(@Qualifier("jobDataSource") DataSource jobDataSource) {
+    final DataSourceTransactionManager dataSourceTransactionManager = new DataSourceTransactionManager();
+    dataSourceTransactionManager.setDataSource(jobDataSource);
+    dataSourceTransactionManager.setRollbackOnCommitFailure(true);
+    return dataSourceTransactionManager;
+}
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
 [source,xml]
 .データソースの設定(META-INF/spring/launch-context.xml)
 ----
@@ -422,6 +470,12 @@ image::Ch05_transaction_AsyncWithWeb_Transaction_Difference.png[With Web Applica
       p:dataSource-ref="jobDataSource"
       p:rollbackOnCommitFailure="true" />
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============ 
 
 [cols="10,90", options="header"]
 |===
@@ -651,7 +705,7 @@ ItemWriterを利用することで実装がシンプルになる効果があり�
 テーブルアクセスは伴わないため実害がない。
 
 また、実害がある場合や空振りでも参照するトランザクションを発行したくない場合は、リソースを必要としない``ResourcelessTransactionManager``を使用することができる。
-``ResourcelessTransactionManager``は``launch-context.xml``に``jobResourcelessTransactionManager``として定義済みである。
+``ResourcelessTransactionManager``は``LaunchContextConfig.java/launch-context.xml``に``jobResourcelessTransactionManager``として定義済みである。
 
 [source, xml]
 .ResourcelessTransactionManagerの使用例
@@ -661,7 +715,6 @@ ItemWriterを利用することで実装がシンプルになる効果があり�
 </batch:tasklet>
 ----
 ====
-
 
 [[Ch05_Transaction_HowToUse_MultiDataSource]]
 === 複数データソースの場合
@@ -701,7 +754,7 @@ ItemWriterを利用することで実装がシンプルになる効果があり�
 ----
 @Component
 // (1)
-public class BranchMasterReadStepListener extends StepExecutionListenerSupport {
+public class BranchMasterReadStepListener implements StepExecutionListener {
 
     @Inject
     BranchRepository branchRepository;
@@ -768,8 +821,7 @@ public class RetrieveBranchFromContextItemProcessor implements
 |説明
 
 |(1)
-|``StepExecutionListener``インタフェースを実装する。 +
-ここでは実装を簡易にするため、``StepExecutionListener``インタフェースを実装した``StepExecutionListenerSupport``からの拡張としている。
+|``StepExecutionListener``インタフェースを実装する。
 
 |(2)
 |ステップ実行前にデータを取得するため、``beforeStep``メソッドを実装する。

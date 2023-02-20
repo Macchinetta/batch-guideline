@@ -228,8 +228,8 @@ image::Ch09_ExceptionHandlingWithListenerJob_ProcessSequence_TaskletModel.png[Pr
 
 チャンクモデル/タスクレットモデルで共通して利用するため、既に作成している場合は読み飛ばしてよい。
 
-``application-messages.properties``および``launch-context.xml``を以下のとおり設定する。 +
-なお、``launch-context.xml``の設定はブランクプロジェクトに設定済みである。
+``application-messages.properties``および``LaunchContextConfig.java/launch-context.xml``を以下のとおり設定する。 +
+なお、``LaunchContextConfig.java/launch-context.xml``の設定はブランクプロジェクトに設定済みである。
 
 [source, xml]
 .src/main/resources/i18n/application-messages.properties
@@ -238,8 +238,34 @@ image::Ch09_ExceptionHandlingWithListenerJob_ProcessSequence_TaskletModel.png[Pr
 errors.maxInteger=The {0} exceeds {1}.
 ----
 
+// ============ Java/XML Config Tab start. ============ 
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup09040401" class="JavaConfigTab" id="tabgroup09040401_1" checked><label for="tabgroup09040401_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup09040401" class="XMLConfigTab" id="tabgroup09040401_2"><label for="tabgroup09040401_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+[source, java]
+.com.example.batch.tutorial.config.LaunchContextConfig.java
+----
+// omitted
+@Bean
+public MessageSource messageSource() {
+    final ResourceBundleMessageSource resourceBundleMessageSource = new ResourceBundleMessageSource();
+    resourceBundleMessageSource.setBasename("i18n/application-messages"); // (2)
+    return resourceBundleMessageSource;
+}
+// omitted
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
 [source, xml]
-.src/main/resources/META-INF/spring/launch-context.xml
+.META-INF/spring/launch-context.xml
 ----
 <!-- omitted -->
 
@@ -248,6 +274,12 @@ errors.maxInteger=The {0} exceeds {1}.
 
 <!-- omitted -->
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============ 
 
 [cols="10,90", options="header"]
 .説明
@@ -257,11 +289,10 @@ errors.maxInteger=The {0} exceeds {1}.
 
 |(1)
 |ポイント上限超過時に出力するメッセージを設定する。 +
-{0)に項目名、{1}に上限値を割り当てる。
+{0}に項目名、{1}に上限値を割り当てる。
 
 |(2)
-|プロパティファイルからメッセージを使用するために、``MessageSource``を設定する。 +
-``basenames``に、プロパティファイルの格納場所を指定する。
+|プロパティファイルからメッセージを使用するために、``MessageSource``を設定する。
 
 |===
 
@@ -292,7 +323,7 @@ import org.springframework.batch.item.validator.ValidationException;
 import org.springframework.context.MessageSource;
 import org.springframework.stereotype.Component;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import java.util.Locale;
 
 @Component
@@ -485,7 +516,7 @@ image::ch09/ExceptionHandlingWithListener/Ch09_ExceptionHandlingWithListenerJob_
 [[Ch09_Impl_ExceptionHandlingWithListenerJob_Chunk_Execution_Output_Table]]
 ===== 会員情報テーブルの確認
 更新前後の会員情報テーブルの内容を比較し、確認内容のとおりとなっていることを確認する。 +
-確認手順は<<Ch09_EnvironmentConstruction.adoc#Ch09_EnvironmentConstruction_OperationCheck_RefDB,DBeaverを使用してデータベースを参照する>>を参照。
+確認手順は<<Ch09_EnvironmentConstruction.adoc#Ch09_EnvironmentConstruction_OperationCheck_RefDB,H2 Consoleを使用してデータベースを参照する>>を参照。
 
 確認内容::
 * 1から10番目のレコード(会員番号が"00000001"から"00000010"のレコード)について
@@ -541,8 +572,8 @@ image::ch09/ExceptionHandlingWithListener/Ch09_ExceptionHandlingWithListenerJob_
 
 チャンクモデル/タスクレットモデルで共通して利用するため、既に作成している場合は読み飛ばしてよい。
 
-``application-messages.properties``および``launch-context.xml``を以下のとおり設定する。 +
-なお、``launch-context.xml``の設定はブランクプロジェクトに設定済みである。
+``application-messages.properties``および``LaunchContextConfig.java/launch-context.xml``を以下のとおり設定する。 +
+なお、``LaunchContextConfig.java/launch-context.xml``の設定はブランクプロジェクトに設定済みである。
 
 [source, xml]
 .src/main/resources/i18n/application-messages.properties
@@ -551,8 +582,34 @@ image::ch09/ExceptionHandlingWithListener/Ch09_ExceptionHandlingWithListenerJob_
 errors.maxInteger=The {0} exceeds {1}.
 ----
 
+// ============ Java/XML Config Tab start. ============ 
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup09040402" class="JavaConfigTab" id="tabgroup09040402_1" checked><label for="tabgroup09040402_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup09040402" class="XMLConfigTab" id="tabgroup09040402_2"><label for="tabgroup09040402_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+[source, java]
+.com.example.batch.tutorial.config.LaunchContextConfig.java
+----
+// omitted
+@Bean
+public MessageSource messageSource() {
+    final ResourceBundleMessageSource resourceBundleMessageSource = new ResourceBundleMessageSource();
+    resourceBundleMessageSource.setBasename("i18n/application-messages"); // (2)
+    return resourceBundleMessageSource;
+}
+// omitted
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
 [source, xml]
-.src/main/resources/META-INF/spring/launch-context.xml
+.META-INF/spring/launch-context.xml
 ----
 <!-- omitted -->
 
@@ -561,6 +618,12 @@ errors.maxInteger=The {0} exceeds {1}.
 
 <!-- omitted -->
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============ 
 
 [cols="10,90", options="header"]
 .説明
@@ -570,11 +633,10 @@ errors.maxInteger=The {0} exceeds {1}.
 
 |(1)
 |ポイント上限超過時に出力するメッセージを設定する。 +
-{0)に項目名、{1}に上限値を割り当てる。
+{0}に項目名、{1}に上限値を割り当てる。
 
 |(2)
-|プロパティファイルからメッセージを使用するために、``MessageSource``を設定する。 +
-``basenames``に、プロパティファイルの格納場所を指定する。
+|プロパティファイルからメッセージを使用するために、``MessageSource``を設定する。
 
 |===
 
@@ -605,7 +667,7 @@ import org.springframework.batch.item.validator.ValidationException;
 import org.springframework.context.MessageSource;
 import org.springframework.stereotype.Component;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import java.util.Locale;
 
 @Component
@@ -796,7 +858,7 @@ image::ch09/ExceptionHandlingWithListener/Ch09_ExceptionHandlingWithListenerJob_
 [[Ch09_Impl_ExceptionHandlingWithListenerJob_Tasklet_Execution_Output_Table]]
 ===== 会員情報テーブルの確認
 更新前後の会員情報テーブルの内容を比較し、確認内容のとおりとなっていることを確認する。 +
-確認手順は<<Ch09_EnvironmentConstruction.adoc#Ch09_EnvironmentConstruction_OperationCheck_RefDB,DBeaverを使用してデータベースを参照する>>を参照。
+確認手順は<<Ch09_EnvironmentConstruction.adoc#Ch09_EnvironmentConstruction_OperationCheck_RefDB,H2 Consoleを使用してデータベースを参照する>>を参照。
 
 確認内容::
 * すべてのレコードについて、データが更新されていないこと

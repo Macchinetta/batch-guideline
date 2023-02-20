@@ -203,6 +203,43 @@ image::Ch09_DBAccessJob_ProcessSequence_TaskletModel.png[ProcessSequence of DBAc
 Bean定義ファイルにて、チャンクモデルでデータベースアクセスを行うジョブを構成する要素の組み合わせ方を設定する。 +
 ここでは、Bean定義ファイルの枠および共通的な設定のみ記述し、以降の項で各構成要素の設定を行う。
 
+// ============ Java/XML Config Tab start. ============ 
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup09040101" class="JavaConfigTab" id="tabgroup09040101_1" checked><label for="tabgroup09040101_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup09040101" class="XMLConfigTab" id="tabgroup09040101_2"><label for="tabgroup09040101_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+[source, xml]
+.src/main/resources/META-INF/jobs/dbaccess/jobPointAddChunk.xml
+----
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:batch="http://www.springframework.org/schema/batch"
+       xmlns:p="http://www.springframework.org/schema/p"
+       xmlns:mybatis="http://mybatis.org/schema/mybatis-spring"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd
+             http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd
+             http://www.springframework.org/schema/batch https://www.springframework.org/schema/batch/spring-batch.xsd
+             http://mybatis.org/schema/mybatis-spring http://mybatis.org/schema/mybatis-spring.xsd">
+
+    <!-- (1) -->
+    <bean class="com.example.batch.tutorial.config.JobBaseContextConfig" />
+
+    <!-- (2) -->
+    <context:component-scan base-package="com.example.batch.tutorial.dbaccess.chunk"/>
+
+</beans>
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
 [source, xml]
 .src/main/resources/META-INF/jobs/dbaccess/jobPointAddChunk.xml
 ----
@@ -226,6 +263,20 @@ Bean定義ファイルにて、チャンクモデルでデータベースアク�
 
 </beans>
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============ 
+
+
+
+
+
+
+
+
 
 [cols="10,90", options="header"]
 .説明
@@ -431,6 +482,55 @@ MapperXMLファイルを自動的に読み込ませるために、Repositoryイ�
 ==== ジョブBean定義ファイルの設定
 MyBatisによるデータベースアクセスするための設定として、ジョブBean定義ファイルに以下の(1)～(3)を追記する。
 
+// ============ Java/XML Config Tab start. ============ 
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup09040102" class="JavaConfigTab" id="tabgroup09040102_1" checked><label for="tabgroup09040102_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup09040102" class="XMLConfigTab" id="tabgroup09040102_2"><label for="tabgroup09040102_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+[source, xml]
+.src/main/resources/META-INF/jobs/dbaccess/jobPointAddChunk.xml
+----
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:batch="http://www.springframework.org/schema/batch"
+       xmlns:p="http://www.springframework.org/schema/p"
+       xmlns:mybatis="http://mybatis.org/schema/mybatis-spring"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd
+             http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd
+             http://www.springframework.org/schema/batch https://www.springframework.org/schema/batch/spring-batch.xsd
+             http://mybatis.org/schema/mybatis-spring http://mybatis.org/schema/mybatis-spring.xsd">
+
+    <bean class="com.example.batch.tutorial.config.JobBaseContextConfig" />
+
+    <context:component-scan base-package="com.example.batch.tutorial.dbaccess.chunk"/>
+
+    <!-- (1) -->
+    <mybatis:scan base-package="com.example.batch.tutorial.common.repository" factory-ref="jobSqlSessionFactory"/>
+
+    <!-- (2) -->
+    <bean id="reader"
+          class="org.mybatis.spring.batch.MyBatisCursorItemReader"
+          p:queryId="com.example.batch.tutorial.common.repository.MemberInfoRepository.cursor"
+          p:sqlSessionFactory-ref="jobSqlSessionFactory"/>
+
+    <!-- (3) -->
+    <bean id="writer" class="org.mybatis.spring.batch.MyBatisBatchItemWriter"
+          p:statementId="com.example.batch.tutorial.common.repository.MemberInfoRepository.updatePointAndStatus"
+          p:sqlSessionTemplate-ref="batchModeSqlSessionTemplate"/>
+
+</beans>
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
 [source, xml]
 .src/main/resources/META-INF/jobs/dbaccess/jobPointAddChunk.xml
 ----
@@ -466,6 +566,12 @@ MyBatisによるデータベースアクセスするための設定として、�
 
 </beans>
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============ 
 
 [cols="10,90", options="header"]
 .説明
@@ -603,6 +709,62 @@ public class PointAddItemProcessor implements ItemProcessor<MemberInfoDto, Membe
 ==== ジョブBean定義ファイルの設定
 作成したビジネスロジックをジョブとして設定するため、ジョブBean定義ファイルに以下の(1)以降を追記する。
 
+// ============ Java/XML Config Tab start. ============ 
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup09040103" class="JavaConfigTab" id="tabgroup09040103_1" checked><label for="tabgroup09040103_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup09040103" class="XMLConfigTab" id="tabgroup09040103_2"><label for="tabgroup09040103_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+[source, xml]
+.src/main/resources/META-INF/jobs/dbaccess/jobPointAddChunk.xml
+----
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:batch="http://www.springframework.org/schema/batch"
+       xmlns:p="http://www.springframework.org/schema/p"
+       xmlns:mybatis="http://mybatis.org/schema/mybatis-spring"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd
+             http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd
+             http://www.springframework.org/schema/batch https://www.springframework.org/schema/batch/spring-batch.xsd
+             http://mybatis.org/schema/mybatis-spring http://mybatis.org/schema/mybatis-spring.xsd">
+
+    <bean class="com.example.batch.tutorial.config.JobBaseContextConfig" />
+
+    <context:component-scan base-package="com.example.batch.tutorial.dbaccess.chunk"/>
+
+    <mybatis:scan base-package="com.example.batch.tutorial.common.repository" factory-ref="jobSqlSessionFactory"/>
+
+    <bean id="reader"
+          class="org.mybatis.spring.batch.MyBatisCursorItemReader"
+          p:queryId="com.example.batch.tutorial.common.repository.MemberInfoRepository.cursor"
+          p:sqlSessionFactory-ref="jobSqlSessionFactory"/>
+
+    <bean id="writer" class="org.mybatis.spring.batch.MyBatisBatchItemWriter"
+          p:statementId="com.example.batch.tutorial.common.repository.MemberInfoRepository.updatePointAndStatus"
+          p:sqlSessionTemplate-ref="batchModeSqlSessionTemplate"/>
+
+    <!-- (1) -->
+    <batch:job id="jobPointAddChunk" job-repository="jobRepository">
+        <batch:step id="jobPointAddChunk.step01"> <!-- (2) -->
+            <batch:tasklet transaction-manager="jobTransactionManager">
+                <batch:chunk reader="reader"
+                             processor="pointAddItemProcessor"
+                             writer="writer" commit-interval="10"/> <!-- (3) -->
+            </batch:tasklet>
+        </batch:step>
+    </batch:job>
+</beans>
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
 [source, xml]
 .src/main/resources/META-INF/jobs/dbaccess/jobPointAddChunk.xml
 ----
@@ -645,6 +807,12 @@ public class PointAddItemProcessor implements ItemProcessor<MemberInfoDto, Membe
     </batch:job>
 </beans>
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============ 
 
 [cols="10,90", options="header"]
 .説明
@@ -729,7 +897,7 @@ image::ch09/DBAccess/Ch09_DBAccessJob_Confirm_ExitCode_ChunkModel.png[Confiｒm 
 [[Ch09_Impl_DBAccessJob_Chunk_Execution_Table]]
 ==== 会員情報テーブルの確認
 更新前後の会員情報テーブルの内容を比較し、確認内容のとおりとなっていることを確認する。 +
-確認手順は<<Ch09_EnvironmentConstruction.adoc#Ch09_EnvironmentConstruction_OperationCheck_RefDB,DBeaverを使用してデータベースを参照する>>を参照。
+確認手順は<<Ch09_EnvironmentConstruction.adoc#Ch09_EnvironmentConstruction_OperationCheck_RefDB,H2 Consoleを使用してデータベースを参照する>>を参照。
 
 確認内容::
 * statusカラム
@@ -760,6 +928,43 @@ image::ch09/DBAccess/Ch09_DBAccessJob_Result_MemberInfoTable.png[Table of member
 Bean定義ファイルにて、タスクレットモデルでデータベースアクセスを行うジョブを構成する要素の組み合わせ方を設定する。 +
 ここでは、Bean定義ファイルの枠および共通的な設定のみ記述し、以降の項で各構成要素の設定を行う。
 
+// ============ Java/XML Config Tab start. ============ 
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup09040104" class="JavaConfigTab" id="tabgroup09040104_1" checked><label for="tabgroup09040104_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup09040104" class="XMLConfigTab" id="tabgroup09040104_2"><label for="tabgroup09040104_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+[source, xml]
+.src/main/resources/META-INF/jobs/dbaccess/jobPointAddTasklet.xml
+----
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:batch="http://www.springframework.org/schema/batch"
+       xmlns:p="http://www.springframework.org/schema/p"
+       xmlns:mybatis="http://mybatis.org/schema/mybatis-spring"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd
+             http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd
+             http://www.springframework.org/schema/batch https://www.springframework.org/schema/batch/spring-batch.xsd
+             http://mybatis.org/schema/mybatis-spring http://mybatis.org/schema/mybatis-spring.xsd">
+
+    <!-- (1) -->
+    <bean class="com.example.batch.tutorial.config.JobBaseContextConfig" />
+
+    <!-- (2) -->
+    <context:component-scan base-package="com.example.batch.tutorial.dbaccess.tasklet"/>
+
+</beans>
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
 [source, xml]
 .src/main/resources/META-INF/jobs/dbaccess/jobPointAddTasklet.xml
 ----
@@ -783,6 +988,12 @@ Bean定義ファイルにて、タスクレットモデルでデータベース�
 
 </beans>
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============ 
 
 [cols="10,90", options="header"]
 .説明
@@ -988,6 +1199,55 @@ statusとpointを更新するSQLを設定する。
 ==== ジョブBean定義ファイルの設定
 MyBatisによるデータベースアクセスするための設定として、ジョブBean定義ファイルに以下の(1)～(3)を追記する。
 
+// ============ Java/XML Config Tab start. ============ 
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup09040105" class="JavaConfigTab" id="tabgroup09040105_1" checked><label for="tabgroup09040105_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup09040105" class="XMLConfigTab" id="tabgroup09040105_2"><label for="tabgroup09040105_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+[source, xml]
+.src/main/resources/META-INF/jobs/dbaccess/jobPointAddTasklet.xml
+----
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:batch="http://www.springframework.org/schema/batch"
+       xmlns:p="http://www.springframework.org/schema/p"
+       xmlns:mybatis="http://mybatis.org/schema/mybatis-spring"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd
+             http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd
+             http://www.springframework.org/schema/batch https://www.springframework.org/schema/batch/spring-batch.xsd
+             http://mybatis.org/schema/mybatis-spring http://mybatis.org/schema/mybatis-spring.xsd">
+
+    <bean class="com.example.batch.tutorial.config.JobBaseContextConfig" />
+
+    <context:component-scan base-package="com.example.batch.tutorial.dbaccess.tasklet"/>
+
+    <!-- (1) -->
+    <mybatis:scan base-package="com.example.batch.tutorial.common.repository" factory-ref="jobSqlSessionFactory"/>
+
+    <!-- (2) -->
+    <bean id="reader"
+          class="org.mybatis.spring.batch.MyBatisCursorItemReader"
+          p:queryId="com.example.batch.tutorial.common.repository.MemberInfoRepository.cursor"
+          p:sqlSessionFactory-ref="jobSqlSessionFactory"/>
+
+    <!-- (3) -->
+    <bean id="writer" class="org.mybatis.spring.batch.MyBatisBatchItemWriter"
+          p:statementId="com.example.batch.tutorial.common.repository.MemberInfoRepository.updatePointAndStatus"
+          p:sqlSessionTemplate-ref="batchModeSqlSessionTemplate"/>
+
+</beans>
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
 [source, xml]
 .src/main/resources/META-INF/jobs/dbaccess/jobPointAddTasklet.xml
 ----
@@ -1023,6 +1283,12 @@ MyBatisによるデータベースアクセスするための設定として、�
 
 </beans>
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============ 
 
 [cols="10,90", options="header"]
 .説明
@@ -1087,13 +1353,14 @@ package com.example.batch.tutorial.dbaccess.tasklet;
 import org.springframework.batch.core.StepContribution;
 import org.springframework.batch.core.scope.context.ChunkContext;
 import org.springframework.batch.core.step.tasklet.Tasklet;
+import org.springframework.batch.item.Chunk;
 import org.springframework.batch.item.ItemStreamReader;
 import org.springframework.batch.item.ItemWriter;
 import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.stereotype.Component;
 import com.example.batch.tutorial.common.dto.MemberInfoDto;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -1146,12 +1413,12 @@ public class PointAddTasklet implements Tasklet {
                 items.add(item);
 
                 if (items.size() == CHUNK_SIZE) { // (15)
-                    writer.write(items); // (16)
+                    writer.write(new Chunk(items)); // (16)
                     items.clear();
                 }
             }
 
-            writer.write(items); // (17)
+            writer.write(new Chunk(items)); // (17)
         } finally {
             reader.close(); // (18)
         }
@@ -1241,6 +1508,59 @@ public class PointAddTasklet implements Tasklet {
 ==== ジョブBean定義ファイルの設定
 作成したビジネスロジックをジョブとして設定するため、ジョブBean定義ファイルに以下の(1)以降を追記する。
 
+// ============ Java/XML Config Tab start. ============ 
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup09040106" class="JavaConfigTab" id="tabgroup09040106_1" checked><label for="tabgroup09040106_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup09040106" class="XMLConfigTab" id="tabgroup09040106_2"><label for="tabgroup09040106_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+[source, xml]
+.src/main/resources/META-INF/jobs/dbaccess/jobPointAddTasklet.xml
+----
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:batch="http://www.springframework.org/schema/batch"
+       xmlns:p="http://www.springframework.org/schema/p"
+       xmlns:mybatis="http://mybatis.org/schema/mybatis-spring"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd
+             http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd
+             http://www.springframework.org/schema/batch https://www.springframework.org/schema/batch/spring-batch.xsd
+             http://mybatis.org/schema/mybatis-spring http://mybatis.org/schema/mybatis-spring.xsd">
+
+    <bean class="com.example.batch.tutorial.config.JobBaseContextConfig" />
+
+    <context:component-scan base-package="com.example.batch.tutorial.dbaccess.tasklet"/>
+
+    <mybatis:scan base-package="com.example.batch.tutorial.common.repository" factory-ref="jobSqlSessionFactory"/>
+
+    <bean id="reader"
+          class="org.mybatis.spring.batch.MyBatisCursorItemReader"
+          p:queryId="com.example.batch.tutorial.common.repository.MemberInfoRepository.cursor"
+          p:sqlSessionFactory-ref="jobSqlSessionFactory"/>
+
+    <bean id="writer" class="org.mybatis.spring.batch.MyBatisBatchItemWriter"
+          p:statementId="com.example.batch.tutorial.common.repository.MemberInfoRepository.updatePointAndStatus"
+         p:sqlSessionTemplate-ref="batchModeSqlSessionTemplate"/>
+
+    <!-- (1) -->
+    <batch:job id="jobPointAddTasklet" job-repository="jobRepository">
+        <batch:step id="jobPointAddTasklet.step01"> <!-- (2) -->
+            <batch:tasklet transaction-manager="jobTransactionManager"
+                           ref="pointAddTasklet"/> <!-- (3) -->
+        </batch:step>
+    </batch:job>
+</beans>
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
 [source, xml]
 .src/main/resources/META-INF/jobs/dbaccess/jobPointAddTasklet.xml
 ----
@@ -1280,6 +1600,12 @@ public class PointAddTasklet implements Tasklet {
     </batch:job>
 </beans>
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============ 
 
 [cols="10,90", options="header"]
 .説明
@@ -1350,7 +1676,7 @@ image::ch09/DBAccess/Ch09_DBAccessJob_Confirm_ExitCode_TaskletModel.png[Confiｒ
 [[Ch09_Impl_DBAccessJob_Tasklet_Execution_Table]]
 ==== 会員情報テーブルの確認
 更新前後の会員情報テーブルの内容を比較し、確認内容のとおりとなっていることを確認する。 +
-確認手順は<<Ch09_EnvironmentConstruction.adoc#Ch09_EnvironmentConstruction_OperationCheck_RefDB,DBeaverを使用してデータベースを参照する>>を参照。
+確認手順は<<Ch09_EnvironmentConstruction.adoc#Ch09_EnvironmentConstruction_OperationCheck_RefDB,H2 Consoleを使用してデータベースを参照する>>を参照。
 
 確認内容::
 * statusカラム

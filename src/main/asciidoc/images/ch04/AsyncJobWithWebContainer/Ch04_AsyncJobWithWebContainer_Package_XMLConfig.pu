@@ -11,9 +11,9 @@ package "war" {
       }
     }
     package "asyncbatch" {
-      artifact [LaunchContextConfig.class (1)] as 1
+      artifact [launch-context.xml (1)] as 1
       node "JobContext" {
-        artifact [JobBaseContextConfig.class (2)] as 2
+        artifact [job-base-context.xml (2)] as 2
         artifact [jobXxx.xml (3)] as 3
       }
     }

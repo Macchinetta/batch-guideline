@@ -99,12 +99,65 @@ async-batch-daemon.polling-stop-file-path=/tmp/stop-async-batch-daemon
 
 [[Ch09_Impl_AsyncExecutionJob_Preparation_Bean]]
 === ジョブの設定
+
+// ============ Java/XML Config Tab start. ============ 
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup09040601" class="JavaConfigTab" id="tabgroup09040601_1" checked><label for="tabgroup09040601_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup09040601" class="XMLConfigTab" id="tabgroup09040601_2"><label for="tabgroup09040601_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+非同期実行する対象のジョブは、``AsyncBatchDaemonConfig.java``の``automaticJobRegistrar``に設定する。
+
+例として<<Ch09_DBAccessJob.adoc#Ch09_Impl_DBAccessJob,データベースアクセスでデータ入出力を行うジョブ>>(チャンクモデル)を指定した設定を以下に示す。
+
+[source, java]
+.com.example.batch.tutorial.config.AsyncBatchDaemonConfig.java
+----
+// omitted
+@Bean
+public AutomaticJobRegistrar automaticJobRegistrar(ResourceLoader resourceLoader, JobRegistry jobRegistry,
+                                                   ApplicationContextFactory[] applicationContextFactories) throws Exception {
+    final AutomaticJobRegistrar automaticJobRegistrar = new AutomaticJobRegistrar();
+    final DefaultJobLoader defaultJobLoader = new DefaultJobLoader();
+    defaultJobLoader.setJobRegistry(jobRegistry);
+    automaticJobRegistrar.setApplicationContextFactories(applicationContextFactories);
+    automaticJobRegistrar.setJobLoader(defaultJobLoader);
+    return automaticJobRegistrar;
+}
+
+@Bean
+public ApplicationContextFactory[] applicationContextFactories(final ApplicationContext ctx) throws IOException {
+    return new ApplicationContextFactoryHelper(ctx).load("classpath:/META-INF/jobs/dbaccess/jobPointAddChunk.xml"); // (1)
+}
+// omitted
+----
+
+[cols="10,90", options="header"]
+.説明
+|===
+|項番
+|説明
+
+|(1)
+|非同期実行する対象ジョブのBean定義ファイルを指定する。 +
+ワイルドカード(\**/*)の利用も可能である。
+ジョブの指定に際しては<<Ch04_AsyncJobWithDB.adoc#Ch04_AsyncJobWithDB_HowToUse_Config_Job,ジョブの設定>>に記載してある注意事項を参照。 +
+``ApplicationContextFactoryHelper`` は JavaConfigで ``ApplicationContextFactory`` の生成を補助するヘルパクラスである。コンストラクタには各ジョブで親となる共通定義の ``ApplicationContext`` を指定する。
+|===
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
 非同期実行する対象のジョブは、``async-batch-daemon.xml``の``automaticJobRegistrar``に設定する。
 
 例として<<Ch09_DBAccessJob.adoc#Ch09_Impl_DBAccessJob,データベースアクセスでデータ入出力を行うジョブ>>(チャンクモデル)を指定した設定を以下に示す。
 
 [source, xml]
-.src/main/resources/META-INF/spring/async-batch-daemon.xml
+.META-INF/spring/async-batch-daemon.xml
 ----
 <?xml version="1.0" encoding="UTF-8"?>
 <beans xmlns="http://www.springframework.org/schema/beans"
@@ -147,8 +200,13 @@ async-batch-daemon.polling-stop-file-path=/tmp/stop-async-batch-daemon
 |非同期実行する対象ジョブのBean定義ファイルを指定する。 +
 ワイルドカード(\**/*)の利用も可能である。
 ジョブの指定に際しては<<Ch04_AsyncJobWithDB.adoc#Ch04_AsyncJobWithDB_HowToUse_Config_Job,ジョブの設定>>に記載してある注意事項を参照。
-
 |===
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============ 
 
 [WARNING]
 .ジョブ設計上の留意点
@@ -251,20 +309,10 @@ tutorial.insert-data.script=file:sqls/insert-member-info-data.sql
 STS上でSQLを実行する方法を以下に記す。
 
 .SQL実行手順
-. Database Browserを表示する。 +
-Database Browserの表示手順は<<Ch09_EnvironmentConstruction.adoc#Ch09_EnvironmentConstruction_OperationCheck_RefDB,DBeaverを使用してデータベースを参照する>>を参照。
-
-.Data Source Explorer View
-image::ch09/AsyncExecution/Ch09_AsyncExecutionJob_DataSourceExplorer.png[Data Source Explorer View]
+. H2 Consoleを表示する。 +
+H2 Consoleの表示手順は<<Ch09_EnvironmentConstruction.adoc#Ch09_EnvironmentConstruction_OperationCheck_RefDB,H2 Consoleを使用してデータベースを参照する>>を参照。
 
 [start=2]
-. SQLエディタを開く。 +
-[H2 Embedded]を右クリックし、[最近のSQLエディタ]をクリックする。
-
-.SQL Editor
-image::ch09/AsyncExecution/Ch09_AsyncExecutionJob_SQLEditor.png[Open SQL Editor]
-
-[start=3]
 . SQLを記述する。 +
 データベースアクセスするジョブとファイルアクセスするジョブを実行するためのSQLをチャンクモデルの例で以下に示す。
 
@@ -287,21 +335,19 @@ VALUES ('jobPointAddChunk', '', 'INIT', current_timestamp);
 .ファイルアクセスするジョブの実行要求用SQL
 ----
 INSERT INTO batch_job_request(job_name,job_parameter,polling_status,create_date)
-VALUES ('jobPointAddChunk', 'inputFile=files/input/input-member-info-data.csv,outputFile=files/output/output-member-info-data.csv', 'INIT', current_timestamp);
+VALUES ('jobPointAddChunk', 'inputFile=files/input/input-member-info-data.csv outputFile=files/output/output-member-info-data.csv', 'INIT', current_timestamp);
 ----
 
 SQL記述後のイメージを以下に記す。 +
 ここでは、データベースアクセスするジョブの実行要求用SQLを記述している。
 
-[start=4]
-. ジョブの実行要求用SQLを入力し、[Ctrl]キー + [S]キーで保存する。
-. [Ctrl]キー + [Enter]キーでSQLを実行する。
-. [Statistics]に更新したRowカウント、実行したクエリ、クエリが完了した時間が出力される。
+[start=3]
+. [Shift]キー + [Enter]キーでSQLを実行する。
 
 .Execute SQL
 image::ch09/AsyncExecution/Ch09_AsyncExecutionJob_ExecuteSQL.png[Execute SQL]
 
-[start=7]
+[start=4]
 . ジョブ要求テーブルを確認する。 +
 下図のとおり、ジョブ要求テーブルにジョブを実行するための情報が登録されていることを確認する。 +
 ``POLLING_STATUS``は``INIT``で登録したが、既にポーリングが行われた場合は、``POLLING_STATUS``が``POLLED``もしくは``EXECUTED``となっている。 +
@@ -347,7 +393,7 @@ Console Viewを開き、以下の内容のログが出力されていること�
 [[Ch09_Impl_AsyncExecutionJob_ExecutionResultCheck_Output_Table]]
 ==== データベースアクセスするジョブの場合
 更新前後の会員情報テーブルの内容を比較し、確認内容のとおりとなっていることを確認する。 +
-確認手順は<<Ch09_EnvironmentConstruction.adoc#Ch09_EnvironmentConstruction_OperationCheck_RefDB,Data Source Explorerを使用してデータベースを参照する>>を参照。
+確認手順は<<Ch09_EnvironmentConstruction.adoc#Ch09_EnvironmentConstruction_OperationCheck_RefDB,H2 Consoleを使用してデータベースを参照する>>を参照。
 
 確認内容::
 * statusカラム

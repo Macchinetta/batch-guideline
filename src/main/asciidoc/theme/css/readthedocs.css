@@ -694,3 +694,41 @@ table.tableblock.grid-all th.tableblock, table.tableblock.grid-all td.tableblock
 #footer { background-color: #465158; padding: 2em; }
 
 #footer-text { color: #eee; font-size: 0.8em; text-align: center; }
+
+.tabbox { margin: 0px; padding: 1em; background-color: #f8f8ff; }
+
+.tabbox input { display: none; }
+ 
+.tabbox { margin: 0px; padding: 1em; }
+
+.tabbox input { display: none; }
+
+.tab {
+  display: inline-block;
+  padding: 1rem 1.5rem;
+  color: #1d5c87;
+}
+
+input:checked + .tab {
+  border: 1px solid #a0b3bf;
+  border-radius: 5px 5px 0px 0px;
+  border-bottom: 1px solid white;
+  font-weight: bold;
+  background-color: white;
+  position: relative;
+  z-index: 10;
+}
+
+.tabcontent {
+  display: none;
+  border: 1px solid #a0b3bf;
+  margin-top: -1px;
+  padding: 1em;
+  position: relative;
+  z-index: 0;
+  background: white;
+  border-radius: 0px 0px 5px 5px;
+}
+
+.JavaConfigTab:checked ~ [name="JavaConfigContent"] { display: block; }
+.XMLConfigTab:checked ~ [name="XMLConfigContent"] { display: block; }

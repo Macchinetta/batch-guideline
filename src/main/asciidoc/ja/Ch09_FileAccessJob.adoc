@@ -184,6 +184,41 @@ image::Ch09_FileAccessJob_ProcessSequence_TaskletModel.png[ProcessSequence of Fi
 Bean定義ファイルにて、チャンクモデルでのファイルアクセスでデータ入出力を行うジョブを構成する要素の組み合わせ方を設定する。 +
 ここでは、Bean定義ファイルの枠および共通的な設定のみ記述し、以降の項で各構成要素の設定を行う。
 
+// ============ Java/XML Config Tab start. ============ 
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup09040201" class="JavaConfigTab" id="tabgroup09040201_1" checked><label for="tabgroup09040201_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup09040201" class="XMLConfigTab" id="tabgroup09040201_2"><label for="tabgroup09040201_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+[source, xml]
+.src/main/resources/META-INF/jobs/fileaccess/jobPointAddChunk.xml
+----
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:batch="http://www.springframework.org/schema/batch"
+       xmlns:p="http://www.springframework.org/schema/p"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd
+             http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd
+             http://www.springframework.org/schema/batch https://www.springframework.org/schema/batch/spring-batch.xsd">
+
+    <!-- (1) -->
+    <bean class="com.example.batch.tutorial.config.JobBaseContextConfig"/>
+
+    <!-- (2) -->
+    <context:component-scan base-package="com.example.batch.tutorial.fileaccess.chunk"/>
+
+</beans>
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
 [source, xml]
 .src/main/resources/META-INF/jobs/fileaccess/jobPointAddChunk.xml
 ----
@@ -205,6 +240,12 @@ Bean定義ファイルにて、チャンクモデルでのファイルアクセ�
 
 </beans>
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============ 
 
 [cols="10,90", options="header"]
 .説明
@@ -305,6 +346,81 @@ ItemReader、ItemWriterの設定として、ジョブBean定義ファイルに�
 ここで触れていない設定内容については、<<Ch05_FileAccess.adoc#Ch05_FileAccess_HowToUse_VariableLength_Input,可変長レコードの入力>>
 および<<Ch05_FileAccess.adoc#Ch05_FileAccess_HowToUse_VariableLength_Output,可変長レコードの出力>>を参照。
 
+// ============ Java/XML Config Tab start. ============ 
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup09040202" class="JavaConfigTab" id="tabgroup09040202_1" checked><label for="tabgroup09040202_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup09040202" class="XMLConfigTab" id="tabgroup09040202_2"><label for="tabgroup09040202_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+[source, xml]
+.src/main/resources/META-INF/jobs/fileaccess/jobPointAddChunk.xml
+----
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:batch="http://www.springframework.org/schema/batch"
+       xmlns:p="http://www.springframework.org/schema/p"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd
+             http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd
+             http://www.springframework.org/schema/batch https://www.springframework.org/schema/batch/spring-batch.xsd">
+
+    <bean class="com.example.batch.tutorial.config.JobBaseContextConfig"/>
+
+    <context:component-scan base-package="com.example.batch.tutorial.fileaccess.chunk"/>
+
+    <!-- (1) (2) -->
+    <bean id="reader"
+          class="org.springframework.batch.item.file.FlatFileItemReader" scope="step"
+          p:resource="file:#{jobParameters['inputFile']}"
+          p:encoding="UTF-8"
+          p:strict="true">
+        <property name="lineMapper">
+            <bean class="org.springframework.batch.item.file.mapping.DefaultLineMapper">
+                <property name="lineTokenizer"> <!-- (3) -->
+                    <bean class="org.springframework.batch.item.file.transform.DelimitedLineTokenizer"
+                          p:names="id,type,status,point"
+                          p:delimiter=","
+                          p:quoteCharacter='"'/> <!-- (4) (5) -->
+                </property>
+                <property name="fieldSetMapper"> <!-- (6) -->
+                    <bean class="org.springframework.batch.item.file.mapping.BeanWrapperFieldSetMapper"
+                          p:targetType="com.example.batch.tutorial.common.dto.MemberInfoDto"/>
+                </property>
+            </bean>
+        </property>
+    </bean>
+
+    <!-- (7) (8) -->
+    <bean id="writer"
+          class="org.springframework.batch.item.file.FlatFileItemWriter" scope="step"
+          p:resource="file:#{jobParameters['outputFile']}"
+          p:encoding="UTF-8"
+          p:lineSeparator="&#x0A;"
+          p:appendAllowed="false"
+          p:shouldDeleteIfExists="true"
+          p:transactional="true">
+        <property name="lineAggregator"> <!-- (9) -->
+            <bean class="org.springframework.batch.item.file.transform.DelimitedLineAggregator"
+                  p:delimiter=","> <!-- (10) -->
+                <property name="fieldExtractor"> <!-- (11) -->
+                    <bean class="org.springframework.batch.item.file.transform.BeanWrapperFieldExtractor"
+                          p:names="id,type,status,point"/> <!-- (12) -->
+                </property>
+            </bean>
+        </property>
+    </bean>
+
+</beans>
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
 [source, xml]
 .src/main/resources/META-INF/jobs/fileaccess/jobPointAddChunk.xml
 ----
@@ -366,6 +482,12 @@ ItemReader、ItemWriterの設定として、ジョブBean定義ファイルに�
 
 </beans>
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============ 
 
 [cols="10,90", options="header"]
 .説明
@@ -549,6 +671,89 @@ public class PointAddItemProcessor implements ItemProcessor<MemberInfoDto, Membe
 ==== ジョブBean定義ファイルの設定
 作成したビジネスロジックをジョブとして設定するため、ジョブBean定義ファイルに以下の(1)以降を追記する。
 
+// ============ Java/XML Config Tab start. ============ 
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup09040203" class="JavaConfigTab" id="tabgroup09040203_1" checked><label for="tabgroup09040203_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup09040203" class="XMLConfigTab" id="tabgroup09040203_2"><label for="tabgroup09040203_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+[source, xml]
+.src/main/resources/META-INF/jobs/fileaccess/jobPointAddChunk.xml
+----
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:batch="http://www.springframework.org/schema/batch"
+       xmlns:p="http://www.springframework.org/schema/p"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd
+             http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd
+             http://www.springframework.org/schema/batch https://www.springframework.org/schema/batch/spring-batch.xsd">
+
+    <bean class="com.example.batch.tutorial.config.JobBaseContextConfig"/>
+
+    <context:component-scan base-package="com.example.batch.tutorial.fileaccess.chunk"/>
+
+    <bean id="reader"
+          class="org.springframework.batch.item.file.FlatFileItemReader" scope="step"
+          p:resource="file:#{jobParameters['inputFile']}"
+          p:encoding="UTF-8"
+          p:strict="true">
+        <property name="lineMapper">
+            <bean class="org.springframework.batch.item.file.mapping.DefaultLineMapper">
+                <property name="lineTokenizer">
+                    <bean class="org.springframework.batch.item.file.transform.DelimitedLineTokenizer"
+                          p:names="id,type,status,point"
+                          p:delimiter=","
+                          p:quoteCharacter='"'/>
+                </property>
+                <property name="fieldSetMapper">
+                    <bean class="org.springframework.batch.item.file.mapping.BeanWrapperFieldSetMapper"
+                          p:targetType="com.example.batch.tutorial.common.dto.MemberInfoDto"/>
+                </property>
+            </bean>
+        </property>
+    </bean>
+
+    <bean id="writer"
+          class="org.springframework.batch.item.file.FlatFileItemWriter" scope="step"
+          p:resource="file:#{jobParameters['outputFile']}"
+          p:encoding="UTF-8"
+          p:lineSeparator="&#x0A;"
+          p:appendAllowed="false"
+          p:shouldDeleteIfExists="true"
+          p:transactional="true">
+        <property name="lineAggregator">
+            <bean class="org.springframework.batch.item.file.transform.DelimitedLineAggregator"
+                  p:delimiter=",">
+                <property name="fieldExtractor">
+                    <bean class="org.springframework.batch.item.file.transform.BeanWrapperFieldExtractor"
+                          p:names="id,type,status,point"/>
+                </property>
+            </bean>
+        </property>
+    </bean>
+
+    <!-- (1) -->
+    <batch:job id="jobPointAddChunk" job-repository="jobRepository">
+        <batch:step id="jobPointAddChunk.step01"> <!-- (2) -->
+            <batch:tasklet transaction-manager="jobTransactionManager">
+                <batch:chunk reader="reader"
+                             processor="pointAddItemProcessor"
+                             writer="writer" commit-interval="10"/> <!-- (3) -->
+            </batch:tasklet>
+        </batch:step>
+    </batch:job>
+</beans>
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
 [source, xml]
 .src/main/resources/META-INF/jobs/fileaccess/jobPointAddChunk.xml
 ----
@@ -618,6 +823,12 @@ public class PointAddItemProcessor implements ItemProcessor<MemberInfoDto, Membe
     </batch:job>
 </beans>
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============ 
 
 [cols="10,90", options="header"]
 .説明
@@ -738,6 +949,41 @@ image::ch09/FileAccess/Ch09_FileAccessJob_Result_MemberInfoFile.png[File of memb
 Bean定義ファイルにて、タスクレットモデルでのファイルアクセスでデータ入出力を行うジョブを構成する要素の組み合わせ方を設定する。 +
 ここでは、Bean定義ファイルの枠および共通的な設定のみ記述し、以降の項で各構成要素の設定を行う。
 
+// ============ Java/XML Config Tab start. ============ 
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup09040204" class="JavaConfigTab" id="tabgroup09040204_1" checked><label for="tabgroup09040204_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup09040204" class="XMLConfigTab" id="tabgroup09040204_2"><label for="tabgroup09040204_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+[source, xml]
+.src/main/resources/META-INF/jobs/fileaccess/jobPointAddTasklet.xml
+----
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:batch="http://www.springframework.org/schema/batch"
+       xmlns:p="http://www.springframework.org/schema/p"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd
+             http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd
+             http://www.springframework.org/schema/batch https://www.springframework.org/schema/batch/spring-batch.xsd">
+
+    <!-- (1) -->
+    <bean class="com.example.batch.tutorial.config.JobBaseContextConfig"/>
+
+    <!-- (2) -->
+    <context:component-scan base-package="com.example.batch.tutorial.fileaccess.tasklet"/>
+
+</beans>
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
 [source, xml]
 .src/main/resources/META-INF/jobs/fileaccess/jobPointAddTasklet.xml
 ----
@@ -759,6 +1005,12 @@ Bean定義ファイルにて、タスクレットモデルでのファイルア�
 
 </beans>
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============ 
 
 [cols="10,90", options="header"]
 .説明
@@ -858,6 +1110,81 @@ ItemReader、ItemWriterの設定として、ジョブBean定義ファイルに�
 ここで触れていない設定内容については、<<Ch05_FileAccess.adoc#Ch05_FileAccess_HowToUse_VariableLength_Input,可変長レコードの入力>>
 および<<Ch05_FileAccess.adoc#Ch05_FileAccess_HowToUse_VariableLength_Output,可変長レコードの出力>>を参照。
 
+// ============ Java/XML Config Tab start. ============ 
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup09040205" class="JavaConfigTab" id="tabgroup09040205_1" checked><label for="tabgroup09040205_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup09040205" class="XMLConfigTab" id="tabgroup09040205_2"><label for="tabgroup09040205_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+[source, xml]
+.src/main/resources/META-INF/jobs/fileaccess/jobPointAddTasklet.xml
+----
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:batch="http://www.springframework.org/schema/batch"
+       xmlns:p="http://www.springframework.org/schema/p"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd
+             http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd
+             http://www.springframework.org/schema/batch https://www.springframework.org/schema/batch/spring-batch.xsd">
+
+    <bean class="com.example.batch.tutorial.config.JobBaseContextConfig"/>
+
+    <context:component-scan base-package="com.example.batch.tutorial.fileaccess.tasklet"/>
+
+    <!-- (1) (2) -->
+    <bean id="reader"
+          class="org.springframework.batch.item.file.FlatFileItemReader" scope="step"
+          p:resource="file:#{jobParameters['inputFile']}"
+          p:encoding="UTF-8"
+          p:strict="true">
+        <property name="lineMapper">
+            <bean class="org.springframework.batch.item.file.mapping.DefaultLineMapper">
+                <property name="lineTokenizer"> <!-- (3) -->
+                    <bean class="org.springframework.batch.item.file.transform.DelimitedLineTokenizer"
+                          p:names="id,type,status,point"
+                          p:delimiter=","
+                          p:quoteCharacter='"'/> <!-- (4) (5) -->
+                </property>
+                <property name="fieldSetMapper"> <!-- (6) -->
+                    <bean class="org.springframework.batch.item.file.mapping.BeanWrapperFieldSetMapper"
+                          p:targetType="com.example.batch.tutorial.common.dto.MemberInfoDto"/>
+                </property>
+            </bean>
+        </property>
+    </bean>
+
+    <!-- (7) (8) -->
+    <bean id="writer"
+          class="org.springframework.batch.item.file.FlatFileItemWriter" scope="step"
+          p:resource="file:#{jobParameters['outputFile']}"
+          p:encoding="UTF-8"
+          p:lineSeparator="&#x0A;"
+          p:appendAllowed="false"
+          p:shouldDeleteIfExists="true"
+          p:transactional="true">
+        <property name="lineAggregator"> <!-- (9) -->
+            <bean class="org.springframework.batch.item.file.transform.DelimitedLineAggregator"
+                  p:delimiter=","> <!-- (10) -->
+                <property name="fieldExtractor"> <!-- (11) -->
+                    <bean class="org.springframework.batch.item.file.transform.BeanWrapperFieldExtractor"
+                          p:names="id,type,status,point"/> <!-- (12) -->
+                </property>
+            </bean>
+        </property>
+    </bean>
+
+</beans>
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
 [source, xml]
 .src/main/resources/META-INF/jobs/fileaccess/jobPointAddTasklet.xml
 ----
@@ -919,6 +1246,12 @@ ItemReader、ItemWriterの設定として、ジョブBean定義ファイルに�
 
 </beans>
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============ 
 
 [cols="10,90", options="header"]
 .説明
@@ -1021,6 +1354,7 @@ package com.example.batch.tutorial.fileaccess.tasklet;
 import org.springframework.batch.core.StepContribution;
 import org.springframework.batch.core.scope.context.ChunkContext;
 import org.springframework.batch.core.step.tasklet.Tasklet;
+import org.springframework.batch.item.Chunk;
 import org.springframework.batch.item.ItemStreamException;
 import org.springframework.batch.item.ItemStreamReader;
 import org.springframework.batch.item.ItemStreamWriter;
@@ -1029,7 +1363,7 @@ import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 import com.example.batch.tutorial.common.dto.MemberInfoDto;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -1084,12 +1418,12 @@ public class PointAddTasklet implements Tasklet {
                 items.add(item);
 
                 if (items.size() == CHUNK_SIZE) { // (16)
-                    writer.write(items); // (17)
+                    writer.write(new Chunk(items)); // (17)
                     items.clear();
                 }
             }
 
-            writer.write(items); // (18)
+            writer.write(new Chunk(items)); // (18)
         } finally {
             try {
                 reader.close(); // (19)
@@ -1187,6 +1521,86 @@ public class PointAddTasklet implements Tasklet {
 ==== ジョブBean定義ファイルの設定
 作成したビジネスロジックをジョブとして設定するため、ジョブBean定義ファイルに以下の(1)以降を追記する。
 
+// ============ Java/XML Config Tab start. ============ 
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup09040206" class="JavaConfigTab" id="tabgroup09040206_1" checked><label for="tabgroup09040206_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup09040206" class="XMLConfigTab" id="tabgroup09040206_2"><label for="tabgroup09040206_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+[source, xml]
+.src/main/resources/META-INF/jobs/fileaccess/jobPointAddTasklet.xml
+----
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:batch="http://www.springframework.org/schema/batch"
+       xmlns:p="http://www.springframework.org/schema/p"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd
+             http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd
+             http://www.springframework.org/schema/batch https://www.springframework.org/schema/batch/spring-batch.xsd">
+
+    <bean class="com.example.batch.tutorial.config.JobBaseContextConfig"/>
+
+    <context:component-scan base-package="com.example.batch.tutorial.fileaccess.tasklet"/>
+
+    <bean id="reader"
+          class="org.springframework.batch.item.file.FlatFileItemReader" scope="step"
+          p:resource="file:#{jobParameters['inputFile']}"
+          p:encoding="UTF-8"
+          p:strict="true">
+        <property name="lineMapper">
+            <bean class="org.springframework.batch.item.file.mapping.DefaultLineMapper">
+                <property name="lineTokenizer">
+                    <bean class="org.springframework.batch.item.file.transform.DelimitedLineTokenizer"
+                          p:names="id,type,status,point"
+                          p:delimiter=","
+                          p:quoteCharacter='"'/>
+                </property>
+                <property name="fieldSetMapper">
+                    <bean class="org.springframework.batch.item.file.mapping.BeanWrapperFieldSetMapper"
+                          p:targetType="com.example.batch.tutorial.common.dto.MemberInfoDto"/>
+                </property>
+            </bean>
+        </property>
+    </bean>
+
+    <bean id="writer"
+          class="org.springframework.batch.item.file.FlatFileItemWriter" scope="step"
+          p:resource="file:#{jobParameters['outputFile']}"
+          p:encoding="UTF-8"
+          p:lineSeparator="&#x0A;"
+          p:appendAllowed="false"
+          p:shouldDeleteIfExists="true"
+          p:transactional="true">
+        <property name="lineAggregator">
+            <bean class="org.springframework.batch.item.file.transform.DelimitedLineAggregator"
+                  p:delimiter=",">
+                <property name="fieldExtractor">
+                    <bean class="org.springframework.batch.item.file.transform.BeanWrapperFieldExtractor"
+                          p:names="id,type,status,point"/>
+                </property>
+            </bean>
+        </property>
+    </bean>
+
+    <!-- (1) -->
+    <batch:job id="jobPointAddTasklet" job-repository="jobRepository">
+        <batch:step id="jobPointAddTasklet.step01"> <!-- (2) -->
+            <batch:tasklet transaction-manager="jobTransactionManager"
+                           ref="pointAddTasklet"/> <!-- (3) -->
+        </batch:step>
+    </batch:job>
+</beans>
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
 [source, xml]
 .src/main/resources/META-INF/jobs/fileaccess/jobPointAddTasklet.xml
 ----
@@ -1253,6 +1667,12 @@ public class PointAddTasklet implements Tasklet {
     </batch:job>
 </beans>
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============ 
 
 [cols="10,90", options="header"]
 .説明

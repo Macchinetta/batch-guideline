@@ -123,16 +123,16 @@ image::Ch06_InputValidation_Architecture_classes.png[InputValidation architectur
 ====
 
 [IMPORTANT]
-.javax.validation.Validatorやorg.springframework.validation.Validatorといったバリデータは直接使用しない。
+.jakarta.validation.Validatorやorg.springframework.validation.Validatorといったバリデータは直接使用しない。
 ====
-``javax.validation.Validator``や``org.springframework.validation.Validator``といったバリデータは直接使用せず、
+``jakarta.validation.Validator``や``org.springframework.validation.Validator``といったバリデータは直接使用せず、
 ``org.springframework.batch.item.validator.SpringValidator``を使用する。
 
 ``SpringValidator``は``org.springframework.validation.Validator``のラッパーである。 +
 ``SpringValidator``は発生した例外を``BindException``にラップし、``ValidationException``としてスローする。 +
 そのため、``ValidationException``を通して``BindException``にアクセスでき、柔軟なハンドリングがしやすくなる。
 
-一方、``javax.validation.Validator``や``org.springframework.validation.Validator``といったバリデータを直接使用すると、バリデーションエラーになった情報を処理する際に煩雑なロジックになってしまう。
+一方、``jakarta.validation.Validator``や``org.springframework.validation.Validator``といったバリデータを直接使用すると、バリデーションエラーになった情報を処理する際に煩雑なロジックになってしまう。
 ====
 
 [IMPORTANT]
@@ -180,8 +180,40 @@ image::Ch06_InputValidation_Architecture_classes.png[InputValidation architectur
 </dependency>
 ----
 
+// ============ Java/XML Config Tab start. ============ 
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup060101" class="JavaConfigTab" id="tabgroup060101_1" checked><label for="tabgroup060101_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup060101" class="XMLConfigTab" id="tabgroup060101_2"><label for="tabgroup060101_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+[source, java]
+.jp.co.ntt.fw.macchinetta.batch.functionaltest.config.LaunchContextConfig.java
+----
+@Bean
+public SpringValidator<?> validator(Validator beanValidator) {
+    final SpringValidator<?> springValidator = new SpringValidator<>();
+    springValidator.setValidator(beanValidator);
+    return springValidator;
+}
+
+@Bean
+public Validator beanValidator() {
+    try (LocalValidatorFactoryBean localValidatorFactoryBean = new LocalValidatorFactoryBean()) {
+        localValidatorFactoryBean.afterPropertiesSet();
+        return localValidatorFactoryBean;
+    }
+}
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
 [source, xml]
-.launch-context.xml
+.META-INF/spring/launch-context.xml
 ----
 <bean id="validator" class="org.springframework.batch.item.validator.SpringValidator"
       p:validator-ref="beanValidator"/>
@@ -189,6 +221,12 @@ image::Ch06_InputValidation_Architecture_classes.png[InputValidation architectur
 <bean id="beanValidator"
       class="org.springframework.validation.beanvalidation.LocalValidatorFactoryBean" />
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============ 
 
 .エラーメッセージの設定
 

@@ -8,12 +8,6 @@
 ++++ <&folder> com // (1)
 +++++ <&folder> example
 ++++++ <&folder> batch
-+++++++ <&folder> config // (2)
-++++++++ <&folder> helper
-+++++++++ <&file> ApplicationContextFactoryHelper.java
-++++++++ <&file> AsynBatchDaemonConfig.java // (3)
-++++++++ <&file> JobBaseContextConfig.java // (4)
-++++++++ <&file> LaunchContextConfig.java // (5)
 +++++++ <&folder> job01 // (6)
 ++++++++ <&file> Employee.java
 ++++++++ <&file> EmployeeProcessor.java
@@ -32,6 +26,10 @@
 ++++ <&folder> META-INF
 +++++ <&folder> jobs // (12)
 ++++++ <&file> job01.xml
++++++ <&folder> spring // (2)
+++++++ <&file> async-batch-daemon.xml // (3)
+++++++ <&file> job-base-context.xml // (4)
+++++++ <&file> launch-context.xml // (5)
 ++ <&folder> test
 +++ <&folder> java
 +++ <&folder> resources

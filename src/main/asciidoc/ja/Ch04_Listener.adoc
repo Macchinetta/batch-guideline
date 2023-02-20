@@ -98,7 +98,7 @@ public interface ChunkListener extends StepListener {
 .使用例
 ----
 public void afterChunkError(ChunkContext context) {
-    logger.error("Exception occurred while chunk. [context:{}]", context,
+    logger.error("Exception occurred while chunk. [context:{}]",
             context.getAttribute(ChunkListener.ROLLBACK_EXCEPTION_KEY));
 }
 ----
@@ -142,9 +142,9 @@ ItemWriteListener::
 .ItemWriteListenerインタフェース
 ----
 public interface ItemWriteListener<S> extends StepListener {
-  void beforeWrite(List<? extends S> items);
-  void afterWrite(List<? extends S> items);
-  void onWriteError(Exception exception, List<? extends S> items);
+  void beforeWrite(Chunk<? extends S> items);
+  void afterWrite(Chunk<? extends S> items);
+  void onWriteError(Exception exception, Chunk<? extends S> items);
 }
 ----
 

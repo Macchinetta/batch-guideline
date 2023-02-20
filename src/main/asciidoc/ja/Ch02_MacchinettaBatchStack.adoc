@@ -26,7 +26,7 @@ image::Ch02_MacchinettaBatchStack_Stack.png[{batch5_fullname} Stack]
 ====
 {batch5_fullname}で使用するOSSのバージョンは、原則として、Spring Boot Dependenciesの定義に準じている。
 なお、バージョン{batch5_version}におけるSpring Boot Dependenciesのバージョンは、
-https://docs.spring.io/spring-boot/docs/2.6.1/reference/htmlsingle/[2.6.1]である。
+https://docs.spring.io/spring-boot/docs/3.0.1/reference/htmlsingle/[3.0.1]である。
 ====
 
 [cols="25,25,25,15,5,5", options="header"]
@@ -112,70 +112,63 @@ https://docs.spring.io/spring-boot/docs/2.6.1/reference/htmlsingle/[2.6.1]であ
 |Spring Retry
 |org.springframework.retry
 |spring-retry
-|1.3.1
+|2.0.0
 ^|*
 |
-
-|Java Batch
-|javax.batch
-|javax.batch-api
-|1.0
-^|
-^|*1
 
 |MyBatis3
 |org.mybatis
 |mybatis
-|3.5.7
+|3.5.11
 |
-|
+|*1
 
 |MyBatis3
 |org.mybatis
 |mybatis-spring
-|2.0.6
+|3.0.1
 |
-|
+|*1
 
 |DI
 |jakarta.inject
 |jakarta.inject-api
-|1.0.5
+|2.0.1
 ^|
-|
+|*1
 
 |ログ出力
 |ch.qos.logback
 |logback-classic
-|1.2.7
+|1.4.5
 ^|*
 |
 
 |ログ出力
 |org.slf4j
 |jcl-over-slf4j
-|1.7.32
+|2.0.6
 ^|*
 |
 
 |ログ出力
 |org.slf4j
 |slf4j-api
-|1.7.32
-^|*
-|
+|1.7.36
+^|
+|*2
 
 |入力チェック
 |jakarta.validation
 |jakarta.validation-api
-|2.0.2
+|3.0.2
 ^|*
 |
 
 |入力チェック
 |org.hibernate.validator
 |hibernate-validator
-|6.2.0.Final
+|8.0.0.Final
 ^|*
 |
 
@@ -189,71 +182,65 @@ https://docs.spring.io/spring-boot/docs/2.6.1/reference/htmlsingle/[2.6.1]であ
 |EL式
 |org.glassfish
 |jakarta.el
-|3.0.4
-^|*
-|
+|4.0.2
+^|
+|*1
 
 |インメモリデータベース
 |com.h2database
 |h2
-|1.4.200
+|2.1.214
 ^|*
 |
 
 |JDBCドライバ
 |org.postgresql
 |postgresql
-|42.3.1
+|42.5.1
 ^|*
 |
 
 |JSON
 |com.fasterxml.jackson.core
 |jackson-databind
-|2.13.0
+|2.14.1
+^|*
 ^|
-^|*1
-
-|JSON
-|org.codehaus.jettison
-|jettison
-|1.2
-^|
-^|*1
 
 |XML
 |jakarta.xml.bind
 |jakarta.xml.bind-api
-|2.3.3
+|4.0.0
 ^|*
 |
 
 |XML
 |com.sun.xml.bind
 |jaxb-core
-|2.3.0.1
+|4.0.1
 ^|
-|
+|*1
 
 |XML
 |com.sun.xml.bind
 |jaxb-impl
-|2.3.5
+|4.0.1
 ^|
-|
+|*1
 
 |TERASOLUNA Batch
 |org.terasoluna.batch
 |terasoluna-batch
-|5.4.1.RELEASE
+|5.5.0.RELEASE
 |
-|
+|*1
 
 |===
 
 .Remarksについて
 ====
-. Spring Boot Dependenciesが定義するライブラリで個別に依存しているライブラリ
+. Spring Boot Dependenciesがバージョンを定義していないため、{batch5_fullname}で独自依存しているライブラリ
+. Spring Boot Dependenciesがバージョンを定義しているが、{batch5_fullname}が異なるバージョンを定義しているライブラリ
 ====
 
 [[Ch02_MacchinettaBatchStack_Components]]
@@ -269,12 +256,12 @@ image::Ch02_MacchinettaBatchStack_Stack_Detail.png[{batch5_fullname} Components 
 基盤フレームワーク::
   フレームワークの基盤として、Spring Frameworkを利用する。DIコンテナをはじめ各種機能を活用する。
 
-  ** https://docs.spring.io/spring-framework/docs/{spring_fw_version}/reference/html/core.html[Spring Framework 5.3]
+  ** https://docs.spring.io/spring-framework/docs/{spring_fw_version}/reference/html/core.html[Spring Framework 6.0.0]
 
 バッチフレームワーク::
   バッチフレームワークとして、{SB}を利用する。同期実行には{SB}が提供するCommandLineJobRunnerを利用する。
 
-  ** https://docs.spring.io/spring-batch/docs/{spring_batch_version}/reference/html/index.html[{SB} 4.3]
+  ** https://docs.spring.io/spring-batch/docs/{spring_batch_version}/reference/html/index.html[{SB} 5.0.0]
 
 非同期実行::
   非同期実行を実現する方法として、以下の機能を利用する。
@@ -287,13 +274,13 @@ image::Ch02_MacchinettaBatchStack_Stack_Detail.png[{batch5_fullname} Components 
   Webコンテナ起動:::
   Spring MVCを使用して、{SB}と連携をする。
 
-  *** https://docs.spring.io/spring-framework/docs/{spring_fw_version}/reference/html/web.html#mvc[Spring MVC 5.3]
+  *** https://docs.spring.io/spring-framework/docs/{spring_fw_version}/reference/html/web.html#mvc[Spring MVC 6.0.0]
 
 O/R Mapper::
   MyBatisを利用し、Spring Frameworkとの連携ライブラリとして、MyBatis-Springを使用する。
 
   ** https://mybatis.org/mybatis-3/[MyBatis 3.5]
-  ** https://mybatis.org/spring/[MyBatis-Spring 2.0]
+  ** https://mybatis.org/spring/[MyBatis-Spring 2.1.0]
 
 ファイルアクセス::
   https://docs.spring.io/spring-batch/docs/{spring_batch_version}/reference/html/readersAndWriters.html#flatFiles[{SB}から提供されている機能]
@@ -307,30 +294,17 @@ O/R Mapper::
   ** https://www.slf4j.org/[SLF4J]
   ** https://logback.qos.ch/[Logback]
 
-[NOTE]
-.Logback 1.2.7について
-====
-Logback1.2.7には、攻撃者が設定ファイルを変更できる場合、JNDIを用いる機能を利用してリモートコード実行が可能な脆弱性(https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2021-42550[CVE-2021-42550])が存在している。
-ただし、この脆弱性を利用できる状況は攻撃者が設定ファイルを変更できる状態であり、その状況自体がアプリケーション起因や環境起因の重大な脆弱性となる。 +
- +
-このような重大な脆弱性がアプリケーションや環境にない限り、本脆弱性の影響を受けることはない。 +
-(このような環境にある場合、本脆弱性を利用せずとも、RCEが可能である) +
- +
-この脆弱性に対応するために、Logback1.2.8ではJNDIに関する機能をすべて削除し、以降のバージョンで脆弱性に対応した機能を復活させているが、削除された機能がすべて復活しているわけではない。 +
-バージョンを上げることによりアプリケーションが動かなくなる可能性を考慮し、Logbackのバージョンを1.2.7のままにしているため、必要に応じてLogbackのバージョンアップを検討されたい。
-====
-
 バリデーション::
   単項目チェック:::
     単項目チェックにはBean Validationを利用し、実装はHibernate Validatorを使用する。
 
       *** https://beanvalidation.org/2.0/spec/[Bean Validation 2.0]
-      *** https://docs.jboss.org/hibernate/validator/6.1/reference/en-US/html_single/[Hibernate Validator 6.1]
+      *** https://docs.jboss.org/hibernate/validator/7.0/reference/en-US/html_single/[Hibernate Validator 7.0]
 
   相関チェック:::
     相関チェックにはBean Validation、もしくはSpring Validationを利用する。
 
-      *** https://docs.spring.io/spring-framework/docs/{spring_fw_version}/reference/html/core.html#validation[Spring Validation 5.3]
+      *** https://docs.spring.io/spring-framework/docs/{spring_fw_version}/reference/html/core.html#validation[Spring Validation 6.0.0]
 
 コネクションプール::
   コネクションプールには、DBCPを利用する。

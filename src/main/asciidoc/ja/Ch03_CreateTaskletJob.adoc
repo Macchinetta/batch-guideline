@@ -30,6 +30,53 @@ include::_include_all.adoc[]
 Bean定義ファイルにて、タスクレットモデルジョブを定義する。
 以下に例を示す。
 
+// ============ Java/XML Config Tab start. ============ 
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup030301" class="JavaConfigTab" id="tabgroup030301_1" checked><label for="tabgroup030301_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup030301" class="XMLConfigTab" id="tabgroup030301_2"><label for="tabgroup030301_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+[source,xml]
+.Bean定義ファイルの例(タスクレットモデル)
+----
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:batch="http://www.springframework.org/schema/batch"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd
+             http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd
+             http://www.springframework.org/schema/batch https://www.springframework.org/schema/batch/spring-batch.xsd">
+
+    <!-- (1) -->
+    <import resource="classpath:jp.co.ntt.fw.macchinetta.batch.functionaltest.config.JobBaseContextConfig"/>
+
+    <!-- (2) -->
+    <context:component-scan
+          base-package="jp.co.ntt.fw.macchinetta.batch.functionaltest.app.common"/>
+
+    <!-- (3) -->
+    <!-- Tasklet -->
+    <!-- Tasklet in order that based on the Bean defined by the annotations, not defined here -->
+
+    <!-- (4) -->
+    <batch:job id="simpleJob" job-repository="jobRepository"> <!-- (5) -->
+        <batch:step id="simpleJob.step01"> <!-- (6) -->
+            <batch:tasklet transaction-manager="jobTransactionManager"
+                           ref="simpleJobTasklet"/> <!-- (7) -->
+        </batch:step>
+    </batch:job>
+
+</beans>
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
 [source,xml]
 .Bean定義ファイルの例(タスクレットモデル)
 ----
@@ -63,6 +110,12 @@ Bean定義ファイルにて、タスクレットモデルジョブを定義す�
 
 </beans>
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============ 
 
 [source,java]
 .Tasklet実装クラスの例
@@ -85,7 +138,7 @@ public class SimpleJobTasklet implements Tasklet {
 
 |(2)
 |コンポーネントスキャン対象のベースパッケージを設定する。 +
-タスクレットモデルはアノテーションによるBean定義を基本とし、Tasklet実装クラスのBean定義はXML上では不要とする。
+タスクレットモデルはアノテーションによるBean定義を基本とし、Tasklet実装クラスのBean定義はBean定義ファイル上では不要とする。
 
 |(3)
 |Taskletは、(2)によりアノテーションにて定義することができ、Bean定義ファイルで定義する必要がない。
@@ -261,6 +314,62 @@ public class SalesPlanChunkTranTask implements Tasklet {
 
 ----
 
+// ============ Java/XML Config Tab start. ============ 
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup030302" class="JavaConfigTab" id="tabgroup030302_1" checked><label for="tabgroup030302_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup030302" class="XMLConfigTab" id="tabgroup030302_2"><label for="tabgroup030302_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+[source,xml]
+.Bean定義例1
+----
+<!-- omitted -->
+<import resource="classpath:jp.co.ntt.fw.macchinetta.batch.functionaltest.config.JobBaseContextConfig"/>
+
+<context:component-scan
+    base-package="jp.co.ntt.fw.macchinetta.batch.functionaltest.app.plan" />
+<context:component-scan
+    base-package="jp.co.ntt.fw.macchinetta.batch.functionaltest.ch05.transaction.component" />
+
+<!-- (9) -->
+<mybatis:scan
+    base-package="jp.co.ntt.fw.macchinetta.batch.functionaltest.app.repository.plan"
+    factory-ref="jobSqlSessionFactory"/>
+
+<!-- (10) -->
+<bean id="detailCSVReader"
+      class="org.springframework.batch.item.file.FlatFileItemReader" scope="step"
+      p:resource="file:#{jobParameters['inputFile']}">
+    <property name="lineMapper">
+        <bean class="org.springframework.batch.item.file.mapping.DefaultLineMapper">
+            <property name="lineTokenizer">
+                <bean class="org.springframework.batch.item.file.transform.DelimitedLineTokenizer"
+                      p:names="branchId,year,month,customerId,amount"/>
+            </property>
+            <property name="fieldSetMapper">
+                <bean class="org.springframework.batch.item.file.mapping.BeanWrapperFieldSetMapper"
+                      p:targetType="org.terasoluna.batch.functionaltest.app.model.plan.SalesPlanDetail"/>
+            </property>
+        </bean>
+    </property>
+</bean>
+
+<!-- (11) -->
+<batch:job id="createSalesPlanChunkTranTask" job-repository="jobRepository">
+    <batch:step id="createSalesPlanChunkTranTask.step01">
+        <batch:tasklet transaction-manager="jobTransactionManager"
+                       ref="salesPlanChunkTranTask"/>
+    </batch:step>
+</batch:job>
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
 [source,xml]
 .Bean定義例1
 ----
@@ -303,6 +412,12 @@ public class SalesPlanChunkTranTask implements Tasklet {
     </batch:step>
 </batch:job>
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============ 
 
 [cols="10,90", options="header"]
 |===
@@ -434,7 +549,7 @@ public class SalesPerformanceTasklet implements Tasklet {
 
                 // Pseudo operation of ItemWriter
                 if (!items.isEmpty()) {
-                    writer.write(items); // (4)
+                    writer.write(new Chunk(items)); // (4)
                     items.clear();
                 }
             } while (item != null);
@@ -451,6 +566,64 @@ public class SalesPerformanceTasklet implements Tasklet {
 }
 ----
 
+// ============ Java/XML Config Tab start. ============ 
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup030303" class="JavaConfigTab" id="tabgroup030303_1" checked><label for="tabgroup030303_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup030303" class="XMLConfigTab" id="tabgroup030303_2"><label for="tabgroup030303_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+[source,xml]
+.Bean定義例2
+----
+<!-- omitted -->
+<import resource="classpath:jp.co.ntt.fw.macchinetta.batch.functionaltest.config.JobBaseContextConfig"/>
+
+<context:component-scan
+    base-package="jp.co.ntt.fw.macchinetta.batch.functionaltest.app.common,
+        jp.co.ntt.fw.macchinetta.batch.functionaltest.ch06.exceptionhandling"/>
+<mybatis:scan
+    base-package="jp.co.ntt.fw.macchinetta.batch.functionaltest.app.repository.performance"
+    factory-ref="jobSqlSessionFactory"/>
+
+<bean id="detailCSVReader"
+      class="org.springframework.batch.item.file.FlatFileItemReader" scope="step"
+      p:resource="file:#{jobParameters['inputFile']}">
+    <property name="lineMapper">
+        <bean class="org.springframework.batch.item.file.mapping.DefaultLineMapper">
+            <property name="lineTokenizer">
+                <bean class="org.springframework.batch.item.file.transform.DelimitedLineTokenizer"
+                      p:names="branchId,year,month,customerId,amount"/>
+            </property>
+            <property name="fieldSetMapper">
+                <bean class="org.springframework.batch.item.file.mapping.BeanWrapperFieldSetMapper"
+                      p:targetType="org.terasoluna.batch.functionaltest.app.model.performance.SalesPerformanceDetail"/>
+            </property>
+        </bean>
+    </property>
+</bean>
+
+<!-- (1) -->
+<bean id="detailWriter"
+      class="org.mybatis.spring.batch.MyBatisBatchItemWriter"
+      p:statementId="org.terasoluna.batch.functionaltest.app.repository.performance.SalesPerformanceDetailRepository.create"
+      p:sqlSessionTemplate-ref="batchModeSqlSessionTemplate"/>
+
+
+<batch:job id="jobSalesPerfTasklet" job-repository="jobRepository">
+    <batch:step id="jobSalesPerfTasklet.step01">
+        <batch:tasklet ref="salesPerformanceTasklet"
+                       transaction-manager="jobTransactionManager"/>
+    </batch:step>
+</batch:job>
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
 [source,xml]
 .Bean定義例2
 ----
@@ -495,6 +668,12 @@ public class SalesPerformanceTasklet implements Tasklet {
     </batch:step>
 </batch:job>
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============ 
 
 [cols="10,90", options="header"]
 |===

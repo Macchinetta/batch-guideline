@@ -3,6 +3,8 @@
 
 plantuml::ch04/AsyncJobWithWebContainer/Ch04_AsyncJobWithWebContainer_AppendBeanDefinitionsOnBlank.pu[]
 plantuml::ch04/AsyncJobWithWebContainer/Ch04_AsyncJobWithWebContainer_BeanDefinitions.pu[]
+plantuml::ch04/AsyncJobWithWebContainer/Ch04_AsyncJobWithWebContainer_BeanDefinitions_XMLConfig.pu[]
 plantuml::ch04/AsyncJobWithWebContainer/Ch04_AsyncJobWithWebContainer_DirectoryStructure.pu[]
 plantuml::ch04/AsyncJobWithWebContainer/Ch04_AsyncJobWithWebContainer_Package.pu[]
+plantuml::ch04/AsyncJobWithWebContainer/Ch04_AsyncJobWithWebContainer_Package_XMLConfig.pu[]
 plantuml::ch04/AsyncJobWithWebContainer/Ch04_AsyncJobWithWebContainer_Sequence.pu[]

@@ -316,12 +316,12 @@ public class FileExclusiveTasklet implements Tasklet {
 
                 items.add(item);
                 if (items.size() >= 10) {
-                    writer.write(items);
+                    writer.write(new Chunk(items));
                     items.clear();
                 }
             }
             if (items.size() > 0) {
-                writer.write(items);
+                writer.write(new Chunk(items));
             }
 
         } catch (IOException e) {

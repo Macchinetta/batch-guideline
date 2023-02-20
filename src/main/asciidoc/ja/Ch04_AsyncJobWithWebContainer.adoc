@@ -143,10 +143,36 @@ Webクライアントからジョブの起動リクエストを送信後、ジ�
 上述のとおり、非同期実行(Webコンテナ)のアプリケーション構成として、複数のアプリケーションモジュールが含まれている。 +
 それぞれのアプリケーションコンテキストとBean定義についての種類、および関係性を把握しておく必要がある。
 
+// ============ Java/XML Config Tab start. ============ 
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup040401" class="JavaConfigTab" id="tabgroup040401_1" checked><label for="tabgroup040401_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup040401" class="XMLConfigTab" id="tabgroup040401_2"><label for="tabgroup040401_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
 .ApplicationContextの構成
 image::Ch04_AsyncJobWithWebContainer_Package.png[Package structure of async web]
+
 .Bean定義ファイルの構成
 image::Ch04_AsyncJobWithWebContainer_BeanDefinitions.png[BeanDefinitions structure of async web]
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
+.ApplicationContextの構成
+image::Ch04_AsyncJobWithWebContainer_Package_XMLConfig.png[Package structure of async web]
+
+.Bean定義ファイルの構成
+image::Ch04_AsyncJobWithWebContainer_BeanDefinitions_XMLConfig.png[BeanDefinitions structure of async web]
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============ 
 
 非同期実行(Webコンテナ)における``ApplicationContext``では、
 バッチアプリケーションの``ApplicationContext``はWebのコンテキスト内に取り込まれる。 +
@@ -167,7 +193,7 @@ Webコンテキストの子コンテキストとして動作する。
 
 |(2)
 |ジョブBean定義から必ずインポートされるBean定義ファイル。 +
-Spring プロファイルが非同期実行時に指定される``async``の場合は(1)の``launch-context.xml``を読み込まない。
+Spring プロファイルが非同期実行時に指定される``async``の場合は(1)の``LaunchContextConfig.java/launch-context.xml``を読み込まない。
 
 |(3)
 |ジョブごとに作成するBean定義ファイル。 +
@@ -176,7 +202,7 @@ Spring プロファイルが非同期実行時に指定される``async``の場�
 |(4)
 |``DispatcherServlet``から読み込まれる。 +
 ジョブBean定義のモジュラー化を行う``AutomaticJobRegistrar``や、ジョブの非同期・並列実行で使用されるスレッドプールである``taskExecutor``など、非同期実行特有のBeanを定義する。 +
-また、非同期実行では(1)の``launch-context.xml`` +
+また、非同期実行では(1)の``LaunchContextConfig.java/launch-context.xml`` +
 を直接インポートし親コンテキストとして一意に共有化される。
 
 |(5)
@@ -446,6 +472,75 @@ image::Ch04_AsyncJobWithWebContainer_AppendBeanDefinitionsOnBlank.png[AppendBean
 
 |===
 
+// ============ Java/XML Config Tab start. ============ 
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup040402" class="JavaConfigTab" id="tabgroup040402_1" checked><label for="tabgroup040402_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup040402" class="XMLConfigTab" id="tabgroup040402_2"><label for="tabgroup040402_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+[source,xml]
+.asyncapp/asyncapp-web/src/main/resources/META-INF/spring/spring-mvc-rest.xml の記述例
+----
+<!-- omitted -->
+<!-- (1) -->
+<bean class="jp.co.ntt.fw.macchinetta.batch.sample.config.LaunchContextConfig"/>
+
+<bean id="jsonMessageConverter"
+      class="org.springframework.http.converter.json.MappingJackson2HttpMessageConverter"
+      p:objectMapper-ref="objectMapper"/>
+
+<bean id="objectMapper"
+      class="org.springframework.http.converter.json.Jackson2ObjectMapperFactoryBean">
+  <property name="dateFormat">
+      <bean class="com.fasterxml.jackson.databind.util.StdDateFormat"/>
+  </property>
+</bean>
+
+<mvc:annotation-driven>
+  <mvc:message-converters register-defaults="false">
+    <ref bean="jsonMessageConverter"/>
+  </mvc:message-converters>
+</mvc:annotation-driven>
+
+<mvc:default-servlet-handler/>
+
+<!-- (2) -->
+<context:component-scan base-package="jp.co.ntt.fw.macchinetta.batch.sample.app.api"/>
+
+<!-- (3) -->
+<bean class="org.springframework.batch.core.configuration.support.AutomaticJobRegistrar">
+    <property name="applicationContextFactories">
+        <bean class="org.springframework.batch.core.configuration.support.ClasspathXmlApplicationContextsFactoryBean">
+            <property name="resources">
+                <list>
+                  <value>classpath:/META-INF/jobs/**/*.xml</value>
+                </list>
+            </property>
+        </bean>
+    </property>
+    <property name="jobLoader">
+        <bean class="org.springframework.batch.core.configuration.support.DefaultJobLoader"
+              p:jobRegistry-ref="jobRegistry"/>
+    </property>
+</bean>
+
+<!-- (4) -->
+<task:executor id="taskExecutor" pool-size="3" queue-capacity="10"/>
+
+<!-- (5) -->
+<bean id="jobLauncher" class="org.springframework.batch.core.launch.support.SimpleJobLauncher"
+      p:jobRepository-ref="jobRepository"
+      p:taskExecutor-ref="taskExecutor"/>
+<!-- omitted -->
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
 [source,xml]
 .asyncapp/asyncapp-web/src/main/resources/META-INF/spring/spring-mvc-rest.xml の記述例
 ----
@@ -501,6 +596,12 @@ image::Ch04_AsyncJobWithWebContainer_AppendBeanDefinitionsOnBlank.png[AppendBean
       p:taskExecutor-ref="taskExecutor"/>
 <!-- omitted -->
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============ 
 
 [source,xml]
 .asyncapp/asyncapp-web/src/main/webapp/WEB-INF/web.xml の記述例
@@ -537,7 +638,7 @@ image::Ch04_AsyncJobWithWebContainer_AppendBeanDefinitionsOnBlank.png[AppendBean
 |説明
 
 |(1)
-|バッチアプリケーション内にある``launch-context.xml``のimportし、必須となるBean定義を取り込む。
+|バッチアプリケーション内にある``LaunchContextConfig.java/launch-context.xml``をimportし、必須となるBean定義を取り込む。
 
 |(2)
 |コントローラを動的にスキャンするためのパッケージを記述する。
@@ -557,7 +658,7 @@ JobLauncherの``TaskExecutor``に``AsyncTaskExecutor``実装クラスを設定�
 ジョブの起動要求が拒否される。
 
 |(5)
-|(4)の``taskExecutor``を有効化するため、``launch-context.xml``で定義されている``jobLauncher``をオーバーライドする。
+|(4)の``taskExecutor``を有効化するため、``LaunchContextConfig.java/launch-context.xml``で定義されている``jobLauncher``をオーバーライドする。
 
 |(6)
 |``DispatcherServlet``が読み込むBean定義として、 +
@@ -572,7 +673,7 @@ JobLauncherの``TaskExecutor``に``AsyncTaskExecutor``実装クラスを設定�
 [WARNING]
 .asyncプロファイルの指定をしなかった場合
 ====
-この場合、Webアプリケーション横断で共有すればよい``launch-context.xml``に定義されたBeanが、ジョブごとに重複して生成される。 +
+この場合、Webアプリケーション横断で共有すればよい``LaunchContextConfig.java/launch-context.xml``に定義されたBeanが、ジョブごとに重複して生成される。 +
 重複した場合でも機能上動作するため誤りに気づきにくく、予期しないリソース枯渇や性能劣化が発生する恐れがある。
 必ず指定すること。
 ====
@@ -742,9 +843,9 @@ public class StepExecutionResource {
 .ジョブ起動時に渡されるジョブパラメータについて
 ====
 起動時に``JobOperator#start()``の第二引数で渡されるジョブパラメータは``String``である。
-ジョブパラメータが複数ある場合、同期実行の``CommandLineJobRunner``とは異なり、カンマ区切りで渡す必要がある。
+ジョブパラメータが複数ある場合、同期実行と同様に空白区切りで渡す必要がある。
 具体的には以下の形式をとる。 +
-``{ジョブパラメータ1}={値1},{ジョブパラメータ2}={値2},...``
+``{ジョブパラメータ1}={値1} {ジョブパラメータ2}={値2},...``
 
 これは、<<Ch04_AsyncJobWithDB.adoc#Ch04_AsyncJobWithDB,"非同期実行(DBポーリング)">>におけるジョブパラメータの指定方法と同様である。
 ====
@@ -776,6 +877,9 @@ public class JobController {
 
         JobOperationResource responseResource = new JobOperationResource();
         responseResource.setJobName(jobName);
+        if(jobParams == null){
+            requestResource.setJobParams("");
+        }
         try {
             // (3)
             Long jobExecutionId = jobOperator.start(jobName, requestResource.getJobParams());
@@ -849,6 +953,17 @@ REST APIの基底パスは``_contextName_/api/v1/job/``となる。
 あらかじめ設計された電文フォーマットに変換した上でRESTクライアントに返却する。
 
 |====
+
+[WARNING]
+====
+{SB}が提供するSimpleJobOperatorの仕様変更に伴い、
+JobControllerの実装も下記のように変更している。 +
+
+* パラメータを複数指定する場合の区切り文字を、カンマから空白文字に変更
+* パラメータのnullチェックを、別途実装するように変更
+
+詳細は、link:https://github.com/spring-projects/spring-batch/issues/2122[{SB}/BATCH-1461]を参照されたい。
+====
 
 [[Ch04_AsyncJobWithWeb_HowToUse_WebApp_IntegrationConfig]]
 ==== Web/バッチアプリケーションモジュール設定の統合

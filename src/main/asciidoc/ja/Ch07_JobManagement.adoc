@@ -96,6 +96,7 @@ Macchinetta Batch {revnumber-index}ではこの問題は発生しないため、
 ====
 
 ジョブスケジューラを使用したジョブの実行管理については各製品のマニュアルを参照。 +
+
 本ガイドラインでは{batch5_shortname}内部で``JobRepository``を用いたジョブの状態を管理するうえで関連する、
 以下の項目について説明する。
 
@@ -198,7 +199,7 @@ Macchinetta Batch {revnumber-index}ではこの問題は発生しないため、
 
 * ``BATCH_STEP_EXECUTION``と``BATCH_STEP_EXECUTION_CONTEXT``の処理件数が異なることがある。
 ** ``BATCH_STEP_EXECUTION``テーブルの``READ_COUNT``、``WRITE_COUNT``はそれぞれ``ItemReader``、``ItemWriter``による読み込み・書き込みを行った件数が記録される。
-** ``BATCH_STEP_EXECUTION_CONTEXT``テーブルの``SHORT_CONTEXT``カラムはJSON形式で
+** ``BATCH_STEP_EXECUTION_CONTEXT``テーブルの``SHORT_CONTEXT``カラムはBase64でエンコードされたMap形式で 
 ``ItemReader``による読み込み処理件数が記録される。しかし、必ずしも``BATCH_STEP_EXECUTION``による処理件数と一致しない。 +
 ** これはチャンク方式による``BATCH_STEP_EXECUTION``テーブルが成功・失敗を問わず読み込み・書き込み件数を記録するのに対し、
 ``BATCH_STEP_EXECUTION_CONTEXT``テーブルは処理途中で失敗した場合のリスタートで再開される位置として記録するためである。
@@ -294,8 +295,8 @@ private void monitor(long jobExecutionId) {
 
     // (2)
     String jobName = jobExecution.getJobInstance().getJobName();
-    Date jobStartTime = jobExecution.getStartTime();
-    Date jobEndTime = jobExecution.getEndTime();
+    LocalDateTime jobStartTime = jobExecution.getStartTime();
+    LocalDateTime jobEndTime = jobExecution.getEndTime();
     BatchStatus jobBatchStatus = jobExecution.getStatus();
     String jobExitCode = jobExecution.getExitStatus().getExitCode();
 
@@ -304,8 +305,8 @@ private void monitor(long jobExecutionId) {
     // (3)
     for (StepExecution stepExecution : jobExecution.getStepExecutions()) {
         String stepName = stepExecution.getStepName();
-        Date stepStartTime = stepExecution.getStartTime();
-        Date stepEndTime = stepExecution.getEndTime();
+        LocalDateTime stepStartTime = stepExecution.getStartTime();
+        LocalDateTime stepEndTime = stepExecution.getEndTime();
         BatchStatus stepStatus = stepExecution.getStatus();
         String stepExitCode = stepExecution.getExitStatus().getExitCode();
 
@@ -501,7 +502,7 @@ public RepeatStatus execute(StepContribution contribution, ChunkContext chunkCon
 .JobExecutionListener実装例
 ----
 @Component
-public class JobExitCodeChangeListener extends JobExecutionListenerSupport {
+public class JobExitCodeChangeListener implements JobExecutionListener {
 
     @Override
     public void afterJob(JobExecution jobExecution) {
@@ -547,8 +548,41 @@ public class JobExitCodeChangeListener extends JobExecutionListenerSupport {
 ==== 終了コードのマッピング
 ジョブの終了コードとプロセスの終了コードをマッピング定義を行う。
 
+// ============ Java/XML Config Tab start. ============ 
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup070101" class="JavaConfigTab" id="tabgroup070101_1" checked><label for="tabgroup070101_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup070101" class="XMLConfigTab" id="tabgroup070101_2"><label for="tabgroup070101_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+[source,java]
+.jp.co.ntt.fw.macchinetta.batch.functionaltest.config.LaunchContextConfig.java
+----
+// exitCodeMapper
+@Bean
+public ExitCodeMapper exitCodeMapper() {
+    final SimpleJvmExitCodeMapper simpleJvmExitCodeMapper = new SimpleJvmExitCodeMapper();
+    final Map<String, Integer> exitCodeMapper = new HashMap<>();
+    // ExitStatus
+    exitCodeMapper.put("NOOP", 0);
+    exitCodeMapper.put("COMPLETED", 0);
+    exitCodeMapper.put("STOPPED", 255);
+    exitCodeMapper.put("FAILED", 255);
+    exitCodeMapper.put("UNKNOWN", 255);
+    exitCodeMapper.put("JOB COMPLETED WITH SKIPS", 100);
+    simpleJvmExitCodeMapper.setMapping(exitCodeMapper);
+    return simpleJvmExitCodeMapper;
+}
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
 [source,xml]
-.launch-context.xml
+.META-INF/spring/launch-context.xml
 ----
 <!-- exitCodeMapper -->
 <bean id="exitCodeMapper"
@@ -567,6 +601,12 @@ public class JobExitCodeChangeListener extends JobExecutionListenerSupport {
     </property>
 </bean>
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============ 
 
 [WARNING]
 .プロセスの終了コードに1は厳禁
@@ -737,11 +777,41 @@ public class JobExecutionLoggingListener implements JobExecutionListener {
    ``ApplicationContext``が生成された後でのみ、各コンポーネントにアクセスされるためである。
    なお、ブランクプロジェクトには以下のとおり設定済みである。
 
+// ============ Java/XML Config Tab start. ============ 
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup070102" class="JavaConfigTab" id="tabgroup070102_1" checked><label for="tabgroup070102_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup070102" class="XMLConfigTab" id="tabgroup070102_2"><label for="tabgroup070102_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+[source,java]
+.jp.co.ntt.fw.macchinetta.batch.functionaltest.config.LaunchContextConfig.java
+----
+@Bean
+public MessageSource messageSource() {
+    final ResourceBundleMessageSource resourceBundleMessageSource = new ResourceBundleMessageSource();
+    resourceBundleMessageSource.setBasename("i18n/application-messages");
+    return resourceBundleMessageSource;
+}
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
 [source,xml]
-.launch-context.xml
+.META-INF/spring/launch-context.xml
 ----
 <bean id="messageSource"
       class="org.springframework.context.support.ResourceBundleMessageSource"
       p:basenames="i18n/application-messages" />
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============ 
 ====

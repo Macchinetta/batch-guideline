@@ -181,7 +181,7 @@ $ # 行頭コメント
 $ java -version # 行末コメント
 ----
 
-Bean定義のプロパティとコンストラクタについて::
+Bean定義（XMLConfig）のプロパティとコンストラクタについて::
 本ガイドラインでは、``p``と``c``のネームスペースを用いた表記とする。
 ネームスペースを用いることで、Bean定義の記述が簡潔になったり、コンストラクタ引数が明確になる効果がある。
 
@@ -254,3 +254,14 @@ Bean定義のプロパティとコンストラクタについて::
 
 本ガイドラインで説明している内容の動作検証環境については、
 「 https://github.com/Macchinetta/macchinetta-batch-functionaltest/wiki/Tested-Environment[テスト済み環境] 」を参照。
+
+[NOTE]
+====
+Macchinetta Batch Framework (2.x)は、Spring Framework 6の動作環境に合わせ、以下を前提としている。
+
+* JDKのバージョンは、Spring Framework 6のベースラインであるJDK 17を使用する。
+* Tomcat 10.0.xがEOLしたことに伴い、Tomcat 10.1.xを使用する。
+  これに伴い、Jakarta EE 10ベースとなる。
+* Jakarta EE 9以降では、ライブラリが内包するクラスのパッケージ名が``javax``から``jakarta``に変更されている。
+  これに伴い、Jakarta EE 9以降に対応したアプリケーションサーバ以外では動かない点に注意すること。
+====

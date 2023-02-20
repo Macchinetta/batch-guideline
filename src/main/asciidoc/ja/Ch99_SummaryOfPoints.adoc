@@ -26,6 +26,8 @@ include::_include_all.adoc[]
 
 .{batch5_shortname}の指針
 
+* JavaConfig版の利用
+** 前バージョンからの移行でない限り、原則としてJavaConfig版を利用する
 * <<Ch03_CreateProject.adoc#Ch03_CreateProject,バッチアプリケーションの開発>>
 ** 1ジョブ=1Bean定義(1ジョブ定義) として作成する
 ** 1ステップ=1バッチ処理=1ビジネスロジック として作成する

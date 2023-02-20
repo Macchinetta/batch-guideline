@@ -35,13 +35,15 @@ include::_include_all.adoc[]
 
 .パラメータ変換クラスの実装クラスについて
 
-前述した``JobParametersConverter``の実装クラスは複数提供されている。
+{batch5_shortname}では、前述した``JobParametersConverter``の実装クラスを複数提供する。
 以下にそれぞれの特徴を示す。
 
 * DefaultJobParametersConverter
-** パラメータのデータ型を指定することができる(String、Long、Date、Doubleの4種類)。
+** {SB}が提供する。
+** パラメータのデータ型は ``java.io.Serializable`` を実装した任意のJavaBeansを指定できる。
 
-* JsrJobParametersConverter
+* JobParametersConverterImpl
+** {batch5_shortname}が提供する。もともと{SB}で提供していたJsrJobParametersConverterを、JSR-352の廃止に伴い{batch5_shortname}へと移植したもの。
 ** パラメータのデータ型を指定することができない(Stringのみ)。
 ** パラメータにジョブ実行を識別するID(RUN_ID)を``jsr_batch_run_id``という名称で自動的に付与する。
 *** RUN_IDは、ジョブが実行される都度増加する。増加は、データベースのSEQUENCE(名称は``JOB_SEQ``となる)を利用するため、重複することがない。
@@ -56,19 +58,56 @@ include::_include_all.adoc[]
 * 起動時刻のタイムスタンプなどを指定し、異なるジョブとして管理することも可能だが、それだけのためにジョブパラメータを指定するのは煩雑である。
 * ``DefaultJobParametersConverter``はパラメータに対しデータ型を指定することができるが、型変換に失敗した場合のハンドリングが煩雑になる。
 
-{batch5_shortname}では、``JsrJobParametersConverter``を利用することで、ユーザが意識することなく自動的にRUN_IDを付与している。
+{batch5_shortname}では、``JobParametersConverterImpl``を利用することで、ユーザが意識することなく自動的にRUN_IDを付与している。
 この仕組みにより、ユーザから見ると同一ジョブを{SB}としては異なるジョブとして扱っている。
 
 .パラメータ変換クラスの設定について
 
-ブランクプロジェクトでは、あらかじめ``launch-context.xml``にて``JsrJobParametersConverter``を使用するように設定している。 +
+ブランクプロジェクトでは、あらかじめ``LaunchContextConfig.java/launch-context.xml``にて``JobParametersConverterImpl``を使用するように設定している。 +
 そのため{batch5_shortname}を推奨設定で使用する場合は``JobParametersConverter``の設定を行う必要はない。
 
+// ============ Java/XML Config Tab start. ============ 
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup040201" class="JavaConfigTab" id="tabgroup040201_1" checked><label for="tabgroup040201_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup040201" class="XMLConfigTab" id="tabgroup040201_2"><label for="tabgroup040201_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+[source, java]
+.com.example.batch.config.LaunchContextConfig.java
+----
+@Bean
+public JobParametersConverter jobParametersConverter(@Qualifier("adminDataSource") DataSource adminDataSource) {
+    return new JobParametersConverterImpl(adminDataSource);
+}
+
+@Bean
+public JobOperator jobOperator(@Qualifier("jobRepository") JobRepository jobRepository,
+                               @Qualifier("jobRegistry") JobRegistry jobRegistry,
+                               @Qualifier("jobExplorer") JobExplorer jobExplorer,
+                               @Qualifier("jobParametersConverter") JobParametersConverter jobParametersConverter,
+                               @Qualifier("jobLauncher") JobLauncher jobLauncher) {
+    final SimpleJobOperator simpleJobOperator = new SimpleJobOperator();
+    simpleJobOperator.setJobRepository(jobRepository);
+    simpleJobOperator.setJobRegistry(jobRegistry);
+    simpleJobOperator.setJobExplorer(jobExplorer);
+    simpleJobOperator.setJobParametersConverter(jobParametersConverter);
+    simpleJobOperator.setJobLauncher(jobLauncher);
+    return simpleJobOperator;
+}
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
 [source, xml]
 .META-INF\spring\launch-context.xml
 ----
 <bean id="jobParametersConverter"
-      class="org.springframework.batch.core.jsr.JsrJobParametersConverter"
+      class="org.terasoluna.batch.converter.JobParametersConverterImpl"
       c:dataSource-ref="adminDataSource" />
 
 <bean id="jobOperator"
@@ -79,8 +118,14 @@ include::_include_all.adoc[]
       p:jobParametersConverter-ref="jobParametersConverter"
       p:jobLauncher-ref="jobLauncher" />
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============ 
 
-以降は``JsrJobParametersConverter``を利用する前提で説明する。
+以降は``JobParametersConverterImpl``を利用する前提で説明する。
 
 [[Ch04_JobParameter_HowToUse_CLIArgs]]
 === コマンドライン引数から与える
@@ -414,7 +459,7 @@ public class ParamRefInJavaTasklet implements Tasklet {
 [IMPORTANT]
 .{batch5_shortname}では省略できない必須パラメータ
 ====
-{batch5_shortname}ではパラメータ変換に``JsrJobParametersConverter``を採用しているため、以下のパラメータが常に設定される。
+{batch5_shortname}ではパラメータ変換に``JobParametersConverterImpl``を採用しているため、以下のパラメータが常に設定される。
 
 * ``jsr_batch_run_id``
 

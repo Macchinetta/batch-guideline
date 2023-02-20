@@ -31,17 +31,16 @@ include::_include_all.adoc[]
 |Microsoft Windows 10 Enterprise (64bit)
 
 |JDK
-|RedHat OpenJDK 8u312 Windows 64-bit/ +
-RedHat OpenJDK 11.0.13 Windows 64-bit
+|RedHat OpenJDK 17.0.5 Windows 64-bit
 
 |IDE
-|Spring Tool Suite 4.11.0 released
+|Spring Tool Suite 4.17.1 released
 
 |Build Tool
-|Apache Maven 3.8.3
+|Apache Maven 3.8.6
 
 |RDBMS
-|H2 Database 1.4.200
+|H2 Database 2.1.214
 
 |===
 
@@ -79,7 +78,7 @@ RedHat OpenJDK 11.0.13 Windows 64-bit
 
 |<<Ch05_Transaction.adoc#Ch05_Transaction,トランザクション制御>>
 |チャンク単位にトランザクションが発生する。トランザクション制御は一定件数ごとにトランザクションを確定する中間コミット方式のみ。
-|1トランザクションで処理する。トランザクション制御は、全件を1トランザクションで確定する一括コミット方式と中間コミット方式のいずれかを利用可能
+|1トランザクションで処理する。トランザクション制御は、全件を1トランザクションで確定する一括コミット方式と中間コミット方式のいずれかを利用可能。
 前者は{SB}が持つトランザクション制御の仕組みを利用するが、後者はユーザにてトランザクションを直接操作する。
 
 |<<Ch06_ReProcessing.adoc#Ch06_RerunRestart,処理の再実行>>

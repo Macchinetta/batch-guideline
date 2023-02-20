@@ -354,7 +354,7 @@ public class ChunkAroundListener implements ChunkListener {
     // (1)
     @Override
     public void afterChunkError(ChunkContext context) {
-        logger.error("Exception occurred while chunk. [context:{}]", context,
+        logger.error("Exception occurred while chunk. [context:{}]",
                 context.getAttribute(ChunkListener.ROLLBACK_EXCEPTION_KEY)); // (2)
     }
 }
@@ -628,7 +628,7 @@ public class ChunkComponentListener implements ItemWriteListener<Object> {
 
     // (1)
     @Override
-    public void onWriteError(Exception ex, List item) {
+    public void onWriteError(Exception ex, Chunk item) {
         // (2)
         logger.error("Exception occurred while processing. [items:{}]", item, ex);
     }
