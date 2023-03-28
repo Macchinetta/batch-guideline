@@ -1,0 +1,1278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Asciidoctor 2.0.10">
+<title>入力データの妥当性検証を行うジョブ</title>
+<link rel="stylesheet" href="./theme/css/readthedocs.css">
+<link rel="stylesheet" href="./theme/css/font-awesome.min.css">
+<link rel="stylesheet" href="./theme/css/coderay-asciidoctor.css">
+<link rel="stylesheet" href="./theme/css/header-footer.css">
+<title>Macchinetta Batch Framework (2.x) Development Guideline</title>
+
+<div class="common-bg">
+  <div class="information">
+    Macchinetta Batch Framework (2.x) Development Guideline - version 2.3.2.RELEASE, 2023-3-30
+  </div>
+  <div class="index">
+    <a href="index.html">&gt; INDEX</a>
+  </div>
+</div>
+</head>
+<body id="Ch09_Impl_ValidationJob" class="book toc2 toc-left">
+<div id="header">
+<h1>入力データの妥当性検証を行うジョブ</h1>
+<div id="toc" class="toc2">
+<div id="toctitle">Table of Contents</div>
+<ul class="sectlevel1">
+<li><a href="#Ch09_Impl_ValidationJob_Overview">概要</a>
+<ul class="sectlevel2">
+<li><a href="#Ch09_Impl_ValidationJob_Overview_Background">背景</a></li>
+<li><a href="#Ch09_Impl_ValidationJob_Overview_ProcessOverview">処理概要</a></li>
+<li><a href="#Ch09_Impl_ValidationJob_Overview_BusinessSpecification">業務仕様</a></li>
+<li><a href="#Ch09_Impl_ValidationJob_Overview_TableSpecification">テーブル仕様</a></li>
+<li><a href="#Ch09_Impl_ValidationJob_Overview_JobOverview">ジョブの概要</a></li>
+</ul>
+</li>
+<li><a href="#Ch09_Impl_ValidationJob_Chunk">チャンクモデルでの実装</a>
+<ul class="sectlevel2">
+<li><a href="#Ch09_Impl_ValidationJob_Chunk_ValidationRulesDefinition">入力チェックルールの定義</a></li>
+<li><a href="#Ch09_Impl_ValidationJob_Chunk_Coding">入力チェック処理の実装</a></li>
+<li><a href="#Ch09_Impl_ValidationJob_Chunk_Execution">ジョブの実行と結果の確認</a>
+<ul class="sectlevel3">
+<li><a href="#Ch09_Impl_ValidationJob_Chunk_Execution_Run">実行構成からジョブを実行</a></li>
+<li><a href="#Ch09_Impl_ValidationJob_Chunk_Execution_Console">コンソールログの確認</a></li>
+<li><a href="#Ch09_Impl_ValidationJob_Chunk_Execution_Exitcode">終了コードの確認</a></li>
+<li><a href="#Ch09_Impl_ValidationJob_Chunk_Execution_Output">出力リソースの確認</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="#Ch09_Impl_ValidationJob_Tasklet">タスクレットモデルでの実装</a>
+<ul class="sectlevel2">
+<li><a href="#Ch09_Impl_ValidationJob_Tasklet_ValidationRulesDefinition">入力チェックルールの定義</a></li>
+<li><a href="#Ch09_Impl_ValidationJob_Tasklet_Coding">入力チェック処理の実装</a></li>
+<li><a href="#Ch09_Impl_ValidationJob_Tasklet_Execution">ジョブの実行と結果の確認</a>
+<ul class="sectlevel3">
+<li><a href="#Ch09_Impl_ValidationJob_Tasklet_Execution_Run">実行構成からジョブを実行</a></li>
+<li><a href="#Ch09_Impl_ValidationJob_Tasklet_Execution_Console">コンソールログの確認</a></li>
+<li><a href="#Ch09_Impl_ValidationJob_Tasklet_Execution_Exitcode">終了コードの確認</a></li>
+<li><a href="#Ch09_Impl_ValidationJob_Tasklet_Execution_Output">出力リソースの確認</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div id="content">
+<div id="preamble">
+<div class="sectionbody">
+<div id="Ch09_Impl_ValidationJob_Prerequisite" class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+<div class="title">前提</div>
+<div class="paragraph">
+<p><a href="Ch09_Introduction.html#Ch09_Introduction_HowToProceed">チュートリアルの進め方</a>で説明しているとおり、
+<a href="Ch09_DBAccessJob.html#Ch09_Impl_DBAccessJob">データベースアクセスでデータ入出力を行うジョブ</a>、<a href="Ch09_FileAccessJob.html#Ch09_Impl_FileAccessJob">ファイルアクセスでデータ入出力を行うジョブ</a>に対して、
+本ジョブの実装を追加していく形式とする。<br>
+ただし、記述はデータベースアクセスするジョブに実装を追加した場合の説明としているため留意すること。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="Ch09_Impl_ValidationJob_Overview"><a class="anchor" href="#Ch09_Impl_ValidationJob_Overview"></a>概要</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>入力データの妥当性検証(以降、入力チェックと呼ぶ)を行うジョブを作成する。</p>
+</div>
+<div class="paragraph">
+<p>なお、詳細についてはMacchinetta Batch 2.x 開発ガイドラインの<a href="Ch06_InputValidation.html#Ch06_InputValidation">入力チェック</a>を参照。</p>
+</div>
+<div class="paragraph">
+<p><a href="Ch09_TutorialApplication.html#Ch09_TutorialApplication">作成するアプリケーションの説明</a>の
+背景、処理概要、業務仕様を以下に再掲する。</p>
+</div>
+<div class="sect2">
+<h3 id="Ch09_Impl_ValidationJob_Overview_Background"><a class="anchor" href="#Ch09_Impl_ValidationJob_Overview_Background"></a>背景</h3>
+<div class="paragraph">
+<p>とある量販店では、会員に対してポイントカードを発行している。<br>
+会員には「ゴールド会員」「一般会員」の会員種別が存在し、会員種別に応じたサービスを提供している。<br>
+今回そのサービスの一環として、月内に商品を購入した会員のうち、
+会員種別が「ゴールド会員」の場合は100ポイント、「一般会員」の場合は10ポイントを月末に加算することにした。</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="Ch09_Impl_ValidationJob_Overview_ProcessOverview"><a class="anchor" href="#Ch09_Impl_ValidationJob_Overview_ProcessOverview"></a>処理概要</h3>
+<div class="paragraph">
+<p>会員種別に応じてポイント加算を行うアプリケーションを
+月次バッチ処理としてMacchinetta Batch 2.xを使用して実装する。<br>
+入力データにポイントの上限値を超えるデータが存在するか妥当性検証を行う処理を追加実装する。</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="Ch09_Impl_ValidationJob_Overview_BusinessSpecification"><a class="anchor" href="#Ch09_Impl_ValidationJob_Overview_BusinessSpecification"></a>業務仕様</h3>
+<div class="paragraph">
+<p>業務仕様は以下のとおり。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>入力データのポイントが1,000,000ポイントを超過していないことをチェックする</p>
+<div class="ulist">
+<ul>
+<li>
+<p>チェックエラーとなる場合は、処理を異常終了する(例外ハンドリングは行わない)</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>商品購入フラグが"1"(処理対象)の場合に、会員種別に応じてポイントを加算する</p>
+<div class="ulist">
+<ul>
+<li>
+<p>会員種別が"G"(ゴールド会員)の場合は100ポイント、"N"(一般会員)の場合は10ポイント加算する</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>商品購入フラグはポイント加算後に"0"(初期状態)に更新する</p>
+</li>
+<li>
+<p>ポイントの上限値は1,000,000ポイントとする</p>
+</li>
+<li>
+<p>ポイント加算後に1,000,000ポイントを超えた場合は、1,000,000ポイントに補正する</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect2">
+<h3 id="Ch09_Impl_ValidationJob_Overview_TableSpecification"><a class="anchor" href="#Ch09_Impl_ValidationJob_Overview_TableSpecification"></a>テーブル仕様</h3>
+<div class="paragraph">
+<p>入出力リソースとなる会員情報テーブルの仕様は以下のとおり。<br>
+<a href="#Ch09_Impl_ValidationJob_Prerequisite">前提</a>のとおりデータベースアクセスするジョブの場合の説明となるため、ファイルアクセスするジョブの場合の
+入出力のリソース仕様は<a href="Ch09_FileAccessJob.html#Ch09_Impl_FileAccessJob_Overview_FileSpecification">ファイル仕様</a>を参照。</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 1. 会員情報テーブル(member_info)</caption>
+<colgroup>
+<col style="width: 3.0927%;">
+<col style="width: 15.4639%;">
+<col style="width: 10.3092%;">
+<col style="width: 4.1237%;">
+<col style="width: 12.3711%;">
+<col style="width: 8.2474%;">
+<col style="width: 46.392%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">No</th>
+<th class="tableblock halign-left valign-top">属性名</th>
+<th class="tableblock halign-left valign-top">カラム名</th>
+<th class="tableblock halign-left valign-top">PK</th>
+<th class="tableblock halign-left valign-top">データ型</th>
+<th class="tableblock halign-left valign-top">桁数</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">会員番号</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">id</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><span class="icon"><i class="fa fa-check"></i></span></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">CHAR</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">8</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">会員を一意に示す8桁固定の番号を表す。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">2</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">会員種別</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">type</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">CHAR</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">会員の種別を以下のとおり表す。<br>
+"G"(ゴールド会員)、"N"(一般会員)</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">3</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">商品購入フラグ</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">status</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">CHAR</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">月内に商品を買ったかどうかを表す。<br>
+商品購入で"1"(処理対象)、月次バッチ処理で"0"(初期状態)に更新される。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">4</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ポイント</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">point</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">INT</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">7</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">会員の保有するポイントを表す。<br>
+初期値は0。</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect2">
+<h3 id="Ch09_Impl_ValidationJob_Overview_JobOverview"><a class="anchor" href="#Ch09_Impl_ValidationJob_Overview_JobOverview"></a>ジョブの概要</h3>
+<div class="paragraph">
+<p>ここで作成する入力チェックを行うジョブの概要を把握するために、
+処理フローおよび処理シーケンスを以下に示す。</p>
+</div>
+<div class="paragraph">
+<p><a href="#Ch09_Impl_ValidationJob_Prerequisite">前提</a>のとおりデータベースアクセスするジョブの場合の説明となるため、
+ファイルアクセスするジョブの場合の処理フローおよび処理シーケンスとは異なる部分があるため留意する。</p>
+</div>
+<div class="paragraph">
+<p>入力チェックは、単項目チェック、相関項目チェックに分類されるが、ここでは単項目チェックのみを扱う。<br>
+単項目チェックは、Bean Validationを利用する。
+詳細は<a href="Ch06_InputValidation.html#Ch06_InputValidation_Overview_Category">入力チェックの分類</a>を参照。</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">処理フロー概要</dt>
+<dd>
+<p>処理フローの概要を以下に示す。</p>
+</dd>
+</dl>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/ch09/Validation/Ch09_ValidationJob_ProcessFlow.png" alt="ProcessFlow of Validation Job">
+</div>
+<div class="title">図 1. 入力データの妥当性検証を行うジョブの処理フロー</div>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">チャンクモデルの場合の処理シーケンス</dt>
+<dd>
+<p>チャンクモデルの場合の処理シーケンスを説明する。<br>
+本ジョブは異常系データを利用することを前提として説明しているため、
+このシーケンス図は入力チェックでエラー(異常終了)となった場合を示している。<br>
+入力チェックが正常の場合、入力チェック以降の処理シーケンスはデータベースアクセスのシーケンス図
+(<a href="Ch09_DBAccessJob.html#Ch09_Impl_DBAccessJob_Overview_JobOverview">ジョブの概要</a>を参照)と同じである。</p>
+</dd>
+</dl>
+</div>
+<div class="paragraph">
+<p>チャンクモデルの場合、入力チェックは<code>ItemProcessor</code>にデータが渡されたタイミングで行う。</p>
+</div>
+<div class="paragraph">
+<p>橙色のオブジェクトは今回実装するクラスを表す。</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/Ch09_ValidationJob_ProcessSequence_ChunkModel.png" alt="ProcessSequence of Validation Job by ChunkModel">
+</div>
+<div class="title">図 2. チャンクモデルのシーケンス図</div>
+</div>
+<div class="olist arabic">
+<div class="title">シーケンス図の説明</div>
+<ol class="arabic">
+<li>
+<p>ジョブからステップが実行される。</p>
+</li>
+<li>
+<p>ステップは、リソースをオープンする。</p>
+</li>
+<li>
+<p><code>MyBatisCursorItemReader</code>は、member_infoテーブルから会員情報をすべて取得(select文の発行)する。</p>
+<div class="ulist">
+<ul>
+<li>
+<p>入力データがなくなるまで、以降の処理を繰り返す。</p>
+</li>
+<li>
+<p>チャンク単位で、フレームワークトランザクションを開始する。</p>
+</li>
+<li>
+<p>チャンクサイズに達するまで4から12までの処理を繰り返す。</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>ステップは、<code>MyBatisCursorItemReader</code>から入力データを1件取得する。</p>
+</li>
+<li>
+<p><code>MyBatisCursorItemReader</code>は、member_infoテーブルから入力データを1件取得する。</p>
+</li>
+<li>
+<p>member_infoテーブルは、<code>MyBatisCursorItemReader</code>に入力データを返却する。</p>
+</li>
+<li>
+<p><code>MyBatisCursorItemReader</code>は、ステップに入力データを返却する。</p>
+</li>
+<li>
+<p>ステップは、<code>PointAddItemProcessor</code>で入力データに対して処理を行う。</p>
+</li>
+<li>
+<p><code>PointAddItemProcessor</code>は、<code>SpringValidator</code>に入力チェック処理を依頼する。</p>
+</li>
+<li>
+<p><code>SpringValidator</code>は、入力チェックルールに基づき入力チェックを行い、チェックエラーの場合は例外(ValidationException)をスローする。</p>
+</li>
+<li>
+<p><code>PointAddItemProcessor</code>は、入力データを読み込んでポイント加算処理を行う。</p>
+</li>
+<li>
+<p><code>PointAddItemProcessor</code>は、ステップに処理結果を返却する。</p>
+</li>
+<li>
+<p>ステップは、チャンクサイズ分のデータを<code>MyBatisBatchItemWriter</code>で出力する。</p>
+</li>
+<li>
+<p><code>MyBatisBatchItemWriter</code>は、member_infoテーブルに対して会員情報の更新(update文の発行)を行う。</p>
+<div class="ulist">
+<ul>
+<li>
+<p>4から14までの処理過程で<strong>例外が発生</strong>すると、以降の処理を行う。</p>
+</li>
+</ul>
+</div>
+</li>
+</ol>
+</div>
+<div class="olist arabic">
+<ol class="arabic" start="15">
+<li>
+<p>ステップはフレームワークトランザクションをロールバックする。</p>
+</li>
+<li>
+<p>ステップはジョブに終了コード(ここでは異常終了:255)を返却する。</p>
+</li>
+</ol>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">タスクレットモデルの場合の処理シーケンス</dt>
+<dd>
+<p>タスクレットモデルの場合の処理シーケンスについて説明する。<br>
+本ジョブは異常系データを利用することを前提として説明しているため、
+このシーケンス図は入力チェックでエラー(異常終了)となった場合を示している。<br>
+入力チェックが正常の場合、入力チェック以降の処理シーケンスはデータベースアクセスのシーケンス図
+(<a href="Ch09_DBAccessJob.html#Ch09_Impl_DBAccessJob_Overview_JobOverview">ジョブの概要</a>を参照)と同じである。</p>
+</dd>
+</dl>
+</div>
+<div class="paragraph">
+<p>タスクレットモデルの場合、入力チェックは<code>Tasklet#execute()</code>にて任意のタイミングで行う。<br>
+ここでは、データを取得した直後に行っている。</p>
+</div>
+<div class="paragraph">
+<p>橙色のオブジェクトは今回実装するクラスを表す。</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/Ch09_ValidationJob_ProcessSequence_TaskletModel.png" alt="ProcessSequence of Validation Job by TaskletModel">
+</div>
+<div class="title">図 3. タスクレットモデルのシーケンス図</div>
+</div>
+<div class="olist arabic">
+<div class="title">シーケンス図の説明</div>
+<ol class="arabic">
+<li>
+<p>ジョブからステップが実行される。</p>
+<div class="ulist">
+<ul>
+<li>
+<p>ステップはフレームワークトランザクションを開始する。</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>ステップは<code>PointAddTasklet</code>を実行する。</p>
+</li>
+<li>
+<p><code>PointAddTasklet</code>は、リソースをオープンする。</p>
+</li>
+<li>
+<p><code>MyBatisCursorItemReader</code>は、member_infoテーブルから会員情報をすべて取得(select文の発行)する。</p>
+<div class="ulist">
+<ul>
+<li>
+<p>入力データがなくなるまで5から13までの処理を繰り返す。</p>
+</li>
+<li>
+<p>一定件数に達するまで5から11までの処理を繰り返す。</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p><code>PointAddTasklet</code>は、<code>MyBatisCursorItemReader</code>から入力データを1件取得する。</p>
+</li>
+<li>
+<p><code>MyBatisCursorItemReader</code>は、member_infoテーブルから入力データを1件取得する。</p>
+</li>
+<li>
+<p>member_infoテーブルは、<code>MyBatisCursorItemReader</code>に入力データを返却する。</p>
+</li>
+<li>
+<p><code>MyBatisCursorItemReader</code>は、タスクレットに入力データを返却する。</p>
+</li>
+<li>
+<p><code>PointAddTasklet</code>は、<code>SpringValidator</code>に入力チェック処理を依頼する。</p>
+</li>
+<li>
+<p><code>SpringValidator</code>は、入力チェックルールに基づき入力チェックを行い、チェックエラーの場合は例外(ValidationException)をスローする。</p>
+</li>
+<li>
+<p><code>PointAddTasklet</code>は、入力データを読み込んでポイント加算処理を行う。</p>
+</li>
+<li>
+<p><code>PointAddTasklet</code>は、一定件数分のデータを<code>MyBatisBatchItemWriter</code>で出力する。</p>
+</li>
+<li>
+<p><code>MyBatisBatchItemWriter</code>は、member_infoテーブルに対して会員情報の更新(update文の発行)を行う。</p>
+<div class="ulist">
+<ul>
+<li>
+<p>2から13までの処理過程で<strong>例外が発生</strong>すると、以降の処理を行う。</p>
+</li>
+</ul>
+</div>
+</li>
+</ol>
+</div>
+<div class="olist arabic">
+<ol class="arabic" start="14">
+<li>
+<p><code>PointAddTasklet</code>はステップへ例外(ここではValidationException)をスローする。</p>
+</li>
+<li>
+<p>ステップはフレームワークトランザクションをロールバックする。</p>
+</li>
+<li>
+<p>ステップはジョブに終了コード(ここでは異常終了:255)を返却する。</p>
+</li>
+</ol>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+<div class="title">入力チェック処理を実装するための設定</div>
+<div class="paragraph">
+<p>入力チェックにはHibernate Validatorを使用する。ブランクプロジェクトには既に設定済みであるが、
+ライブラリの依存関係にHibernate Validatorの定義、およびBean定義が必要となる。</p>
+</div>
+<div class="listingblock">
+<div class="title">依存ライブラリの設定例(pom.xml)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"><span class="tag">&lt;dependency&gt;</span>
+    <span class="tag">&lt;groupId&gt;</span>org.hibernate<span class="tag">&lt;/groupId&gt;</span>
+    <span class="tag">&lt;artifactId&gt;</span>hibernate-validator<span class="tag">&lt;/artifactId&gt;</span>
+<span class="tag">&lt;/dependency&gt;</span></code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">src/main/resources/META-INF/spring/launch-context.xml</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"><span class="tag">&lt;bean</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">validator</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">org.springframework.batch.item.validator.SpringValidator</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">p:validator-ref</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">beanValidator</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+
+<span class="tag">&lt;bean</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">beanValidator</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">org.springframework.validation.beanvalidation.LocalValidatorFactoryBean</span><span class="delimiter">&quot;</span></span> <span class="tag">/&gt;</span></code></pre>
+</div>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>以降で、チャンクモデル、タスクレットモデルそれぞれの実装方法を説明する。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="#Ch09_Impl_ValidationJob_Chunk">チャンクモデルでの実装</a></p>
+</li>
+<li>
+<p><a href="#Ch09_Impl_ValidationJob_Tasklet">タスクレットモデルでの実装</a></p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="Ch09_Impl_ValidationJob_Chunk"><a class="anchor" href="#Ch09_Impl_ValidationJob_Chunk"></a>チャンクモデルでの実装</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>チャンクモデルで入力チェックを行うジョブの作成から実行までを以下の手順で実施する。</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p><a href="#Ch09_Impl_ValidationJob_Chunk_ValidationRulesDefinition">入力チェックルールの定義</a></p>
+</li>
+<li>
+<p><a href="#Ch09_Impl_ValidationJob_Chunk_Coding">入力チェック処理の実装</a></p>
+</li>
+<li>
+<p><a href="#Ch09_Impl_ValidationJob_Chunk_Execution">ジョブの実行と結果の確認</a></p>
+</li>
+</ol>
+</div>
+<div class="sect2">
+<h3 id="Ch09_Impl_ValidationJob_Chunk_ValidationRulesDefinition"><a class="anchor" href="#Ch09_Impl_ValidationJob_Chunk_ValidationRulesDefinition"></a>入力チェックルールの定義</h3>
+<div class="paragraph">
+<p>入力チェックを行うために、DTOクラスのチェック対象のフィールドにBean Validationのアノテーションを付与する。<br>
+入力チェック用のアノテーションについては、Macchinetta Server 1.x 開発ガイドラインの<a href="https://macchinetta.github.io/server-guideline/1.8.1.RELEASE/ja/ArchitectureInDetail/WebApplicationDetail/Validation.html#validation-jsr380-doc">Bean Validationのチェックルール</a>
+および<a href="https://macchinetta.github.io/server-guideline/1.8.1.RELEASE/ja/ArchitectureInDetail/WebApplicationDetail/Validation.html#validation-validator-list">Hibernate Validatorのチェックルール</a>を参照。</p>
+</div>
+<div class="paragraph">
+<p>チャンクモデル/タスクレットモデルで共通して利用するため、既に実施している場合は読み飛ばしてよい。</p>
+</div>
+<div class="paragraph">
+<p>ここでは、ポイントが1,000,000(上限値)を超過していないかチェックするためのチェックルールを定義する。</p>
+</div>
+<div class="listingblock">
+<div class="title">com.example.batch.tutorial.common.dto.MemberInfoDto</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="java"><span class="keyword">package</span> <span class="namespace">com.example.batch.tutorial.common.dto</span>;
+
+<span class="keyword">import</span> <span class="include">javax.validation.constraints.Max</span>;
+
+<span class="directive">public</span> <span class="type">class</span> <span class="class">MemberInfoDto</span> {
+    <span class="directive">private</span> <span class="predefined-type">String</span> id;
+
+    <span class="directive">private</span> <span class="predefined-type">String</span> type;
+
+    <span class="directive">private</span> <span class="predefined-type">String</span> status;
+
+    <span class="annotation">@Max</span>(<span class="integer">1000000</span>) <span class="comment">// (1)</span>
+    <span class="directive">private</span> <span class="type">int</span> point;
+
+    <span class="comment">// Getter and setter are omitted.</span>
+}</code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 2. 説明</caption>
+<colgroup>
+<col style="width: 10%;">
+<col style="width: 90%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">対象のフィールドが指定した数値以下であることを示す@Maxアノテーションを付与する。</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect2">
+<h3 id="Ch09_Impl_ValidationJob_Chunk_Coding"><a class="anchor" href="#Ch09_Impl_ValidationJob_Chunk_Coding"></a>入力チェック処理の実装</h3>
+<div class="paragraph">
+<p>ポイント加算処理を行うビジネスロジッククラスに入力チェック処理を実装する。</p>
+</div>
+<div class="paragraph">
+<p>既に実装してある<code>PointAddItemProcessor</code>クラスに入力チェック処理の実装を追加する。<br>
+<a href="#Ch09_Impl_ValidationJob_Prerequisite">前提</a>のとおりデータベースアクセスするジョブの場合の説明となるため、ファイルアクセスするジョブの場合の
+実装は以下の(1)～(3)のみ追加する。</p>
+</div>
+<div class="listingblock">
+<div class="title">com.example.batch.tutorial.dbaccess.chunk.PointAddItemProcessor</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="java"><span class="comment">// Package and the other import are omitted.</span>
+
+<span class="keyword">import</span> <span class="include">javax.inject.Inject</span>;
+<span class="keyword">import</span> <span class="include">org.springframework.batch.item.validator.Validator</span>;
+
+<span class="annotation">@Component</span>
+<span class="directive">public</span> <span class="type">class</span> <span class="class">PointAddItemProcessor</span> <span class="directive">implements</span> ItemProcessor&lt;MemberInfoDto, MemberInfoDto&gt; {
+    <span class="comment">// Definition of constans are omitted.</span>
+
+    <span class="annotation">@Inject</span> <span class="comment">// (1)</span>
+    <span class="predefined-type">Validator</span>&lt;MemberInfoDto&gt; validator; <span class="comment">// (2)</span>
+
+    <span class="annotation">@Override</span>
+    <span class="directive">public</span> MemberInfoDto process(MemberInfoDto item) <span class="directive">throws</span> <span class="exception">Exception</span> {
+        validator.validate(item); <span class="comment">// (3)</span>
+
+        <span class="comment">// The other codes of bussiness logic are omitted.</span>
+    }
+}</code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 3. 説明</caption>
+<colgroup>
+<col style="width: 10%;">
+<col style="width: 90%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>SpringValidator</code>のインスタンスをインジェクトする。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(2)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>org.springframework.batch.item.validator.Validator</code>の型引数には、
+<code>ItemReader</code>を通じて取得するDTOを設定する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(3)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>ItemReader</code>を通じて取得するDTOを引数として<code>Validator#validate()</code>を実行する。<br>
+本来、<code>validate()</code>を実行する際は入力チェックエラーをハンドリングするためにtry-catchを実装して例外を捕捉するが、
+try-catchを利用した例外ハンドリングは<a href="Ch09_ExceptionHandlingWithTryCatchJob.html#Ch09_Impl_ExceptionHandlingWithTryCatchJob">try-catchで例外ハンドリングを行うジョブ</a>で説明するため、
+ここでは、例外ハンドリングは実装しない。</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect2">
+<h3 id="Ch09_Impl_ValidationJob_Chunk_Execution"><a class="anchor" href="#Ch09_Impl_ValidationJob_Chunk_Execution"></a>ジョブの実行と結果の確認</h3>
+<div class="paragraph">
+<p>作成したジョブをSTS上で実行し、結果を確認する。</p>
+</div>
+<div class="sect3">
+<h4 id="Ch09_Impl_ValidationJob_Chunk_Execution_Run"><a class="anchor" href="#Ch09_Impl_ValidationJob_Chunk_Execution_Run"></a>実行構成からジョブを実行</h4>
+<div class="paragraph">
+<p>既に作成してある実行構成から、ジョブを実行する。</p>
+</div>
+<div class="paragraph">
+<p>ここでは、異常系データを利用してジョブを実行する。<br>
+入力チェックを実装したジョブが扱うリソース(データベース or ファイル)によって
+入力データの切替方法が異なるため、以下のとおり実行すること。</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">データベースアクセスでデータ入出力を行うジョブに対して入力チェックを実装した場合</dt>
+<dd>
+<p>データベースアクセスでデータ入出力を行うジョブの<a href="Ch09_DBAccessJob.html#Ch09_Impl_DBAccessJob_Chunk_Execution_Run">実行構成からジョブを実行</a>
+で作成した実行構成を使ってジョブを実行する。</p>
+</dd>
+</dl>
+</div>
+<div class="paragraph">
+<p>異常系データを利用するために、<code>batch-application.properties</code>のDatabase Initializeで
+正常系データのスクリプトをコメントアウトし、異常系データのスクリプトのコメントアウトを解除する。</p>
+</div>
+<div class="listingblock">
+<div class="title">src/main/resources/batch-application.properties</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"># Database Initialize
+tutorial.create-table.script=file:sqls/create-member-info-table.sql
+#tutorial.insert-data.script=file:sqls/insert-member-info-data.sql
+tutorial.insert-data.script=file:sqls/insert-member-info-error-data.sql</code></pre>
+</div>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">ファイルアクセスでデータ入出力を行うジョブに対して入力チェックを実装した場合</dt>
+<dd>
+<p>ファイルアクセスでデータ入出力を行うジョブの<a href="Ch09_FileAccessJob.html#Ch09_Impl_FileAccessJob_Chunk_Execution_Run">実行構成からジョブを実行</a>
+で作成した実行構成を使ってジョブを実行する。</p>
+</dd>
+</dl>
+</div>
+<div class="paragraph">
+<p>異常系データを利用するために、実行構成で設定する引数のうち、
+入力ファイル(inputFile)のパスを正常系データ(input-member-info-data.csv)から異常系データ(input-member-info-error-data.csv)に変更する。</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="Ch09_Impl_ValidationJob_Chunk_Execution_Console"><a class="anchor" href="#Ch09_Impl_ValidationJob_Chunk_Execution_Console"></a>コンソールログの確認</h4>
+<div class="paragraph">
+<p>Console Viewを開き、以下の内容のログが出力されていることを確認する。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>処理が異常終了(FAILED)していること。</p>
+</li>
+<li>
+<p><code>org.springframework.batch.item.validator.ValidationException</code>が発生していること。</p>
+</li>
+</ul>
+</div>
+<div class="listingblock">
+<div class="title">コンソールログ出力例</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="console">(.. omitted)
+
+[2020/03/10 16:04:18] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=jobPointAddChunk]] launched with the following parameters: [{jsr_batch_run_id=140}]
+[2020/03/10 16:04:18] [main] [o.s.b.c.j.SimpleStepHandler] [INFO ] Executing step: [jobPointAddChunk.step01]
+[2020/03/10 16:04:18] [main] [o.s.b.c.s.AbstractStep] [ERROR] Encountered an error executing step jobPointAddChunk.step01 in job jobPointAddChunk
+org.springframework.batch.item.validator.ValidationException: Validation failed for com.example.batch.tutorial.common.dto.MemberInfoDto@2b1cd7bc:
+Field error in object 'item' on field 'point': rejected value [1000001]; codes [Max.item.point,Max.point,Max.int,Max]; arguments [org.springframework.context.support.DefaultMessageSourceResolvable: codes [item.point,point]; arguments []; default message [point],1000000]; default message [must be less than or equal to 1000000]
+        at org.springframework.batch.item.validator.SpringValidator.validate(SpringValidator.java:54)
+
+(.. omitted)
+
+Caused by: org.springframework.validation.BindException: org.springframework.validation.BeanPropertyBindingResult: 1 errors
+Field error in object 'item' on field 'point': rejected value [1000001]; codes [Max.item.point,Max.point,Max.int,Max]; arguments [org.springframework.context.support.DefaultMessageSourceResolvable: codes [item.point,point]; arguments []; default message [point],1000000]; default message [must be less than or equal to 1000000]
+        ... 29 common frames omitted
+[2020/03/10 16:04:18] [main] [o.s.b.c.s.AbstractStep] [INFO ] Step: [jobPointAddChunk.step01] executed in 243ms
+[2020/03/10 16:04:18] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=jobPointAddChunk]] completed with the following parameters: [{jsr_batch_run_id=140}] and the following status: [FAILED] in 319ms</code></pre>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="Ch09_Impl_ValidationJob_Chunk_Execution_Exitcode"><a class="anchor" href="#Ch09_Impl_ValidationJob_Chunk_Execution_Exitcode"></a>終了コードの確認</h4>
+<div class="paragraph">
+<p>終了コードにより、異常終了したことを確認する。<br>
+確認手順は<a href="Ch09_EnvironmentConstruction.html#Ch09_EnvironmentConstruction_OperationCheck_ExecJob_Run">ジョブの実行と結果の確認</a>を参照。
+終了コード(exit value)が255(異常終了)となっていることを確認する。</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/ch09/Validation/Ch09_ValidationJob_Confirm_ExitCode_ChunkModel.png" alt="Confiｒm the Exit Code of ValidationJob for ChunkModel">
+</div>
+<div class="title">図 4. 終了コードの確認</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="Ch09_Impl_ValidationJob_Chunk_Execution_Output"><a class="anchor" href="#Ch09_Impl_ValidationJob_Chunk_Execution_Output"></a>出力リソースの確認</h4>
+<div class="paragraph">
+<p>入力チェックを実装したジョブによって出力リソース(データベース or ファイル)を確認する。</p>
+</div>
+<div class="paragraph">
+<p>チャンクモデルの場合、中間コミット方式をとっているため、エラー箇所直前のチャンクまで更新が確定していることを確認する。</p>
+</div>
+<div class="sect4">
+<h5 id="Ch09_Impl_ValidationJob_Chunk_Execution_Output_Table"><a class="anchor" href="#Ch09_Impl_ValidationJob_Chunk_Execution_Output_Table"></a>会員情報テーブルの確認</h5>
+<div class="paragraph">
+<p>H2 Consoleを使用して会員情報テーブルの確認を行う。<br>
+更新前後の会員情報テーブルの内容を比較し、確認内容のとおりとなっていることを確認する。<br>
+確認手順は<a href="Ch09_EnvironmentConstruction.html#Ch09_EnvironmentConstruction_OperationCheck_RefDB">H2 Consoleを使用してデータベースを参照する</a>を参照。</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">確認内容</dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>1から10番目のレコード(会員番号が"00000001"から"00000010"のレコード)について</p>
+<div class="ulist">
+<ul>
+<li>
+<p>statusカラム</p>
+<div class="ulist">
+<ul>
+<li>
+<p>"1"(処理対象)から"0"(初期状態)に更新されていること</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>pointカラム</p>
+<div class="ulist">
+<ul>
+<li>
+<p>ポイント加算対象について、会員種別に応じたポイントが加算されていること</p>
+<div class="ulist">
+<ul>
+<li>
+<p>typeカラムが"G"(ゴールド会員)の場合は100ポイント</p>
+</li>
+<li>
+<p>typeカラムが"N"(一般会員)の場合は10ポイント</p>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>11から15番目のレコード(会員番号が"00000011"から"00000015"のレコード)について</p>
+<div class="ulist">
+<ul>
+<li>
+<p>更新されていないこと(破線の赤枠で示した範囲)</p>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+</dd>
+</dl>
+</div>
+<div class="paragraph">
+<p>更新前後の会員情報テーブルの内容を以下に示す。</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/ch09/Validation/Ch09_ValidationJob_Result_MemberInfoTable.png" alt="Table of member_info">
+</div>
+<div class="title">図 5. 更新前後の会員情報テーブルの内容</div>
+</div>
+</div>
+<div class="sect4">
+<h5 id="Ch09_Impl_ValidationJob_Chunk_Execution_Output_File"><a class="anchor" href="#Ch09_Impl_ValidationJob_Chunk_Execution_Output_File"></a>会員情報ファイルの確認</h5>
+<div class="paragraph">
+<p>会員情報ファイルの入出力内容を比較し、確認内容のとおりとなっていることを確認する。</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">確認内容</dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>出力ディレクトリに会員情報ファイルが出力されていること</p>
+<div class="ulist">
+<ul>
+<li>
+<p>出力ファイル: files/output/output-member-info-data.csv</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>1から10番目のレコード(会員番号が"00000001"から"00000010"のレコード)について</p>
+<div class="ulist">
+<ul>
+<li>
+<p>statusフィールド</p>
+<div class="ulist">
+<ul>
+<li>
+<p>"1"(処理対象)から"0"(初期状態)に更新されていること</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>pointフィールド</p>
+<div class="ulist">
+<ul>
+<li>
+<p>ポイント加算対象について、会員種別に応じたポイントが加算されていること</p>
+<div class="ulist">
+<ul>
+<li>
+<p>typeフィールドが"G"(ゴールド会員)の場合は100ポイント</p>
+</li>
+<li>
+<p>typeフィールドが"N"(一般会員)の場合は10ポイント</p>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>11から15番目のレコード(会員番号が"00000011"から"00000015"のレコード)について</p>
+<div class="ulist">
+<ul>
+<li>
+<p>出力されていないこと(破線の赤枠で示した範囲)</p>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+</dd>
+</dl>
+</div>
+<div class="paragraph">
+<p>会員情報ファイルの入出力内容を以下に示す。<br>
+ファイルのフィールドはid(会員番号)、type(会員種別)、status(商品購入フラグ)、point(ポイント)の順で出力される。</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/ch09/Validation/Ch09_ValidationJob_Result_MemberInfoFile.png" alt="File of member_info">
+</div>
+<div class="title">図 6. 会員情報ファイルの入出力内容</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="Ch09_Impl_ValidationJob_Tasklet"><a class="anchor" href="#Ch09_Impl_ValidationJob_Tasklet"></a>タスクレットモデルでの実装</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>タスクレットモデルで入力チェックを行うジョブの作成から実行までを以下の手順で実施する。</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p><a href="#Ch09_Impl_ValidationJob_Tasklet_ValidationRulesDefinition">入力チェックルールの定義</a></p>
+</li>
+<li>
+<p><a href="#Ch09_Impl_ValidationJob_Tasklet_Coding">入力チェック処理の実装</a></p>
+</li>
+<li>
+<p><a href="#Ch09_Impl_ValidationJob_Tasklet_Execution">ジョブの実行と結果の確認</a></p>
+</li>
+</ol>
+</div>
+<div class="sect2">
+<h3 id="Ch09_Impl_ValidationJob_Tasklet_ValidationRulesDefinition"><a class="anchor" href="#Ch09_Impl_ValidationJob_Tasklet_ValidationRulesDefinition"></a>入力チェックルールの定義</h3>
+<div class="paragraph">
+<p>入力チェックを行うために、DTOクラスのチェック対象のフィールドにBean Validationのアノテーションを付与する。<br>
+入力チェック用のアノテーションについては、Macchinetta Server 1.x 開発ガイドラインの<a href="https://macchinetta.github.io/server-guideline/1.8.1.RELEASE/ja/ArchitectureInDetail/WebApplicationDetail/Validation.html#validation-jsr380-doc">Bean Validationのチェックルール</a>
+および<a href="https://macchinetta.github.io/server-guideline/1.8.1.RELEASE/ja/ArchitectureInDetail/WebApplicationDetail/Validation.html#validation-validator-list">Hibernate Validatorのチェックルール</a>を参照。</p>
+</div>
+<div class="paragraph">
+<p>チャンクモデル/タスクレットモデルで共通して利用するため、既に実施している場合は読み飛ばしてよい。</p>
+</div>
+<div class="paragraph">
+<p>ここでは、ポイントが1,000,000(上限値)を超過していないかチェックするためのチェックルールを定義する。</p>
+</div>
+<div class="listingblock">
+<div class="title">com.example.batch.tutorial.common.dto.MemberInfoDto</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="java"><span class="keyword">package</span> <span class="namespace">com.example.batch.tutorial.common.dto</span>;
+
+<span class="keyword">import</span> <span class="include">javax.validation.constraints.Max</span>;
+
+<span class="directive">public</span> <span class="type">class</span> <span class="class">MemberInfoDto</span> {
+    <span class="directive">private</span> <span class="predefined-type">String</span> id;
+
+    <span class="directive">private</span> <span class="predefined-type">String</span> type;
+
+    <span class="directive">private</span> <span class="predefined-type">String</span> status;
+
+    <span class="annotation">@Max</span>(<span class="integer">1000000</span>) <span class="comment">// (1)</span>
+    <span class="directive">private</span> <span class="type">int</span> point;
+
+    <span class="comment">// Getter and setter are omitted.</span>
+}</code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 4. 説明</caption>
+<colgroup>
+<col style="width: 10%;">
+<col style="width: 90%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">対象のフィールドが指定した数値以下であることを示す@Maxアノテーションを付与する。</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect2">
+<h3 id="Ch09_Impl_ValidationJob_Tasklet_Coding"><a class="anchor" href="#Ch09_Impl_ValidationJob_Tasklet_Coding"></a>入力チェック処理の実装</h3>
+<div class="paragraph">
+<p>ポイント加算処理を行うビジネスロジッククラスに入力チェック処理を実装する。</p>
+</div>
+<div class="paragraph">
+<p>既に実装してある<code>PointAddTasklet</code>クラスに入力チェック処理の実装を追加する。<br>
+<a href="#Ch09_Impl_ValidationJob_Prerequisite">前提</a>のとおりデータベースアクセスするジョブの場合の説明となるため、
+ファイルアクセスするジョブの場合の実装は以下の(1)～(3)のみ追加する。</p>
+</div>
+<div class="listingblock">
+<div class="title">com.example.batch.tutorial.dbaccess.tasklet.PointAddTasklet</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="java"><span class="comment">// Package and the other import are omitted.</span>
+
+<span class="keyword">import</span> <span class="include">javax.inject.Inject</span>;
+<span class="keyword">import</span> <span class="include">org.springframework.batch.item.validator.Validator</span>;
+
+<span class="annotation">@Component</span>
+<span class="directive">public</span> <span class="type">class</span> <span class="class">PointAddTasklet</span> <span class="directive">implements</span> Tasklet {
+    <span class="comment">// Definition of constans, ItemStreamReader and ItemWriter are omitted.</span>
+
+    <span class="annotation">@Inject</span> <span class="comment">// (1)</span>
+    <span class="predefined-type">Validator</span>&lt;MemberInfoDto&gt; validator; <span class="comment">// (2)</span>
+
+    <span class="annotation">@Override</span>
+    <span class="directive">public</span> RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) <span class="directive">throws</span> <span class="exception">Exception</span> {
+        MemberInfoDto item = <span class="predefined-constant">null</span>;
+
+        <span class="predefined-type">List</span>&lt;MemberInfoDto&gt; items = <span class="keyword">new</span> <span class="predefined-type">ArrayList</span>&lt;&gt;(CHUNK_SIZE);
+
+        <span class="keyword">try</span> {
+            reader.open(chunkContext.getStepContext().getStepExecution().getExecutionContext());
+
+            <span class="keyword">while</span> ((item = reader.read()) != <span class="predefined-constant">null</span>) {
+                validator.validate(item); <span class="comment">// (3)</span>
+
+                <span class="comment">// The other codes of bussiness logic are omitted.</span>
+            }
+
+            writer.write(items);
+        } <span class="keyword">finally</span> {
+            reader.close();
+        }
+
+        <span class="keyword">return</span> RepeatStatus.FINISHED;
+    }
+}</code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 5. 説明</caption>
+<colgroup>
+<col style="width: 10%;">
+<col style="width: 90%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>SpringValidator</code>のインスタンスをインジェクトする。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(2)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>org.springframework.batch.item.validator.Validator</code>の型引数には、
+<code>ItemReader</code>を通じて取得するDTOを設定する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(3)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>ItemReader</code>を通じて取得するDTOを引数として<code>Validator#validate()</code>を実行する。<br>
+本来、<code>validate()</code>を実行する際は入力チェックエラーをハンドリングするためにtry-catchを実装して例外を捕捉するが、
+try-catchを利用した例外ハンドリングは<a href="Ch09_ExceptionHandlingWithTryCatchJob.html#Ch09_Impl_ExceptionHandlingWithTryCatchJob">try-catchで例外ハンドリングを行うジョブ</a>で説明するため、
+ここでは、例外ハンドリングは実装しない。</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect2">
+<h3 id="Ch09_Impl_ValidationJob_Tasklet_Execution"><a class="anchor" href="#Ch09_Impl_ValidationJob_Tasklet_Execution"></a>ジョブの実行と結果の確認</h3>
+<div class="paragraph">
+<p>作成したジョブをSTS上で実行し、結果を確認する。</p>
+</div>
+<div class="sect3">
+<h4 id="Ch09_Impl_ValidationJob_Tasklet_Execution_Run"><a class="anchor" href="#Ch09_Impl_ValidationJob_Tasklet_Execution_Run"></a>実行構成からジョブを実行</h4>
+<div class="paragraph">
+<p>既に作成してある実行構成から、ジョブを実行する。</p>
+</div>
+<div class="paragraph">
+<p>ここでは、異常系データを利用してジョブを実行する。<br>
+入力チェックを実装したジョブが扱うリソース(データベース or ファイル)によって
+入力データの切替方法が異なるため、以下のとおり実行すること。</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">データベースアクセスでデータ入出力を行うジョブに対して入力チェックを実装した場合</dt>
+<dd>
+<p>データベースアクセスでデータ入出力を行うジョブの<a href="Ch09_DBAccessJob.html#Ch09_Impl_DBAccessJob_Chunk_Execution_Run">実行構成からジョブを実行</a>
+で作成した実行構成を使ってジョブを実行する。</p>
+</dd>
+</dl>
+</div>
+<div class="paragraph">
+<p>異常系データを利用するために、<code>batch-application.properties</code>のDatabase Initializeで
+正常系データのスクリプトをコメントアウトし、異常系データのスクリプトのコメントアウトを解除する。</p>
+</div>
+<div class="listingblock">
+<div class="title">src/main/resources/batch-application.properties</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"># Database Initialize
+tutorial.create-table.script=file:sqls/create-member-info-table.sql
+#tutorial.insert-data.script=file:sqls/insert-member-info-data.sql
+tutorial.insert-data.script=file:sqls/insert-member-info-error-data.sql</code></pre>
+</div>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">ファイルアクセスでデータ入出力を行うジョブに対して入力チェックを実装した場合</dt>
+<dd>
+<p>ファイルアクセスでデータ入出力を行うジョブの<a href="Ch09_FileAccessJob.html#Ch09_Impl_FileAccessJob_Chunk_Execution_Run">実行構成からジョブを実行</a>
+で作成した実行構成を使ってジョブを実行する。</p>
+</dd>
+</dl>
+</div>
+<div class="paragraph">
+<p>異常系データを利用するために、実行構成で設定する引数のうち、
+入力ファイル(inputFile)のパスを正常系データ(input-member-info-data.csv)から異常系データ(input-member-info-error-data.csv)に変更する。</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="Ch09_Impl_ValidationJob_Tasklet_Execution_Console"><a class="anchor" href="#Ch09_Impl_ValidationJob_Tasklet_Execution_Console"></a>コンソールログの確認</h4>
+<div class="paragraph">
+<p>Console Viewを開き、以下の内容のログが出力されていることを確認する。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>処理が異常終了(FAILED)していること。</p>
+</li>
+<li>
+<p><code>org.springframework.batch.item.validator.ValidationException</code>が発生していること</p>
+</li>
+</ul>
+</div>
+<div class="listingblock">
+<div class="title">コンソールログ出力例</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="console">(.. omitted)
+
+[2020/03/10 16:05:44] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=jobPointAddTasklet]] launched with the following parameters: [{jsr_batch_run_id=142}]
+[2020/03/10 16:05:44] [main] [o.s.b.c.j.SimpleStepHandler] [INFO ] Executing step: [jobPointAddTasklet.step01]
+[2020/03/10 16:05:44] [main] [o.s.b.c.s.AbstractStep] [ERROR] Encountered an error executing step jobPointAddTasklet.step01 in job jobPointAddTasklet
+org.springframework.batch.item.validator.ValidationException: Validation failed for com.example.batch.tutorial.common.dto.MemberInfoDto@3811510:
+Field error in object 'item' on field 'point': rejected value [1000001]; codes [Max.item.point,Max.point,Max.int,Max]; arguments [org.springframework.context.support.DefaultMessageSourceResolvable: codes [item.point,point]; arguments []; default message [point],1000000]; default message [must be less than or equal to 1000000]
+        at org.springframework.batch.item.validator.SpringValidator.validate(SpringValidator.java:54)
+
+(.. omitted)
+
+Caused by: org.springframework.validation.BindException: org.springframework.validation.BeanPropertyBindingResult: 1 errors
+Field error in object 'item' on field 'point': rejected value [1000001]; codes [Max.item.point,Max.point,Max.int,Max]; arguments [org.springframework.context.support.DefaultMessageSourceResolvable: codes [item.point,point]; arguments []; default message [point],1000000]; default message [must be less than or equal to 1000000]
+        ... 24 common frames omitted
+[2020/03/10 16:05:44] [main] [o.s.b.c.s.AbstractStep] [INFO ] Step: [jobPointAddTasklet.step01] executed in 178ms
+[2020/03/10 16:05:44] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=jobPointAddTasklet]] completed with the following parameters: [{jsr_batch_run_id=142}] and the following status: [FAILED] in 244ms</code></pre>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="Ch09_Impl_ValidationJob_Tasklet_Execution_Exitcode"><a class="anchor" href="#Ch09_Impl_ValidationJob_Tasklet_Execution_Exitcode"></a>終了コードの確認</h4>
+<div class="paragraph">
+<p>終了コードにより、異常終了したことを確認する。<br>
+確認手順は<a href="Ch09_EnvironmentConstruction.html#Ch09_EnvironmentConstruction_OperationCheck_ExecJob_Run">ジョブの実行と結果の確認</a>を参照。
+終了コード(exit value)が255(異常終了)となっていることを確認する。</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/ch09/Validation/Ch09_ValidationJob_Confirm_ExitCode_TaskletModel.png" alt="Confiｒm the Exit Code of ValidationJob for TaskletModel">
+</div>
+<div class="title">図 7. 終了コードの確認</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="Ch09_Impl_ValidationJob_Tasklet_Execution_Output"><a class="anchor" href="#Ch09_Impl_ValidationJob_Tasklet_Execution_Output"></a>出力リソースの確認</h4>
+<div class="paragraph">
+<p>入力チェックを実装したジョブによって出力リソース(データベース or ファイル)を確認する。</p>
+</div>
+<div class="paragraph">
+<p>タスクレットモデルの場合、一括コミット方式をとっているため、エラーが発生した場合は一切更新されていないことを確認してほしい。</p>
+</div>
+<div class="sect4">
+<h5 id="Ch09_Impl_ValidationJob_Tasklet_Execution_Output_Table"><a class="anchor" href="#Ch09_Impl_ValidationJob_Tasklet_Execution_Output_Table"></a>会員情報テーブルの確認</h5>
+<div class="paragraph">
+<p>H2 Consoleを使用して会員情報テーブルの確認を行う。<br>
+更新前後の会員情報テーブルの内容を比較し、確認内容のとおりとなっていることを確認する。<br>
+確認手順は<a href="Ch09_EnvironmentConstruction.html#Ch09_EnvironmentConstruction_OperationCheck_RefDB">H2 Consoleを使用してデータベースを参照する</a>を参照。</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">確認内容</dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>すべてのレコードについて、データが更新されていないこと</p>
+</li>
+</ul>
+</div>
+</dd>
+</dl>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/ch09/Validation/Ch09_ValidationJob_Initial_MemberInfoTable.png" alt="member_info table in the initial state">
+</div>
+<div class="title">図 8. 初期状態の会員情報テーブルの内容</div>
+</div>
+</div>
+<div class="sect4">
+<h5 id="Ch09_Impl_ValidationJob_Tasklet_Execution_Output_File"><a class="anchor" href="#Ch09_Impl_ValidationJob_Tasklet_Execution_Output_File"></a>会員情報ファイルの確認</h5>
+<div class="paragraph">
+<p>会員情報ファイルの入出力内容を比較し、確認内容のとおりとなっていることを確認する。</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">確認内容</dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>出力ディレクトリに会員情報ファイルが<strong>空ファイル</strong>で出力されていること</p>
+<div class="ulist">
+<ul>
+<li>
+<p>出力ファイル: files/output/output-member-info-data.csv</p>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+</dd>
+</dl>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<link rel="stylesheet" href="./theme/css/coderay-asciidoctor.css">
+<div class="container">
+
+  <div class="common-bg">
+    <div class="information">
+      Macchinetta Batch Framework (2.x) Development Guideline - version 2.3.2.RELEASE, 2023-3-30
+    </div>
+    <div class="index">
+      <a href="index.html">&gt; INDEX</a>
+    </div>
+  </div>
+
+  <div class="footer-bg">
+    <div class="copyright">
+      &copy; Copyright 2017 NTT Corporation.
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
