@@ -16,6 +16,18 @@ include::_include_all.adoc[]
 バッチアプリケーションの特性上、起動直後にその結果をユーザインタフェースで確認できることは稀である。
 よって、ジョブスケジューラ/RDBMS/アプリケーションログといった、ジョブの実行とは別に実行状態・結果の記録を行う仕組みが必要となる。
 
+本ガイドラインではジョブスケジューラを使用したジョブ管理については説明しないが、ジョブスケジューラを使用するのに適したジョブについては以下に記す。
+
+ジョブスケジューラを使用するのに適したジョブ::
+    {batch5_shortname}の同期型ジョブで``JobRepository``による状態管理を必要としない(非永続化のRDBMSを使用) +
+  ``JobRepository``を前提としたリスタート機能を使わないジョブ
+
+上記の条件を満たす場合、ジョブの停止・リスタートを含めた、ジョブの実行管理をすべてジョブスケジューラで行うことが適している。
+
+ジョブスケジューラを使用したジョブの実行管理については各製品のマニュアルを参照。
+
+以降、{SB}が提供する機能を利用したジョブの実行管理について説明をする。
+
 [[Ch07_JobManagement_Overview_JobExecutionManagement_Function]]
 ==== {SB} が提供する機能
 
@@ -54,7 +66,7 @@ include::_include_all.adoc[]
 ====
 
 [WARNING]
-.インメモリJobRepositoryの選択肢
+.MapJobRepositoryFactoryBeanは使用すべきではない
 ====
 {SB} にはインメモリでジョブの実行管理を行う
 ``org.springframework.batch.core.repository.support.MapJobRepositoryFactoryBean``
@@ -65,7 +77,7 @@ include::_include_all.adoc[]
 ``Not suited for use in multi-threaded jobs with splits``
 と並列処理には不適切であると示されているためである。 +
 尚、{SB} 4.3.0でMap-based JobRepository/JobExplorerは非推奨となった。 +
-https://docs.spring.io/spring-batch/docs/current/reference/html/whatsnew.html[{SB}4.3/Deprecations] +
+https://docs.spring.io/spring-batch/docs/4.3.0/reference/html/whatsnew.html#apiDeprecation[{SB}4.3/Deprecations] +
 {SB}によるこの不具合報告の状況としては以下を参照されたい。 +
 https://github.com/spring-projects/spring-batch/issues/3780[{SB}/BATCH-3780]
 ====

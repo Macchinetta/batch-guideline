@@ -3856,7 +3856,7 @@ JAXBを利用する場合は、``org.springframework.oxm.jaxb.Jaxb2Marshaller``�
 ====
 JDK8の場合、``standalone``を設定してもXMLファイルに出力されない。 +
 これはJDK8の不具合として報告され現在解消しているが、JDK9の対応となっているためである。 +
-https://bugs.openjdk.java.net/browse/JDK-8139584[JDK Bug System/JDK-8139584] +
+https://bugs.openjdk.org/browse/JDK-8139584[JDK Bug System/JDK-8139584] +
 {SB}によるこの不具合報告の状況としては以下を参照されたい。 +
 https://github.com/spring-projects/spring-batch/issues/758[{SB}/BATCH-2856] +
 ====

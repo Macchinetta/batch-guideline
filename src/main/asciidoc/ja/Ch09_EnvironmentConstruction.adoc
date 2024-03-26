@@ -377,7 +377,7 @@ launch-context.xmlを開き、``<beans>``要素内に``<jdbc:initialize-database
 .src/main/resources/META-INF/spring/launch-context.xml
 ----
 <!-- database initialize definition -->
-<jdbc:initialize-database data-source="jobDataSource" enabled="${data-source.initialize.enabled:false}" ignore-failures="ALL">
+<jdbc:initialize-database data-source="jobDataSource" enabled="${data-source.initialize.enabled:true}" ignore-failures="ALL">
     <jdbc:script location="${tutorial.create-table.script}" />
     <jdbc:script location="${tutorial.insert-data.script}" />
 </jdbc:initialize-database>

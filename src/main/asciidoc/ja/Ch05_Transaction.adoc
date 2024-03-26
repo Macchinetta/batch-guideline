@@ -541,6 +541,7 @@ public class SalesPlanChunkTranTask implements Tasklet {
 
         DefaultTransactionDefinition definition = new DefaultTransactionDefinition();
         TransactionStatus status = null;
+        int count = 0;
 
         try {
             // omitted.
@@ -553,21 +554,27 @@ public class SalesPlanChunkTranTask implements Tasklet {
                     status = transactionManager.getTransaction(definition); // (3)
                 }
                 count++;
-
-                // omitted.
-
                 repository.create(item);
                 if (count % CHUNK_SIZE == 0) {
                     transactionManager.commit(status);  // (4)
                 }
             }
+            if (status != null && !status.isCompleted()) {
+                transactionManager.commit(status);    // (5)
+            }
         } catch (Exception e) {
             logger.error("Exception occurred while reading.", e);
-            transactionManager.rollback(status);    // (5)
+            if (status != null && !status.isCompleted()) {
+            	transactionManager.rollback(status);    // (6)
+            }
             throw e;
         } finally {
             if (status != null && !status.isCompleted()) {
-                transactionManager.commit(status);   // (6)
+                try {
+                    transactionManager.rollback(status);    // (7)
+                } catch (TransactionException e2) {
+                	logger.error("TransactionException occurred while rollback.", e2);
+                }
             }
             itemReader.close();
         }
@@ -597,10 +604,13 @@ public class SalesPlanChunkTranTask implements Tasklet {
 |チャンク終了時にトランザクションをコミットする。
 
 |(5)
-|例外発生時にはトランザクションをロールバックする。
+|最後のチャンクについて、トランザクションをコミットする。
 
 |(6)
-|最後のチャンクについて、トランザクションをコミットする。
+|例外発生時にはトランザクションをロールバックする。
+
+|(7)
+|トランザクションが終わっていない場合、トランザクションをロールバックする。
 
 |===
 
@@ -969,7 +979,9 @@ image::Ch05_transaction_Best_Efforts_1PC.png[Best Efforts 1PC Overview]
 |``ChainedTransactionManager``を利用するために、依存関係を追加する。
 
 |(2)
-|``ChainedTransactionManager``のBean定義を行う。
+|``ChainedTransactionManager``のBean定義を行う。 +
+尚、 https://github.com/spring-projects/spring-data-commons[spring-data-commons] 2.5.0で``ChainedTransactionManager``は非推奨であり、予告なく削除される場合があるため注意すること。 + 
+https://docs.spring.io/spring-data/commons/docs/current/api/org/springframework/data/transaction/ChainedTransactionManager.html[spring-data-commons/ChainedTransactionManager]
 
 |(3)
 |まとめたい複数のトランザクションマネージャをリストで定義する。
