@@ -6,22 +6,22 @@
 ++ <&folder> src
 +++ <&folder> main
 ++++ <&folder> java
-+++++ <&folder> org.terasoluna.batch.sample
++++++ <&folder> jp.co.ntt.fw.macchinetta.batch.sample
 ++++++ <&folder> config
 +++++++ <&file> LaunchContextConfig.java (1)
 +++++++ <&file> JobBaseContextConfig.java (2)
-++++ <&folder> resources
-+++++ <&folder> META-INF
++++++++ <&file> TerasolunaBatchConfiguration.java  (6)
 ++++++ <&folder> jobs
-+++++++ <&file> jobXxx.xml (3)
++++++++ <&file> jobXxxConfig.java (3)
 + <&folder> asyncapp-web
 ++ <&folder> src
 +++ <&folder> main
-++++ <&folder> resources
-+++++ <&folder> META-INF
-++++++ <&folder> spring
-+++++++ <&file> spring-mvc-rest.xml (4)
-+++++++ <&file> applicationContext.xml (5)
+++++ <&folder> java
++++++ <&folder> jp.co.ntt.fw.macchinetta.batch.sample
+++++++ <&folder> app
++++++++ <&file> ApplicationContextConfig.java (5)
+++++++ <&folder> web
++++++++ <&file> SpringMvcRestConfig.java (4)
 }
 }
 @endsalt

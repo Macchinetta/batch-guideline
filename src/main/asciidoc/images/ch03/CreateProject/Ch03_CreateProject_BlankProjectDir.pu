@@ -4,8 +4,8 @@
 <application-root>
 + <&folder> src
 ++ <&folder> main
-+++ <&folder> java
-++++ <&folder> com // (1)
++++ <&folder> java // (1)
+++++ <&folder> com
 +++++ <&folder> example
 ++++++ <&folder> batch
 +++++++ <&folder> config // (2)
@@ -14,24 +14,24 @@
 ++++++++ <&file> AsynBatchDaemonConfig.java // (3)
 ++++++++ <&file> JobBaseContextConfig.java // (4)
 ++++++++ <&file> LaunchContextConfig.java // (5)
-+++++++ <&folder> job01 // (6)
+++++++++ <&file> TerasolunaBatchConfiguration.java // (6)
++++++++ <&folder> job01 // (7)
 ++++++++ <&file> Employee.java
 ++++++++ <&file> EmployeeProcessor.java
 ++++++++ <&file> EmployeeRepository.java
++++++++ <&folder> jobs // (8)
+++++++++ <&file> Job01Config.java
 +++ <&folder> resources
-++++ <&file> batch-application.properties // (7)
-++++ <&file> logback.xml // (8)
-++++ <&file> ValidationMessages.properties // (9)
+++++ <&file> batch-application.properties // (9)
+++++ <&file> logback.xml // (10)
+++++ <&file> ValidationMessages.properties // (11)
 ++++ <&folder> com
 +++++ <&folder> example
 ++++++ <&folder> batch
 +++++++ <&folder> job01
-++++++++ <&file> EmployeeRepository.xml // (10)
+++++++++ <&file> EmployeeRepository.xml // (12)
 ++++ <&folder> i18n
-+++++ <&file> application-messages.properties // (11)
-++++ <&folder> META-INF
-+++++ <&folder> jobs // (12)
-++++++ <&file> job01.xml
++++++ <&file> application-messages.properties // (13)
 ++ <&folder> test
 +++ <&folder> java
 +++ <&folder> resources

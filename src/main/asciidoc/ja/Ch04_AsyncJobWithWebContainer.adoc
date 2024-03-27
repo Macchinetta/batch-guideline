@@ -208,6 +208,9 @@ Spring プロファイルが非同期実行時に指定される``async``の場�
 |(5)
 |``ContextLoaderListener``により、Webアプリケーション内で共有される親コンテキストとなる。
 
+|(6)
+|``JavaConfig``のみ、共通Bean定義ファイルからインポートされる定義ファイル。
+
 |===
 
 [[Ch04_AsyncJobWithWeb_HowToUse]]
@@ -281,9 +284,6 @@ Spring MVCコントローラが、``JobOperator``によりジョブを起動す�
 
 |ジョブ名
 |job01
-
-|ジョブパラメータ
-|param1=value1
 
 |===
 
@@ -454,8 +454,30 @@ image::Ch04_AsyncJobWithWebContainer_DirectoryStructure.png[directory structure]
 従来のWebアプリケーション(Servlet/JSP)やSOAPを使用した場合でも同様な手順となるので、適宜読み替えること。
 ====
 
+// ============ Java/XML Config Tab start. ============
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup040402" class="JavaConfigTab" id="tabgroup040402_1" checked><label for="tabgroup040402_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup040402" class="XMLConfigTab" id="tabgroup040402_2"><label for="tabgroup040402_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
 .ブランクプロジェクトから追加・削除するBean定義ファイル
 image::Ch04_AsyncJobWithWebContainer_AppendBeanDefinitionsOnBlank.png[AppendBeanDefinitionsOnBlank]
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
+.ブランクプロジェクトから追加・削除するBean定義ファイル
+image::Ch04_AsyncJobWithWebContainer_AppendBeanDefinitionsOnBlank_XMLConfig.png[AppendBeanDefinitionsOnBlankXMLConfig]
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============
 
 [cols="10,90", options="header"]
 .追加・削除するBean定義ファイル
@@ -465,75 +487,100 @@ image::Ch04_AsyncJobWithWebContainer_AppendBeanDefinitionsOnBlank.png[AppendBean
 |説明
 
 |(1)
-|spring-mvc.xmlは(2)を作成するため、不要となるので削除する。
+|(2)を作成するため、不要となるので削除する。
 
 |(2)
-|RESTful Web Service用のspring-mvc-rest.xmlを作成する。必要となる定義の記述例を以下に示す。
+|``RESTful Web Service``用の``SpringMvcRestConfig.java/spring-mvc-rest.xml``を作成する。必要となる定義の記述例を以下に示す。
 
 |===
 
 // ============ Java/XML Config Tab start. ============ 
 ++++
 <div class="tabbox">
-  <input type="radio" name="tabgroup040402" class="JavaConfigTab" id="tabgroup040402_1" checked><label for="tabgroup040402_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup040402" class="XMLConfigTab" id="tabgroup040402_2"><label for="tabgroup040402_2" class="tab">XMLConfig</label>
+    <input type="radio" name="tabgroup040403" class="JavaConfigTab" id="tabgroup040403_1" checked><label for="tabgroup040403_1" class="tab">JavaConfig</label>
+    <input type="radio" name="tabgroup040403" class="XMLConfigTab" id="tabgroup040403_2"><label for="tabgroup040403_2" class="tab">XMLConfig</label>
   <div class="tabcontent" name="JavaConfigContent">
 ++++
 // Java Config start.
-[source,xml]
-.asyncapp/asyncapp-web/src/main/resources/META-INF/spring/spring-mvc-rest.xml の記述例
+[source,java]
+.asyncapp/asyncapp-web/src/main/java/jp/co/ntt/fw/macchinetta/batch/sample/config/web/SpringMvcRestConfig.java
 ----
-<!-- omitted -->
-<!-- (1) -->
-<bean class="jp.co.ntt.fw.macchinetta.batch.sample.config.LaunchContextConfig"/>
+@Configuration
+@Import(LaunchContextConfig.class) // (1)
+@EnableAspectJAutoProxy
+@ComponentScan("jp.co.ntt.fw.macchinetta.batch.sample.app.api") // (2)
+@EnableWebMvc
+public class SpringMvcRestConfig implements WebMvcConfigurer {
 
-<bean id="jsonMessageConverter"
-      class="org.springframework.http.converter.json.MappingJackson2HttpMessageConverter"
-      p:objectMapper-ref="objectMapper"/>
+    @Bean
+    public static PropertySourcesPlaceholderConfigurer propertySourcesPlaceholderConfigurer(
+            @Value("classpath*:/META-INF/spring/*.properties") Resource... properties) {
+        PropertySourcesPlaceholderConfigurer bean = new PropertySourcesPlaceholderConfigurer();
+        bean.setLocations(properties);
+        return bean;
+    }
 
-<bean id="objectMapper"
-      class="org.springframework.http.converter.json.Jackson2ObjectMapperFactoryBean">
-  <property name="dateFormat">
-      <bean class="com.fasterxml.jackson.databind.util.StdDateFormat"/>
-  </property>
-</bean>
+    @Bean("jsonMessageConverter")
+    public MappingJackson2HttpMessageConverter jsonMessageConverter(
+            ObjectMapper objectMapper) {
+        MappingJackson2HttpMessageConverter bean = new MappingJackson2HttpMessageConverter();
+        bean.setObjectMapper(objectMapper);
+        return bean;
+    }
 
-<mvc:annotation-driven>
-  <mvc:message-converters register-defaults="false">
-    <ref bean="jsonMessageConverter"/>
-  </mvc:message-converters>
-</mvc:annotation-driven>
+    @Bean("objectMapper")
+    public ObjectMapper objectMapper() {
+        Jackson2ObjectMapperFactoryBean bean = new Jackson2ObjectMapperFactoryBean();
+        bean.setDateFormat(stdDateFormat());
+        bean.afterPropertiesSet();
+        return bean.getObject();
+    }
 
-<mvc:default-servlet-handler/>
+    @Bean
+    public StdDateFormat stdDateFormat() {
+        return new StdDateFormat();
+    }
 
-<!-- (2) -->
-<context:component-scan base-package="jp.co.ntt.fw.macchinetta.batch.sample.app.api"/>
+    // (3)
+    @Bean
+    public AutomaticJobRegistrar automaticJobRegistrar(JobRegistry jobRegistry,
+           ApplicationContextFactory[] applicationContextFactories) throws Exception {
+        final AutomaticJobRegistrar automaticJobRegistrar = new AutomaticJobRegistrar();
+        final DefaultJobLoader defaultJobLoader = new DefaultJobLoader();
+        defaultJobLoader.setJobRegistry(jobRegistry);
+        automaticJobRegistrar.setApplicationContextFactories(applicationContextFactories);
+        automaticJobRegistrar.setJobLoader(defaultJobLoader);
+        automaticJobRegistrar.afterPropertiesSet();
+        return automaticJobRegistrar;
+    }
 
-<!-- (3) -->
-<bean class="org.springframework.batch.core.configuration.support.AutomaticJobRegistrar">
-    <property name="applicationContextFactories">
-        <bean class="org.springframework.batch.core.configuration.support.ClasspathXmlApplicationContextsFactoryBean">
-            <property name="resources">
-                <list>
-                  <value>classpath:/META-INF/jobs/**/*.xml</value>
-                </list>
-            </property>
-        </bean>
-    </property>
-    <property name="jobLoader">
-        <bean class="org.springframework.batch.core.configuration.support.DefaultJobLoader"
-              p:jobRegistry-ref="jobRegistry"/>
-    </property>
-</bean>
+    @Bean
+    public ApplicationContextFactory[] applicationContextFactories(
+        final ApplicationContext ctx) throws IOException {
+    	return new ApplicationContextFactoryHelper(ctx).load(
+    	       "classpath:jp/co/ntt/fw/macchinetta/batch/sample/jobs/*.class");
+    }
 
-<!-- (4) -->
-<task:executor id="taskExecutor" pool-size="3" queue-capacity="10"/>
+    // (4)
+    @Bean
+    public TaskExecutor taskExecutor() {
+        ThreadPoolTaskExecutor taskExecutor = new ThreadPoolTaskExecutor();
+        taskExecutor.setCorePoolSize(3);
+        taskExecutor.setMaxPoolSize(3);
+        taskExecutor.setQueueCapacity(10);
+        return taskExecutor;
+    }
 
-<!-- (5) -->
-<bean id="jobLauncher" class="org.springframework.batch.core.launch.support.SimpleJobLauncher"
-      p:jobRepository-ref="jobRepository"
-      p:taskExecutor-ref="taskExecutor"/>
-<!-- omitted -->
+    // (5)
+    @Bean
+    public JobLauncher jobLauncher(JobRepository jobRepository,
+        TaskExecutor taskExecutor) {
+        TaskExecutorJobLauncher jobLauncher = new TaskExecutorJobLauncher();
+        jobLauncher.setJobRepository(jobRepository);
+        jobLauncher.setTaskExecutor(taskExecutor);
+        return jobLauncher;
+    }
+}
 ----
 // Java Config end.
 ++++
@@ -591,7 +638,7 @@ image::Ch04_AsyncJobWithWebContainer_AppendBeanDefinitionsOnBlank.png[AppendBean
 <task:executor id="taskExecutor" pool-size="3" queue-capacity="10"/>
 
 <!-- (5) -->
-<bean id="jobLauncher" class="org.springframework.batch.core.launch.support.SimpleJobLauncher"
+<bean id="jobLauncher" class="org.springframework.batch.core.launch.support.TaskExecutorJobLauncher"
       p:jobRepository-ref="jobRepository"
       p:taskExecutor-ref="taskExecutor"/>
 <!-- omitted -->
@@ -603,10 +650,87 @@ image::Ch04_AsyncJobWithWebContainer_AppendBeanDefinitionsOnBlank.png[AppendBean
 ++++
 // ============ Java/XML Config Tab end. ============ 
 
+// ============ Java/XML Config Tab start. ============
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup040404" class="JavaConfigTab" id="tabgroup040404_1" checked><label for="tabgroup040404_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup040404" class="XMLConfigTab" id="tabgroup040404_2"><label for="tabgroup040404_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
 [source,xml]
 .asyncapp/asyncapp-web/src/main/webapp/WEB-INF/web.xml の記述例
 ----
 <!-- omitted -->
+<context-param>
+    <param-name>contextClass</param-name>
+    <param-value>
+        org.springframework.web.context.support.AnnotationConfigWebApplicationContext
+    </param-value>
+</context-param>
+
+<listener>
+    <listener-class>org.springframework.web.context.ContextLoaderListener</listener-class>
+</listener>
+<context-param>
+    <param-name>contextConfigLocation</param-name>
+    <!-- Root ApplicationContext -->
+    <param-value>
+        jp.co.ntt.fw.macchinetta.batch.sample.config.app.ApplicationContextConfig
+    </param-value>
+</context-param>
+
+<servlet>
+    <servlet-name>restApiServlet</servlet-name>
+    <servlet-class>org.springframework.web.servlet.DispatcherServlet</servlet-class>
+    <init-param>
+        <param-name>contextClass</param-name>
+        <param-value>
+          org.springframework.web.context.support.AnnotationConfigWebApplicationContext
+        </param-value>
+    </init-param>
+    <init-param>
+        <param-name>contextConfigLocation</param-name>
+        <!-- (6) -->
+        <param-value>
+          jp.co.ntt.fw.macchinetta.batch.sample.config.web.SpringMvcRestConfig
+        </param-value>
+    </init-param>
+    <!-- (7) -->
+    <init-param>
+        <param-name>spring.profiles.active</param-name>
+        <param-value>async</param-value>
+    </init-param>
+    <load-on-startup>1</load-on-startup>
+</servlet>
+
+<servlet-mapping>
+    <servlet-name>restApiServlet</servlet-name>
+    <url-pattern>/api/v1/*</url-pattern>
+</servlet-mapping>
+<!-- omitted -->
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
+[source,xml]
+.asyncapp/asyncapp-web/src/main/webapp/WEB-INF/web.xml の記述例
+----
+<!-- omitted -->
+<listener>
+    <listener-class>org.springframework.web.context.ContextLoaderListener</listener-class>
+</listener>
+<context-param>
+    <param-name>contextConfigLocation</param-name>
+    <!-- Root ApplicationContext -->
+    <param-value>
+        classpath*:META-INF/spring/applicationContext.xml
+    </param-value>
+</context-param>
+
 <servlet>
     <servlet-name>restApiServlet</servlet-name>
     <servlet-class>org.springframework.web.servlet.DispatcherServlet</servlet-class>
@@ -629,6 +753,12 @@ image::Ch04_AsyncJobWithWebContainer_AppendBeanDefinitionsOnBlank.png[AppendBean
 </servlet-mapping>
 <!-- omitted -->
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============
 
 [cols="10,90", options="header"]
 .RESTful Web Service の有効化例
@@ -662,7 +792,7 @@ JobLauncherの``TaskExecutor``に``AsyncTaskExecutor``実装クラスを設定�
 
 |(6)
 |``DispatcherServlet``が読み込むBean定義として、 +
-上述で記載した``spring-mvc-rest.xml``を指定する。
+上述で記載した``SpringMvcRestConfig.java/spring-mvc-rest.xml``を指定する。
 
 |(7)
 |Spring Framework のプロファイルとして、非同期バッチを表す``async``を明示する。
@@ -839,17 +969,6 @@ public class StepExecutionResource {
 ここでは簡単のため、``JobOperator``をコントローラにインジェクションし、ジョブの起動や実行状態の取得を行う。
 もちろん{server5_shortname}に従って、コントローラからServiceをはさんで``JobOperator``を起動してもよい。
 
-[TIP]
-.ジョブ起動時に渡されるジョブパラメータについて
-====
-起動時に``JobOperator#start()``の第二引数で渡されるジョブパラメータは``String``である。
-ジョブパラメータが複数ある場合、同期実行と同様に空白区切りで渡す必要がある。
-具体的には以下の形式をとる。 +
-``{ジョブパラメータ1}={値1} {ジョブパラメータ2}={値2},...``
-
-これは、<<Ch04_AsyncJobWithDB.adoc#Ch04_AsyncJobWithDB,"非同期実行(DBポーリング)">>におけるジョブパラメータの指定方法と同様である。
-====
-
 [source,java]
 .コントローラ実装例
 ----
@@ -875,15 +994,32 @@ public class JobController {
     public ResponseEntity<JobOperationResource> launch(@PathVariable("jobName") String jobName,
             @RequestBody JobOperationResource requestResource) {
 
+        String jobParams = requestResource.getJobParams();
         JobOperationResource responseResource = new JobOperationResource();
         responseResource.setJobName(jobName);
+        responseResource.setJobParams(jobParams);
+        Properties properties = new Properties();
         if(jobParams == null){
             requestResource.setJobParams("");
+        } else {
+            if (jobParams.contains(",")) {
+                requestResource.setJobParams(jobParams.replace(",", " "));
+                jobParams = jobParams.replace(",", " ");
+                requestResource.setJobParams(jobParams);
+            }
+            if (!jobParams.isEmpty()) {
+                String[] keyValuePairs = jobParams.split(" ");
+                for (String string : keyValuePairs) {
+                    String[] keyValuePair = string.split("=");
+                    properties.setProperty(keyValuePair[0], keyValuePair[1]);
+                }
+            }
         }
         try {
             // (3)
-            Long jobExecutionId = jobOperator.start(jobName, requestResource.getJobParams());
+            Long jobExecutionId = jobOperator.start(jobName, properties);
             responseResource.setJobExecutionId(jobExecutionId);
+            responseResource.setResultMessage("Job launching task is scheduled.");
             return ResponseEntity.ok().body(responseResource);
         } catch (NoSuchJobException | JobInstanceAlreadyExistsException | JobParametersInvalidException e) {
             responseResource.setError(e);
@@ -961,8 +1097,9 @@ JobControllerの実装も下記のように変更している。 +
 
 * パラメータを複数指定する場合の区切り文字を、カンマから空白文字に変更
 * パラメータのnullチェックを、別途実装するように変更
-
 詳細は、link:https://github.com/spring-projects/spring-batch/issues/2122[{SB}/BATCH-1461]を参照されたい。
+* パラメータをStringからPropertiesに変換処理を追加し、startメソッドに渡す。
+詳細は、link:https://github.com/spring-projects/spring-batch/issues/4304[{SB}/BATCH-4304]を参照されたい。
 ====
 
 [[Ch04_AsyncJobWithWeb_HowToUse_WebApp_IntegrationConfig]]
@@ -1060,57 +1197,60 @@ TomcatなどのWebコンテナを起動し、ビルドで生成された``war``�
 ----
 $ curl -v \
   -H "Accept: application/json" -H "Content-type: application/json" \
-  -d '{"jobParams": "param1=value1"}' \
-  http://localhost:8080/asyncapp-web/api/v1/job/job01
-* timeout on name lookup is not supported
-*   Trying 127.0.0.1...
-* TCP_NODELAY set
+  -d '{}' \
+  http://localhost:8088/asyncapp-web/api/v1/job/job01
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+* Trying 127.0.0.1:8088...
 * Connected to localhost (127.0.0.1) port 8088 (#0)
 > POST /asyncapp-web/api/v1/job/job01 HTTP/1.1
 > Host: localhost:8088
-> User-Agent: curl/7.51.0
+> User-Agent: curl/7.88.1
 > Accept: application/json
 > Content-type: application/json
 > Content-Length: 30
 >
-* upload completely sent off: 30 out of 30 bytes
+} [30 bytes data]
 < HTTP/1.1 200
-< X-Track: 0267db93977b4552880a4704cf3e4565
-< Content-Type: application/json;charset=UTF-8
+< Content-Type: application/json
 < Transfer-Encoding: chunked
-< Date: Fri, 10 Feb 2017 13:55:46 GMT
+< Date: Mon, 22 Jan 2024 02:39:04 GMT
 <
-{"jobName":"job01","jobParams":null,"jobExecutionId":3,"error":null,"errorMessag
-e":null}* Curl_http_done: called premature == 0
+{ [94 bytes data]
+100   118    0    88  100    30    112     38 --:--:-- --:--:-- --:--:--   150
+{"jobName":"job01","jobParams":null,"jobExecutionId":1,"errorMessage":null,"error":null}
 * Connection #0 to host localhost left intact
 $
 ----
 
-上記より、ジョブ実行ID:``jobExecutionId = 3``として、ジョブが実行されていることが確認できる。 +
+上記より、ジョブ実行ID:``jobExecutionId = 1``として、ジョブが実行されていることが確認できる。 +
 続けてこのジョブ実行IDを使用し、ジョブの実行結果を取得する。
 
 [source,console]
 ----
-$ curl -v http://localhost:8080/asyncapp-web/api/v1/job/3
-* timeout on name lookup is not supported
-*   Trying 127.0.0.1...
-* TCP_NODELAY set
+$ curl -v http://localhost:8088/asyncapp-web/api/v1/job/1
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+* Trying 127.0.0.1:8088...
 * Connected to localhost (127.0.0.1) port 8088 (#0)
-> GET /asyncapp-web/api/v1/job/3 HTTP/1.1
+> GET /asyncapp-web/api/v1/job/1 HTTP/1.1
 > Host: localhost:8088
-> User-Agent: curl/7.51.0
+> User-Agent: curl/7.88.1
 > Accept: */*
 >
 < HTTP/1.1 200
-< X-Track: 7d94bf4d383745efb20cbf37cb6a8e13
-< Content-Type: application/json;charset=UTF-8
+< Content-Type: application/json
 < Transfer-Encoding: chunked
-< Date: Fri, 10 Feb 2017 14:07:44 GMT
+< Date: Mon, 22 Jan 2024 02:39:26 GMT
 <
-{"jobExecutionId":3,"jobName":"job01","stepExecutions":[{"stepExecutionId":5,"st
-epName":"job01.step01","status":"COMPLETED","failureExceptions":[]}],"status":"C
-OMPLETED","exitStatus":"exitCode=COMPLETED;exitDescription=","errorMessage":null
-}* Curl_http_done: called premature == 0
+{ [310 bytes data]
+100   303    0   303    0     0   2126      0 --:--:-- --:--:-- --:--:--  2118
+{"jobExecutionId":1,"jobName":"job01","stepExecutionId":null,"stepName":null,"stepExecutions":
+[{"stepExecutionId":1,"stepName":"job01.step01","status":"COMPLETED","failureExceptions":[]}],
+"status":"COMPLETED","exitStatus":"exitCode=COMPLETED;exitDescription=","errorMessage":null,
+"failureExceptions":[]}
 * Connection #0 to host localhost left intact
 $
 ----

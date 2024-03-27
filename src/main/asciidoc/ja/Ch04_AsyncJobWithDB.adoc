@@ -528,6 +528,7 @@ async-batch-daemon.polling-stop-file-path=/tmp/stop-async-batch-daemon
 ++++
 // Java Config start.
 非同期実行する対象のジョブは、``AsyncBatchDaemonConfig.java``の``automaticJobRegistrar``に設定する。 +
+``ApplicationContextFactoryHelper`` は JavaConfigで ``ApplicationContextFactory`` の生成を補助するヘルパクラスである。コンストラクタには各ジョブで親となる共通定義の ``ApplicationContext`` を指定する。 +
 以下に初期設定を示す。
 
 [source,java]
@@ -535,19 +536,24 @@ async-batch-daemon.polling-stop-file-path=/tmp/stop-async-batch-daemon
 ----
 @Bean
 public AutomaticJobRegistrar automaticJobRegistrar(JobRegistry jobRegistry,
-                                                   ApplicationContextFactory[] applicationContextFactories) throws Exception {
+        ApplicationContextFactory[] applicationContextFactories) throws Exception {
     final AutomaticJobRegistrar automaticJobRegistrar = new AutomaticJobRegistrar();
     final DefaultJobLoader defaultJobLoader = new DefaultJobLoader();
     defaultJobLoader.setJobRegistry(jobRegistry);
-    automaticJobRegistrar.setApplicationContextFactories(applicationContextFactories);
+    automaticJobRegistrar.setApplicationContextFactories(
+            applicationContextFactories);
     automaticJobRegistrar.setJobLoader(defaultJobLoader);
     automaticJobRegistrar.afterPropertiesSet();
     return automaticJobRegistrar;
 }
 
 @Bean
-public ApplicationContextFactory[] applicationContextFactories(final ApplicationContext ctx) throws IOException {
-    return new ApplicationContextFactoryHelper(ctx).load("classpath:/META-INF/jobs/**/*.xml"); // (1)
+public ApplicationContextFactory[] applicationContextFactories(
+        final ApplicationContext ctx) throws IOException {
+    return new ApplicationContextFactoryHelper(ctx).load(
+            "classpath:org/terasoluna/batch/jobs/**/*.class", // For all (1)
+            "classpath:org/terasoluna/batch/jobs/async/**/*.class", // For the async directory and below (2)
+            "classpath:org/terasoluna/batch/jobs/CASE100/SpecialJob.class"); // For a specific job (3)
 }
 ----
 
@@ -559,42 +565,12 @@ public ApplicationContextFactory[] applicationContextFactories(final Application
 |説明
 
 |(1)
-|非同期実行するジョブBean定義のパス。 +
-``ApplicationContextFactoryHelper`` は JavaConfigで ``ApplicationContextFactory`` の生成を補助するヘルパクラスである。コンストラクタには各ジョブで親となる共通定義の ``ApplicationContext`` を指定する。
-
+|jarの中に存在するジョブ定義がすべて非同期実行することを前提に設計・実装される場合は、このように指定できる。
+|(2)
+|jarの中に非同期で実行することを想定していないジョブが存在する場合は、非同期実行を想定しているジョブのみが読み込まれるように指定すること。
+|(3)
+|特定のジョブのみが非同期実行対象の場合はジョブ定義単体で指定すること。
 |===
-
-[WARNING]
-.登録ジョブの絞込みについて
-====
-登録するジョブは、非同期実行することを前提に設計・実装されたジョブを指定すること。
-非同期で実行することを想定していないジョブを含めて指定すると、ジョブ登録時に意図しない参照により例外が発生することもあるので注意すること。
-
-[source,java]
-.絞込の例
-----
-@Bean
-public AutomaticJobRegistrar automaticJobRegistrar(JobRegistry jobRegistry,
-                                                   ApplicationContextFactory[] applicationContextFactories) throws Exception {
-    final AutomaticJobRegistrar automaticJobRegistrar = new AutomaticJobRegistrar();
-    final DefaultJobLoader defaultJobLoader = new DefaultJobLoader();
-    defaultJobLoader.setJobRegistry(jobRegistry);
-    automaticJobRegistrar.setApplicationContextFactories(applicationContextFactories);
-    automaticJobRegistrar.setJobLoader(defaultJobLoader);
-    automaticJobRegistrar.afterPropertiesSet();
-    return automaticJobRegistrar;
-}
-
-@Bean
-public ApplicationContextFactory[] applicationContextFactories(final ApplicationContext ctx) throws IOException {
-    return new ApplicationContextFactoryHelper(ctx).load(
-        "classpath:/META-INF/jobs/aysnc/**/*.xml", // For the async directory and below
-        "classpath:/META-INF/jobs/CASE100/SpecialJob.xml" // For a specific job
-        );
-}
-----
-====
-
 // Java Config end.
 ++++
   </div>
@@ -613,7 +589,12 @@ public ApplicationContextFactory[] applicationContextFactories(final Application
         <bean class="org.springframework.batch.core.configuration.support.ClasspathXmlApplicationContextsFactoryBean">
             <property name="resources">
                 <list>
-                    <value>classpath:/META-INF/jobs/**/*.xml</value>  <!-- (1) -->
+                    <!-- For all -->
+                    <value>classpath:/META-INF/jobs/**/*.xml</value> <!-- (1) -->
+                    <!-- For the async directory and below -->
+                    <value>classpath:/META-INF/jobs/async/**/*.xml</value> <!-- (2) -->
+                    <!-- For a specific job -->
+                    <value>classpath:/META-INF/jobs/CASE100/SpecialJob.xml</value> <!-- (3) -->
                 </list>
             </property>
         </bean>
@@ -633,40 +614,12 @@ public ApplicationContextFactory[] applicationContextFactories(final Application
 |説明
 
 |(1)
-|非同期実行するジョブBean定義のパス。
-
+|jarの中に存在するジョブ定義がすべて非同期実行することを前提に設計・実装される場合は、このように指定できる。
+|(2)
+|jarの中に非同期で実行することを想定していないジョブが存在する場合は、非同期実行を想定しているジョブのみが読み込まれるように指定すること。
+|(3)
+|特定のジョブのみが非同期実行対象の場合はジョブ定義単体で指定すること。
 |===
-
-[WARNING]
-.登録ジョブの絞込みについて
-====
-登録するジョブは、非同期実行することを前提に設計・実装されたジョブを指定すること。
-非同期で実行することを想定していないジョブを含めて指定すると、ジョブ登録時に意図しない参照により例外が発生することもあるので注意すること。
-
-[source,xml]
-.絞込の例
-----
-<bean id="automaticJobRegistrar"
-      class="org.springframework.batch.core.configuration.support.AutomaticJobRegistrar">
-    <property name="applicationContextFactories">
-        <bean class="org.springframework.batch.core.configuration.support.ClasspathXmlApplicationContextsFactoryBean">
-            <property name="resources">
-                <list>
-                    <!-- For the async directory and below -->
-                    <value>classpath:/META-INF/jobs/aysnc/**/*.xml</value>
-                    <!-- For a specific job -->
-                    <value>classpath:/META-INF/jobs/CASE100/SpecialJob.xml</value>
-                </list>
-            </property>
-        </bean>
-    </property>
-    <property name="jobLoader">
-        <bean class="org.springframework.batch.core.configuration.support.DefaultJobLoader"
-            p:jobRegistry-ref="jobRegistry" />
-    </property>
-</bean>
-----
-====
 // XML Config end.
 ++++
   </div>

@@ -211,6 +211,51 @@ public class JobExecutionLoggingListener implements JobExecutionListener { // (1
 }
 ----
 
+// ============ Java/XML Config Tab start. ============ 
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup040501" class="JavaConfigTab" id="tabgroup040501_1" checked><label for="tabgroup040501_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup040501" class="XMLConfigTab" id="tabgroup040501_2"><label for="tabgroup040501_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+[source,java]
+.リスナーの設定例
+----
+@Bean
+public Step step01(JobRepository jobRepository,
+                   @Qualifier("jobTransactionManager") PlatformTransactionManager transactionManager,
+                   ItemReader<SalesPlanDetail> reader,
+                   ItemWriter<SalesPlanDetail> writer,
+                   AmountCheckProcessor processor,
+                   @Qualifier("loggingEachProcessInStepListener") StepExecutionListener listener) {
+    return new StepBuilder("chunkJobWithListener.step01",
+                jobRepository)
+            .<SalesPlanDetail, SalesPlanDetail> chunk(10, transactionManager)
+            .reader(reader)
+            .processor(processor)
+            .writer(writer)
+            .listener(listener)
+            .build();
+}
+
+@Bean
+public Job chunkJobWithListener(JobRepository jobRepository,
+                                        Step step01,
+                                        @Qualifier("jobExecutionLoggingListener") JobExecutionLoggingListener listener) {
+    return new JobBuilder("chunkJobWithListener",
+            jobRepository)
+            .start(step01)
+            .listener(listener) // (4)
+            .build();
+}
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
 [source,xml]
 .リスナーの設定例
 ----
@@ -230,6 +275,12 @@ public class JobExecutionLoggingListener implements JobExecutionListener { // (1
  </batch:job>
 ----
 
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============
 
 [cols="10,90", options="header"]
 .説明
@@ -249,7 +300,7 @@ public class JobExecutionLoggingListener implements JobExecutionListener { // (1
 この例では、ジョブ終了ログを出力する。
 
 |(4)
-|Bean定義の``<batch:listeners>``要素で、(1)で実装したリスナーを設定する。 +
+|Bean定義の``JobBuilder/<batch:listeners>``要素で、(1)で実装したリスナーを設定する。 +
 設定方法の詳細は、<<Ch04_Listener_HowToUse_Configuration>>で説明する。
 |===
 
@@ -349,6 +400,47 @@ public class AnnotationAmountCheckProcessor implements
 
 ----
 
+// ============ Java/XML Config Tab start. ============ 
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup040502" class="JavaConfigTab" id="tabgroup040502_1" checked><label for="tabgroup040502_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup040502" class="XMLConfigTab" id="tabgroup040502_2"><label for="tabgroup040502_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+[source,java]
+.リスナーの設定例
+----
+@Bean
+public Step step01(JobRepository jobRepository,
+                   @Qualifier("jobTransactionManager") PlatformTransactionManager transactionManager,
+                   ItemReader<SalesPlanDetail> reader,
+                   ItemWriter<SalesPlanDetail> writer,
+                   AnnotationAmountCheckProcessor annotationAmountCheckProcessor) {
+    return new StepBuilder("chunkJobWithListenerAnnotation.step01",
+            jobRepository)
+            .<SalesPlanDetail, SalesPlanDetail> chunk(10, transactionManager)
+            .reader(reader)
+            .processor(annotationAmountCheckProcessor) // (4)
+            .writer(writer)
+            .build();
+}
+
+@Bean
+public Job chunkJobWithListenerAnnotation(JobRepository jobRepository,
+                                        Step step01) {
+    return new JobBuilder("chunkJobWithListenerAnnotation",
+            jobRepository)
+            .start(step01)
+            .build();
+}
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
 [source,xml]
 .リスナーの設定例
 ----
@@ -362,6 +454,13 @@ public class AnnotationAmountCheckProcessor implements
     </batch:step>
 </batch:job>
 ----
+
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============
 
 [cols="10,90", options="header"]
 .説明
@@ -382,8 +481,8 @@ public class AnnotationAmountCheckProcessor implements
 この例では発生した例外をログを出力している。
 
 |(4)
-|アノテーションでリスナー実装がされているItemProcessを``<batch:chunk>``要素に設定する。 +
-リスナーインタフェースとは異なり、``<batch:listener>``要素で設定しなくても、自動的にリスナーが登録される。
+|アノテーションでリスナー実装がされているItemProcessorを``StepBuilder/<batch:chunk>``に対し設定する。 +
+リスナーインタフェースとは異なり、``listenerメソッド/<batch:listener>``要素で設定しなくても、自動的にリスナーが登録される。
 
 |===
 
@@ -408,6 +507,41 @@ JobExecutionListenerは、他のリスナーとスコープが異なるため、
 ====
 Tasklet実装へのアノテーションによるリスナー実装した場合、以下の設定では一切リスナーが起動しないため注意する。
 
+// ============ Java/XML Config Tab start. ============ 
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup040503" class="JavaConfigTab" id="tabgroup040503_1" checked><label for="tabgroup040503_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup040503" class="XMLConfigTab" id="tabgroup040503_2"><label for="tabgroup040503_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+[source,java]
+.Taskletの場合
+----
+@Bean
+public Step step01(JobRepository jobRepository,
+                   @Qualifier("jobTransactionManager") PlatformTransactionManager transactionManager,
+                   AnnotationSalesPlanDetailRegisterTasklet tasklet) {
+    return new StepBuilder("taskletJobWithListenerAnnotation.step01",
+            jobRepository)
+            .tasklet(tasklet, transactionManager)
+            .build();
+}
+ @Bean
+public Job taskletJobWithListenerAnnotation(JobRepository jobRepository,
+                                        Step step01) {
+    return new JobBuilder("taskletJobWithListenerAnnotation",
+            jobRepository)
+            .start(step01)
+            .build();
+}
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
 [source,xml]
 .Taskletの場合
 ----
@@ -419,15 +553,122 @@ Tasklet実装へのアノテーションによるリスナー実装した場合�
 </batch:job>
 ----
 
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============
+
 タスクレットモデルの場合は、<<Ch04_Listener_HowToUse_SelectionCriteria>>に従ってリスナーインタフェースを利用するのがよい。
 ====
 
 [[Ch04_Listener_HowToUse_Configuration]]
 === リスナーの設定
-リスナーは、Bean定義の``<batch:listeners>``.``<batch:listener>``要素によって設定する。
-XMLスキーマ定義では様々な箇所に記述できるが、インタフェースの種類によっては意図とおり動作しないものが存在するため、
-以下の位置に設定すること。
 
+リスナーを設定する方法は、下記となる。
+
+- JavaConfig : Builderの``listener()``メソッド
+- XMLConfig : ``<batch:listener>``要素
+
+上記のメソッドもしくは要素を用いてリスナーを設定できる位置は複数あるが、設定可能なリスナーは各位置で決められている。
+
+リスナーの設定位置は以下を参照のこと。
+
+// ============ Java/XML Config Tab start. ============ 
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup040504" class="JavaConfigTab" id="tabgroup040504_1" checked><label for="tabgroup040504_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup040504" class="XMLConfigTab" id="tabgroup040504_2"><label for="tabgroup040504_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+[source,java]
+.リスナーを設定する位置
+----
+// for chunk mode
+@Bean
+public Step step01(JobRepository jobRepository,
+                   @Qualifier("jobTransactionManager") PlatformTransactionManager transactionManager,
+                   ItemReader<SalesPlanDetail> reader,
+                   ItemWriter<SalesPlanDetail> writer,
+                   AmountCheckProcessor amountCheckProcessor,
+                   StepExecutionListener stepExecutionListener,
+                   ChunkListener chunkListener) {
+    return new StepBuilder("chunkJob.step01", jobRepository)
+            .listener(stepExecutionListener) // (5)
+            .<SalesPlanDetail, SalesPlanDetail> chunk(10, transactionManager)
+            .listener(chunkListener) // (1)
+            .reader(reader) // (2)
+            .processor(amountCheckProcessor) // (3)
+            .writer(writer) // (4)
+            .build();
+}
+
+@Bean
+public Job chunkJob(JobRepository jobRepository,
+                    Step step01,
+                    JobExecutionListener listener) {
+    return new JobBuilder("chunkJob", jobRepository)
+            .start(step01)
+            .listener(listener) // (6)
+            .build();
+}
+
+// for tasklet mode
+@Bean
+public Step step01(JobRepository jobRepository,
+                   @Qualifier("jobTransactionManager") PlatformTransactionManager transactionManager,
+                   SalesPlanDetailRegisterTasklet tasklet,
+                   StepExecutionListener listener) {
+    return new StepBuilder("taskletJob.step01", jobRepository)
+            .listener(listener) // (5)
+            .tasklet(tasklet, transactionManager)
+            .build();
+}
+
+@Bean
+public Job taskletJob(JobRepository jobRepository,
+                      Step step01,
+                      @Qualifier("jobExecutionListener") JobExecutionListener listener) {
+    return new JobBuilder("taskletJob", jobRepository)
+            .start(step01)
+            .listener(listener) // (6)
+            .build();
+}
+----
+
+[cols="10,90", options="header"]
+.設定値の説明
+|===
+|項番
+|説明
+
+|(1)
+|<<Ch04_Listener_Overview_Types_ChunkListener, ChunkListener>>に属するアノテーションによる実装を含んだコンポーネントを設定する。
+
+|(2)
+|<<Ch04_Listener_Overview_Types_ItemReadListener, ItemReadListener>>に属するアノテーションによる実装を含んだコンポーネントを設定する。
+
+|(3)
+|<<Ch04_Listener_Overview_Types_ItemProcessListener, ItemProcessListener>>に属するアノテーションによる実装を含んだコンポーネントを設定する。
+
+|(4)
+|<<Ch04_Listener_Overview_Types_ItemWriteListener, ItemWriteListener>>に属するアノテーションによる実装を含んだコンポーネントを設定する。
+
+|(5)
+|<<Ch04_Listener_Overview_Types_StepExecutionListener,StepExecutionListener>>に属するリスナーインタフェース実装を設定する。
+
+|(6)
+|<<Ch04_Listener_Overview_Types_JobListener>>に属するリスナーを設定する。
+
+|===
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
 [source,xml]
 .リスナーを設定する位置
 ----
@@ -482,6 +723,12 @@ XMLスキーマ定義では様々な箇所に記述できるが、インタフ�
 インタフェースとアノテーション、どちらの実装でもここに設定する必要がある。
 
 |===
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============
 
 [[Ch04_Listener_HowToUse_MultipleConfiguration]]
 ==== 複数リスナーの設定
@@ -494,7 +741,53 @@ XMLスキーマ定義では様々な箇所に記述できるが、インタフ�
 * JobExecutionListener実装
 ** listenerC, listenerD
 
+// ============ Java/XML Config Tab start. ============ 
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup040505" class="JavaConfigTab" id="tabgroup040505_1" checked><label for="tabgroup040505_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup040505" class="XMLConfigTab" id="tabgroup040505_2"><label for="tabgroup040505_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+[source,java]
+.複数リスナーの設定例
+----
+@Bean
+public Step step01(JobRepository jobRepository,
+                   @Qualifier("jobTransactionManager") PlatformTransactionManager transactionManager,
+                   ItemReader<SalesPlanDetail> reader,
+                   ItemWriter<SalesPlanDetail> writer,
+                   AmountCheckProcessor processor,
+                   @Qualifier("listenerA") ItemProcessListener listenerA,
+                   @Qualifier("listenerB") ItemProcessListener listenerB) {
+    return new StepBuilder("chunkJob.step01", jobRepository)
+            .<SalesPlanDetail, SalesPlanDetail> chunk(10, transactionManager)
+            .listener(listenerA)
+            .listener(listenerB)
+            .reader(reader)
+            .processor(processor)
+            .writer(writer)
+            .build();
+}
 
+@Bean
+public Job taskletJob(JobRepository jobRepository,
+                      Step step01,
+                      @Qualifier("listenerC") JobExecutionListener listenerC,
+                      @Qualifier("listenerD") JobExecutionListener listenerD) {
+    return new JobBuilder("taskletJob", jobRepository)
+            .start(step01)
+            .listener(listenerC)
+            .listener(listenerD)
+            .build();
+}
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
 [source,xml]
 .複数リスナーの設定例
 ----
@@ -516,6 +809,12 @@ XMLスキーマ定義では様々な箇所に記述できるが、インタフ�
     </batch:listeners>
 </batch:job>
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============
 
 .リスナーの起動順序
 image::Ch04_Listener_composite.png[Listener execution order]
@@ -591,6 +890,65 @@ public class CheckingJobParameterErrorStepExecutionListener implements StepExecu
 }
 ----
 
+// ============ Java/XML Config Tab start. ============ 
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup040506" class="JavaConfigTab" id="tabgroup040506_1" checked><label for="tabgroup040506_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup040506" class="XMLConfigTab" id="tabgroup040506_2"><label for="tabgroup040506_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+[source,java]
+.リスナーの設定例
+----
+@Bean
+@StepScope
+public LoggingReader reader(
+    @Value("#{jobParameters['inputFile']}") File inputFile) { // (3)
+    LoggingReader reader = new LoggingReader();
+    reader.setResource(new FileSystemResource(inputFile));
+    return reader;
+}
+
+@Bean
+@StepScope
+public LoggingWriter writer(
+    @Value("#{jobParameters['outputFile']}") File outputFile) { // (3)
+    LoggingWriter writer = new LoggingWriter();
+    writer.setResource(new FileSystemResource(outputFile));
+    return writer;
+}
+
+@Bean
+public Step step01(JobRepository jobRepository,
+                   @Qualifier("jobTransactionManager") PlatformTransactionManager transactionManager,
+                   LoggingReader reader,
+                   LoggingWriter writer,
+                   CheckingJobParameterErrorStepExecutionListener listener) {
+    return new StepBuilder("chunkJobWithAbortListener.step01",
+            jobRepository)
+            .listener(listener) // (4)
+            .<LoggingReader, LoggingWriter> chunk(10, transactionManager)
+            .reader(reader)
+            .writer(writer)
+            .build();
+}
+
+@Bean
+public Job chunkJobWithAbortListener(JobRepository jobRepository,
+                                    Step step01) {
+    return new JobBuilder("chunkJobWithAbortListener",
+            jobRepository)
+            .start(step01)
+            .build();
+}
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
 [source,xml]
 .リスナーの設定例
 ----
@@ -610,6 +968,12 @@ public class CheckingJobParameterErrorStepExecutionListener implements StepExecu
     </batch:step>
 </batch:job>
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============
 
 [cols="10,90", options="header"]
 .説明

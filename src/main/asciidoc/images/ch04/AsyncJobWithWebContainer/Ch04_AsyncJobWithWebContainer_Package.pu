@@ -4,23 +4,25 @@ package "war" {
     package "asyncapp-web" {
 
       node "WebContext" {
-        artifact [spring-mvc-rest.xml (4)] as 4
+        artifact [SpringMvcRestConfig.class (4)] as 4
       }
       node "WebRootContext" {
-        artifact [applicationContext.xml (5)] as 5
+        artifact [ApplicationContextConfig.class (5)] as 5
       }
     }
     package "asyncbatch" {
       artifact [LaunchContextConfig.class (1)] as 1
+      artifact [TerasolunaBatchConfiguration.class (6)] as 6
       node "JobContext" {
         artifact [JobBaseContextConfig.class (2)] as 2
-        artifact [jobXxx.xml (3)] as 3
+        artifact [jobXxxConfig.class (3)] as 3
       }
     }
 }
 
 JobContext <- WebContext : modular
 WebContext <- WebRootContext: modular
+1 -> 6 : import
 3 -> 2 : import
 1 <- 4 : import
 

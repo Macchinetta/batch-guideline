@@ -196,6 +196,67 @@ package: com.example.batch.tutorial
 
 .サンプルジョブの実行(正しく作成できたことの確認)
 [[Ch09_EnvironmentConstruction_BlankProject_ExecSample]]
+// ============ Java/XML Config Tab start. ============
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup090303" class="JavaConfigTab" id="tabgroup090303_1" checked><label for="tabgroup090303_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup090303" class="XMLConfigTab" id="tabgroup090303_2"><label for="tabgroup090303_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+[source, console]
+----
+C:\xxx>cd macchinetta-batch-tutorial
+C:\xxx>mvn clean dependency:copy-dependencies -DoutputDirectory=lib package
+C:\xxx>java -cp "lib/*;target/*" ^
+org.springframework.batch.core.launch.support.CommandLineJobRunner ^
+com.example.batch.tutorial.jobs.Job01Config job01
+----
+
+以下のとおり、mvnコマンドに対して「BUILD SUCCESS」、javaコマンドに対して「COMPLETED」が表示されることを確認する。
+
+.出力例
+[source, console]
+----
+C:\xxx>cd macchinetta-batch-tutorial
+
+C:\xxx\macchinetta-batch-tutorial>mvn clean dependency:copy-dependencies -Doutput
+Directory=lib package
+[INFO] Scanning for projects...
+[INFO]
+[INFO] ------------------------------------------------------------------------
+[INFO] Building TERASOLUNA Batch Framework for Java (5.x) Blank Project 1.0.0-SN
+APSHOT
+[INFO] ------------------------------------------------------------------------
+
+(.. omitted)
+
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time: 30.139 s
+[INFO] Finished at: 2020-03-26T16:41:55+09:00
+[INFO] Final Memory: 20M/74M
+[INFO] ------------------------------------------------------------------------
+
+C:\xxx\macchinetta-batch-tutorial>java -cp "lib/*;target/*" ^
+More? org.springframework.batch.core.launch.support.CommandLineJobRunner ^
+More? com.example.batch.tutorial.jobs.Job01Config job01
+[2020/03/26 16:42:29] [main] [o.s.c.s.PostProcessorRegistrationDelegate$BeanPostProcessorChecker] [INFO ] Bean 'jobRegistry' of type [org.springframework.batch.core.configuration.support.MapJobRegistry] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+
+(.. ommited)
+
+[2020/03/04 16:58:50] [main] [o.s.b.c.l.s.TaskExecutorJobLauncher] [INFO ] Job: [FlowJob: [name=job01]] launched with the following parameters: [{jsr_batch_run_id=1}]
+[2020/03/04 16:58:50] [main] [o.s.b.c.j.SimpleStepHandler] [INFO ] Executing step: [job01.step01]
+[2020/03/04 16:58:50] [main] [o.s.b.c.s.AbstractStep] [INFO ] Step: [job01.step01] executed in 53ms
+[2020/03/04 16:58:50] [main] [o.s.b.c.l.s.TaskExecutorJobLauncher] [INFO ] Job: [FlowJob: [name=job01]] completed with the following parameters: [{jsr_batch_run_id=1}] and the following status: [COMPLETED] in 115ms
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
 [source, console]
 ----
 C:\xxx>cd macchinetta-batch-tutorial
@@ -238,11 +299,17 @@ More? META-INF/jobs/job01.xml job01
 
 (.. ommited)
 
-[2020/03/04 16:58:50] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=job01]] launched with the following parameters: [{jsr_batch_run_id=1}]
+[2020/03/04 16:58:50] [main] [o.s.b.c.l.s.TaskExecutorJobLauncher] [INFO ] Job: [FlowJob: [name=job01]] launched with the following parameters: [{jsr_batch_run_id=1}]
 [2020/03/04 16:58:50] [main] [o.s.b.c.j.SimpleStepHandler] [INFO ] Executing step: [job01.step01]
 [2020/03/04 16:58:50] [main] [o.s.b.c.s.AbstractStep] [INFO ] Step: [job01.step01] executed in 100ms
-[2020/03/04 16:58:50] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=job01]] completed with the following parameters: [{jsr_batch_run_id=1}] and the following status: [COMPLETED] in 228ms
+[2020/03/04 16:58:50] [main] [o.s.b.c.l.s.TaskExecutorJobLauncher] [INFO ] Job: [FlowJob: [name=job01]] completed with the following parameters: [{jsr_batch_run_id=1}] and the following status: [COMPLETED] in 228ms
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============
 
 [[Ch09_EnvironmentConstruction_Import]]
 == プロジェクトのインポート
@@ -263,8 +330,8 @@ image::ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_Import_Import.p
 // ============ Java/XML Config Tab start. ============ 
 ++++
 <div class="tabbox">
-  <input type="radio" name="tabgroup090303" class="JavaConfigTab" id="tabgroup090303_1" checked><label for="tabgroup090303_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup090303" class="XMLConfigTab" id="tabgroup090303_2"><label for="tabgroup090303_2" class="tab">XMLConfig</label>
+    <input type="radio" name="tabgroup090304" class="JavaConfigTab" id="tabgroup090304_1" checked><label for="tabgroup090304_1" class="tab">JavaConfig</label>
+    <input type="radio" name="tabgroup090304" class="XMLConfigTab" id="tabgroup090304_2"><label for="tabgroup090304_2" class="tab">XMLConfig</label>
   <div class="tabcontent" name="JavaConfigContent">
 ++++
 // Java Config start.
@@ -492,8 +559,8 @@ tutorial.insert-data.script=file:sqls/insert-member-info-data.sql
 // ============ Java/XML Config Tab start. ============ 
 ++++
 <div class="tabbox">
-  <input type="radio" name="tabgroup090304" class="JavaConfigTab" id="tabgroup090304_1" checked><label for="tabgroup090304_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup090304" class="XMLConfigTab" id="tabgroup090304_2"><label for="tabgroup090304_2" class="tab">XMLConfig</label>
+   <input type="radio" name="tabgroup090305" class="JavaConfigTab" id="tabgroup090305_1" checked><label for="tabgroup090305_1" class="tab">JavaConfig</label>
+   <input type="radio" name="tabgroup090305" class="XMLConfigTab" id="tabgroup090305_2"><label for="tabgroup090305_2" class="tab">XMLConfig</label>
   <div class="tabcontent" name="JavaConfigContent">
 ++++
 // Java Config start.
@@ -504,8 +571,8 @@ tutorial.insert-data.script=file:sqls/insert-member-info-data.sql
 @Bean
 public DataSourceInitializer jobDataSourceInitializer(@Qualifier("jobDataSource") DataSource jobDataSource,
                                                    @Value("${data-source.initialize.enabled:true}") boolean enabled,
-                                                   @Value("${tutorial.create-table.script:#{null}}") Resource script,
-                                                   @Value("${tutorial.insert-data.script:#{null}}") Resource commitScript) {
+                                                   @Value("${tutorial.create-table.script}") Resource script,
+                                                   @Value("${tutorial.insert-data.script}") Resource commitScript) {
     final DataSourceInitializer dataSourceInitializer = new DataSourceInitializer();
     dataSourceInitializer.setDataSource(jobDataSource);
     dataSourceInitializer.setEnabled(true);
@@ -525,7 +592,7 @@ public DataSourceInitializer jobDataSourceInitializer(@Qualifier("jobDataSource"
 .META-INF/spring/launch-context.xml
 ----
 <!-- database initialize definition -->
-<jdbc:initialize-database data-source="jobDataSource" enabled="${data-source.initialize.enabled:false}" ignore-failures="ALL">
+<jdbc:initialize-database data-source="jobDataSource" enabled="${data-source.initialize.enabled:true}" ignore-failures="ALL">
     <jdbc:script location="${tutorial.create-table.script}" />
     <jdbc:script location="${tutorial.insert-data.script}" />
 </jdbc:initialize-database>
@@ -736,8 +803,33 @@ image::ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_OperationCheck_
 [start=3]
 . [Arguments]タブを開き、下表のとおり値を入力する。
 
-[cols="30,70", options="header"]
 .Run ConfigurationsのArgumentsタブで入力する値
+// ============ Java/XML Config Tab start. ============
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup090306" class="JavaConfigTab" id="tabgroup090306_1" checked><label for="tabgroup090306_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup090306" class="XMLConfigTab" id="tabgroup090306_2"><label for="tabgroup090306_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+[cols="30,70", options="header"]
+|===
+|項目名
+|値
+
+|Program arguments
+|com.example.batch.tutorial.jobs.Job01Config job01
+|===
+
+.Run Configurations Arguments tab
+image::ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_OperationCheck_ExecJob_RunConf_Arg_JavaConfig.png[Run Configurations Arguments tab]
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
+[cols="30,70", options="header"]
 |===
 |項目名
 |値
@@ -748,6 +840,12 @@ image::ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_OperationCheck_
 
 .Run Configurations Arguments tab
 image::ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_OperationCheck_ExecJob_RunConf_Arg.png[Run Configurations Arguments tab]
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============
 
 [start=4]
 . [Apply]を押下する。
@@ -789,7 +887,7 @@ image::ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_OperationCheck_
 [source, console]
 .コンソールログ出力例
 ----
-[2020/03/06 09:41:13] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=job01]] completed with the following parameters: [{jsr_batch_run_id=48}] and the following status: [COMPLETED] in 125ms
+[2020/03/06 09:41:13] [main] [o.s.b.c.l.s.TaskExecutorJobLauncher] [INFO ] Job: [FlowJob: [name=job01]] completed with the following parameters: [{jsr_batch_run_id=48}] and the following status: [COMPLETED] in 125ms
 ----
 
 .Run Job01 console

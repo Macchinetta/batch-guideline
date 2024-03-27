@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>jp.co.ntt.fw.macchinetta.batch</groupId>
     <artifactId>macchinetta-batch-guideline-images</artifactId>
-    <version>2.4.0.RELEASE</version>
+    <version>2.5.0.RELEASE</version>
     <name>Guideline Image files</name>
     <description>Image files creation of Macchinetta Batch Framework (2.x) Development Guideline.</description>
 

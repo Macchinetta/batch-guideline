@@ -16,6 +16,18 @@ include::_include_all.adoc[]
 バッチアプリケーションの特性上、起動直後にその結果をユーザインタフェースで確認できることは稀である。
 よって、ジョブスケジューラ/RDBMS/アプリケーションログといった、ジョブの実行とは別に実行状態・結果の記録を行う仕組みが必要となる。
 
+本ガイドラインではジョブスケジューラを使用したジョブ管理については説明しないが、ジョブスケジューラを使用するのに適したジョブについては以下に記す。
+
+ジョブスケジューラを使用するのに適したジョブ::
+    {batch5_shortname}の同期型ジョブで``JobRepository``による状態管理を必要としない(非永続化のRDBMSを使用) +
+  ``JobRepository``を前提としたリスタート機能を使わないジョブ
+
+上記の条件を満たす場合、ジョブの停止・リスタートを含めた、ジョブの実行管理をすべてジョブスケジューラで行うことが適している。
+
+ジョブスケジューラを使用したジョブの実行管理については各製品のマニュアルを参照。
+
+以降、{SB}が提供する機能を利用したジョブの実行管理について説明をする。
+
 [[Ch07_JobManagement_Overview_JobExecutionManagement_Function]]
 ==== {SB} が提供する機能
 
@@ -53,23 +65,6 @@ include::_include_all.adoc[]
 そのため、ブランクプロジェクトでは、あらかじめ``JobRepository``のトランザクション分離レベルを``READ_COMMITTED``に設定している。
 ====
 
-[WARNING]
-.インメモリJobRepositoryの選択肢
-====
-{SB} にはインメモリでジョブの実行管理を行う
-``org.springframework.batch.core.repository.support.MapJobRepositoryFactoryBean``
-が用意されているが、本ガイドラインでは使用しない。 +
-このクラスのJavadocにあるとおり、
-``This repository is only really intended for use in testing and rapid prototyping.``
-とテスト用であることが示されており、また、
-``Not suited for use in multi-threaded jobs with splits``
-と並列処理には不適切であると示されているためである。 +
-尚、{SB} 4.3.0でMap-based JobRepository/JobExplorerは非推奨となった。 +
-https://docs.spring.io/spring-batch/docs/current/reference/html/whatsnew.html[{SB}4.3/Deprecations] +
-{SB}によるこの不具合報告の状況としては以下を参照されたい。 +
-https://github.com/spring-projects/spring-batch/issues/3780[{SB}/BATCH-3780]
-====
-
 [[Ch07_JobManagement_Overview_JobExecutionManagement_PerformanceImprovement]]
 [NOTE]
 .IndexによるJobRepositoryの性能改善
@@ -77,7 +72,7 @@ https://github.com/spring-projects/spring-batch/issues/3780[{SB}/BATCH-3780]
 Indexを作成することで、``JobRepository``の性能改善が期待できる。 +
 どのSQL文のどの列に対してIndexを作成するかは、実行計画を確認するなどして適切に判断してほしい。
 {SB}のリファレンス
-https://docs.spring.io/spring-batch/docs/{spring_batch_version}/reference/html/schema-appendix.html#recommendationsForIndexingMetaDataTables[B.10 Recommendations for Indexing Meta Data Tables]
+https://docs.spring.io/spring-batch/reference/{spring_batch_version}/schema-appendix.html#recommendationsForIndexingMetaDataTables[B.10 Recommendations for Indexing Meta Data Tables]
 では、{SB}が提供するDaoの実装によって、WHERE句でどの列が利用されているか、およびそれらの使用頻度を示しているので参考にするとよい。 +
 
 ``JobRepository``の永続化を行う場合は、Indexを作成することを検討されたい。
@@ -363,21 +358,71 @@ private void monitor(long jobExecutionId) {
 ** 同期型ジョブ・非同期型ジョブのどちらでも利用できる
 ** ``CommandLineJobRunner``の``-stop``を利用する
 
-[source,terminal]
 .起動時のジョブ名を指定する方法
+// ============ Java/XML Config Tab start. ============
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup070101" class="JavaConfigTab" id="tabgroup070101_1" checked><label for="tabgroup070101_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup070101" class="XMLConfigTab" id="tabgroup070101_2"><label for="tabgroup070101_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+[source,terminal]
+----
+$ java org.springframework.batch.core.launch.support.CommandLineJobRunner \
+    com.example.batch.jobs.Job01Config job01 -stop
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
+[source,terminal]
 ----
 $ java org.springframework.batch.core.launch.support.CommandLineJobRunner \
     classpath:/META-INF/jobs/job01.xml job01 -stop
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============
 
 * ジョブ名指定によるジョブ停止は同名のジョブが並列で起動することが少ない同期バッチ実行時に適している。
 
-[source,terminal]
 .ジョブ実行ID(jobExecutionId)を指定する方法
+// ============ Java/XML Config Tab start. ============
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup070102" class="JavaConfigTab" id="tabgroup070102_1" checked><label for="tabgroup070102_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup070102" class="XMLConfigTab" id="tabgroup070102_2"><label for="tabgroup070102_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+[source,terminal]
+----
+$ java org.springframework.batch.core.launch.support.CommandLineJobRunner \
+    com.example.batch.jobs.Job01Config 3 -stop
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
+[source,terminal]
 ----
 $ java org.springframework.batch.core.launch.support.CommandLineJobRunner \
     classpath:/META-INF/jobs/job01.xml 3 -stop
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============
 
 * ジョブ実行ID指定によるジョブ停止は同名のジョブが並列で起動することの多い非同期バッチ実行時に適している。
 
@@ -518,8 +563,34 @@ public class JobExitCodeChangeListener implements JobExecutionListener {
 }
 ----
 
-[source,xml]
 .ジョブ定義
+// ============ Java/XML Config Tab start. ============
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup070103" class="JavaConfigTab" id="tabgroup070103_1" checked><label for="tabgroup070103_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup070103" class="XMLConfigTab" id="tabgroup070103_2"><label for="tabgroup070103_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+[source,java]
+----
+@Bean
+public Job exitstatusjob(JobRepository jobRepository,
+                                     Step step,
+                                     jobExitCodeChangeListener listener) {
+    return new JobBuilder("exitstatusjob", jobRepository)
+            .start(step)
+            .listener(listener)
+            .build();
+}
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
+[source,xml]
 ----
 <batch:job id="exitstatusjob" job-repository="jobRepository">
     <batch:step id="exitstatusjob.step">
@@ -530,6 +601,12 @@ public class JobExitCodeChangeListener implements JobExecutionListener {
     </batch:listeners>
 </batch:job>
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============
 
 [cols="20,80", options="header"]
 .実装内容の一覧
@@ -551,8 +628,8 @@ public class JobExitCodeChangeListener implements JobExecutionListener {
 // ============ Java/XML Config Tab start. ============ 
 ++++
 <div class="tabbox">
-  <input type="radio" name="tabgroup070101" class="JavaConfigTab" id="tabgroup070101_1" checked><label for="tabgroup070101_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup070101" class="XMLConfigTab" id="tabgroup070101_2"><label for="tabgroup070101_2" class="tab">XMLConfig</label>
+  <input type="radio" name="tabgroup070104" class="JavaConfigTab" id="tabgroup070104_1" checked><label for="tabgroup070104_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup070104" class="XMLConfigTab" id="tabgroup070104_2"><label for="tabgroup070104_2" class="tab">XMLConfig</label>
   <div class="tabcontent" name="JavaConfigContent">
 ++++
 // Java Config start.
@@ -695,8 +772,44 @@ public class JobExecutionLoggingListener implements JobExecutionListener {
 }
 ----
 
-[source,xml]
 .ジョブBean定義ファイル
+// ============ Java/XML Config Tab start. ============
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup070105" class="JavaConfigTab" id="tabgroup070105_1" checked><label for="tabgroup070105_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup070105" class="XMLConfigTab" id="tabgroup070105_2"><label for="tabgroup070105_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+[source,java]
+----
+@Bean
+public Step step01(JobRepository jobRepository,
+                   @Qualifier("jobTransactionManager") PlatformTransactionManager transactionManager,
+                   Tasklet tasklet) {
+    return new StepBuilder("loggingJob.step01",
+            jobRepository)
+            .tasklet(tasklet)
+            .build();
+}
+
+@Bean
+public Job loggingJob(JobRepository jobRepository,
+                                     Step step01,
+                                     JobExecutionLoggingListener listener) {
+    return new JobBuilder("loggingJob", jobRepository)
+            .start(step01)
+            .listener(listener) // (3)
+            .build();
+}
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
+[source,xml]
 ----
 <!-- omitted. -->
 <batch:job id="loggingJob" job-repository="jobRepository">
@@ -712,6 +825,12 @@ public class JobExecutionLoggingListener implements JobExecutionListener {
 </batch:job>
 <!-- omitted. -->
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============
 
 [cols="40,60", options="header"]
 .ジョブ名、ジョブ実行IDのログ出力実装例
@@ -780,8 +899,8 @@ public class JobExecutionLoggingListener implements JobExecutionListener {
 // ============ Java/XML Config Tab start. ============ 
 ++++
 <div class="tabbox">
-  <input type="radio" name="tabgroup070102" class="JavaConfigTab" id="tabgroup070102_1" checked><label for="tabgroup070102_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup070102" class="XMLConfigTab" id="tabgroup070102_2"><label for="tabgroup070102_2" class="tab">XMLConfig</label>
+  <input type="radio" name="tabgroup070106" class="JavaConfigTab" id="tabgroup070106_1" checked><label for="tabgroup070106_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup070106" class="XMLConfigTab" id="tabgroup070106_2"><label for="tabgroup070106_2" class="tab">XMLConfig</label>
   <div class="tabcontent" name="JavaConfigContent">
 ++++
 // Java Config start.

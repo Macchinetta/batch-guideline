@@ -242,8 +242,40 @@ ItemStreamWriterの``transactional``プロパティは``false``を設定する�
 ``transactional``プロパティがデフォルトの``true``の場合、ファイル出力のタイミングがTransactionManagerと同期し、排他制御がされていない状態でのファイル出力が行われる。
 以下に、ItemStreamWriterの設定例を示す。
 
-[source,xml]
 .ItemStreamWriterの設定例
+// ============ Java/XML Config Tab start. ============
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup050401" class="JavaConfigTab" id="tabgroup050401_1" checked><label for="tabgroup050401_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup050401" class="XMLConfigTab" id="tabgroup050401_2"><label for="tabgroup050401_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+[source,java]
+----
+@Bean
+@StepScope
+public FlatFileItemWriter<SalesPlanDetailWithProcessName> writer(
+        @Value("#{jobParameters['outputFile']}") File outputFile) {
+    DelimitedLineAggregator<SalesPlanDetailWithProcessName> lineAggregator = new DelimitedLineAggregator<>();
+    BeanWrapperFieldExtractor<SalesPlanDetailWithProcessName> fieldExtractor = new BeanWrapperFieldExtractor<>();
+    fieldExtractor.setNames(new String[] {"processName", "plan.branchId", "plan.year", "plan.month", "plan.customerId", "plan.amount"});
+    lineAggregator.setFieldExtractor(fieldExtractor);
+    return new FlatFileItemWriterBuilder<SalesPlanDetailWithProcessName>()
+            .name(ClassUtils.getShortName(FlatFileItemWriter.class))
+            .resource(new FileSystemResource(outputFile))
+            .lineAggregator(lineAggregator)
+            .transactional(false) // (1)
+            .build();
+}
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
+[source,xml]
 ----
 <bean id="writer" class="org.springframework.batch.item.file.FlatFileItemWriter" scope="step"
       p:resource="file:#{jobParameters['outputFile']}"
@@ -258,6 +290,12 @@ ItemStreamWriterの``transactional``プロパティは``false``を設定する�
     </property>
 </bean>
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============
 
 [cols="10,90", options="header"]
 .説明
@@ -266,7 +304,7 @@ ItemStreamWriterの``transactional``プロパティは``false``を設定する�
 |説明
 
 |(1)
-|``transactional``属性に``false``を設定する。
+|``FlatFileItemWriterBuilderのtransactionalメソッド/<bean>要素のtransactional属性``に``false``を設定する。
 |===
 
 ``FileChannel``クラスを使用しファイルのロックを取得する例を示す。
@@ -453,8 +491,87 @@ MyBatisBatchItemWriterがもつ``assertUpdates``プロパティの設定によ�
 
 楽観ロックを行うジョブ定義を以下に示す。
 
-[source,xml]
 .ジョブ定義
+// ============ Java/XML Config Tab start. ============
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup050402" class="JavaConfigTab" id="tabgroup050402_1" checked><label for="tabgroup050402_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup050402" class="XMLConfigTab" id="tabgroup050402_2"><label for="tabgroup050402_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+[source,java]
+----
+@Configuration
+@Import(JobBaseContextConfig.class)
+@ComponentScan(value = { "org.terasoluna.batch.functionaltest.app.common",
+"org.terasoluna.batch.functionaltest.ch05.exclusivecontrol"}, scopedProxy = ScopedProxyMode.TARGET_CLASS)
+@MapperScan(basePackages = "org.terasoluna.batch.functionaltest.ch05.exclusivecontrol.repository", sqlSessionFactoryRef = "jobSqlSessionFactory")
+public class ChunkOptimisticLockCheckJobConfig {
+
+    @Bean
+    @StepScope
+    public MyBatisCursorItemReader<Branch> reader(
+            @Qualifier("jobSqlSessionFactory") SqlSessionFactory jobSqlSessionFactory,
+            @Value("#{jobParameters['branchId']}") String branchId) {
+        Map<String, Object> parameterValues = new HashMap<>();
+        parameterValues.put("branchId", branchId);
+        return new MyBatisCursorItemReaderBuilder<Branch>()
+                .sqlSessionFactory(jobSqlSessionFactory)
+                .parameterValues(parameterValues)
+                .queryId(
+                        "org.terasoluna.batch.functionaltest.ch05.exclusivecontrol.repository.ExclusiveControlRepository.branchFindOne") // (1)
+                .build();
+    }
+
+    @Bean
+    @StepScope
+    public MyBatisBatchItemWriter<ExclusiveBranch> writer(
+            @Qualifier("jobSqlSessionFactory") SqlSessionFactory jobSqlSessionFactory,
+            SqlSessionTemplate batchModeSqlSessionTemplate,
+            @Value("#{new Boolean(jobParameters['assertUpdates'])}") boolean assertUpdates) {
+        return new MyBatisBatchItemWriterBuilder<ExclusiveBranch>()
+                .sqlSessionFactory(jobSqlSessionFactory)
+                .statementId(
+                        "org.terasoluna.batch.functionaltest.ch05.exclusivecontrol.repository.ExclusiveControlRepository.branchExclusiveUpdate") // (2)
+                .sqlSessionTemplate(batchModeSqlSessionTemplate)
+                .assertUpdates(assertUpdates) // (3)
+                .build();
+    }
+
+    @Bean
+    public Step step01(JobRepository jobRepository,
+                       @Qualifier("jobTransactionManager") PlatformTransactionManager transactionManager,
+                       MyBatisCursorItemReader<Branch> reader,
+                       MyBatisBatchItemWriter<ExclusiveBranch> writer,
+                       BranchEditItemProcessor branchEditItemProcessor) {
+        return new StepBuilder("chunkOptimisticLockCheckJob.step01",
+                jobRepository)
+                .<Branch, ExclusiveBranch> chunk(10, transactionManager)
+                .reader(reader)
+                .processor(branchEditItemProcessor)
+                .writer(writer)
+                .build();
+    }
+
+    @Bean
+    public Job chunkOptimisticLockCheckJob(JobRepository jobRepository,
+                                            Step step01,
+                                            JobExecutionLoggingListener jobExecutionLoggingListener) {
+        return new JobBuilder("chunkOptimisticLockCheckJob",jobRepository)
+                .start(step01)
+                .listener(jobExecutionLoggingListener)
+                .build();
+    }
+}
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
+[source,xml]
 ----
 <!-- (1) -->
 <bean id="reader"
@@ -484,6 +601,12 @@ MyBatisBatchItemWriterがもつ``assertUpdates``プロパティの設定によ�
     </batch:step>
 </batch:job>
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============
 
 [cols="10,90", options="header"]
 .説明
@@ -509,8 +632,87 @@ MyBatisBatchItemWriterがもつ``assertUpdates``プロパティの設定によ�
 
 悲観ロックを行うジョブ定義とItemProcessorを以下に示す。
 
-[source,xml]
 .ジョブ定義
+// ============ Java/XML Config Tab start. ============
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup050403" class="JavaConfigTab" id="tabgroup050403_1" checked><label for="tabgroup050403_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup050403" class="XMLConfigTab" id="tabgroup050403_2"><label for="tabgroup050403_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+[source,java]
+----
+@Configuration
+@Import(JobBaseContextConfig.class)
+@ComponentScan(value = { "org.terasoluna.batch.functionaltest.app.common",
+"org.terasoluna.batch.functionaltest.ch05.exclusivecontrol"}, scopedProxy = ScopedProxyMode.TARGET_CLASS)
+@MapperScan(basePackages = "org.terasoluna.batch.functionaltest.ch05.exclusivecontrol.repository", sqlSessionTemplateRef = "batchModeSqlSessionTemplate") // (1)
+public class ChunkPessimisticLockCheckJobConfig {
+
+    @Bean
+    @StepScope
+    public MyBatisCursorItemReader<String> reader(
+            @Qualifier("jobSqlSessionFactory") SqlSessionFactory jobSqlSessionFactory,
+            @Value("#{jobParameters['branchName']}") String branchName) {
+        Map<String, Object> parameterValues = new HashMap<>();
+        parameterValues.put("branchName", branchName);
+        return new MyBatisCursorItemReaderBuilder<String>()
+                .sqlSessionFactory(jobSqlSessionFactory)
+                .parameterValues(parameterValues)
+                .queryId(
+                        "org.terasoluna.batch.functionaltest.ch05.exclusivecontrol.repository.ExclusiveControlRepository.branchIdFindByName") // (2)
+                .build();
+    }
+
+    @Bean
+    @StepScope
+    public MyBatisBatchItemWriter<ExclusiveBranch> writer(
+            @Qualifier("jobSqlSessionFactory") SqlSessionFactory jobSqlSessionFactory,
+            SqlSessionTemplate batchModeSqlSessionTemplate,
+            @Value("#{new Boolean(jobParameters['assertUpdates'])}") boolean assertUpdates) {
+        return new MyBatisBatchItemWriterBuilder<ExclusiveBranch>()
+                .sqlSessionFactory(jobSqlSessionFactory)
+                .statementId(
+                        "org.terasoluna.batch.functionaltest.ch05.exclusivecontrol.repository.ExclusiveControlRepository.branchUpdate") // (3)
+                .sqlSessionTemplate(batchModeSqlSessionTemplate)
+                .assertUpdates(assertUpdates)
+                .build();
+    }
+
+    @Bean
+    public Step step01(JobRepository jobRepository,
+                       @Qualifier("jobTransactionManager") PlatformTransactionManager transactionManager,
+                       MyBatisCursorItemReader<String> reader,
+                       MyBatisBatchItemWriter<ExclusiveBranch> writer,
+                       BranchEditWithkPessimisticLockItemProcessor processor) {
+        return new StepBuilder("chunkPessimisticLockCheckJob.step01",
+                jobRepository)
+                .<String, ExclusiveBranch> chunk(10, transactionManager)
+                .reader(reader)
+                .processor(processor) // (4)
+                .writer(writer)
+                .build();
+    }
+
+    @Bean
+    public Job chunkPessimisticLockCheckJob(JobRepository jobRepository,
+                                            Step step01,
+                                            JobExecutionLoggingListener jobExecutionLoggingListener) {
+        return new JobBuilder("chunkPessimisticLockCheckJob",jobRepository)
+                .start(step01)
+                .listener(jobExecutionLoggingListener)
+                .build();
+    }
+}
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
+[source,xml]
 ----
 <!-- (1) -->
 <mybatis:scan
@@ -544,6 +746,12 @@ MyBatisBatchItemWriterがもつ``assertUpdates``プロパティの設定によ�
     </batch:step>
 </batch:job>
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============
 
 [source,java]
 .悲観ロックを行うItemProcessor

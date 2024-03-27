@@ -123,8 +123,76 @@ Macchinetta Batch 2.xでのフロー制御方法を説明する。
 
 ここでは3つのステップからなるジョブのシーケンシャルフローを設定する。
 
-[source,xml]
 .Bean定義
+// ============ Java/XML Config Tab start. ============
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup080101" class="JavaConfigTab" id="tabgroup080101_1" checked><label for="tabgroup080101_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup080101" class="XMLConfigTab" id="tabgroup080101_2"><label for="tabgroup080101_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+[source,java]
+----
+// tasklet definition is omitted.
+
+TaskletStepBuilder parentStepBuilder(String stepName,
+                                     JobRepository jobRepository,
+                                     SequentialFlowTasklet tasklet,
+                                     PlatformTransactionManager transactionManager) {
+    return new StepBuilder(stepName, jobRepository)
+            .tasklet(tasklet, transactionManager);
+}
+
+@Bean
+public Step step01(JobRepository jobRepository,
+                   SequentialFlowTasklet tasklet,
+                   @Qualifier("jobTransactionManager") PlatformTransactionManager transactionManager) {
+    return parentStepBuilder("jobSequentialFlow.step1", jobRepository,
+            tasklet, transactionManager)
+            .build();
+}
+
+@Bean
+public Step step02(JobRepository jobRepository,
+                   SequentialFlowTasklet tasklet,
+                   @Qualifier("jobTransactionManager") PlatformTransactionManager transactionManager) {
+    return parentStepBuilder("jobSequentialFlow.step2", jobRepository,
+            tasklet, transactionManager)
+            .build();
+}
+
+@Bean
+public Step step03(JobRepository jobRepository,
+                   SequentialFlowTasklet tasklet,
+                   @Qualifier("jobTransactionManager") PlatformTransactionManager transactionManager) {
+    return parentStepBuilder("jobSequentialFlow.step3", jobRepository,
+            tasklet, transactionManager)
+            .build();
+}
+
+@Bean
+public Job jobSequentialFlow(JobRepository jobRepository,
+                             Step step01, Step step02, Step step03) {
+    Flow flow = new FlowBuilder<Flow>("jobSequentialFlow")
+            .from(step01)
+            .next(step02) // (1)
+            .next(step03) // (1)
+            .build(); // (2)
+
+    return new JobBuilder("jobSequentialFlow", jobRepository)
+            .start(flow)
+            .end()
+            .build();
+}
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
+[source,xml]
 ----
 <!-- tasklet definition is omitted. -->
 
@@ -141,6 +209,12 @@ Macchinetta Batch 2.xでのフロー制御方法を説明する。
     <batch:step id="jobSequentialFlow.step3" parent="parentStep"/>   <!-- (2) -->
 </batch:job>
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============
 
 [cols="10,90",options="header"]
 |===
@@ -148,23 +222,86 @@ Macchinetta Batch 2.xでのフロー制御方法を説明する。
 |説明
 
 |(1)
-|``<batch:step>``で、このステップの正常終了後に起動する後続ステップを指定する。 +
-``next``属性に後続ステップの``id``を設定する。
+|``FlowBuilderのnextメソッド/<batch:step>``で、このステップの正常終了後に起動する後続ステップを指定する。 +
+``nextメソッドの引数step/next属性``に後続ステップのidを設定する。
 
 |(2)
-|フローの末端になるステップには、``next``属性は不要となる。
+|フローの末端になるステップには、``nextメソッド/next属性``は不要となる。
 |===
 
 これにより、 以下の順でステップが直列に起動する。 +
 ``jobSequentialFlow.step1`` -> ``jobSequentialFlow.step2`` -> ``jobSequentialFlow.step3`` +
 
 [NOTE]
-.<batch:flow>を使った定義方法
+.Flow/<batch:flow>を使った定義方法
 ====
-前述の例では``<batch:job>``内に直接フローを定義した。
-``<batch:flow>``を利用して、フロー定義を外部に切り出すこともできる。
-以下に``<batch:flow>``を利用した場合の例を示す。
+前述の例では``jobSequentialFlowメソッド/<batch:job>``内に直接フローを定義した。
+``Bean定義したFlow/<batch:flow>``を利用して、フロー定義を外部に切り出すこともできる。
+以下に``Bean定義したFlow/<batch:flow>``を利用した場合の例を示す。
 
+// ============ Java/XML Config Tab start. ============
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup080102" class="JavaConfigTab" id="tabgroup080102_1" checked><label for="tabgroup080102_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup080102" class="XMLConfigTab" id="tabgroup080102_2"><label for="tabgroup080102_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+[source,java]
+----
+@Bean
+public Step step01outer(JobRepository jobRepository,
+                        SequentialFlowTasklet tasklet,
+                        @Qualifier("jobTransactionManager") PlatformTransactionManager transactionManager) {
+    return parentStepBuilder("jobSequentialOuterFlow.step1", jobRepository,
+            tasklet, transactionManager)
+            .build();
+}
+
+@Bean
+public Step step02outer(JobRepository jobRepository,
+                        SequentialFlowTasklet tasklet,
+                        @Qualifier("jobTransactionManager") PlatformTransactionManager transactionManager) {
+    return parentStepBuilder("jobSequentialOuterFlow.step2", jobRepository,
+            tasklet, transactionManager)
+            .build();
+}
+
+@Bean
+public Step step03outer(JobRepository jobRepository,
+                        SequentialFlowTasklet tasklet,
+                        @Qualifier("jobTransactionManager") PlatformTransactionManager transactionManager) {
+    return parentStepBuilder("jobSequentialOuterFlow.step3", jobRepository,
+            tasklet, transactionManager)
+            .build();
+}
+
+// (2)
+@Bean
+public Flow outerFlow(Step step01outer, Step step02outer,
+                      Step step03outer) {
+    return new FlowBuilder<Flow>("outerFlow")
+            .from(step01outer)
+            .next(step02outer)
+            .next(step03outer)
+            .build();
+}
+
+@Bean
+public Job jobSequentialOuterFlow(JobRepository jobRepository,
+                                  Flow outerFlow) {
+    return new JobBuilder("jobSequentialOuterFlow", jobRepository)
+            .start(outerFlow) // (1)
+            .end()
+            .build();
+}
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
 [source,xml]
 ----
 <batch:job id="jobSequentialOuterFlow" job-repository="jobRepository">
@@ -183,13 +320,20 @@ Macchinetta Batch 2.xでのフロー制御方法を説明する。
                 parent="parentStep"/>
 </batch:flow>
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============
+
 [cols="10,90",options="header"]
 |===
 |項番
 |説明
 
 |(1)
-|``parent``属性に(2)で定義したフローのidを設定する。
+|``JobBuilderのstartメソッド/parent属性``に(2)で定義したフローのidを設定する。
 
 |(2)
 |シーケンシャルフローを定義する。
@@ -284,8 +428,64 @@ public class ConfirmPromotionalTasklet implements Tasklet {
 }
 ----
 
-[source,xml]
 .ジョブBean定義の記述例
+// ============ Java/XML Config Tab start. ============
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup080103" class="JavaConfigTab" id="tabgroup080103_1" checked><label for="tabgroup080103_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup080103" class="XMLConfigTab" id="tabgroup080103_2"><label for="tabgroup080103_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+[source,java]
+----
+// import,annotation,component-scan definitions are omitted
+
+// (3)
+@Bean
+ExecutionContextPromotionListener executionContextPromotionListener() {
+    ExecutionContextPromotionListener listener = new ExecutionContextPromotionListener();
+    listener.setKeys(new String[] { "promotion" });
+    listener.setStrict(true);
+    return listener;
+}
+
+@Bean
+public Step step1(JobRepository jobRepository,
+                  @Qualifier("savePromotionalTasklet") SavePromotionalTasklet tasklet,
+                  @Qualifier("executionContextPromotionListener") ExecutionContextPromotionListener listener,
+                  @Qualifier("jobTransactionManager") PlatformTransactionManager transactionManager) {
+    return new StepBuilder("jobPromotionalFlow.step1", jobRepository)
+            .tasklet(tasklet, transactionManager)
+            .listener(listener)
+            .build();
+}
+
+@Bean
+public Step step2(JobRepository jobRepository,
+                  @Qualifier("confirmPromotionalTasklet") ConfirmPromotionalTasklet tasklet,
+                  @Qualifier("jobTransactionManager") PlatformTransactionManager transactionManager) {
+    return new StepBuilder("jobPromotionalFlow.step2", jobRepository)
+            .tasklet(tasklet, transactionManager)
+            .build();
+}
+
+@Bean
+public Job jobPromotionalFlow(JobRepository jobRepository,
+                              Step step1, Step step2) {
+    return new JobBuilder("jobPromotionalFlow", jobRepository)
+            .start(step1)
+            .next(step2)
+            .build();
+}
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
+[source,xml]
 ----
 <!-- import,annotation,component-scan definitions are omitted -->
 
@@ -309,6 +509,12 @@ public class ConfirmPromotionalTasklet implements Tasklet {
 </batch:job>
 <!-- omitted -->
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============
 
 [cols="10,90",options="header"]
 .実装内容の説明
@@ -329,8 +535,8 @@ public class ConfirmPromotionalTasklet implements Tasklet {
 |(3)
 |``ExecutionContextPromotionListener``を用い、
 ステップ実行コンテキストからジョブ実行コンテキストに受け渡しデータを移す。 +
-``keys``属性には(1)で指定した受け渡しキーを指定する。 +
-``strict``属性に``true``を設定することにより、ステップ実行コンテキストに存在しない場合は``IllegalArgumentException``がスローされる。
+``setKeysメソッド/keys属性``には(1)で指定した受け渡しキーを指定する。 +
+``setStrictメソッド/strict属性``に``true``を設定することにより、ステップ実行コンテキストに存在しない場合は``IllegalArgumentException``がスローされる。
 ``false``の場合は受け渡しデータがなくても処理が継続する。
 |===
 
@@ -396,8 +602,81 @@ public class PromotionTargetItemProcessor implements ItemProcessor<String, Strin
 }
 ----
 
-[source,xml]
 .ジョブBean定義の記述例
+// ============ Java/XML Config Tab start. ============
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup080104" class="JavaConfigTab" id="tabgroup080104_1" checked><label for="tabgroup080104_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup080104" class="XMLConfigTab" id="tabgroup080104_2"><label for="tabgroup080104_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+[source,java]
+----
+// (3)
+@Bean
+ExecutionContextPromotionListener executionContextPromotionListener() {
+    ExecutionContextPromotionListener listener = new ExecutionContextPromotionListener();
+    listener.setKeys(new String[] { "promotion" });
+    listener.setStrict(true);
+    return listener;
+}
+
+@Bean
+public Step step1(JobRepository jobRepository,
+                  @Qualifier("executionContextPromotionListener") ExecutionContextPromotionListener listener,
+                  @Qualifier("listItemReader") ListItemReader<String> reader,
+                  @Qualifier("promotionSourceItemProcessor") ItemProcessor<String, String> processor,
+                  @Qualifier("promotionLogItemWriter") ItemWriter<String> writer,
+                  @Qualifier("jobTransactionManager") PlatformTransactionManager transactionManager) {
+    SimpleStepBuilder<String, String> builder
+            = parentStepBuilder("jobChunkPromotionalFlow.step1",
+            jobRepository, reader, processor, writer, transactionManager);
+    builder.listener(listener);
+    return builder.build();
+}
+
+@Bean
+public Step step2(JobRepository jobRepository,
+                  @Qualifier("listItemReader") ListItemReader<String> reader,
+                  @Qualifier("promotionTargetItemProcessor") ItemProcessor<String, String> processor,
+                  @Qualifier("promotionLogItemWriter") ItemWriter<String> writer,
+                  @Qualifier("jobTransactionManager") PlatformTransactionManager transactionManager) {
+    SimpleStepBuilder<String, String> builder
+            = parentStepBuilder("jobChunkPromotionalFlow.step2",
+            jobRepository, reader, processor, writer, transactionManager);
+    return builder.build();
+}
+
+@Bean
+public Job jobChunkPromotionalFlow(JobRepository jobRepository,
+                                   Step step1, Step step2) {
+    return new JobBuilder("jobChunkPromotionalFlow", jobRepository)
+            .start(step1)
+            .next(step2)
+            .build();
+}
+
+SimpleStepBuilder<String, String> parentStepBuilder(String stepName,
+                                                    JobRepository jobRepository,
+                                                    ListItemReader<String> reader,
+                                                    ItemProcessor<String, String> processor,
+                                                    ItemWriter<String> writer,
+                                                    PlatformTransactionManager transactionManager) {
+    return new StepBuilder(stepName, jobRepository)
+            .<String, String> chunk(1, transactionManager)
+            .reader(reader)
+            .processor(processor)
+            .writer(writer);
+}
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
+[source,xml]
 ----
 <!-- import,annotation,component-scan definitions are omitted -->
 <batch:job id="jobChunkPromotionalFlow" job-repository="jobRepository">
@@ -417,6 +696,12 @@ public class PromotionTargetItemProcessor implements ItemProcessor<String, Strin
 
 <!-- step definitions are omitted. -->
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============
 
 [cols="10,90",options="header"]
 .実装内容の説明
@@ -459,8 +744,66 @@ public class PromotionTargetItemProcessor implements ItemProcessor<String, Strin
 条件分岐は先行ステップの実行結果となる終了コードを受けて、複数の後続ステップから1つを選択して継続実行させることを言う。 +
 いずれの後続ステップを実行させずにジョブを停止させる場合は後述の<<Ch08_FlowControll_HowToExtend_StopConfig,"停止条件">>を参照。
 
-[source,xml]
 .ジョブBean定義記述例
+// ============ Java/XML Config Tab start. ============
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup080105" class="JavaConfigTab" id="tabgroup080105_1" checked><label for="tabgroup080105_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup080105" class="XMLConfigTab" id="tabgroup080105_2"><label for="tabgroup080105_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+[source,java]
+----
+@Bean
+public Step stepA(JobRepository jobRepository,
+                  SequentialFlowTasklet tasklet,
+                  ChangeExitCodeReturnListener listener,
+                  @Qualifier("jobTransactionManager") PlatformTransactionManager transactionManager) {
+    return parentStepBuilder("jobConditionalFlow.stepA", jobRepository,
+            tasklet, listener, transactionManager)
+            .build();
+}
+
+@Bean
+public Step stepB(JobRepository jobRepository,
+                  SequentialFlowTasklet tasklet,
+                  ChangeExitCodeReturnListener listener,
+                  @Qualifier("jobTransactionManager") PlatformTransactionManager transactionManager) {
+    return parentStepBuilder("jobConditionalFlow.stepB", jobRepository,
+            tasklet, listener, transactionManager)
+            .build();
+}
+
+@Bean
+public Step stepC(JobRepository jobRepository,
+                  SequentialFlowTasklet tasklet,
+                  ChangeExitCodeReturnListener listener,
+                  @Qualifier("jobTransactionManager") PlatformTransactionManager transactionManager) {
+    return parentStepBuilder("jobConditionalFlow.stepC", jobRepository,
+            tasklet, listener, transactionManager)
+            .build();
+}
+
+@Bean
+public Job jobConditionalFlow(JobRepository jobRepository, Step stepA,
+                              Step stepB, Step stepC) {
+    return new JobBuilder("jobConditionalFlow", jobRepository)
+            .start(stepA)
+            .on(FlowExecutionStatus.COMPLETED.getName()).to(stepB) // (1) (2)
+            .from(stepA)
+            .on(FlowExecutionStatus.FAILED.getName()).to(stepC) // (1) (3)
+            .end()
+            .build();
+}
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
+[source,xml]
 ----
 <batch:job id="jobConditionalFlow" job-repository="jobRepository">
     <batch:step id="jobConditionalFlow.stepA" parent="conditionalFlow.parentStep">
@@ -474,6 +817,12 @@ public class PromotionTargetItemProcessor implements ItemProcessor<String, Strin
     <batch:step id="jobConditionalFlow.stepC" parent="conditionalFlow.parentStep"/>
 </batch:job>
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============
 
 [cols="10,90",options="header"]
 .実装内容の説明
@@ -482,9 +831,9 @@ public class PromotionTargetItemProcessor implements ItemProcessor<String, Strin
 |説明
 
 |(1)
-|シーケンシャルフローのように``<batch:step>``要素内に``next``属性を指定させず、
-``<batch:next>``を複数置くことで、``to``属性で指定される後続ステップに振り分けることができる。 +
-``on``には遷移条件となるステップの終了コードを指定する。
+|シーケンシャルフローのように``nextメソッド/next属性``を指定させず、
+``nextメソッド/<batch:next>要素``を複数置くことで、``toメソッド/to属性``で指定される後続ステップに振り分けることができる。 +
+``onメソッド/on属性``には遷移条件となるステップの終了コードを指定する。
 
 |(2)
 |(1)のステップ終了コードが``COMPLETED``の場合のみに実行される後続ステップとなる。
@@ -518,8 +867,95 @@ public class PromotionTargetItemProcessor implements ItemProcessor<String, Strin
 これらの終了コードが先行ステップに該当する場合は後続ステップが実行されない。 +
 また、同一ステップ内にそれぞれ複数指定が可能である。
 
-[source,xml]
 .ジョブBean定義記述例
+// ============ Java/XML Config Tab start. ============
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup080106" class="JavaConfigTab" id="tabgroup080106_1" checked><label for="tabgroup080106_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup080106" class="XMLConfigTab" id="tabgroup080106_2"><label for="tabgroup080106_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+[source,java]
+----
+TaskletStepBuilder parentStepBuilder(String stepName,
+                                     JobRepository jobRepository,
+                                     SequentialFlowTasklet tasklet,
+                                     ChangeExitCodeReturnListener listener,
+                                     PlatformTransactionManager transactionManager) {
+    return new StepBuilder(stepName, jobRepository)
+            .listener(listener)
+            .tasklet(tasklet, transactionManager);
+}
+
+@Bean
+public Step step1(JobRepository jobRepository,
+                  @Qualifier("stopFlowTasklet") SequentialFlowTasklet tasklet,
+                  @Qualifier("changeExitCodeReturnListener") ChangeExitCodeReturnListener listener,
+                  @Qualifier("jobTransactionManager") PlatformTransactionManager transactionManager) {
+    return parentStepBuilder("jobStopFlow.step1", jobRepository, tasklet,
+            listener, transactionManager)
+            .build();
+}
+
+@Bean
+public Step step2(JobRepository jobRepository,
+                  @Qualifier("stopFlowTasklet") SequentialFlowTasklet tasklet,
+                  @Qualifier("changeExitCodeReturnListener") ChangeExitCodeReturnListener listener,
+                  @Qualifier("jobTransactionManager") PlatformTransactionManager transactionManager) {
+    return parentStepBuilder("jobStopFlow.step2", jobRepository, tasklet,
+            listener, transactionManager)
+            .build();
+}
+
+@Bean
+public Step step3(JobRepository jobRepository,
+                  @Qualifier("stopFlowTasklet") SequentialFlowTasklet tasklet,
+                  @Qualifier("changeExitCodeReturnListener") ChangeExitCodeReturnListener listener,
+                  @Qualifier("jobTransactionManager") PlatformTransactionManager transactionManager) {
+    return parentStepBuilder("jobStopFlow.step3", jobRepository, tasklet,
+            listener, transactionManager)
+            .build();
+}
+
+@Bean
+public Step step4(JobRepository jobRepository,
+                  @Qualifier("stopFlowTasklet") SequentialFlowTasklet tasklet,
+                  @Qualifier("changeExitCodeReturnListener") ChangeExitCodeReturnListener listener,
+                  @Qualifier("jobTransactionManager") PlatformTransactionManager transactionManager) {
+    return parentStepBuilder("jobStopFlow.step4", jobRepository, tasklet,
+            listener, transactionManager)
+            .build();
+}
+
+@Bean
+public Job jobStopFlow(JobRepository jobRepository,
+                       @Qualifier("jobExitCodeChangeListener") JobExitCodeChangeListener listener,
+                       Step step1, Step step2, Step step3, Step step4) {
+    return new JobBuilder("jobStopFlow", jobRepository)
+            .start(step1)
+            .listener(listener)
+            .on("END_WITH_NO_EXIT_CODE").end()
+            .from(step1).on("END_WITH_EXIT_CODE").end("COMPLETED_CUSTOM")
+            .from(step1).on("*").to(step2)
+            .from(step2).on("FORCE_FAIL_WITH_NO_EXIT_CODE").fail()
+            .from(step2).on("FORCE_FAIL_WITH_EXIT_CODE").fail()
+            .from(step2).on("*").to(step3)
+            .from(step3).on("FORCE_STOP").stopAndRestart(step4)
+            .from(step3).on("FORCE_STOP_WITH_EXIT_CODE")
+            .stopAndRestart(step4)
+            .from(step3).on("*").to(step4)
+            .end()
+            .build();
+}
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
+[source,xml]
 ----
 <batch:job id="jobStopFlow" job-repository="jobRepository">
     <batch:step id="jobStopFlow.step1" parent="stopFlow.parentStep">
@@ -545,6 +981,12 @@ public class PromotionTargetItemProcessor implements ItemProcessor<String, Strin
     <batch:step id="jobStopFlow.step4" parent="stopFlow.parentStep"/>
 </batch:job>
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============
 
 [cols="10,90",options="header"]
 .ジョブの停止の設定内容説明
@@ -553,24 +995,24 @@ public class PromotionTargetItemProcessor implements ItemProcessor<String, Strin
 |説明
 
 |(1)
-|``<batch:end>``の``on``属性とステップ終了コードが一致した場合、ジョブは正常終了
+|``onメソッドの引数pattern/<batch:end>要素のon属性``とステップ終了コードが一致した場合、ジョブは正常終了
 (ステータス：``COMPLETED``)として``JobRepository``に記録される。 +
-``exit-code``属性を付与した場合、ジョブの終了コードをデフォルトの``COMPLETED``からカスタマイズすることができる。
+``endメソッドの引数status/exit-code属性``を付与した場合、ジョブの終了コードをデフォルトの``COMPLETED``からカスタマイズすることができる。
 
 |(2)
-|``<batch:next>``の``on``属性にワイルドカード(``*``)を指定することで、``end``、``fail``、
+|``onメソッドの引数pattern/<batch:next>要素のon属性``にワイルドカード(``*``)を指定することで、``end``、``fail``、
 ``stop``いずれの終了コードにも該当しない場合に後続ジョブを継続させることができる。 +
 ここではステップ要素内の最後に記述しているが、終了コードの一致条件が先に評価されるため、
 要素の並び順はステップ要素内であれば任意である。
 
 |(3)
-|``<batch:fail>``を使用した場合、ジョブは異常終了(ステータス：``FAILED``)として``JobRepository``に記録される。 +
+|``failメソッド/<batch:fail>要素``を使用した場合、ジョブは異常終了(ステータス：``FAILED``)として``JobRepository``に記録される。 +
 ``<batch:end>``と同様、``exit-code``属性を付与することで、ジョブの終了コードをデフォルトの``FAILED``からカスタマイズすることができる。
 
 |(4)
-|``<batch:stop>``を使用した場合、ステップの正常終了時にジョブは中断(ステータス：``STOPPED``)として``JobRepository``に記録される。 +
-``restart``属性はリスタート時に中断状態からジョブが再開されるステップを指定する。 +
-``<batch:end>``と同様、``exit-code``属性を付与することができるが、空白文字列を指定すること。(後述のコラムを参照)
+|``stopAndRestartメソッド/<batch:stop>要素``を使用した場合、ステップの正常終了時にジョブは中断(ステータス：``STOPPED``)として``JobRepository``に記録される。 +
+``stopAndRestartメソッドの引数restart/restart属性``はリスタート時に中断状態からジョブが再開されるステップを指定する。 +
+XMLConfigでは``<batch:end>``と同様、``exit-code``属性を付与することができるが、空白文字列を指定すること。(後述のコラムを参照)
 
 |===
 
@@ -582,7 +1024,7 @@ public class PromotionTargetItemProcessor implements ItemProcessor<String, Strin
 ====
 
 [WARNING]
-.<batch:stop>でexit-codeに空文字列を指定すること。
+.XMLConfigを使用する場合は、<batch:stop>でexit-codeに空文字列を指定すること。
 ====
 
 [source,xml]
@@ -595,7 +1037,7 @@ public class PromotionTargetItemProcessor implements ItemProcessor<String, Strin
 ----
 
 上記はstep1が正常終了した際ジョブは停止状態となり、再度リスタート実行時にstep2を実行させることを意図したフロー制御になっている。 +
-しかし、{SB}の不具合により、現在意図したとおりに動作しない。 +
+しかし、XMLConfigを使用する場合は、{SB}の不具合により、現在意図したとおりに動作しない。 +
 リスタート後にstep2が実行されることがなく、ジョブの終了コードは``NOOP``となり、ステータスが``COMPLETED``となる。
 
 これを回避するためには上述で示したように``exit-code``で""(空文字)を付与すること。

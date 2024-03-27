@@ -205,14 +205,6 @@ Javaプロセス起動からバッチ処理開始までの流れについて説�
 * CommandLineJobRunnerに渡されたすべての引数はCommandLineJobRunnerおよびJobLauncherが解釈とチェックを行なったうえで、JobExecutionへJobParametersに変換して格納される。詳細は<<Ch04_JobParameter.adoc#Ch04_JobParameter,ジョブの起動パラメータ>>を参照。
 . JobLauncherはjobを実行する。
 
-CommandLineJobRunnerを使用したジョブの起動コマンドは以下のとおりである。
-
-[source,sh]
-.XMLによるBean定義を行った場合の起動コマンド
-----
-$ java -cp ${CLASSPATH} org.springframework.batch.core.launch.support.CommandLineJobRunner <jobPath> <jobName> <JobArgumentName1>=<value1> <JobArgumentName2>=<value2> ...
-----
-
 [[Ch02_SpringBatchArch_Arch_BusinessLogic]]
 === ビジネスロジックの実行
 {SB}では、JobをStepと呼ぶさらに細かい単位に分割する。
@@ -259,25 +251,6 @@ ChunkOrientedTaskletは、チャンク数分だけItemReaderおよびItemProcess
 特にItemProcessorはビジネスロジックそのものが記述されることが多いため、{SB}からは具象クラスがあまり提供されていない。
 ビジネスロジックを記述する場合はItemProcessorインタフェースを実装する。
 ItemProcessorはタイプセーフなプログラミングが可能になるよう、入出力で使用するオブジェクトの型をそれぞれ型引数に指定できるようになっている。
-
-以下に簡単なItemProcessorの実装例を示す。
-
-[source,java]
-.ItemProcessorの実装例
-----
-public class MyItemProcessor implements
-      ItemProcessor<MyInputObject, MyOutputObject> {  // (1)
-  @Override
-    public MyOutputObject process(MyInputObject item) throws Exception {  // (2)
-
-        MyOutputObject processedObject = new MyOutputObject();  // (3)
-
-        // Coding business logic for item of input data
-
-    return processedObject; // (4)
-  }
-}
-----
 
 [cols="10,90", options="header"]
 |===
@@ -394,25 +367,6 @@ icon:warning[] {batch5_shortname}では、HibernateItemWriterは利用しない�
 
 |===
 
-[NOTE]
-.PassThroughItemProcessorの省略
-====
-XMLでジョブを定義する場合は、ItemProcessorの設定を省略することができる。
-省略した場合、PassThroughItemProcessorと同様に何もせずに入力データをItemWriterへ受け渡すことになる。
-
-[source,xml]
-.ItemProcessorの省略
-----
-<batch:job id="exampleJob">
-    <batch:step id="exampleStep">
-        <batch:tasklet>
-            <batch:chunk reader="reader" writer="writer" commit-interval="10" />
-        </batch:tasklet>
-    </batch:step>
-</batch:job>
-----
-====
-
 [[Ch02_SpringBatchArch_Arch_BusinessLogic_Tasklet]]
 ==== タスクレットモデル
 チャンクモデルは、複数の入力データを1件ずつ読み込み、一連の処理を行うバッチアプリケーションに適した枠組みとなっている。
@@ -446,7 +400,7 @@ POJOクラスはバッチ処理の終了した状態をメソッドの返り値�
 JobRepositoryのメタデータスキーマについて説明する。
 
 なお、{SB}のリファレンス
-https://docs.spring.io/spring-batch/docs/{spring_batch_version}/reference/html/schema-appendix.html[Appendix B. Meta-Data Schema]
+https://docs.spring.io/spring-batch/reference/{spring_batch_version}/schema-appendix.html[Appendix B. Meta-Data Schema]
 にて説明されている内容も含めて、全体像を説明する。
 
 {SB}メタデータテーブルは、Javaでそれらを表すドメインオブジェクト(Entityオブジェクト)に対応している。

@@ -5,11 +5,19 @@
 + <&folder> asyncapp-web
 ++ <&folder> src
 +++ <&folder> main
-++++ <&folder> resources
-+++++ <&folder> META-INF
-++++++ <&folder> spring
-+++++++ <&file> spring-mvc.xml (1)
-+++++++ <&file> spring-mvc-rest.xml (2)
+++++ <&folder> java
++++++ <&folder> jp
+++++++ <&folder> co
++++++++ <&folder> ntt
+++++++++ <&folder> fw
++++++++++ <&folder> macchinetta
+++++++++++ <&folder> batch
++++++++++++ <&folder> sample
+++++++++++++ <&folder> config
++++++++++++++ <&folder> web
+++++++++++++++ <&file> SpringSecurityConfig.java (1)
+++++++++++++++ <&file> SpringMvcConfig.java (1)
+++++++++++++++ <&file> SpringMvcRestConfig.java (2)
 }
 }
 @endsalt

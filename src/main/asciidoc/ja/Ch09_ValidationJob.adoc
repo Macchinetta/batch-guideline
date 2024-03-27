@@ -422,7 +422,7 @@ Console Viewを開き、以下の内容のログが出力されていること�
 ----
 (.. omitted)
 
-[2020/03/10 16:04:18] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=jobPointAddChunk]] launched with the following parameters: [{jsr_batch_run_id=140}]
+[2020/03/10 16:04:18] [main] [o.s.b.c.l.s.TaskExecutorJobLauncher] [INFO ] Job: [FlowJob: [name=jobPointAddChunk]] launched with the following parameters: [{jsr_batch_run_id=140}]
 [2020/03/10 16:04:18] [main] [o.s.b.c.j.SimpleStepHandler] [INFO ] Executing step: [jobPointAddChunk.step01]
 [2020/03/10 16:04:18] [main] [o.s.b.c.s.AbstractStep] [ERROR] Encountered an error executing step jobPointAddChunk.step01 in job jobPointAddChunk
 org.springframework.batch.item.validator.ValidationException: Validation failed for com.example.batch.tutorial.common.dto.MemberInfoDto@2b1cd7bc:
@@ -435,7 +435,7 @@ Caused by: org.springframework.validation.BindException: org.springframework.val
 Field error in object 'item' on field 'point': rejected value [1000001]; codes [Max.item.point,Max.point,Max.int,Max]; arguments [org.springframework.context.support.DefaultMessageSourceResolvable: codes [item.point,point]; arguments []; default message [point],1000000]; default message [must be less than or equal to 1000000]
 	... 29 common frames omitted
 [2020/03/10 16:04:18] [main] [o.s.b.c.s.AbstractStep] [INFO ] Step: [jobPointAddChunk.step01] executed in 243ms
-[2020/03/10 16:04:18] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=jobPointAddChunk]] completed with the following parameters: [{jsr_batch_run_id=140}] and the following status: [FAILED] in 319ms
+[2020/03/10 16:04:18] [main] [o.s.b.c.l.s.TaskExecutorJobLauncher] [INFO ] Job: [FlowJob: [name=jobPointAddChunk]] completed with the following parameters: [{jsr_batch_run_id=140}] and the following status: [FAILED] in 319ms
 ----
 
 [[Ch09_Impl_ValidationJob_Chunk_Execution_Exitcode]]
@@ -666,7 +666,7 @@ Console Viewを開き、以下の内容のログが出力されていること�
 ----
 (.. omitted)
 
-[2020/03/10 16:05:44] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=jobPointAddTasklet]] launched with the following parameters: [{jsr_batch_run_id=142}]
+[2020/03/10 16:05:44] [main] [o.s.b.c.l.s.TaskExecutorJobLauncher] [INFO ] Job: [FlowJob: [name=jobPointAddTasklet]] launched with the following parameters: [{jsr_batch_run_id=142}]
 [2020/03/10 16:05:44] [main] [o.s.b.c.j.SimpleStepHandler] [INFO ] Executing step: [jobPointAddTasklet.step01]
 [2020/03/10 16:05:44] [main] [o.s.b.c.s.AbstractStep] [ERROR] Encountered an error executing step jobPointAddTasklet.step01 in job jobPointAddTasklet
 org.springframework.batch.item.validator.ValidationException: Validation failed for com.example.batch.tutorial.common.dto.MemberInfoDto@3811510:
@@ -679,7 +679,7 @@ Caused by: org.springframework.validation.BindException: org.springframework.val
 Field error in object 'item' on field 'point': rejected value [1000001]; codes [Max.item.point,Max.point,Max.int,Max]; arguments [org.springframework.context.support.DefaultMessageSourceResolvable: codes [item.point,point]; arguments []; default message [point],1000000]; default message [must be less than or equal to 1000000]
 	... 24 common frames omitted
 [2020/03/10 16:05:44] [main] [o.s.b.c.s.AbstractStep] [INFO ] Step: [jobPointAddTasklet.step01] executed in 178ms
-[2020/03/10 16:05:44] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=jobPointAddTasklet]] completed with the following parameters: [{jsr_batch_run_id=142}] and the following status: [FAILED] in 244ms
+[2020/03/10 16:05:44] [main] [o.s.b.c.l.s.TaskExecutorJobLauncher] [INFO ] Job: [FlowJob: [name=jobPointAddTasklet]] completed with the following parameters: [{jsr_batch_run_id=142}] and the following status: [FAILED] in 244ms
 ----
 
 [[Ch09_Impl_ValidationJob_Tasklet_Execution_Exitcode]]
