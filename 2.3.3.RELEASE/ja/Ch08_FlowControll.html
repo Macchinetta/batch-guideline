@@ -1,0 +1,1002 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Asciidoctor 2.0.10">
+<title>フロー制御</title>
+<link rel="stylesheet" href="./theme/css/readthedocs.css">
+<link rel="stylesheet" href="./theme/css/font-awesome.min.css">
+<link rel="stylesheet" href="./theme/css/coderay-asciidoctor.css">
+<link rel="stylesheet" href="./theme/css/header-footer.css">
+<title>Macchinetta Batch Framework (2.x) Development Guideline</title>
+
+<div class="common-bg">
+  <div class="information">
+    Macchinetta Batch Framework (2.x) Development Guideline - version 2.3.3.RELEASE, 2024-3-28
+  </div>
+  <div class="index">
+    <a href="index.html">&gt; INDEX</a>
+  </div>
+</div>
+</head>
+<body id="Ch08_FlowControll" class="book toc2 toc-left">
+<div id="header">
+<h1>フロー制御</h1>
+<div id="toc" class="toc2">
+<div id="toctitle">Table of Contents</div>
+<ul class="sectlevel1">
+<li><a href="#Ch08_FlowControll_Overview">Overview</a></li>
+<li><a href="#Ch08_FlowControll_HowToUse">How to use</a>
+<ul class="sectlevel2">
+<li><a href="#Ch08_FlowControll_HowToUse_SequencialFlow">シーケンシャルフロー</a></li>
+<li><a href="#Ch08_FlowControll_HowToUse_PassingDataToFutureSteps">ステップ間のデータの受け渡し</a>
+<ul class="sectlevel3">
+<li><a href="#Ch08_FlowControll_HowToUse_PassingDataToFutureSteps_Tasklet">タスクレットモデルを用いたステップ間のデータ受け渡し</a></li>
+<li><a href="#Ch08_FlowControll_HowToUse_PassingDataToFutureSteps_Chunk">チャンクモデルを用いたステップ間のデータ受け渡し</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="#Ch08_FlowControll_HowToExtend">How to extend</a>
+<ul class="sectlevel2">
+<li><a href="#Ch08_FlowControll_HowToExtend_ConditionFlow">条件分岐</a></li>
+<li><a href="#Ch08_FlowControll_HowToExtend_StopConfig">停止条件</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div id="content">
+<div class="sect1">
+<h2 id="Ch08_FlowControll_Overview"><a class="anchor" href="#Ch08_FlowControll_Overview"></a>Overview</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>1つの業務処理を実装する方法として、1つのジョブに集約して実装するのではなく、
+複数のジョブに分割し組み合わせることで実装することがある。
+このとき、ジョブ間の依存関係を定義したものをジョブネットと呼ぶ。</p>
+</div>
+<div class="paragraph">
+<p>ジョブネットを定義することのメリットを下記に挙げる。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>処理の進行状況が可視化しやすくなる</p>
+</li>
+<li>
+<p>ジョブの部分再実行、実行保留、実行中止が可能になる</p>
+</li>
+<li>
+<p>ジョブの並列実行が容易になる</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>以上より、バッチ処理を設計する場合はジョブネットも併せてジョブ設計を行うことが一般的である。</p>
+</div>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-important" title="Important"></i>
+</td>
+<td class="content">
+<div class="title">処理内容とジョブネットの適性</div>
+<div class="paragraph">
+<p>分割するまでもないシンプルな業務処理やオンライン処理と連携する処理に対して、ジョブネットは適さないことが多い。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>本ガイドラインでは、ジョブネットでジョブ同士の流れを制御することをフロー制御と呼ぶ。
+また処理の流れにおける前のジョブを先行ジョブ、後のジョブを後続ジョブと呼び、
+先行ジョブと後続ジョブの依存関係を、先行後続関係と呼ぶ。</p>
+</div>
+<div class="paragraph">
+<p>フロー制御の概念図を以下に示す。</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/Ch08_FlowControl_Overview.png" alt="Flow Control Overview">
+</div>
+<div class="title">図 1. フロー制御の概念図</div>
+</div>
+<div class="paragraph">
+<p>上図のとおり、フロー制御はジョブスケジューラ、Macchinetta Batch 2.xのどちらでも実施可能である。
+しかし、以下の理由によりできる限りジョブスケジューラを活用することが望ましい。</p>
+</div>
+<div class="ulist">
+<div class="title">Macchinetta Batch 2.xで実現した場合</div>
+<ul>
+<li>
+<p>1ジョブの処理や状態が多岐に渡る傾向が強まり、ブラックボックス化しやすい。</p>
+</li>
+<li>
+<p>ジョブスケジューラとジョブの境界があいまいになってしまう</p>
+</li>
+<li>
+<p>ジョブスケジューラ上から異常時の状況がみえにくくなってしまう</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>ただし、ジョブスケジューラに定義するジョブ数が多くなると、以下の様なデメリットが生じることも一般に知られている。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>ジョブスケジューラによる以下のようなコストが累積し、システム全体の処理時間が伸びる</p>
+<div class="ulist">
+<ul>
+<li>
+<p>ジョブスケジューラ製品固有の通信、実行ノードの制御、など</p>
+</li>
+<li>
+<p>ジョブごとのJavaプロセス起動に伴うオーバーヘッド</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>ジョブ登録数の限界</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>このため、以下を方針とする。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>基本的にはジョブスケジューラによりフロー制御を行う。</p>
+</li>
+<li>
+<p>ジョブ数が多いことによる弊害がある場合に限り、以下のとおり対処する。</p>
+<div class="ulist">
+<ul>
+<li>
+<p>Macchinetta Batch 2.xにてシーケンシャルな複数の処理を1ジョブにまとめる。</p>
+<div class="ulist">
+<ul>
+<li>
+<p>シンプルな先行後続関係を1ジョブに集約するのみとする。</p>
+</li>
+<li>
+<p>ステップ終了コードの変更と、この終了コードに基づく後続ステップ起動の条件分岐は機能上利用可能だが、
+ジョブの実行管理が複雑化するため、ジョブ終了時のプロセス終了コード決定に限り原則利用する。<br>
+どうしても条件分岐を使わないと問題を解消できない場合に限り使用を許容するが、
+シンプルな先行後続関係を維持するよう配慮すること。</p>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+<div class="admonitionblock tip">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+<div class="paragraph">
+<p>ジョブの終了コードの決定について、詳細は<a href="Ch07_JobManagement.html#Ch07_JobManagement_HowToUse_ExitCode">"終了コードのカスタマイズ"</a>を参照。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>また、以下に先行後続を実現する上で意識すべきポイントを示す。</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/ch08/FlowControl/Ch08_FlowControl_Jobnet.png" alt="Jobnet">
+</div>
+<div class="title">図 2. ジョブスケジューラによるフロー制御</div>
+</div>
+<div class="ulist">
+<div class="title">意識すべきポイント</div>
+<ul>
+<li>
+<p>ジョブスケジューラがシェル等を介してjavaプロセスを起動する。</p>
+</li>
+<li>
+<p>1ジョブが1javaプロセスとなる。</p>
+<div class="ulist">
+<ul>
+<li>
+<p>処理全体では、4つのjavaプロセスが起動する。</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>ジョブスケジューラが各処理の起動順序を制御する。ぞれぞれのjavaプロセスは独立している。</p>
+</li>
+<li>
+<p>後続ジョブの起動判定として、先行ジョブのプロセス終了コードが用いられる。</p>
+</li>
+<li>
+<p>ジョブ間のデータ受け渡しは、ファイルやデータベースなど外部リソースを使用する必要がある。</p>
+</li>
+</ul>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/ch08/FlowControl/Ch08_FlowControl_StepExecution.png" alt="FlowControl">
+</div>
+<div class="title">図 3. Macchinetta Batch 2.xによるフロー制御</div>
+</div>
+<div class="ulist">
+<div class="title">意識すべきポイント</div>
+<ul>
+<li>
+<p>ジョブスケジューラがシェル等を介してjavaプロセスを起動する。</p>
+</li>
+<li>
+<p>1ジョブが1javaプロセスとなる。</p>
+<div class="ulist">
+<ul>
+<li>
+<p>処理全体では、1つのjavaプロセスしか使わない。</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>1javaプロセス内で各ステップの起動順序を制御する。それぞれのステップは独立している。</p>
+</li>
+<li>
+<p>後続ステップの起動判定として、先行ステップの終了コードが用いられる。</p>
+</li>
+<li>
+<p>ステップ間のデータはインメモリで受け渡しが可能である。</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>以降、Macchinetta Batch 2.xによるフロー制御の実現方法について説明する。<br>
+ジョブスケジューラでのフロー制御は製品仕様に強く依存するためここでは割愛する。</p>
+</div>
+<div class="admonitionblock tip">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+<div class="title">フロー制御の応用例</div>
+<div class="paragraph">
+<p>複数ジョブの並列化・多重化は、一般的にジョブスケジューラとジョブネットによって実現することが多い。<br>
+しかし、Macchinetta Batch 2.xではフロー制御の機能を応用し、複数ジョブの並列化、多重化を実現する方法を説明している。
+詳細は、<a href="Ch08_ParallelAndMultiple.html#Ch08_ParallelAndMultiple">並列処理と多重処理</a>を参照。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>本機能は、チャンクモデルとタスクレットモデルとで同じ使い方になる。</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="Ch08_FlowControll_HowToUse"><a class="anchor" href="#Ch08_FlowControll_HowToUse"></a>How to use</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Macchinetta Batch 2.xでのフロー制御方法を説明する。</p>
+</div>
+<div class="sect2">
+<h3 id="Ch08_FlowControll_HowToUse_SequencialFlow"><a class="anchor" href="#Ch08_FlowControll_HowToUse_SequencialFlow"></a>シーケンシャルフロー</h3>
+<div class="paragraph">
+<p>シーケンシャルフローとは先行ステップと後続ステップを直列に連結したフローである。<br>
+何らかの業務処理がシーケンシャルフロー内のステップで異常終了した場合、後続ステップは実行されずにジョブが中断する。
+このとき、<code>JobRepository</code>によりジョブ実行IDに紐付けられる当該のステップとジョブのステータス・終了コードは
+<code>FAILED</code>として記録される。<br>
+失敗原因の回復後にリスタートを実施することで、異常終了したステップから処理をやり直すことができる。</p>
+</div>
+<div class="admonitionblock tip">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+<div class="paragraph">
+<p>ジョブのリスタート方法については<a href="Ch06_ReProcessing.html#Ch06_RerunRestart_HowToUse_Restart">ジョブのリスタート</a>を参照。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>ここでは3つのステップからなるジョブのシーケンシャルフローを設定する。</p>
+</div>
+<div class="listingblock">
+<div class="title">Bean定義</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"><span class="comment">&lt;!-- tasklet definition is omitted. --&gt;</span>
+
+<span class="tag">&lt;batch:step</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">parentStep</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+    <span class="tag">&lt;batch:tasklet</span> <span class="attribute-name">ref</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">sequentialFlowTasklet</span><span class="delimiter">&quot;</span></span>
+                   <span class="attribute-name">transaction-manager</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobTransactionManager</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+<span class="tag">&lt;/batch:step&gt;</span>
+
+<span class="tag">&lt;batch:job</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobSequentialFlow</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">job-repository</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobRepository</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+    <span class="tag">&lt;batch:step</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobSequentialFlow.step1</span><span class="delimiter">&quot;</span></span>
+                <span class="attribute-name">next</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobSequentialFlow.step2</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">parent</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">parentStep</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span> <span class="comment">&lt;!-- (1) --&gt;</span>
+    <span class="tag">&lt;batch:step</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobSequentialFlow.step2</span><span class="delimiter">&quot;</span></span>
+                <span class="attribute-name">next</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobSequentialFlow.step3</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">parent</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">parentStep</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span> <span class="comment">&lt;!-- (1) --&gt;</span>
+    <span class="tag">&lt;batch:step</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobSequentialFlow.step3</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">parent</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">parentStep</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>   <span class="comment">&lt;!-- (2) --&gt;</span>
+<span class="tag">&lt;/batch:job&gt;</span></code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 10%;">
+<col style="width: 90%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>&lt;batch:step&gt;</code>で、このステップの正常終了後に起動する後続ステップを指定する。<br>
+<code>next</code>属性に後続ステップの<code>id</code>を設定する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(2)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">フローの末端になるステップには、<code>next</code>属性は不要となる。</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>これにより、 以下の順でステップが直列に起動する。<br>
+<code>jobSequentialFlow.step1</code> &#8594; <code>jobSequentialFlow.step2</code> &#8594; <code>jobSequentialFlow.step3</code><br></p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+<div class="title">&lt;batch:flow&gt;を使った定義方法</div>
+<div class="paragraph">
+<p>前述の例では<code>&lt;batch:job&gt;</code>内に直接フローを定義した。
+<code>&lt;batch:flow&gt;</code>を利用して、フロー定義を外部に切り出すこともできる。
+以下に<code>&lt;batch:flow&gt;</code>を利用した場合の例を示す。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"><span class="tag">&lt;batch:job</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobSequentialOuterFlow</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">job-repository</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobRepository</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+    <span class="tag">&lt;batch:flow</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">innerFlow</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">parent</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">outerFlow</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span> <span class="comment">&lt;!-- (1) --&gt;</span>
+<span class="tag">&lt;/batch:job&gt;</span>
+
+<span class="comment">&lt;!-- (2) --&gt;</span>
+<span class="tag">&lt;batch:flow</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">outerFlow</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+    <span class="tag">&lt;batch:step</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobSequentialOuterFlow.step1</span><span class="delimiter">&quot;</span></span>
+                <span class="attribute-name">next</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobSequentialOuterFlow.step2</span><span class="delimiter">&quot;</span></span>
+                <span class="attribute-name">parent</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">parentStep</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+    <span class="tag">&lt;batch:step</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobSequentialOuterFlow.step2</span><span class="delimiter">&quot;</span></span>
+                <span class="attribute-name">next</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobSequentialOuterFlow.step3</span><span class="delimiter">&quot;</span></span>
+                <span class="attribute-name">parent</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">parentStep</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+    <span class="tag">&lt;batch:step</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobSequentialOuterFlow.step3</span><span class="delimiter">&quot;</span></span>
+                <span class="attribute-name">parent</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">parentStep</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+<span class="tag">&lt;/batch:flow&gt;</span></code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 10%;">
+<col style="width: 90%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>parent</code>属性に(2)で定義したフローのidを設定する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(2)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">シーケンシャルフローを定義する。</p></td>
+</tr>
+</tbody>
+</table>
+</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect2">
+<h3 id="Ch08_FlowControll_HowToUse_PassingDataToFutureSteps"><a class="anchor" href="#Ch08_FlowControll_HowToUse_PassingDataToFutureSteps"></a>ステップ間のデータの受け渡し</h3>
+<div class="paragraph">
+<p>Spring Batchには、ステップ、ジョブそれぞれのスコープで利用できる実行コンテキストの<code>ExecutionContext</code>が用意されている。
+ステップ実行コンテキストを利用することでステップ内のコンポーネント間でデータを共有できる。
+このとき、ステップ実行コンテキストはステップ間で共有できないため、先行のステップ実行コンテキストは後続のステップ実行コンテキストからは参照できない。
+ジョブ実行コンテキストを利用すれば実現可能だが、すべてのステップから参照可能になるため、慎重に扱う必要がある。
+ステップ間の情報を引き継ぐ必要があるときは、以下の手順により対応できる。</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>先行ステップの後処理で、ステップ実行コンテキストに格納した情報をジョブ実行コンテキストに移す。</p>
+</li>
+<li>
+<p>後続ステップがジョブ実行コンテキストから情報を取得する。</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>最初の手順は、Spring Batchから提供されている<code>ExecutionContextPromotionListener</code>を利用することで、
+実装をせずとも、引き継ぎたい情報をリスナーに指定するだけ実現できる。</p>
+</div>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-warning" title="Warning"></i>
+</td>
+<td class="content">
+<div class="title">ExecutionContextを使用する上での注意点</div>
+<div class="paragraph">
+<p>データの受け渡しに使用する<code>ExecutionContext</code>は<code>JobRepository</code>によりRDBMSの
+<code>BATCH_JOB_EXECUTION_CONTEXT</code>、<code>BATCH_JOB_STEP_EXECUTION_CONTEXT</code>に
+シリアライズされた状態で保存されるため、以下3点に注意すること。</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>受け渡しデータはシリアライズ可能な形式のオブジェクトであること。</p>
+<div class="ulist">
+<ul>
+<li>
+<p><code>java.io.Serializable</code>を実装している必要がある。</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>受け渡しデータは必要最小限に留めること。<br>
+<code>ExecutionContext</code>はSpring Batchによる実行制御情報の保存でも利用しており、
+受け渡しデータが大きくなればそれだけシリアライズコストが増大する。<br></p>
+</li>
+<li>
+<p>データ受け渡しに直接ジョブ実行コンテキストに保存させず、上述の<code>ExecutionContextPromotionListener</code>を使用すること。<br>
+ジョブ実行コンテキストはステップ実行コンテキストよりスコープが広いため、無用なシリアライズデータが蓄積しやすいため。</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>また、実行コンテキストを経由せず、SingletonやJobスコープのBeanを共有することでも情報のやり取りは可能だが、
+この方法もサイズが大きすぎるとメモリリソースを圧迫する可能性があるので注意すること。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>以下、タスクレットモデルとチャンクモデルについて、それぞれステップ間のデータ受け渡しについて説明する。</p>
+</div>
+<div class="sect3">
+<h4 id="Ch08_FlowControll_HowToUse_PassingDataToFutureSteps_Tasklet"><a class="anchor" href="#Ch08_FlowControll_HowToUse_PassingDataToFutureSteps_Tasklet"></a>タスクレットモデルを用いたステップ間のデータ受け渡し</h4>
+<div class="paragraph">
+<p>受け渡しデータの保存・取得に、<code>ChunkContext</code>から<code>ExecutionContext</code>を取得し、ステップ間のデータ受け渡しを行う。</p>
+</div>
+<div class="listingblock">
+<div class="title">データ受け渡し元タスクレットの実装例</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="java"><span class="comment">// package, imports are omitted.</span>
+
+<span class="annotation">@Component</span>
+<span class="directive">public</span> <span class="type">class</span> <span class="class">SavePromotionalTasklet</span> <span class="directive">implements</span> Tasklet {
+
+    <span class="comment">// omitted.</span>
+
+    <span class="annotation">@Override</span>
+    <span class="directive">public</span> RepeatStatus execute(StepContribution contribution,
+            ChunkContext chunkContext) <span class="directive">throws</span> <span class="exception">Exception</span> {
+
+        <span class="comment">// (1)</span>
+        chunkContext.getStepContext().getStepExecution().getExecutionContext()
+                .put(<span class="string"><span class="delimiter">&quot;</span><span class="content">promotion</span><span class="delimiter">&quot;</span></span>, <span class="string"><span class="delimiter">&quot;</span><span class="content">value1</span><span class="delimiter">&quot;</span></span>);
+
+        <span class="comment">// omitted.</span>
+
+        <span class="keyword">return</span> RepeatStatus.FINISHED;
+    }
+}</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">データ受け渡し先のタスクレット実装例</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="java"><span class="comment">// package and imports are omitted.</span>
+
+<span class="annotation">@Component</span>
+<span class="directive">public</span> <span class="type">class</span> <span class="class">ConfirmPromotionalTasklet</span> <span class="directive">implements</span> Tasklet {
+
+    <span class="annotation">@Override</span>
+    <span class="directive">public</span> RepeatStatus execute(StepContribution contribution,
+            ChunkContext chunkContext) {
+        <span class="comment">// (2)</span>
+        <span class="predefined-type">Object</span> promotion = chunkContext.getStepContext().getJobExecutionContext()
+                .get(<span class="string"><span class="delimiter">&quot;</span><span class="content">promotion</span><span class="delimiter">&quot;</span></span>);
+
+        <span class="comment">// omitted.</span>
+
+        <span class="keyword">return</span> RepeatStatus.FINISHED;
+    }
+}</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">ジョブBean定義の記述例</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"><span class="comment">&lt;!-- import,annotation,component-scan definitions are omitted --&gt;</span>
+
+<span class="tag">&lt;batch:job</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobPromotionalFlow</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">job-repository</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobRepository</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+    <span class="tag">&lt;batch:step</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobPromotionalFlow.step1</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">next</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobPromotionalFlow.step2</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+        <span class="tag">&lt;batch:tasklet</span> <span class="attribute-name">ref</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">savePromotionalTasklet</span><span class="delimiter">&quot;</span></span>
+                       <span class="attribute-name">transaction-manager</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobTransactionManager</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+        <span class="tag">&lt;batch:listeners&gt;</span>
+            <span class="tag">&lt;batch:listener&gt;</span>
+                <span class="comment">&lt;!-- (3) --&gt;</span>
+                <span class="tag">&lt;bean</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">org.springframework.batch.core.listener.ExecutionContextPromotionListener</span><span class="delimiter">&quot;</span></span>
+                      <span class="attribute-name">p:keys</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">promotion</span><span class="delimiter">&quot;</span></span>
+                      <span class="attribute-name">p:strict</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">true</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+            <span class="tag">&lt;/batch:listener&gt;</span>
+        <span class="tag">&lt;/batch:listeners&gt;</span>
+    <span class="tag">&lt;/batch:step&gt;</span>
+    <span class="tag">&lt;batch:step</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobPromotionalFlow.step2</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+        <span class="tag">&lt;batch:tasklet</span> <span class="attribute-name">ref</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">confirmPromotionalTasklet</span><span class="delimiter">&quot;</span></span>
+                       <span class="attribute-name">transaction-manager</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobTransactionManager</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+    <span class="tag">&lt;/batch:step&gt;</span>
+<span class="tag">&lt;/batch:job&gt;</span>
+<span class="comment">&lt;!-- omitted --&gt;</span></code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 1. 実装内容の説明</caption>
+<colgroup>
+<col style="width: 10%;">
+<col style="width: 90%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ステップ実行コンテキストの<code>ExecutionContext</code>に後続ステップに受け渡す値を設定する。
+ここでは一連のデータ受け渡しに必要なキーとして、<code>promotion</code>を指定している。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(2)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">先行ステップの(1)で設定された受け渡しデータを<code>ExecutionContext</code>から、
+受け渡し元で指定されたキー<code>promotion</code>を用いて取得する。<br>
+ここで使用している<code>ExecutionContext</code>は(1)のステップ実行コンテキストではなく、
+ジョブ実行コンテキストである点に注意する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(3)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>ExecutionContextPromotionListener</code>を用い、
+ステップ実行コンテキストからジョブ実行コンテキストに受け渡しデータを移す。<br>
+<code>keys</code>属性には(1)で指定した受け渡しキーを指定する。<br>
+<code>strict</code>属性に<code>true</code>を設定することにより、ステップ実行コンテキストに存在しない場合は<code>IllegalArgumentException</code>がスローされる。
+<code>false</code>の場合は受け渡しデータがなくても処理が継続する。</p></td>
+</tr>
+</tbody>
+</table>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+<div class="title">ExecutionContextPromotionListenerとステップ終了コードについて</div>
+<div class="paragraph">
+<p><code>ExecutionContextPromotionListener</code>はデータ受け渡し元のステップ終了コードが正常終了時(<code>COMPLETED</code>)の場合のみ、
+ステップ実行コンテキストからジョブ実行コンテキストへデータを移す。<br>
+後続ステップが継続して実行される終了コードのカスタマイズを行う場合、
+<code>status</code>プロパティに終了コードを配列形式で指定すること。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect3">
+<h4 id="Ch08_FlowControll_HowToUse_PassingDataToFutureSteps_Chunk"><a class="anchor" href="#Ch08_FlowControll_HowToUse_PassingDataToFutureSteps_Chunk"></a>チャンクモデルを用いたステップ間のデータ受け渡し</h4>
+<div class="paragraph">
+<p><code>ItemProcessor</code>に<code>@AfterStep</code>、<code>@BeforeStep</code>アノテーションを付与したメソッドを使用する。
+データ受け渡しに使用するリスナーと、<code>ExecutionContext</code>の使用方法はタスクレットと同様である。</p>
+</div>
+<div class="listingblock">
+<div class="title">データ受け渡し元ItemProcessorの実装例</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="java"><span class="comment">// package and imports are omitted.</span>
+
+<span class="annotation">@Component</span>
+<span class="annotation">@Scope</span>(<span class="string"><span class="delimiter">&quot;</span><span class="content">step</span><span class="delimiter">&quot;</span></span>)
+<span class="directive">public</span> <span class="type">class</span> <span class="class">PromotionSourceItemProcessor</span> <span class="directive">implements</span> ItemProcessor&lt;<span class="predefined-type">String</span>, <span class="predefined-type">String</span>&gt; {
+
+    <span class="annotation">@Override</span>
+    <span class="directive">public</span> <span class="predefined-type">String</span> process(<span class="predefined-type">String</span> item) {
+        <span class="comment">// omitted.</span>
+    }
+
+    <span class="annotation">@AfterStep</span>
+    <span class="directive">public</span> ExitStatus afterStep(StepExecution stepExecution) {
+        <span class="comment">// (1)</span>
+        stepExecution.getExecutionContext().put(<span class="string"><span class="delimiter">&quot;</span><span class="content">promotion</span><span class="delimiter">&quot;</span></span>, <span class="string"><span class="delimiter">&quot;</span><span class="content">value2</span><span class="delimiter">&quot;</span></span>);
+
+        <span class="keyword">return</span> <span class="predefined-constant">null</span>;
+    }
+}</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">データ受け渡し先ItemProcessorの実装例</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="java"><span class="comment">// package and imports are omitted.</span>
+
+<span class="annotation">@Component</span>
+<span class="annotation">@Scope</span>(<span class="string"><span class="delimiter">&quot;</span><span class="content">step</span><span class="delimiter">&quot;</span></span>)
+<span class="directive">public</span> <span class="type">class</span> <span class="class">PromotionTargetItemProcessor</span> <span class="directive">implements</span> ItemProcessor&lt;<span class="predefined-type">String</span>, <span class="predefined-type">String</span>&gt; {
+
+    <span class="annotation">@Override</span>
+    <span class="directive">public</span> <span class="predefined-type">String</span> process(<span class="predefined-type">String</span> item) {
+        <span class="comment">// omitted.</span>
+    }
+
+    <span class="annotation">@BeforeStep</span>
+    <span class="directive">public</span> <span class="type">void</span> beforeStep(StepExecution stepExecution) {
+        <span class="comment">// (2)</span>
+        <span class="predefined-type">Object</span> promotion = stepExecution.getJobExecution().getExecutionContext()
+                .get(<span class="string"><span class="delimiter">&quot;</span><span class="content">promotion</span><span class="delimiter">&quot;</span></span>);
+        <span class="comment">// omitted.</span>
+    }
+}</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">ジョブBean定義の記述例</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"><span class="comment">&lt;!-- import,annotation,component-scan definitions are omitted --&gt;</span>
+<span class="tag">&lt;batch:job</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobChunkPromotionalFlow</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">job-repository</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobRepository</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+    <span class="tag">&lt;batch:step</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobChunkPromotionalFlow.step1</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">parent</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">sourceStep</span><span class="delimiter">&quot;</span></span>
+                <span class="attribute-name">next</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobChunkPromotionalFlow.step2</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+        <span class="tag">&lt;batch:listeners&gt;</span>
+            <span class="tag">&lt;batch:listener&gt;</span>
+                <span class="comment">&lt;!-- (3) --&gt;</span>
+                <span class="tag">&lt;bean</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">org.springframework.batch.core.listener.ExecutionContextPromotionListener</span><span class="delimiter">&quot;</span></span>
+                      <span class="attribute-name">p:keys</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">promotion</span><span class="delimiter">&quot;</span></span>
+                      <span class="attribute-name">p:strict</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">true</span><span class="delimiter">&quot;</span></span> <span class="tag">/&gt;</span>
+            <span class="tag">&lt;/batch:listener&gt;</span>
+        <span class="tag">&lt;/batch:listeners&gt;</span>
+    <span class="tag">&lt;/batch:step&gt;</span>
+    <span class="tag">&lt;batch:step</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobChunkPromotionalFlow.step2</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">parent</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">targetStep</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+<span class="tag">&lt;/batch:job&gt;</span>
+
+<span class="comment">&lt;!-- step definitions are omitted. --&gt;</span></code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 2. 実装内容の説明</caption>
+<colgroup>
+<col style="width: 10%;">
+<col style="width: 90%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ステップ実行コンテキストの<code>ExecutionContext</code>に後続ステップに受け渡す値を設定する。
+ここでは一連のデータ受け渡しに必要なキーとして、<code>promotion</code>を指定している。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(2)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">先行ステップの(1)で設定された受け渡しデータを<code>ExecutionContext</code>から、
+受け渡し元で指定されたキー<code>promotion</code>を用いて取得する。<br>
+ここで使用している<code>ExecutionContext</code>は(1)のステップ実行コンテキストではなく、
+ジョブ実行コンテキストである点に注意する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(3)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>ExecutionContextPromotionListener</code>を用い、
+ステップ実行コンテキストからジョブ実行コンテキストに受け渡しデータを移す。<br>
+プロパティの指定はタスクレットと同様である。</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="Ch08_FlowControll_HowToExtend"><a class="anchor" href="#Ch08_FlowControll_HowToExtend"></a>How to extend</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>ここでは後続ステップの条件分岐と、条件により後続ステップ実行前にジョブを停止させる停止条件について説明する。</p>
+</div>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-warning" title="Warning"></i>
+</td>
+<td class="content">
+<div class="title">ジョブ・ステップの終了コードとステータスの違い。</div>
+<div class="paragraph">
+<p>以降の説明では「ステータス」と「終了コード」という言葉が頻繁に登場する。<br>
+これらの判別がつかない場合混乱を招く恐れがあるため、
+まず<a href="Ch07_JobManagement.html#Ch07_JobManagement_HowToUse_ExitCode">"終了コードのカスタマイズ"</a>を参照。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="sect2">
+<h3 id="Ch08_FlowControll_HowToExtend_ConditionFlow"><a class="anchor" href="#Ch08_FlowControll_HowToExtend_ConditionFlow"></a>条件分岐</h3>
+<div class="paragraph">
+<p>条件分岐は先行ステップの実行結果となる終了コードを受けて、複数の後続ステップから1つを選択して継続実行させることを言う。<br>
+いずれの後続ステップを実行させずにジョブを停止させる場合は後述の<a href="#Ch08_FlowControll_HowToExtend_StopConfig">"停止条件"</a>を参照。</p>
+</div>
+<div class="listingblock">
+<div class="title">ジョブBean定義記述例</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"><span class="tag">&lt;batch:job</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobConditionalFlow</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">job-repository</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobRepository</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+    <span class="tag">&lt;batch:step</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobConditionalFlow.stepA</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">parent</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">conditionalFlow.parentStep</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+        <span class="comment">&lt;!-- (1) --&gt;</span>
+        <span class="tag">&lt;batch:next</span> <span class="attribute-name">on</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">COMPLETED</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">to</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobConditionalFlow.stepB</span><span class="delimiter">&quot;</span></span> <span class="tag">/&gt;</span>
+        <span class="tag">&lt;batch:next</span> <span class="attribute-name">on</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">FAILED</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">to</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobConditionalFlow.stepC</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+    <span class="tag">&lt;/batch:step&gt;</span>
+    <span class="comment">&lt;!-- (2) --&gt;</span>
+    <span class="tag">&lt;batch:step</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobConditionalFlow.stepB</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">parent</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">conditionalFlow.parentStep</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+    <span class="comment">&lt;!-- (3) --&gt;</span>
+    <span class="tag">&lt;batch:step</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobConditionalFlow.stepC</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">parent</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">conditionalFlow.parentStep</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+<span class="tag">&lt;/batch:job&gt;</span></code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 3. 実装内容の説明</caption>
+<colgroup>
+<col style="width: 10%;">
+<col style="width: 90%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">シーケンシャルフローのように<code>&lt;batch:step&gt;</code>要素内に<code>next</code>属性を指定させず、
+<code>&lt;batch:next&gt;</code>を複数置くことで、<code>to</code>属性で指定される後続ステップに振り分けることができる。<br>
+<code>on</code>には遷移条件となるステップの終了コードを指定する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(2)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)のステップ終了コードが<code>COMPLETED</code>の場合のみに実行される後続ステップとなる。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(3)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)のステップ終了コードが<code>FAILED</code>の場合のみに実行される後続ステップとなる。<br>
+この指定が行われることで先行ステップ処理失敗時にジョブが停止せず、回復処理などの後続ステップが実行される。</p></td>
+</tr>
+</tbody>
+</table>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-warning" title="Warning"></i>
+</td>
+<td class="content">
+<div class="title">後続ステップによる回復処理の注意点</div>
+<div class="paragraph">
+<p>先行ステップの処理失敗(終了コードが<code>FAILED</code>)により後続ステップの回復処理が行われた場合、
+回復処理の成否を問わず先行ステップのステータスは<code>ABANDONED</code>となり、リスタート不能となる。</p>
+</div>
+<div class="paragraph">
+<p>後続ステップの回復処理が失敗した場合にジョブをリスタートすると、回復処理のみが再実行される。<br>
+このため、先行ステップを含めて処理をやり直す場合は別のジョブ実行としてリランさせる必要がある。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect2">
+<h3 id="Ch08_FlowControll_HowToExtend_StopConfig"><a class="anchor" href="#Ch08_FlowControll_HowToExtend_StopConfig"></a>停止条件</h3>
+<div class="paragraph">
+<p>先行ステップの終了コードに応じ、ジョブを停止させる方法を説明する。<br>
+停止の手段として、以下の3つの要素を指定する方法がある。</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p><code>end</code></p>
+</li>
+<li>
+<p><code>fail</code></p>
+</li>
+<li>
+<p><code>stop</code></p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>これらの終了コードが先行ステップに該当する場合は後続ステップが実行されない。<br>
+また、同一ステップ内にそれぞれ複数指定が可能である。</p>
+</div>
+<div class="listingblock">
+<div class="title">ジョブBean定義記述例</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"><span class="tag">&lt;batch:job</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobStopFlow</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">job-repository</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobRepository</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+    <span class="tag">&lt;batch:step</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobStopFlow.step1</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">parent</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">stopFlow.parentStep</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+        <span class="comment">&lt;!-- (1) --&gt;</span>
+        <span class="tag">&lt;batch:end</span> <span class="attribute-name">on</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">END_WITH_NO_EXIT_CODE</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+        <span class="tag">&lt;batch:end</span> <span class="attribute-name">on</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">END_WITH_EXIT_CODE</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">exit-code</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">COMPLETED_CUSTOM</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+        <span class="comment">&lt;!-- (2) --&gt;</span>
+        <span class="tag">&lt;batch:next</span> <span class="attribute-name">on</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">*</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">to</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobStopFlow.step2</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+    <span class="tag">&lt;/batch:step&gt;</span>
+    <span class="tag">&lt;batch:step</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobStopFlow.step2</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">parent</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">stopFlow.parentStep</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+        <span class="comment">&lt;!-- (3) --&gt;</span>
+        <span class="tag">&lt;batch:fail</span> <span class="attribute-name">on</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">FORCE_FAIL_WITH_NO_EXIT_CODE</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+        <span class="tag">&lt;batch:fail</span> <span class="attribute-name">on</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">FORCE_FAIL_WITH_EXIT_CODE</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">exit-code</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">FAILED_CUSTOM</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+        <span class="comment">&lt;!-- (2) --&gt;</span>
+        <span class="tag">&lt;batch:next</span> <span class="attribute-name">on</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">*</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">to</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobStopFlow.step3</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+    <span class="tag">&lt;/batch:step&gt;</span>
+    <span class="tag">&lt;batch:step</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobStopFlow.step3</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">parent</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">stopFlow.parentStep</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+        <span class="comment">&lt;!-- (4) --&gt;</span>
+        <span class="tag">&lt;batch:stop</span> <span class="attribute-name">on</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">FORCE_STOP</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">restart</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobStopFlow.step4</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">exit-code</span>=<span class="string"><span class="delimiter">&quot;</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+        <span class="comment">&lt;!-- (2) --&gt;</span>
+        <span class="tag">&lt;batch:next</span> <span class="attribute-name">on</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">*</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">to</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobStopFlow.step4</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+    <span class="tag">&lt;/batch:step&gt;</span>
+    <span class="tag">&lt;batch:step</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobStopFlow.step4</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">parent</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">stopFlow.parentStep</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+<span class="tag">&lt;/batch:job&gt;</span></code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 4. ジョブの停止の設定内容説明</caption>
+<colgroup>
+<col style="width: 10%;">
+<col style="width: 90%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>&lt;batch:end&gt;</code>の<code>on</code>属性とステップ終了コードが一致した場合、ジョブは正常終了
+(ステータス：<code>COMPLETED</code>)として<code>JobRepository</code>に記録される。<br>
+<code>exit-code</code>属性を付与した場合、ジョブの終了コードをデフォルトの<code>COMPLETED</code>からカスタマイズすることができる。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(2)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>&lt;batch:next&gt;</code>の<code>on</code>属性にワイルドカード(<code>*</code>)を指定することで、<code>end</code>、<code>fail</code>、
+<code>stop</code>いずれの終了コードにも該当しない場合に後続ジョブを継続させることができる。<br>
+ここではステップ要素内の最後に記述しているが、終了コードの一致条件が先に評価されるため、
+要素の並び順はステップ要素内であれば任意である。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(3)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>&lt;batch:fail&gt;</code>を使用した場合、ジョブは異常終了(ステータス：<code>FAILED</code>)として<code>JobRepository</code>に記録される。<br>
+<code>&lt;batch:end&gt;</code>と同様、<code>exit-code</code>属性を付与することで、ジョブの終了コードをデフォルトの<code>FAILED</code>からカスタマイズすることができる。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(4)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>&lt;batch:stop&gt;</code>を使用した場合、ステップの正常終了時にジョブは中断(ステータス：<code>STOPPED</code>)として<code>JobRepository</code>に記録される。<br>
+<code>restart</code>属性はリスタート時に中断状態からジョブが再開されるステップを指定する。<br>
+<code>&lt;batch:end&gt;</code>と同様、<code>exit-code</code>属性を付与することができるが、空白文字列を指定すること。(後述のコラムを参照)</p></td>
+</tr>
+</tbody>
+</table>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-important" title="Important"></i>
+</td>
+<td class="content">
+<div class="title">exit-code属性による終了コードのカスタマイズ時は漏れなくプロセス終了コードにマッピングさせること。</div>
+<div class="paragraph">
+<p>詳細は<a href="Ch07_JobManagement.html#Ch07_JobManagement_HowToUse_ExitCode">"終了コードのカスタマイズ"</a>を参照。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-warning" title="Warning"></i>
+</td>
+<td class="content">
+<div class="title">&lt;batch:stop&gt;でexit-codeに空文字列を指定すること。</div>
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"><span class="tag">&lt;step</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">step1</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">parent</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">s1</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+    <span class="tag">&lt;stop</span> <span class="attribute-name">on</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">COMPLETED</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">restart</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">step2</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+<span class="tag">&lt;/step&gt;</span>
+
+<span class="tag">&lt;step</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">step2</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">parent</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">s2</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>上記はstep1が正常終了した際ジョブは停止状態となり、再度リスタート実行時にstep2を実行させることを意図したフロー制御になっている。<br>
+しかし、Spring Batchの不具合により、現在意図したとおりに動作しない。<br>
+リスタート後にstep2が実行されることがなく、ジョブの終了コードは<code>NOOP</code>となり、ステータスが<code>COMPLETED</code>となる。</p>
+</div>
+<div class="paragraph">
+<p>これを回避するためには上述で示したように<code>exit-code</code>で""(空文字)を付与すること。</p>
+</div>
+<div class="paragraph">
+<p>不具合の詳細は
+<a href="https://github.com/spring-projects/spring-batch/issues/1287">Spring Batch/BATCH-2315</a>
+を参照。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</div>
+</div>
+</div>
+</div>
+<link rel="stylesheet" href="./theme/css/coderay-asciidoctor.css">
+<div class="container">
+
+  <div class="common-bg">
+    <div class="information">
+      Macchinetta Batch Framework (2.x) Development Guideline - version 2.3.3.RELEASE, 2024-3-28
+    </div>
+    <div class="index">
+      <a href="index.html">&gt; INDEX</a>
+    </div>
+  </div>
+
+  <div class="footer-bg">
+    <div class="copyright">
+      &copy; Copyright 2017 NTT Corporation.
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

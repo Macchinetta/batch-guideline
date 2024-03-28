@@ -1,0 +1,41 @@
+.container{
+}
+
+.common-bg{
+  background-color: #555555;
+  overflow: hidden;
+}
+
+.information {
+  color: #ffffff;
+  height: 30px;
+  line-height: 30px;
+  padding-left: 20px;
+  font-size: 0.8em;
+  float: left;
+}
+
+.index {
+  background-color: #fce38a;
+  color: #555555;
+  height: 30px;
+  line-height: 30px;
+  padding-left: 20px;
+  padding-right: 20px;
+  font-size: 1.0em;
+  float: right;
+}
+
+.footer-bg{
+  background-color: #2994b2;
+  overflow: hidden;
+}
+
+.copyright {
+  color: #ffffff;
+  height: 30px;
+  line-height: 30px;
+  padding-right: 20px;
+  font-size: 0.8em;
+  float: right;
+}

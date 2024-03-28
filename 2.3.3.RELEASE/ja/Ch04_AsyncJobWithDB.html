@@ -1,0 +1,1952 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Asciidoctor 2.0.10">
+<title>非同期実行(DBポーリング)</title>
+<link rel="stylesheet" href="./theme/css/readthedocs.css">
+<link rel="stylesheet" href="./theme/css/font-awesome.min.css">
+<link rel="stylesheet" href="./theme/css/coderay-asciidoctor.css">
+<link rel="stylesheet" href="./theme/css/header-footer.css">
+<title>Macchinetta Batch Framework (2.x) Development Guideline</title>
+
+<div class="common-bg">
+  <div class="information">
+    Macchinetta Batch Framework (2.x) Development Guideline - version 2.3.3.RELEASE, 2024-3-28
+  </div>
+  <div class="index">
+    <a href="index.html">&gt; INDEX</a>
+  </div>
+</div>
+</head>
+<body id="Ch04_AsyncJobWithDB" class="book toc2 toc-left">
+<div id="header">
+<h1>非同期実行(DBポーリング)</h1>
+<div id="toc" class="toc2">
+<div id="toctitle">Table of Contents</div>
+<ul class="sectlevel1">
+<li><a href="#Ch04_AsyncJobWithDB_Overview">Overview</a>
+<ul class="sectlevel2">
+<li><a href="#Ch04_AsyncJobWithDB_Overview_AboutAsync">DBポーリングによるジョブの非同期実行とは</a>
+<ul class="sectlevel3">
+<li><a href="#Ch04_AsyncJobWithDB_Overview_AboutAsync_Function">TERASOLUNA Batch 5.xが提供する機能</a></li>
+<li><a href="#Ch04_AsyncJobWithDB_Overview_AboutAsync_Scene">活用シーン</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="#Ch04_AsyncJobWithDB_Arch">Architecture</a>
+<ul class="sectlevel2">
+<li><a href="#Ch04_AsyncJobWithDB_Arch_Sequence">DBポーリングの処理シーケンス</a></li>
+<li><a href="#Ch04_AsyncJobWithDB_Arch_RequireTable">ポーリングするテーブルについて</a>
+<ul class="sectlevel3">
+<li><a href="#Ch04_AsyncJobWithDB_Arch_RequireTable_TableStructure">ジョブ要求テーブルの構造</a></li>
+<li><a href="#Ch04_AsyncJobWithDB_Arch_RequireTable_SequenceStructure">ジョブ要求シーケンスの構造</a></li>
+<li><a href="#Ch04_AsyncJobWithDB_Arch_RequireTable_PollingStatus">ポーリングステータス(polling_status)の遷移パターン</a></li>
+<li><a href="#Ch04_AsyncJobWithDB_Arch_RequireTable_SQL">ジョブ要求取得SQL</a></li>
+</ul>
+</li>
+<li><a href="#Ch04_AsyncJobWithDB_Arch_JobLaunching">ジョブの起動について</a></li>
+<li><a href="#Ch04_AsyncJobWithDB_Arch_OnError">DBポーリング処理で異常が発生した場合について</a>
+<ul class="sectlevel3">
+<li><a href="#Ch04_AsyncJobWithDB_Arch_OnError_Failure">データベース接続障害</a></li>
+<li><a href="#Ch04_AsyncJobWithDB_Arch_OnError_Abend">非同期バッチデーモンのプロセス異常終了</a></li>
+</ul>
+</li>
+<li><a href="#Ch04_AsyncJobWithDB_Arch_Shutdown">DBポーリング処理の停止について</a></li>
+<li><a href="#Ch04_AsyncJobWithDB_Arch_Components">非同期実行特有のアプリケーション構成となる点について</a>
+<ul class="sectlevel3">
+<li><a href="#Ch04_AsyncJobWithDB_Arch_Components_AppCtx">ApplicationContextの構成</a></li>
+<li><a href="#Ch04_AsyncJobWithDB_Arch_Config">Bean定義の構成</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="#Ch04_AsyncJobWithDB_HowToUse">How to use</a>
+<ul class="sectlevel2">
+<li><a href="#Ch04_AsyncJobWithDB_HowToUse_Config">各種設定</a>
+<ul class="sectlevel3">
+<li><a href="#Ch04_AsyncJobWithDB_HowToUse_Config_Polling">ポーリング処理の設定</a></li>
+<li><a href="#Ch04_AsyncJobWithDB_HowToUse_Config_Job">ジョブの設定</a></li>
+</ul>
+</li>
+<li><a href="#Ch04_AsyncJobWithDB_HowToUse_Daemon">非同期処理の起動から終了まで</a>
+<ul class="sectlevel3">
+<li><a href="#Ch04_AsyncJobWithDB_HowToUse_Daemon_Launch">非同期バッチデーモンの起動</a></li>
+<li><a href="#Ch04_AsyncJobWithDB_HowToUse_Daemon_Request">ジョブの要求</a></li>
+<li><a href="#Ch04_AsyncJobWithDB_HowToUse_Daemon_Stop">非同期バッチデーモンの停止</a></li>
+</ul>
+</li>
+<li><a href="#Ch04_AsyncJobWithDB_HowToUse_RefStatus">ジョブのステータス確認</a></li>
+<li><a href="#Ch04_AsyncJobWithDB_HowToUse_Recovery">ジョブが異常終了した後のリカバリ</a>
+<ul class="sectlevel3">
+<li><a href="#Ch04_AsyncJobWithDB_HowToUse_Recovery_Rerun">リラン</a></li>
+<li><a href="#Ch04_AsyncJobWithDB_HowToUse_Recovery_Restart">リスタート</a></li>
+<li><a href="#Ch04_AsyncJobWithDB_HowToUse_Recovery_Stop">停止</a></li>
+</ul>
+</li>
+<li><a href="#Ch04_AsyncJobWithDB_HowToUse_Env">環境配備について</a></li>
+<li><a href="#Ch04_AsyncJobWithDB_HowToUse_CumulativeData">累積データの退避について</a></li>
+</ul>
+</li>
+<li><a href="#Ch04_AsyncJobWithDB_HowToExtend">How to extend</a>
+<ul class="sectlevel2">
+<li><a href="#Ch04_AsyncJobWithDB_HowToExtend_CustomTable">ジョブ要求テーブルのカスタマイズ</a>
+<ul class="sectlevel3">
+<li><a href="#Ch04_AsyncJobWithDB_HowToExtend_CustomTable_Priority">優先度カラムによるジョブ実行順序の制御の例</a></li>
+<li><a href="#Ch04_AsyncJobWithDB_HowToExtend_CustomTable_GroupID">グループIDによる複数プロセスによる分散処理</a></li>
+</ul>
+</li>
+<li><a href="#Ch04_AsyncJobWithDB_HowToExtend_ClockCustomize">タイムスタンプに用いるクロックのカスタマイズ</a></li>
+<li><a href="#Ch04_AsyncJobWithDB_HowToExtend_MultiDaemon">複数起動</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div id="content">
+<div class="sect1">
+<h2 id="Ch04_AsyncJobWithDB_Overview"><a class="anchor" href="#Ch04_AsyncJobWithDB_Overview"></a>Overview</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>DBポーリングによるジョブ起動について説明をする。</p>
+</div>
+<div class="paragraph">
+<p>本機能は、チャンクモデルとタスクレットモデルとで同じ使い方になる。</p>
+</div>
+<div class="sect2">
+<h3 id="Ch04_AsyncJobWithDB_Overview_AboutAsync"><a class="anchor" href="#Ch04_AsyncJobWithDB_Overview_AboutAsync"></a>DBポーリングによるジョブの非同期実行とは</h3>
+<div class="paragraph">
+<p>非同期実行させたいジョブを登録する専用のテーブル(以降、ジョブ要求テーブル)を一定周期で監視し、登録された情報をもとにジョブを非同期実行することをいう。<br>
+Macchinetta Batch 2.xでは、テーブルを監視しジョブを起動するモジュールを非同期バッチデーモンという名称で定義する。
+非同期バッチデーモンは1つのJavaプロセスとして稼働し、1ジョブごとにプロセス内のスレッドを割り当てて実行する。</p>
+</div>
+<div class="sect3">
+<h4 id="Ch04_AsyncJobWithDB_Overview_AboutAsync_Function"><a class="anchor" href="#Ch04_AsyncJobWithDB_Overview_AboutAsync_Function"></a>TERASOLUNA Batch 5.xが提供する機能</h4>
+<div class="paragraph">
+<p>TERASOLUNA Batch 5.xは、以下の機能を<strong>非同期実行(DBポーリング)</strong>として提供する。</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 1. 非同期実行(DBポーリング)の機能一覧</caption>
+<colgroup>
+<col style="width: 40%;">
+<col style="width: 60%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">機能</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">非同期バッチデーモン機能</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ジョブ要求テーブルポーリング機能を常駐実行させる機能</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ジョブ要求テーブルポーリング機能</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ジョブ要求テーブルに登録された情報にもとづいてジョブを非同期実行する機能。<br>
+ジョブ要求テーブルのテーブル定義も合わせて提供する。</p></td>
+</tr>
+</tbody>
+</table>
+<div class="sect4">
+<h5 id="Ch04_AsyncJobWithDB_Overview_AboutAsync_Function_Premise"><a class="anchor" href="#Ch04_AsyncJobWithDB_Overview_AboutAsync_Function_Premise"></a>利用前提</h5>
+<div class="paragraph">
+<p>ジョブ要求テーブルでは、ジョブ要求のみを管理する。要求されたジョブの実行状況および結果は、<code>JobRepository</code>に委ねる。
+これら2つを通じてジョブのステータスを管理することを前提としている。<br></p>
+</div>
+<div class="paragraph">
+<p>また、<code>JobRepository</code>にインメモリデータベースを使用すると、非同期バッチデーモン停止後に<code>JobRepository</code>がクリアされ、ジョブの実行状況および結果を参照できない。
+そのため、<code>JobRepository</code>には永続性が担保されているデータベースを使用することを前提とする。</p>
+</div>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-warning" title="Warning"></i>
+</td>
+<td class="content">
+<div class="title">インメモリデータベースの使用</div>
+<div class="paragraph">
+<p><code>JobRepository</code>を参照せずにジョブ実行結果の成否を得る手段がある場合、インメモリデータベースで運用するケースも考えられる。<br>
+インメモリデータベースで長期連続運用をする場合、メモリリソースを大量消費してジョブ実行に悪影響を及ぼす可能性がある。<br>
+つまり、インメモリデータベースは、長期連続運用するには向かず、定期的に再起動する運用が望ましい。<br>
+それでも長期連続運用で利用したい場合は、定期的に<code>JobRepository</code>からデータを削除するなどのメンテナンス作業が必須である。<br>
+再起動する場合は、初期化を有効にしておけば再起動時に再作成されるため、メンテナンスは不要である。
+初期化については、<a href="Ch03_CreateProject.html#Ch03_CreateProject_Make_Setting_DB">データベース関連の設定</a>参照。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="Ch04_AsyncJobWithDB_Overview_AboutAsync_Scene"><a class="anchor" href="#Ch04_AsyncJobWithDB_Overview_AboutAsync_Scene"></a>活用シーン</h4>
+<div class="paragraph">
+<p>非同期実行(DBポーリング)を活用するシーンを以下にいくつか示す。</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 2. 活用シーン一覧</caption>
+<colgroup>
+<col style="width: 40%;">
+<col style="width: 60%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">活用シーン</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ディレード処理</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">オンライン処理と連携して、即時に完了する必要がなく、かつ、時間がかかる処理をジョブとして切り出したい場合。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">処理時間が短いジョブの連続実行</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1ジョブあたり数秒～数十秒の処理を連続実行する場合。<br>
+非同期実行(DBポーリング)を活用することで、1ジョブごとにJavaプロセスの起動・終了によるリソースの圧迫を回避できる。
+また、起動・終了処理を割愛することに繋がるためジョブの実行時間を短縮することが可能となる。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">大量にあるジョブの集約</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">処理時間が短いジョブの連続実行と同様である。</p></td>
+</tr>
+</tbody>
+</table>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+<div class="title">非同期実行(DBポーリング)と非同期実行(Webコンテナ)を使い分けるポイント</div>
+<div class="paragraph">
+<p>以下に該当する場合は非同期実行(DBポーリング)の利用が想定できる。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>バッチ処理にWebAPサーバを導入することにハードルがある</p>
+</li>
+<li>
+<p>可用性を担保する際に、データベースのみを考慮すればよい</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>ただし、非同期実行(DBポーリング)では、データベースにアクセスが集中するため、非同期実行(Webコンテナ)ほど性能が出ない可能性がある。
+データベースへのアクセス集中が懸念材料になる場合は、<a href="Ch04_AsyncJobWithWebContainer.html#Ch04_AsyncJobWithWeb">非同期実行(Webコンテナ)</a>の利用も検討してほしい。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+<div class="title">Spring Batch Integrationを採用しない理由</div>
+<div class="paragraph">
+<p>Spring Batch Integrationを利用して同様の機能を実現することは可能である。<br>
+しかし、Spring Batch Integrationを使用すると非同期実行以外の要素も含めた技術要素の理解・取得が必要となる。<br>
+それにより、本機能の理解/活用/カスタマイズが難しくなるのを避けるため、Spring Batch Integrationの適用は見送っている。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-important" title="Important"></i>
+</td>
+<td class="content">
+<div class="title">非同期実行(DBポーリング)での注意点</div>
+<div class="paragraph">
+<p>1ジョブあたり数秒にも満たない超ショートバッチを大量に実行する場合、<code>JobRepository</code>も含めてデータベースへのアクセスが都度発生する。
+この点に起因する性能劣化もあり得るため、超ショートバッチの大量処理は、非同期実行(DBポーリング)には向いていない。
+本機能を利用する際はこの点を踏まえ、目標性能を満たせるか十分に検証をすること。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="Ch04_AsyncJobWithDB_Arch"><a class="anchor" href="#Ch04_AsyncJobWithDB_Arch"></a>Architecture</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="Ch04_AsyncJobWithDB_Arch_Sequence"><a class="anchor" href="#Ch04_AsyncJobWithDB_Arch_Sequence"></a>DBポーリングの処理シーケンス</h3>
+<div class="paragraph">
+<p>DBポーリングの処理シーケンスについて説明する。</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/Ch04_AsyncJobWithDB_Sequence_db_polling.png" alt="sequence of DB polling">
+</div>
+<div class="title">図 1. DBポーリングのシーケンス図</div>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p><code>AsyncBatchDaemon</code>をshなどから起動する。</p>
+</li>
+<li>
+<p><code>AsyncBatchDaemon</code>は、起動時にジョブを定義したBean定義ファイルをすべて読み込む。</p>
+</li>
+<li>
+<p><code>AsyncBatchDaemon</code>は、一定間隔でポーリングするために<code>TaskScheduler</code>を起動する。</p>
+<div class="ulist">
+<ul>
+<li>
+<p><code>TaskScheduler</code>は、一定間隔で特定の処理を起動する。</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p><code>TaskScheduler</code>は、<code>JobRequestPollTask</code>(ジョブ要求テーブルをポーリングする処理)を起動する。</p>
+</li>
+<li>
+<p><code>JobRequestPollTask</code>は、ジョブ要求テーブルからポーリングステータスが未実行(INIT)のレコードを取得する。</p>
+<div class="ulist">
+<ul>
+<li>
+<p>一定件数をまとめて取得する。デフォルトは3件。</p>
+</li>
+<li>
+<p>対象のレコードが存在しない場合は、一定間隔を空けて再度ポーリングを行う。デフォルトは10秒間隔。</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p><code>JobRequestPollTask</code>は、レコードの情報にもとづいて、ジョブをスレッドに割り当てて実行する。</p>
+</li>
+<li>
+<p><code>JobRequestPollTask</code>は、ジョブ要求テーブルのポーリングステータスをポーリング済み(POLLED)へ更新する。</p>
+<div class="ulist">
+<ul>
+<li>
+<p>ジョブの同時実行数に達している場合は、取得したレコードから起動できないレコードを破棄し、次回ポーリング処理時にレコードを再取得する。</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>スレッドに割り当てられたジョブは、<code>JobOperator</code>によりジョブを開始する。</p>
+</li>
+<li>
+<p>実行したジョブのジョブ実行ID(Job execution id)を取得する。</p>
+</li>
+<li>
+<p><code>JobRequestPollTask</code>は、ジョブ実行時に取得したジョブ実行IDにもとづいて、ジョブ要求テーブルのポーリングステータスをジョブ実行済み(EXECUTED)に更新する。</p>
+</li>
+</ol>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+<div class="title">処理シーケンスの補足</div>
+<div class="paragraph">
+<p>Spring Batchのリファレンスでは、<code>JobLauncher</code>に<code>AsyncTaskExecutor</code>を設定することで非同期実行が実現できることを示している。
+しかし、この方法を採用すると<code>AsyncTaskExecutor</code>がジョブ実行が出来ない状態を検知できない。
+これは、ジョブに割り当てられるスレッドがない時などに発生し、その結果以下の事象に繋がる可能性がある。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>ジョブが実行できないにも関わらず、ジョブの起動をしようとし続け不要な処理をしてしまう</p>
+</li>
+<li>
+<p>スレッドが空いたタイミングによっては、ポーリングした順番にジョブが起動せず、ジョブ要求テーブル上ランダムに起動するように見えてしまう</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>この事象を回避するため前述の処理シーケンスとなっている。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect2">
+<h3 id="Ch04_AsyncJobWithDB_Arch_RequireTable"><a class="anchor" href="#Ch04_AsyncJobWithDB_Arch_RequireTable"></a>ポーリングするテーブルについて</h3>
+<div class="paragraph">
+<p>非同期実行(DBポーリング)でポーリングを行うテーブルについて説明する。</p>
+</div>
+<div class="paragraph">
+<p>以下データベースオブジェクトを必要とする。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>ジョブ要求テーブル(必須)</p>
+</li>
+<li>
+<p>ジョブシーケンス(データベース製品によっては必須)</p>
+<div class="ulist">
+<ul>
+<li>
+<p>データベースがカラムの自動採番に対応していない場合に必要となる。</p>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+<div class="sect3">
+<h4 id="Ch04_AsyncJobWithDB_Arch_RequireTable_TableStructure"><a class="anchor" href="#Ch04_AsyncJobWithDB_Arch_RequireTable_TableStructure"></a>ジョブ要求テーブルの構造</h4>
+<div class="paragraph">
+<p>以下に、TERASOLUNA Batch 5.xが対応しているデータベース製品のうち、PostgreSQLの場合を示す。
+その他のデータベースについては、TERASOLUNA Batch 5.xのjarに同梱されているDDLを参照。</p>
+</div>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-important" title="Important"></i>
+</td>
+<td class="content">
+<div class="title">ジョブ要求テーブルへ格納する文字列について</div>
+<div class="paragraph">
+<p>メタデータテーブルと同様にジョブ要求テーブルのカラムは、明示的に文字データ型を文字数定義に設定するDDLを提供する。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 3. batch_job_request (PostgreSQLの場合)</caption>
+<colgroup>
+<col style="width: 20%;">
+<col style="width: 20%;">
+<col style="width: 20%;">
+<col style="width: 40%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">カラム名</th>
+<th class="tableblock halign-left valign-top">データ型</th>
+<th class="tableblock halign-left valign-top">制約</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">job_seq_id</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">bigserial</p>
+<p class="tableblock">(別途シーケンスを定義する場合は、bigintとする)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">NOT NULL<br>
+PRIMARY KEY</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ポーリング時に実行するジョブの順序を決める番号。<br>
+データベースの自動採番機能を利用。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">job_name</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">varchar(100)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">NOT NULL</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">実行するジョブ名。<br>
+ジョブ実行時の必須パラメータ。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">job_parameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">varchar(200)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">実行するジョブに渡すパラメータ。</p>
+<p class="tableblock">単一パラメータの書式は同期実行と同じだが、複数パラメータを指定する場合は、同期型実行の空白区切りとは異なり、
+各パラメータをカンマ区切り(下記参照)にする必要がある。<br></p>
+<p class="tableblock">{パラメータ名}={パラメータ値},{パラメータ名}={パラメータ値}&#8230;&#8203;</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">job_execution_id</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">bigint</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ジョブ実行時に払い出されるID。<br>
+このIDをキーにして<code>JobRepository</code>を参照する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">polling_status</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">varchar(10)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">NOT NULL</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ポーリング処理状況。<br>
+INIT : 未実行<br>
+POLLED: ポーリング済み<br>
+EXECUTED : ジョブ実行済み</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">create_date</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">TIMESTAMP</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">NOT NULL</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ジョブ要求のレコードを登録した日時。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">update_date</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">TIMESTAMP</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ジョブ要求のレコードを更新した日時。</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>DDLは以下のとおり。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="sql"><span class="class">CREATE</span> <span class="type">TABLE</span> <span class="keyword">IF</span> <span class="keyword">NOT</span> <span class="keyword">EXISTS</span> batch_job_request (
+    job_seq_id bigserial <span class="directive">PRIMARY</span> <span class="type">KEY</span>,
+    job_name <span class="predefined-type">varchar</span>(<span class="integer">100</span>) <span class="keyword">NOT</span> <span class="predefined-constant">NULL</span>,
+    job_parameter <span class="predefined-type">varchar</span>(<span class="integer">200</span>),
+    job_execution_id <span class="predefined-type">bigint</span>,
+    polling_status <span class="predefined-type">varchar</span>(<span class="integer">10</span>) <span class="keyword">NOT</span> <span class="predefined-constant">NULL</span>,
+    create_date <span class="predefined-type">timestamp</span> <span class="keyword">NOT</span> <span class="predefined-constant">NULL</span>,
+    update_date <span class="predefined-type">timestamp</span>
+);</code></pre>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="Ch04_AsyncJobWithDB_Arch_RequireTable_SequenceStructure"><a class="anchor" href="#Ch04_AsyncJobWithDB_Arch_RequireTable_SequenceStructure"></a>ジョブ要求シーケンスの構造</h4>
+<div class="paragraph">
+<p>データベースがカラムの自動採番に対応していない場合は、シーケンスによる採番が必要になる。<br>
+以下に、TERASOLUNA Batch 5.xが対応しているデータベース製品のうち、PostgreSQLの場合を示す。<br>
+その他のデータベースについては、TERASOLUNA Batch 5.xのjarに同梱されているDDLを参照。</p>
+</div>
+<div class="paragraph">
+<p>DDLは以下のとおり。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="sql"><span class="class">CREATE</span> SEQUENCE batch_job_request_seq MAXVALUE <span class="integer">9223372036854775807</span> NO CYCLE;</code></pre>
+</div>
+</div>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-warning" title="Warning"></i>
+</td>
+<td class="content">
+<div class="paragraph">
+<p>カラムの自動採番に対応しているデータベースについては、TERASOLUNA Batch 5.xのjarに同梱されているDDLにジョブ要求シーケンスは定義されていない。
+シーケンスの最大値を変更したい場合などには<code>job_seq_id</code>のデータ型を自動採番の定義から数値型
+(PostgreSQL場合だと、<code>bigserial</code>から<code>bigint</code>)に変更した上で、
+ジョブ要求シーケンスを定義すると良い。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect3">
+<h4 id="Ch04_AsyncJobWithDB_Arch_RequireTable_PollingStatus"><a class="anchor" href="#Ch04_AsyncJobWithDB_Arch_RequireTable_PollingStatus"></a>ポーリングステータス(polling_status)の遷移パターン</h4>
+<div class="paragraph">
+<p>ポーリングステータスの遷移パターンを下表に示す。</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 4. ポーリングステータスの遷移パターン一覧</caption>
+<colgroup>
+<col style="width: 20%;">
+<col style="width: 20%;">
+<col style="width: 60%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">遷移元</th>
+<th class="tableblock halign-left valign-top">遷移先</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">INIT</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">INIT</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">同時実行数に達して、ジョブの実行を拒否された場合はステータスの変更はない。<br>
+次回ポーリング時にポーリング対象のレコードとなる。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">INIT</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">POLLED</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ポーリングしたジョブがスレッドに割り当てられてた直後に遷移する。<br>
+このステータスに更新された後、ジョブが起動される。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">POLLED</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">EXECUTED</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ジョブの実行が終了した時に遷移する。<br>
+ジョブの正常終了、異常終了に関係なくこのステータスに更新される。</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect3">
+<h4 id="Ch04_AsyncJobWithDB_Arch_RequireTable_SQL"><a class="anchor" href="#Ch04_AsyncJobWithDB_Arch_RequireTable_SQL"></a>ジョブ要求取得SQL</h4>
+<div class="paragraph">
+<p>ジョブの同時実行数分のジョブ要求を取得するため、ジョブ要求取得SQLでは取得する件数を制限している。<br>
+ジョブ要求取得SQLは使用するデータベース製品およびバージョンによって異なる記述になる。
+そのため、TERASOLUNA Batch 5.xが提供しているSQLでは対応できない場合がある。<br>
+その場合は<a href="#Ch04_AsyncJobWithDB_HowToExtend_CustomTable">ジョブ要求テーブルのカスタマイズ</a>を参考に、
+<code>BatchJobRequestRepository.xml</code>のSQLMapを再定義する必要がある。<br>
+提供しているSQLについては、TERASOLUNA Batch 5.xのjarに同梱されている<code>BatchJobRequestRepository.xml</code>を参照。</p>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="Ch04_AsyncJobWithDB_Arch_JobLaunching"><a class="anchor" href="#Ch04_AsyncJobWithDB_Arch_JobLaunching"></a>ジョブの起動について</h3>
+<div class="paragraph">
+<p>ジョブの起動方法について説明をする。</p>
+</div>
+<div class="paragraph">
+<p>TERASOLUNA Batch 5.xのジョブ要求テーブルポーリング機能内部では、
+Spring Batchから提供されている<code>JobOperator</code>の<code>start</code>メソッドでジョブを起動する。</p>
+</div>
+<div class="paragraph">
+<p>Macchinetta Batch 2.xでは、非同期実行(DBポーリング)で起動したジョブのリスタートは、
+コマンドラインからの実行をガイドしている。
+そのため、<code>JobOperator</code>には<code>start</code>以外にも<code>restart</code>などの起動メソッドがあるが、
+<code>start</code>メソッド以外は使用していない。</p>
+</div>
+<div class="dlist">
+<div class="title">startメソッドの引数</div>
+<dl>
+<dt class="hdlist1">jobName</dt>
+<dd>
+<p>ジョブ要求テーブルの<code>job_name</code>に登録した値を設定する。</p>
+</dd>
+<dt class="hdlist1">jobParametrers</dt>
+<dd>
+<p>ジョブ要求テーブルの<code>job_parameters</code>に登録した値を設定する。</p>
+</dd>
+</dl>
+</div>
+</div>
+<div class="sect2">
+<h3 id="Ch04_AsyncJobWithDB_Arch_OnError"><a class="anchor" href="#Ch04_AsyncJobWithDB_Arch_OnError"></a>DBポーリング処理で異常が発生した場合について</h3>
+<div class="paragraph">
+<p>DBポーリング処理で異常が発生した場合について説明する。</p>
+</div>
+<div class="sect3">
+<h4 id="Ch04_AsyncJobWithDB_Arch_OnError_Failure"><a class="anchor" href="#Ch04_AsyncJobWithDB_Arch_OnError_Failure"></a>データベース接続障害</h4>
+<div class="paragraph">
+<p>障害が発生した時点で行われていた処理別に振る舞いを説明する。</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">ジョブ要求テーブルからのレコード取得時</dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p><code>JobRequestPollTask</code>はエラーとなるが、次回のポーリングにて<code>JobRequestPollTask</code>が再実行される。</p>
+</li>
+</ul>
+</div>
+</dd>
+<dt class="hdlist1">ポーリングステータスをINITからPOLLEDに変更する間</dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p><code>JobOperator</code>によるジョブ実行前に<code>JobRequestPollTask</code>はエラー終了する。ポーリングステータスは、INITのままになる。</p>
+</li>
+<li>
+<p>接続障害回復後に行われるポーリング処理では、ジョブ要求テーブルに変更がないため実行対象となり、次回ポーリング時にジョブが実行される。</p>
+</li>
+</ul>
+</div>
+</dd>
+<dt class="hdlist1">ポーリングステータスをPOLLEDからEXECUTEDに変更する間</dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p><code>JobRequestPollTask</code>は、ジョブ実行IDをジョブ要求テーブルに更新することができずにエラー終了する。ポーリングステータスは、POLLEDのままになる。</p>
+</li>
+<li>
+<p>接続障害回復後に行われるポーリング処理の対象外となり、障害時のジョブは実行されない。</p>
+</li>
+<li>
+<p>ジョブ要求テーブルからジョブ実行IDを知ることができないため、ジョブの最終状態をログや<code>JobRepository</code>から判断し、必要に応じてジョブの再実行など回復処理を行う。</p>
+</li>
+</ul>
+</div>
+</dd>
+</dl>
+</div>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-warning" title="Warning"></i>
+</td>
+<td class="content">
+<div class="paragraph">
+<p><code>JobRequestPollTask</code>で例外が発生しても、即座に自動復旧しようとはしない。以下に理由を示す。</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p><code>JobRequestPollTask</code>は、一定間隔で起動するため、これに委ねることで(即座ではないが)自動復旧できる。</p>
+</li>
+<li>
+<p>障害発生時に即座にリトライしても回復できるケースは稀であり、かえってリトライにより負荷を発生してしまう可能性がある。</p>
+</li>
+</ol>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect3">
+<h4 id="Ch04_AsyncJobWithDB_Arch_OnError_Abend"><a class="anchor" href="#Ch04_AsyncJobWithDB_Arch_OnError_Abend"></a>非同期バッチデーモンのプロセス異常終了</h4>
+<div class="paragraph">
+<p>非同期バッチデーモンのプロセスが異常終了した場合は、実行中ジョブのトランザクションは暗黙的にロールバックされる。<br>
+ポーリングステータスによる状態はデータベース接続障害と同じになる。</p>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="Ch04_AsyncJobWithDB_Arch_Shutdown"><a class="anchor" href="#Ch04_AsyncJobWithDB_Arch_Shutdown"></a>DBポーリング処理の停止について</h3>
+<div class="paragraph">
+<p>非同期バッチデーモン(<code>AsyncBatchDaemon</code>)は、ファイルの生成によって停止する。
+ファイルが生成されたことを確認後、ポーリング処理を空振りさせ、起動中ジョブの終了を可能な限り待ってから停止する。</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="Ch04_AsyncJobWithDB_Arch_Components"><a class="anchor" href="#Ch04_AsyncJobWithDB_Arch_Components"></a>非同期実行特有のアプリケーション構成となる点について</h3>
+<div class="paragraph">
+<p>非同期実行における特有の構成を説明する。</p>
+</div>
+<div class="sect3">
+<h4 id="Ch04_AsyncJobWithDB_Arch_Components_AppCtx"><a class="anchor" href="#Ch04_AsyncJobWithDB_Arch_Components_AppCtx"></a>ApplicationContextの構成</h4>
+<div class="paragraph">
+<p>非同期バッチデーモンは、非同期実行専用の<code>async-batch-daemon.xml</code>をApplicationContextとして読み込む。
+同期実行でも使用している<code>launch-context.xml</code>の他に次の構成を追加している。</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">非同期実行設定</dt>
+<dd>
+<p><code>JobRequestPollTask</code>などの非同期実行に必要なBeanを定義している。</p>
+</dd>
+<dt class="hdlist1">ジョブ登録設定</dt>
+<dd>
+<p>非同期実行として実行するジョブは、<code>org.springframework.batch.core.configuration.support.AutomaticJobRegistrar</code>で登録を行う。
+<code>AutomaticJobRegistrar</code>を用いることで、ジョブ単位にコンテキストのモジュール化を行うことができる。</p>
+</dd>
+</dl>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+<div class="title">モジュール化とは</div>
+<div class="paragraph">
+<p>モジュール化とは、DIコンテナのコンテキストを「共通定義-各ジョブ定義」といった階層構造に分離することで、
+各ジョブ定義にあるBeanをコンテキスト間で独立させることである。<br>
+この階層構造により、各ジョブ定義内からのBean参照は、まず同一ジョブのBean定義を参照し、
+ジョブ定義のBean定義にない場合、次いで共通定義で定義されたBeanを参照することになる。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-important" title="Important"></i>
+</td>
+<td class="content">
+<div class="paragraph">
+<p>非同期実行では同期実行と異なり、1つのバッチプロセス上に複数の異なるジョブ定義が準備され、さらに各ジョブのコンテキストは競合することなく並列実行できることが求められる。 <br>
+ジョブ定義によるコンテキストのモジュール化により、各ジョブ定義から生成されるBeanをコンテキストごとに独立させることができる。 <br>
+このため非同期実行では<code>AutomaticJobRegistrar</code>を明示的に使用し、ジョブ定義のモジュール化を行うこと。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect3">
+<h4 id="Ch04_AsyncJobWithDB_Arch_Config"><a class="anchor" href="#Ch04_AsyncJobWithDB_Arch_Config"></a>Bean定義の構成</h4>
+<div class="paragraph">
+<p>ジョブのBean定義は、同期実行のBean定義と同じ構成でよい。ただし、以下の注意点がある。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>AutomaticJobRegistrar</code>でジョブを登録する際、ジョブのBeanIDはアプリケーションコンテキストのモジュール化によってDIコンテナ全体としては重複が許されるが、
+目的のジョブを起動する際に一意に識別することができなくなるため、ジョブのBeanIDの重複は避けること。</p>
+</li>
+<li>
+<p>ステップのBeanIDも重複しないことが望ましい。</p>
+<div class="ulist">
+<ul>
+<li>
+<p>指針として設計時にBeanIDの命名規則を<code>{ジョブID}.{ステップID}</code>とすることで、BeanIDとしての一意性を保つことができる。</p>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+<div class="paragraph">
+<p>ジョブのBean定義における<code>job-base-context.xml</code>のインポートは、同期実行と非同期実行で挙動が異なる。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>同期実行では、<code>job-base-context.xml</code>から更に<code>launch-context.xml</code>をインポートする。</p>
+</li>
+<li>
+<p>非同期実行では、<code>job-base-context.xml</code>から<code>launch-context.xml</code>をインポートしない。
+その代わりに<code>AsyncBatchDaemon</code>がロードする<code>async-batch-daemon.xml</code>にて、
+<code>launch-context.xml</code>をインポートする。</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>これは、Spring Batchを起動する際に必要な各種Beanは各ジョブごとにインスタンス化する必要はないことに起因する。
+Spring Batchの起動に必要な各種Beanは各ジョブの親となる共通定義(<code>async-batch-daemon.xml</code>)にて1つだけ生成すればよい。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="Ch04_AsyncJobWithDB_HowToUse"><a class="anchor" href="#Ch04_AsyncJobWithDB_HowToUse"></a>How to use</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="Ch04_AsyncJobWithDB_HowToUse_Config"><a class="anchor" href="#Ch04_AsyncJobWithDB_HowToUse_Config"></a>各種設定</h3>
+<div class="sect3">
+<h4 id="Ch04_AsyncJobWithDB_HowToUse_Config_Polling"><a class="anchor" href="#Ch04_AsyncJobWithDB_HowToUse_Config_Polling"></a>ポーリング処理の設定</h4>
+<div class="paragraph">
+<p>非同期実行に必要な設定は、<code>batch-application.properties</code>で行う。</p>
+</div>
+<div class="listingblock">
+<div class="title">batch-application.properties</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="properties"># (1)
+# Admin DataSource settings.
+admin.jdbc.driver=org.postgresql.Driver
+admin.jdbc.url=jdbc:postgresql://localhost:5432/postgres
+admin.jdbc.username=postgres
+admin.jdbc.password=postgres
+
+# TERASOLUNA AsyncBatchDaemon settings.
+# (2)
+async-batch-daemon.scheduler.size=1
+# (3)
+async-batch-daemon.schema.script=classpath:org/terasoluna/batch/async/db/schema-postgresql.sql
+# (4)
+async-batch-daemon.job-concurrency-num=3
+# (5)
+async-batch-daemon.job-await-termination-seconds=600
+# (6)
+async-batch-daemon.polling-interval=10000
+# (7)
+async-batch-daemon.polling-initial-delay=1000
+# (8)
+async-batch-daemon.polling-stop-file-path=/tmp/stop-async-batch-daemon</code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 5. 設定内容の項目一覧</caption>
+<colgroup>
+<col style="width: 10%;">
+<col style="width: 90%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ジョブ要求テーブルが格納されているデータベースへの接続設定。<br>
+デフォルトでは<code>JobRepository</code>の設定を使用する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(2)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">DBポーリング処理で起動される<code>TaskScheduler</code>のスレッドプールサイズ設定。<br>
+デフォルトは1(シングルスレッド)。<br>
+(6)の説明にあるように、前のポーリング処理の完了から、次のポーリング処理の開始まで待ち時間を設けるようにしているため、ここで<code>TaskScheduler</code>のスレッド数を上げても並列には実行されない。そのため、基本的にはデフォルトのままとするほうが良い。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(3)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ジョブ要求テーブルを定義するDDLのパス。<br>
+非同期バッチデーモン起動時にジョブ要求テーブルがない場合は、自動生成される。<br>
+これは主に試験用機能であり、<code>batch-application.properties</code>内の<br>
+<code>data-source.initialize.enabled</code>で実行可否を設定できる。<br>
+詳細な定義は<code>async-batch-daemon.xml</code>内の<code>&lt;jdbc:initialize-database&gt;</code>を参照。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(4)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ポーリング時に一括で取得する件数の設定。<br>
+この設定値は同時並行数(<code>ThreadPoolTaskExecutor</code>のスレッドプールサイズ)としても用いる。<br>
+動作するマシンのコア数に応じて適切に設定しないと、性能問題等を引き起こす可能性がある。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(5)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">非同期バッチデーモンの停止要求からジョブが終了(コンテナの破棄)するまで待機する最大秒数の設定。<br>
+実行中の非同期実行ジョブがなければ即時終了となる。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(6)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ポーリング周期の設定。単位はミリ秒。<br>
+前回タスクの実行完了時点から指定時間後にタスクを実行する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(7)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ポーリング初回起動遅延時間の設定。単位はミリ秒。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(8)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">終了ファイルパスの設定。</p></td>
+</tr>
+</tbody>
+</table>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+<div class="title">環境変数による設定値の変更</div>
+<div class="paragraph">
+<p><code>batch-application.properties</code>の設定値は、同名の環境変数を定義することで設定の変更が可能である。<br>
+環境変数が設定された場合は、プロパティファイルの値より優先して使用される。<br>
+これは、以下のBean定義に起因する。</p>
+</div>
+<div class="listingblock">
+<div class="title">launch-context.xmlの設定箇所</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"><span class="tag">&lt;context:property-placeholder</span> <span class="attribute-name">location</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">classpath:batch-application.properties</span><span class="delimiter">&quot;</span></span>
+        <span class="attribute-name">system-properties-mode</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">OVERRIDE</span><span class="delimiter">&quot;</span></span>
+        <span class="attribute-name">ignore-resource-not-found</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">false</span><span class="delimiter">&quot;</span></span>
+        <span class="attribute-name">ignore-unresolvable</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">true</span><span class="delimiter">&quot;</span></span>
+        <span class="attribute-name">order</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">1</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>詳細については、Macchinetta Server 1.x 開発ガイドラインの
+<a href="https://macchinetta.github.io/server-guideline/1.8.3.RELEASE/ja/ArchitectureInDetail/GeneralFuncDetail/PropertyManagement.html#technical-details-label">プロパティファイル定義方法について</a>を参照。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect3">
+<h4 id="Ch04_AsyncJobWithDB_HowToUse_Config_Job"><a class="anchor" href="#Ch04_AsyncJobWithDB_HowToUse_Config_Job"></a>ジョブの設定</h4>
+<div class="paragraph">
+<p>非同期実行する対象のジョブは、<code>async-batch-daemon.xml</code>の<code>automaticJobRegistrar</code>に設定する。<br>
+以下に初期設定を示す。</p>
+</div>
+<div class="listingblock">
+<div class="title">async-batch-daemon.xml</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"><span class="tag">&lt;bean</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">automaticJobRegistrar</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">org.springframework.batch.core.configuration.support.AutomaticJobRegistrar</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+    <span class="tag">&lt;property</span> <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">applicationContextFactories</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+        <span class="tag">&lt;bean</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">org.springframework.batch.core.configuration.support.ClasspathXmlApplicationContextsFactoryBean</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+            <span class="tag">&lt;property</span> <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">resources</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+                <span class="tag">&lt;list&gt;</span>
+                    <span class="comment">&lt;!-- For all --&gt;</span>
+                    <span class="tag">&lt;value&gt;</span>classpath:/META-INF/jobs/**/*.xml<span class="tag">&lt;/value&gt;</span> <span class="comment">&lt;!-- (1) --&gt;</span>
+                    <span class="comment">&lt;!-- For the async directory and below --&gt;</span>
+                    <span class="tag">&lt;value&gt;</span>classpath:/META-INF/jobs/async/**/*.xml<span class="tag">&lt;/value&gt;</span> <span class="comment">&lt;!-- (2) --&gt;</span>
+                    <span class="comment">&lt;!-- For a specific job --&gt;</span>
+                    <span class="tag">&lt;value&gt;</span>classpath:/META-INF/jobs/CASE100/SpecialJob.xml<span class="tag">&lt;/value&gt;</span> <span class="comment">&lt;!-- (3) --&gt;</span>
+                <span class="tag">&lt;/list&gt;</span>
+            <span class="tag">&lt;/property&gt;</span>
+        <span class="tag">&lt;/bean&gt;</span>
+    <span class="tag">&lt;/property&gt;</span>
+    <span class="tag">&lt;property</span> <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobLoader</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+        <span class="tag">&lt;bean</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">org.springframework.batch.core.configuration.support.DefaultJobLoader</span><span class="delimiter">&quot;</span></span>
+              <span class="attribute-name">p:jobRegistry-ref</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobRegistry</span><span class="delimiter">&quot;</span></span> <span class="tag">/&gt;</span>
+    <span class="tag">&lt;/property&gt;</span>
+<span class="tag">&lt;/bean&gt;</span></code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 6. 設定内容の項目一覧</caption>
+<colgroup>
+<col style="width: 10%;">
+<col style="width: 90%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">jarの中に存在するジョブ定義がすべて非同期実行することを前提に設計・実装される場合は、このように指定できる。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(2)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">jarの中に非同期で実行することを想定していないジョブが存在する場合は、非同期実行を想定しているジョブのみが読み込まれるように指定すること。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(3)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">特定のジョブのみが非同期実行対象の場合はジョブ定義単体で指定すること。</p></td>
+</tr>
+</tbody>
+</table>
+<div class="admonitionblock tip">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+<div class="title">ジョブパラメータの入力値検証</div>
+<div class="paragraph">
+<p><code>JobPollingTask</code>は、ジョブ要求テーブルから取得したレコードについて妥当性検証をしない。<br>
+よって、テーブルに登録する側にてジョブ名やジョブパラメータについて検証することが望ましい。<br>
+ジョブ名が誤っていると、ジョブを起動するが見つからず、例外が発生してしまう。<br>
+ジョブパラメータが誤っていると、ジョブは起動するが誤動作してしまう。<br>
+ジョブパラメータに限っては、ジョブ起動後に検証を行うことができる。ジョブパラメータの検証については、
+<a href="Ch04_JobParameter.html#Ch04_JobParameter_HowToUse_ParamsValidation">"パラメータの妥当性検証"</a>を参照。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-important" title="Important"></i>
+</td>
+<td class="content">
+<div class="title">ジョブ設計上の留意点</div>
+<div class="paragraph">
+<p>非同期実行(DBポーリング)の特性上、同一ジョブの並列実行が可能になっているので、並列実行した場合に同一ジョブが影響を与えないようにする必要がある。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="Ch04_AsyncJobWithDB_HowToUse_Daemon"><a class="anchor" href="#Ch04_AsyncJobWithDB_HowToUse_Daemon"></a>非同期処理の起動から終了まで</h3>
+<div class="paragraph">
+<p>非同期バッチデーモンの起動と終了、ジョブ要求テーブルへの登録方法について説明する。</p>
+</div>
+<div class="sect3">
+<h4 id="Ch04_AsyncJobWithDB_HowToUse_Daemon_Launch"><a class="anchor" href="#Ch04_AsyncJobWithDB_HowToUse_Daemon_Launch"></a>非同期バッチデーモンの起動</h4>
+<div class="paragraph">
+<p>TERASOLUNA Batch 5.xが提供する、<code>AsyncBatchDaemon</code>を起動する。</p>
+</div>
+<div class="listingblock">
+<div class="title">AsyncBatchDaemonの起動</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="console">$ # Start AsyncBatchDaemon
+$ java -cp dependency/* org.terasoluna.batch.async.db.AsyncBatchDaemon</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>この場合、<code>META-INF/spring/async-batch-daemon.xml</code>を読み込み各種Beanを生成する。</p>
+</div>
+<div class="paragraph">
+<p>また、別途カスタマイズした<code>async-batch-daemon.xml</code>を利用したい場合は第一引数に指定して<code>AsyncBatchDaemon</code>を起動することで実現できる。<br>
+引数に指定するBean定義ファイルは、クラスパスからの相対パスで指定すること。<br>
+なお、第二引数以降は無視される。</p>
+</div>
+<div class="listingblock">
+<div class="title">カスタマイズしたMETA-INF/spring/customized-async-batch-daemon.xmlを利用する場合</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="console">$ # Start AsyncBatchDaemon
+$ java -cp dependency/* org.terasoluna.batch.async.db.AsyncBatchDaemon META-INF/spring/customized-async-batch-daemon.xml</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><code>async-batch-daemon.xml</code>のカスタマイズは、ごく一部の設定を変更する場合は直接修正してよい。<br>
+しかし、大幅な変更を加える場合や、後述する<a href="#Ch04_AsyncJobWithDB_HowToExtend_MultiDaemon">複数起動</a>にて複数の設定を管理する場合は、
+別途ファイルを作成して管理するほうが扱いやすい。<br>
+ユーザの状況に応じて選択すること。</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+<div class="paragraph">
+<p>dependency配下には、実行に必要なjar一式が格納されている前提とする。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect3">
+<h4 id="Ch04_AsyncJobWithDB_HowToUse_Daemon_Request"><a class="anchor" href="#Ch04_AsyncJobWithDB_HowToUse_Daemon_Request"></a>ジョブの要求</h4>
+<div class="paragraph">
+<p>INSERT文のSQLを発行することでジョブ要求テーブルに登録を行う。</p>
+</div>
+<div class="listingblock">
+<div class="title">PostgreSQLの場合</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="sql"><span class="class">INSERT</span> <span class="class">INTO</span> batch_job_request(job_name,job_parameter,polling_status,create_date)
+<span class="keyword">VALUES</span> (<span class="string"><span class="delimiter">'</span><span class="content">job01</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">param1=dummy,param2=100</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">INIT</span><span class="delimiter">'</span></span>, current_timestamp);</code></pre>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="Ch04_AsyncJobWithDB_HowToUse_Daemon_Stop"><a class="anchor" href="#Ch04_AsyncJobWithDB_HowToUse_Daemon_Stop"></a>非同期バッチデーモンの停止</h4>
+<div class="paragraph">
+<p><code>batch-application.properties</code>に設定した終了ファイルを置く。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="console">$ touch /tmp/stop-async-batch-daemon</code></pre>
+</div>
+</div>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-important" title="Important"></i>
+</td>
+<td class="content">
+<div class="title">非同期バッチデーモン起動前に終了ファイルがある場合</div>
+<div class="paragraph">
+<p>非同期バッチデーモン起動前に終了ファイルがある場合、非同期バッチデーモンは即時終了する。
+非同期バッチデーモンは、終了ファイルがない状態で起動する必要がある。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="Ch04_AsyncJobWithDB_HowToUse_RefStatus"><a class="anchor" href="#Ch04_AsyncJobWithDB_HowToUse_RefStatus"></a>ジョブのステータス確認</h3>
+<div class="paragraph">
+<p>ジョブの状態管理はSpring Batchから提供される<code>JobRepository</code>で行い、ジョブ要求テーブルではジョブのステータスを管理しない。
+ジョブ要求テーブルでは<code>job_execution_id</code>のカラムをもち、このカラムに格納される値により個々の要求に対するジョブのステータスを確認できるようにしている。
+ここでは、SQLを直接発行してジョブのステータスを確認する簡単な例を示す。
+ジョブステータス確認の詳細は、<a href="Ch07_JobManagement.html#Ch07_JobManagement_HowToUse_JobStatusManagement_Retrieve">"状態の確認"</a>を参照。</p>
+</div>
+<div class="listingblock">
+<div class="title">PostgreSQLの場合</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="sql"><span class="class">SELECT</span> job_execution_id <span class="keyword">FROM</span> batch_job_request <span class="keyword">WHERE</span> job_seq_id = <span class="integer">1</span>;
+
+job_execution_id
+<span class="comment">----------------</span>
+              <span class="integer">2</span>
+(<span class="integer">1</span> <span class="type">row</span>)
+
+<span class="class">SELECT</span> * <span class="keyword">FROM</span> batch_job_execution <span class="keyword">WHERE</span> job_execution_id = <span class="integer">2</span>;
+
+job_execution_id | version | job_instance_id |       create_time       |       start_time        |        end_time         |  status   | exit_code | exit_message |
+ocation
+<span class="comment">------------------+---------+-----------------+-------------------------+-------------------------+-------------------------+-----------+-----------+--------------+-</span>
+<span class="comment">--------</span>
+              <span class="integer">2</span> |       <span class="integer">2</span> |               <span class="integer">2</span> | <span class="integer">2017</span><span class="integer">-02</span><span class="integer">-06</span> <span class="integer">20</span>:<span class="integer">54</span>:<span class="float">02.263</span> | <span class="integer">2017</span><span class="integer">-02</span><span class="integer">-06</span> <span class="integer">20</span>:<span class="integer">54</span>:<span class="float">02.295</span> | <span class="integer">2017</span><span class="integer">-02</span><span class="integer">-06</span> <span class="integer">20</span>:<span class="integer">54</span>:<span class="float">02.428</span> | COMPLETED | COMPLETED |              |
+(<span class="integer">1</span> <span class="type">row</span>)</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="Ch04_AsyncJobWithDB_HowToUse_Recovery"><a class="anchor" href="#Ch04_AsyncJobWithDB_HowToUse_Recovery"></a>ジョブが異常終了した後のリカバリ</h3>
+<div class="paragraph">
+<p>異常終了したジョブのリカバリに関する基本事項は、<a href="Ch06_ReProcessing.html#Ch06_RerunRestart">"処理の再実行"</a>を参照。
+ここでは、非同期実行特有の事項について説明をする。</p>
+</div>
+<div class="sect3">
+<h4 id="Ch04_AsyncJobWithDB_HowToUse_Recovery_Rerun"><a class="anchor" href="#Ch04_AsyncJobWithDB_HowToUse_Recovery_Rerun"></a>リラン</h4>
+<div class="paragraph">
+<p>異常終了したジョブのリランは、ジョブ要求テーブルに別レコードとしてINSERTすることで行う。</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="Ch04_AsyncJobWithDB_HowToUse_Recovery_Restart"><a class="anchor" href="#Ch04_AsyncJobWithDB_HowToUse_Recovery_Restart"></a>リスタート</h4>
+<div class="paragraph">
+<p>異常終了したジョブをリスタートする場合は、コマンドラインから同期実行ジョブとして実行する。
+コマンドラインからの実行する理由は、「意図したリスタート実行なのか意図しない重複実行であるかの判断が難しいため、運用で混乱をきたす可能性がある」ためである。<br>
+リスタート方法は<a href="Ch06_ReProcessing.html#Ch06_RerunRestart_HowToUse_Restart">"ジョブのリスタート"</a>を参照。</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="Ch04_AsyncJobWithDB_HowToUse_Recovery_Stop"><a class="anchor" href="#Ch04_AsyncJobWithDB_HowToUse_Recovery_Stop"></a>停止</h4>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>処理時間が想定を超えて停止していない場合は、コマンドラインからの停止を試みる。
+停止方法は<a href="Ch07_JobManagement.html#Ch07_JobManagement_HowToUse_JobStatusManagement_JobStop">"ジョブの停止"</a>を参照。</p>
+</li>
+<li>
+<p>コマンドラインからの停止も受け付けない場合は、<a href="#Ch04_AsyncJobWithDB_HowToUse_Daemon_Stop">非同期バッチデーモンの停止</a>により、非同期バッチデーモンを終了させる。</p>
+</li>
+<li>
+<p>非同期バッチデーモンも終了できない状態になっている場合は、非同期バッチデーモンのプロセスを強制終了させる。</p>
+</li>
+</ol>
+</div>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-important" title="Important"></i>
+</td>
+<td class="content">
+<div class="paragraph">
+<p>非同期バッチデーモンを終了させる場合は、他のジョブに影響がないように十分に注意して行う。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="Ch04_AsyncJobWithDB_HowToUse_Env"><a class="anchor" href="#Ch04_AsyncJobWithDB_HowToUse_Env"></a>環境配備について</h3>
+<div class="paragraph">
+<p>ジョブのビルドとデプロイは同期実行と同じである。ただし、<a href="#Ch04_AsyncJobWithDB_HowToUse_Config_Job">ジョブの設定</a>にもあるとおり非同期実行するジョブの絞込みをしておくことが重要である。</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="Ch04_AsyncJobWithDB_HowToUse_CumulativeData"><a class="anchor" href="#Ch04_AsyncJobWithDB_HowToUse_CumulativeData"></a>累積データの退避について</h3>
+<div class="paragraph">
+<p>非同期バッチデーモンを長期運用していると<code>JobRepository</code>とジョブ要求テーブルに膨大なデータが累積されていく。以下の理由によりこれらの累積データを退避させる必要がある。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>膨大なデータ量に対してデータを検索/更新する際の性能劣化</p>
+</li>
+<li>
+<p>IDの採番用シーケンスが周回することによるIDの重複</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>テーブルデータの退避やシーケンスのリセットについては、利用するデータベースのマニュアルを参照。
+また、<code>JobRepository</code>への検索/更新で性能劣化を懸念している場合は、<a href="Ch07_JobManagement.html#Ch07_JobManagement_Overview_JobExecutionManagement_PerformanceImprovement">"IndexによるJobRepositoryの性能改善"</a>を参照。</p>
+</div>
+<div class="paragraph">
+<p>以下に退避対象のテーブルおよびシーケンスの一覧を示す。</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 7. 退避対象一覧</caption>
+<colgroup>
+<col style="width: 50%;">
+<col style="width: 50%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">テーブル/シーケンス</th>
+<th class="tableblock halign-left valign-top">提供しているフレームワーク</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">batch_job_request</p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">TERASOLUNA Batch 5.x</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">batch_job_request_seq</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">batch_job_instance</p></td>
+<td class="tableblock halign-left valign-top" rowspan="9"><p class="tableblock">Spring Batch</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">batch_job_exeution</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">batch_job_exeution_params</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">batch_job_exeution_context</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">batch_step_exeution</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">batch_step_exeution_context</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">batch_job_seq</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">batch_job_execution_seq</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">batch_step_execution_seq</p></td>
+</tr>
+</tbody>
+</table>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-important" title="Important"></i>
+</td>
+<td class="content">
+<div class="title">自動採番カラムのシーケンス</div>
+<div class="paragraph">
+<p>自動採番のカラムに対して自動的にシーケンスが作成されている場合があるので、忘れずにそのシーケンスも退避対象に含める。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-important" title="Important"></i>
+</td>
+<td class="content">
+<div class="title">データベース固有の仕様について</div>
+<div class="paragraph">
+<p>Oracleではデータ型にCLOBを利用するなど、データベース固有のデータ型を使用している場合があるので注意をする。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="Ch04_AsyncJobWithDB_HowToExtend"><a class="anchor" href="#Ch04_AsyncJobWithDB_HowToExtend"></a>How to extend</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="Ch04_AsyncJobWithDB_HowToExtend_CustomTable"><a class="anchor" href="#Ch04_AsyncJobWithDB_HowToExtend_CustomTable"></a>ジョブ要求テーブルのカスタマイズ</h3>
+<div class="paragraph">
+<p>ジョブ要求テーブルは、取得レコードの抽出条件を変更するためにカラム追加をしてカスタマイズすることができる。
+ただし、<code>JobRequestPollTask</code>からSQLを発行する際に渡せる項目は、
+<code>BatchJobRequest</code>の項目のみである。</p>
+</div>
+<div class="paragraph">
+<p>ジョブ要求テーブルのカスタマイズによる拡張手順は以下のとおり。</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>ジョブ要求テーブルのカスタマイズ</p>
+</li>
+<li>
+<p><code>BatchJobRequestRepository</code>インタフェースの拡張インタフェースの作成</p>
+</li>
+<li>
+<p>カスタマイズしたテーブルを使用したSQLMapの定義</p>
+</li>
+<li>
+<p><code>async-batch-daemon.xml</code>のBean定義の修正</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>カスタマイズ例として以下のようなものがある。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="#Ch04_AsyncJobWithDB_HowToExtend_CustomTable_Priority">優先度カラムによるジョブ実行順序の制御の例</a></p>
+</li>
+<li>
+<p><a href="#Ch04_AsyncJobWithDB_HowToExtend_CustomTable_GroupID">グループIDによる複数プロセスによる分散処理</a></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>以降、この2つの例について、拡張手順を説明する。</p>
+</div>
+<div class="sect3">
+<h4 id="Ch04_AsyncJobWithDB_HowToExtend_CustomTable_Priority"><a class="anchor" href="#Ch04_AsyncJobWithDB_HowToExtend_CustomTable_Priority"></a>優先度カラムによるジョブ実行順序の制御の例</h4>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>ジョブ要求テーブルのカスタマイズ</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>ジョブ要求テーブルに優先度カラム(priority)を追加する。</p>
+</div>
+<div class="listingblock">
+<div class="title">優先度カラムの追加 (PostgreSQLの場合)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="sql"><span class="class">CREATE</span> <span class="type">TABLE</span> <span class="keyword">IF</span> <span class="keyword">NOT</span> <span class="keyword">EXISTS</span> batch_job_request (
+    job_seq_id bigserial <span class="directive">PRIMARY</span> <span class="type">KEY</span>,
+    job_name <span class="predefined-type">varchar</span>(<span class="integer">100</span>) <span class="keyword">NOT</span> <span class="predefined-constant">NULL</span>,
+    job_parameter <span class="predefined-type">varchar</span>(<span class="integer">200</span>),
+    priority <span class="predefined-type">int</span> <span class="keyword">NOT</span> <span class="predefined-constant">NULL</span>,
+    job_execution_id <span class="predefined-type">bigint</span>,
+    polling_status <span class="predefined-type">varchar</span>(<span class="integer">10</span>) <span class="keyword">NOT</span> <span class="predefined-constant">NULL</span>,
+    create_date <span class="predefined-type">timestamp</span> <span class="keyword">NOT</span> <span class="predefined-constant">NULL</span>,
+    update_date <span class="predefined-type">timestamp</span>
+);</code></pre>
+</div>
+</div>
+<div class="olist arabic">
+<ol class="arabic" start="2">
+<li>
+<p><code>BatchJobRequestRepository</code>インタフェースの拡張インタフェースの作成</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p><code>BatchJobRequestRepository</code>インタフェースを拡張したインタフェースを作成する。</p>
+</div>
+<div class="listingblock">
+<div class="title">拡張インタフェース</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="java"><span class="comment">// (1)</span>
+<span class="directive">public</span> <span class="type">interface</span> <span class="class">CustomizedBatchJobRequestRepository</span> <span class="directive">extends</span> BatchJobRequestRepository {
+    <span class="comment">// (2)</span>
+}</code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 8. 拡張ポイント</caption>
+<colgroup>
+<col style="width: 10%;">
+<col style="width: 90%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>BatchJobRequestRepository</code>を拡張する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(2)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">メソッドは追加しない。</p></td>
+</tr>
+</tbody>
+</table>
+<div class="olist arabic">
+<ol class="arabic" start="3">
+<li>
+<p>カスタマイズしたテーブルを使用したSQLMapの定義</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>優先度を順序条件にしたSQLをSQLMapに定義する。</p>
+</div>
+<div class="listingblock">
+<div class="title">SQLMap定義(CustomizedBatchJobRequestRepository.xml)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"><span class="comment">&lt;!-- (1) --&gt;</span>
+<span class="tag">&lt;mapper</span> <span class="attribute-name">namespace</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jp.co.ntt.fw.macchinetta.batch.extend.repository.CustomizedBatchJobRequestRepository</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+
+    <span class="tag">&lt;select</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">find</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">resultType</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">org.terasoluna.batch.async.db.model.BatchJobRequest</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+        SELECT
+            job_seq_id AS jobSeqId,
+            job_name AS jobName,
+            job_parameter AS jobParameter,
+            job_execution_id AS jobExecutionId,
+            polling_status AS pollingStatus,
+            create_date AS createDate,
+            update_date AS updateDate
+        FROM
+            batch_job_request
+        WHERE
+            polling_status = 'INIT'
+        ORDER BY
+            priority ASC,   <span class="comment">&lt;!--(2) --&gt;</span>
+            job_seq_id ASC
+        LIMIT #{pollingRowLimit}
+    <span class="tag">&lt;/select&gt;</span>
+
+    <span class="comment">&lt;!-- (3) --&gt;</span>
+    <span class="tag">&lt;update</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">updateStatus</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+        UPDATE
+            batch_job_request
+        SET
+            polling_status = #{batchJobRequest.pollingStatus},
+            job_execution_id = #{batchJobRequest.jobExecutionId},
+            update_date = #{batchJobRequest.updateDate}
+        WHERE
+            job_seq_id = #{batchJobRequest.jobSeqId}
+        AND
+            polling_status = #{pollingStatus}
+    <span class="tag">&lt;/update&gt;</span>
+
+<span class="tag">&lt;/mapper&gt;</span></code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 9. 拡張ポイント</caption>
+<colgroup>
+<col style="width: 10%;">
+<col style="width: 90%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>BatchJobRequestRepository</code>の拡張インタフェースをFQCNでnamespaceに設定する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(2)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">priorityをORDER句へ追加する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(3)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">更新SQLは変更しない。</p></td>
+</tr>
+</tbody>
+</table>
+<div class="olist arabic">
+<ol class="arabic" start="4">
+<li>
+<p><code>async-batch-daemon.xml</code>のBean定義の修正</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>(2)で作成した拡張インタフェースを<code>batchJobRequestRepository</code>に設定する。</p>
+</div>
+<div class="listingblock">
+<div class="title">async-batch-daemon.xml</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"> <span class="comment">&lt;!--(1) --&gt;</span>
+<span class="tag">&lt;bean</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">batchJobRequestRepository</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">org.mybatis.spring.mapper.MapperFactoryBean</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">p:mapperInterface</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jp.co.ntt.fw.macchinetta.batch.extend.repository.CustomizedBatchJobRequestRepository</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">p:sqlSessionFactory-ref</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">adminSqlSessionFactory</span><span class="delimiter">&quot;</span></span> <span class="tag">/&gt;</span></code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 10. 拡張ポイント</caption>
+<colgroup>
+<col style="width: 10%;">
+<col style="width: 90%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>BatchJobRequestRepository</code>の拡張インタフェースをFQCNで<code>mapperInterface</code>属性に設定する。</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect3">
+<h4 id="Ch04_AsyncJobWithDB_HowToExtend_CustomTable_GroupID"><a class="anchor" href="#Ch04_AsyncJobWithDB_HowToExtend_CustomTable_GroupID"></a>グループIDによる複数プロセスによる分散処理</h4>
+<div class="paragraph">
+<p><code>AsyncBatchDaemon</code>起動時に環境変数でグループIDを指定して、対象のジョブを絞り込む。</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>ジョブ要求テーブルのカスタマイズ</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>ジョブ要求テーブルにグループIDカラム(group_id)を追加する。</p>
+</div>
+<div class="listingblock">
+<div class="title">グループIDカラムの追加 (PostgreSQLの場合)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="sql"><span class="class">CREATE</span> <span class="type">TABLE</span> <span class="keyword">IF</span> <span class="keyword">NOT</span> <span class="keyword">EXISTS</span> batch_job_request (
+    job_seq_id bigserial <span class="directive">PRIMARY</span> <span class="type">KEY</span>,
+    job_name <span class="predefined-type">varchar</span>(<span class="integer">100</span>) <span class="keyword">NOT</span> <span class="predefined-constant">NULL</span>,
+    job_parameter <span class="predefined-type">varchar</span>(<span class="integer">200</span>),
+    group_id <span class="predefined-type">varchar</span>(<span class="integer">10</span>) <span class="keyword">NOT</span> <span class="predefined-constant">NULL</span>,
+    job_execution_id <span class="predefined-type">bigint</span>,
+    polling_status <span class="predefined-type">varchar</span>(<span class="integer">10</span>) <span class="keyword">NOT</span> <span class="predefined-constant">NULL</span>,
+    create_date <span class="predefined-type">timestamp</span> <span class="keyword">NOT</span> <span class="predefined-constant">NULL</span>,
+    update_date <span class="predefined-type">timestamp</span>
+);</code></pre>
+</div>
+</div>
+<div class="olist arabic">
+<ol class="arabic" start="2">
+<li>
+<p><code>BatchJobRequestRepository</code>インタフェースの拡張インタフェース作成</p>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="#Ch04_AsyncJobWithDB_HowToExtend_CustomTable_Priority">優先度カラムによるジョブ実行順序の制御の例</a>と同じ</p>
+</li>
+</ul>
+</div>
+</li>
+</ol>
+</div>
+<div class="olist arabic">
+<ol class="arabic" start="3">
+<li>
+<p>カスタマイズしたテーブルを使用したSQLMapの定義</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>グループIDを抽出条件にしたSQLをSQLMapに定義する。</p>
+</div>
+<div class="listingblock">
+<div class="title">SQLMap定義(CustomizedBatchJobRequestRepository.xml)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"><span class="comment">&lt;!-- (1) --&gt;</span>
+<span class="tag">&lt;mapper</span> <span class="attribute-name">namespace</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jp.co.ntt.fw.macchinetta.batch.extend.repository.CustomizedBatchJobRequestRepository</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+
+    <span class="tag">&lt;select</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">find</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">resultType</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">org.terasoluna.batch.async.db.model.BatchJobRequest</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+        SELECT
+            job_seq_id AS jobSeqId,
+            job_name AS jobName,
+            job_parameter AS jobParameter,
+            job_execution_id AS jobExecutionId,
+            polling_status AS pollingStatus,
+            create_date AS createDate,
+            update_date AS updateDate
+        FROM
+            batch_job_request
+        WHERE
+            polling_status = 'INIT'
+        AND
+            group_id = #{groupId}  <span class="comment">&lt;!--(2) --&gt;</span>
+        ORDER BY
+            job_seq_id ASC
+        LIMIT #{pollingRowLimit}
+    <span class="tag">&lt;/select&gt;</span>
+
+    <span class="comment">&lt;!-- omitted --&gt;</span>
+<span class="tag">&lt;/mapper&gt;</span></code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 11. 拡張ポイント</caption>
+<colgroup>
+<col style="width: 10%;">
+<col style="width: 90%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>BatchJobRequestRepository</code>の拡張インタフェースをFQCNでnamespaceに設定する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(2)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">groupIdを検索条件に追加。</p></td>
+</tr>
+</tbody>
+</table>
+<div class="olist arabic">
+<ol class="arabic" start="4">
+<li>
+<p><code>async-batch-daemon.xml</code>のBean定義の修正</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>(2)で作成した拡張インタフェースを<code>batchJobRequestRepository</code>に設定し、
+<code>jobRequestPollTask</code>に環境変数で与えられたグループIDをクエリパラメータとして設定する。</p>
+</div>
+<div class="listingblock">
+<div class="title">async-batch-daemon.xml</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"> <span class="comment">&lt;!--(1) --&gt;</span>
+<span class="tag">&lt;bean</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">batchJobRequestRepository</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">org.mybatis.spring.mapper.MapperFactoryBean</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">p:mapperInterface</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jp.co.ntt.fw.macchinetta.batch.extend.repository.CustomizedBatchJobRequestRepository</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">p:sqlSessionFactory-ref</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">adminSqlSessionFactory</span><span class="delimiter">&quot;</span></span> <span class="tag">/&gt;</span>
+
+    <span class="tag">&lt;bean</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobRequestPollTask</span><span class="delimiter">&quot;</span></span>
+          <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">org.terasoluna.batch.async.db.JobRequestPollTask</span><span class="delimiter">&quot;</span></span>
+          <span class="attribute-name">c:transactionManager-ref</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">adminTransactionManager</span><span class="delimiter">&quot;</span></span>
+          <span class="attribute-name">c:jobOperator-ref</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobOperator</span><span class="delimiter">&quot;</span></span>
+          <span class="attribute-name">c:batchJobRequestRepository-ref</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">batchJobRequestRepository</span><span class="delimiter">&quot;</span></span>
+          <span class="attribute-name">c:daemonTaskExecutor-ref</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">daemonTaskExecutor</span><span class="delimiter">&quot;</span></span>
+          <span class="attribute-name">c:automaticJobRegistrar-ref</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">automaticJobRegistrar</span><span class="delimiter">&quot;</span></span>
+          <span class="attribute-name">p:optionalPollingQueryParams-ref</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">pollingQueryParam</span><span class="delimiter">&quot;</span></span> <span class="tag">/&gt;</span> <span class="comment">&lt;!-- (2) --&gt;</span>
+
+   <span class="tag">&lt;bean</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">pollingQueryParam</span><span class="delimiter">&quot;</span></span>
+         <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">org.springframework.beans.factory.config.MapFactoryBean</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+        <span class="tag">&lt;property</span> <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">sourceMap</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+            <span class="tag">&lt;map&gt;</span>
+                <span class="tag">&lt;entry</span> <span class="attribute-name">key</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">groupId</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">value</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">${GROUP_ID}</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>  <span class="comment">&lt;!-- (3) --&gt;</span>
+            <span class="tag">&lt;/map&gt;</span>
+        <span class="tag">&lt;/property&gt;</span>
+   <span class="tag">&lt;/bean&gt;</span></code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 12. 拡張ポイント</caption>
+<colgroup>
+<col style="width: 10%;">
+<col style="width: 90%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>BatchJobRequestRepository</code>の拡張インタフェースをFQCNで<code>mapperInterface</code>属性に設定する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(2)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>JobRequestPollTask</code>の<code>optionalPollingQueryParams-ref</code>属性に(3)で定義するMapを設定する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(3)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">環境変数で与えれらたグループID(GROUP_ID)をクエリパラメータのグループID(groupId)に設定する。</p></td>
+</tr>
+</tbody>
+</table>
+<div class="olist arabic">
+<ol class="arabic" start="5">
+<li>
+<p>環境変数にグループIDを設定後、<code>AsyncBatchDaemon</code>を起動する。</p>
+</li>
+</ol>
+</div>
+<div class="listingblock">
+<div class="title">AsyncBatchDaemonの起動</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="console">$ # Set environment variables
+$ export GROUP_ID=G1
+
+$ # Start AsyncBatchDaemon
+$ java -cp dependency/* org.terasoluna.batch.async.db.AsyncBatchDaemon</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="Ch04_AsyncJobWithDB_HowToExtend_ClockCustomize"><a class="anchor" href="#Ch04_AsyncJobWithDB_HowToExtend_ClockCustomize"></a>タイムスタンプに用いるクロックのカスタマイズ</h3>
+<div class="paragraph">
+<p>タイムスタンプに用いるクロックは、デフォルト設定では<code>systemDefaultZone</code>から取得している。<br>
+しかし、ある特定の時間帯はポーリングをキャンセルするといった、ジョブ要求の取得条件をシステム日時に依存した非同期バッチデーモンに拡張したい場合など、ある特定の日時を指定したり、使用するシステムと異なるタイムゾーンを使用して試験を実施したい場合がある。そのため非同期実行では、用途に合わせてカスタマイズしたクロックを設定できる機能を備えている。<br>
+また、ジョブ要求テーブルからのリクエスト取得をカスタマイズしていないときのデフォルト設定において、クロックを変更したとき影響を受けるのはジョブ要求テーブルの<code>update_date</code>のみである。</p>
+</div>
+<div class="paragraph">
+<p>クロックのカスタマイズ手順は以下のとおり。</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p><code>async-batch-daemon.xml</code>のコピーを作成</p>
+</li>
+<li>
+<p>ファイル名を<code>customized-async-batch-daemon.xml</code>に変更</p>
+</li>
+<li>
+<p><code>customized-async-batch-daemon.xml</code>のBean定義を修正</p>
+</li>
+<li>
+<p>カスタマイズしたAsyncBatchDaemonを起動<br>
+詳細は、<a href="#Ch04_AsyncJobWithDB_HowToUse_Daemon_Launch">非同期バッチデーモンの起動</a>を参照。</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>下記に日時を固定し、タイムゾーンを変更するための設定例を示す。</p>
+</div>
+<div class="listingblock">
+<div class="title">META-INF/ch04/asyncjobwithdb/async-batch-daemon-clock.xml</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"><span class="tag">&lt;bean</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobRequestPollTask</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">org.terasoluna.batch.async.db.JobRequestPollTask</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">c:transactionManager-ref</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">adminTransactionManager</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">c:jobOperator-ref</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobOperator</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">c:batchJobRequestRepository-ref</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">batchJobRequestRepository</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">c:daemonTaskExecutor-ref</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">daemonTaskExecutor</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">c:automaticJobRegistrar-ref</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">automaticJobRegistrar</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">p:clock-ref</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">clock</span><span class="delimiter">&quot;</span></span> <span class="tag">/&gt;</span>　<span class="comment">&lt;!-- (1) --&gt;</span>
+
+<span class="comment">&lt;!-- (2) --&gt;</span>
+<span class="tag">&lt;bean</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">clock</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">java.time.Clock</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">factory-method</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">fixed</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">c:fixedInstant</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">#{T(java.time.ZonedDateTime).parse('2016-12-31T16:00-08:00[America/Los_Angeles]').toInstant()}</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">c:zone</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">#{T(java.time.ZoneId).of('PST', T(java.time.ZoneId).SHORT_IDS)}</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span></code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 13. 説明</caption>
+<colgroup>
+<col style="width: 10%;">
+<col style="width: 90%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>JobRequestPollTask</code>の<code>clock-ref</code>属性に(2)で定義するBeanを設定する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(2)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">日時を2016年12月31日16時0分0秒に固定し、タイムゾーンをロサンゼルス時間とした<code>java.time.Clock</code>のBeanを定義する。<br>
+ロサンゼルス時間のタイムゾーンIDは<code>PST</code>である。</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect2">
+<h3 id="Ch04_AsyncJobWithDB_HowToExtend_MultiDaemon"><a class="anchor" href="#Ch04_AsyncJobWithDB_HowToExtend_MultiDaemon"></a>複数起動</h3>
+<div class="paragraph">
+<p>以下の様な目的で、複数サーバ上で非同期バッチデーモンを起動させる場合がある。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>可用性向上</p>
+<div class="ulist">
+<ul>
+<li>
+<p>非同期バッチジョブがいずれかのサーバで実行できればよく、ジョブが起動できないという状況をなくしたい場合</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>性能向上</p>
+<div class="ulist">
+<ul>
+<li>
+<p>複数サーバでバッチ処理の負荷を分散させたい場合</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>リソースの有効利用</p>
+<div class="ulist">
+<ul>
+<li>
+<p>サーバ性能に差がある場合に特定のジョブを最適なリソースのサーバに振り分ける場合</p>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="#Ch04_AsyncJobWithDB_HowToExtend_CustomTable">ジョブ要求テーブルのカスタマイズ</a>で提示したグループIDによるジョブノードの分割に相当</p>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>上記に示す観点のいずれかにもとづいて利用するのかを意識して運用設計を行うことが必要となる。</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/Ch04_AsyncJobWithDB_MultipleActivation.png" alt="Ch04 AsyncJobWithDB MultipleActivation">
+</div>
+<div class="title">図 2. 複数起動の概略図</div>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+<div class="title">複数の非同期バッチデーモンが同一ジョブ要求レコードを取得した場合</div>
+<div class="paragraph">
+<p><code>JobRequestPollTask</code>は、楽観ロックによる排他制御を行っているため、ポーリングステータスをINITからPOLLEDへ更新できた非同期バッチデーモンが取得したレコードのジョブを実行できる。
+排他された他の非同期バッチデーモンは、次のジョブ要求レコードを処理する。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</div>
+</div>
+</div>
+</div>
+<link rel="stylesheet" href="./theme/css/coderay-asciidoctor.css">
+<div class="container">
+
+  <div class="common-bg">
+    <div class="information">
+      Macchinetta Batch Framework (2.x) Development Guideline - version 2.3.3.RELEASE, 2024-3-28
+    </div>
+    <div class="index">
+      <a href="index.html">&gt; INDEX</a>
+    </div>
+  </div>
+
+  <div class="footer-bg">
+    <div class="copyright">
+      &copy; Copyright 2017 NTT Corporation.
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

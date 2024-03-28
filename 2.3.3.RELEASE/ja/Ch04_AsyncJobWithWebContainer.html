@@ -1,0 +1,1670 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Asciidoctor 2.0.10">
+<title>非同期実行(Webコンテナ)</title>
+<link rel="stylesheet" href="./theme/css/readthedocs.css">
+<link rel="stylesheet" href="./theme/css/font-awesome.min.css">
+<link rel="stylesheet" href="./theme/css/coderay-asciidoctor.css">
+<link rel="stylesheet" href="./theme/css/header-footer.css">
+<title>Macchinetta Batch Framework (2.x) Development Guideline</title>
+
+<div class="common-bg">
+  <div class="information">
+    Macchinetta Batch Framework (2.x) Development Guideline - version 2.3.3.RELEASE, 2024-3-28
+  </div>
+  <div class="index">
+    <a href="index.html">&gt; INDEX</a>
+  </div>
+</div>
+</head>
+<body id="Ch04_AsyncJobWithWeb" class="book toc2 toc-left">
+<div id="header">
+<h1>非同期実行(Webコンテナ)</h1>
+<div id="toc" class="toc2">
+<div id="toctitle">Table of Contents</div>
+<ul class="sectlevel1">
+<li><a href="#Ch04_AsyncJobWithWeb_Overview">Overview</a></li>
+<li><a href="#Ch04_AsyncJobWithWeb_Arch">Architecture</a>
+<ul class="sectlevel2">
+<li><a href="#Ch04_AsyncJobWithWeb_Arch_OnError">ジョブ起動時における異常発生の検知について</a></li>
+<li><a href="#Ch04_AsyncJobWithWeb_Arch_Components">非同期実行(Webコンテナ)のアプリケーション構成</a>
+<ul class="sectlevel3">
+<li><a href="#Ch04_AsyncJobWithWeb_Arch_AppCtx">ApplicationContextの構成</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="#Ch04_AsyncJobWithWeb_HowToUse">How to use</a>
+<ul class="sectlevel2">
+<li><a href="#Ch04_AsyncJobWithWeb_HowToUse_Impl">非同期実行(Webコンテナ)によるアプリケーションの実装概要</a></li>
+<li><a href="#Ch04_AsyncJobWithWeb_HowToUse_Config">各種設定</a></li>
+<li><a href="#Ch04_AsyncJobWithWeb_HowToUse_WebApp">Webアプリケーションの実装</a>
+<ul class="sectlevel3">
+<li><a href="#Ch04_AsyncJobWithWeb_HowToUse_WebApp_Config">Webアプリケーションの設定</a></li>
+<li><a href="#Ch04_AsyncJobWithWeb_HowToUse_WebApp_JavaBeans">コントローラで使用するJavaBeansの実装</a></li>
+<li><a href="#Ch04_AsyncJobWithWeb_HowToUse_WebApp_Controller">コントローラの実装</a></li>
+<li><a href="#Ch04_AsyncJobWithWeb_HowToUse_WebApp_IntegrationConfig">Web/バッチアプリケーションモジュール設定の統合</a></li>
+<li><a href="#Ch04_AsyncJobWithWeb_HowToUse_WebApp_Build">ビルド</a></li>
+<li><a href="#Ch04_AsyncJobWithWeb_HowToUse_WebApp_Deploy">デプロイ</a></li>
+</ul>
+</li>
+<li><a href="#Ch04_AsyncJobWithWeb_HowToUse_Run">REST Clientによるジョブの起動と実行結果確認</a></li>
+</ul>
+</li>
+<li><a href="#Ch04_AsyncJobWithWeb_HowToExtend">How to extend</a>
+<ul class="sectlevel2">
+<li><a href="#Ch04_AsyncJobWithWeb_HowToExtend_StopAndRestart">ジョブの停止とリスタート</a></li>
+<li><a href="#Ch04_AsyncJobWithWeb_HowToExtend_MultipleLaunch">複数起動</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div id="content">
+<div class="sect1">
+<h2 id="Ch04_AsyncJobWithWeb_Overview"><a class="anchor" href="#Ch04_AsyncJobWithWeb_Overview"></a>Overview</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Webコンテナ内でジョブを非同期で実行するための方法について説明する。</p>
+</div>
+<div class="paragraph">
+<p>本機能は、チャンクモデルとタスクレットモデルとで同じ使い方になる。</p>
+</div>
+<div class="paragraph">
+<div class="title">Webコンテナによるジョブの非同期実行とは</div>
+<p>ジョブを含めたWebアプリケーションをWebコンテナにデプロイし、
+送信されたリクエストの情報をもとにジョブを実行することを指す。<br>
+ジョブの実行ごとに1つのスレッドを割り当てた上で並列に動作するため、
+他のジョブやリクエストに対する処理とは独立して実行できる。</p>
+</div>
+<div class="paragraph">
+<div class="title">提供機能</div>
+<p>Macchinetta Batch 2.xでは、非同期実行(Webコンテナ)向けの実装は提供しない。<br>
+本ガイドラインにて実現方法を提示するのみとする。<br>
+これは、Webアプリケーションの起動契機はHTTP/SOAP/MQなど多様であるため、
+ユーザにて実装することが適切と判断したためである。</p>
+</div>
+<div class="ulist">
+<div class="title">利用前提</div>
+<ul>
+<li>
+<p>アプリケーションの他にWebコンテナが必要となる。</p>
+</li>
+<li>
+<p>ジョブの実装以外に必要となる、Webアプリケーション、クライアントは動作要件に合わせて別途実装する。</p>
+</li>
+<li>
+<p>ジョブの実行状況および結果は<code>JobRepository</code>に委ねる。<br>
+また、Webコンテナ停止後にも<code>JobRepository</code>からジョブの実行状況および結果を参照可能とするため、インメモリデータベースではなく、永続性が担保されているデータベースを使用する。</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<div class="title">活用シーン</div>
+<p><a href="Ch04_AsyncJobWithDB.html#Ch04_AsyncJobWithDB_Overview">"非同期実行(DBポーリング) - Overview"</a>と同様である。</p>
+</div>
+<div class="admonitionblock tip">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+<div class="title">非同期実行(DBポーリング)との違い</div>
+<div class="paragraph">
+<p>アーキテクチャ上、非同期実行時の即時性と、要求管理テーブルの有無、の2点が異なる。<br>
+<a href="Ch04_AsyncJobWithDB.html#Ch04_AsyncJobWithDB">"非同期実行(DBポーリング)"</a>は要求管理テーブルに登録された複数のジョブが一定の周期で非同期実行される。<br>
+それに対し、本機能は要求管理テーブルを必要とせず代わりにWebコンテナ上で非同期実行を受け付ける。<br>
+Webリクエスト送信により直ちに実行するため、起動までの即時性が求められるショートバッチに向いている。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="Ch04_AsyncJobWithWeb_Arch"><a class="anchor" href="#Ch04_AsyncJobWithWeb_Arch"></a>Architecture</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>本方式による非同期ジョブはWebコンテナ上にデプロイされたアプリケーション(war)として動作するが、
+ジョブ自身はWebコンテナのリクエスト処理とは非同期(別スレッド)で動作する。</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/Ch04_AsyncJobWithWebContainer_Sequence.png" alt="sequence of async web">
+</div>
+<div class="title">図 1. 非同期実行(Webコンテナ)のシーケンス図</div>
+</div>
+<div class="olist arabic">
+<div class="title">ジョブの起動</div>
+<ol class="arabic">
+<li>
+<p>Webクライアントは実行対象のジョブをWebコンテナに要求する。</p>
+</li>
+<li>
+<p><code>JobController</code>はSpring Batchの<code>JobOperator</code>に対しジョブの実行開始を依頼する。</p>
+</li>
+<li>
+<p><code>ThreadPoolTaskExecutor</code>によって非同期でジョブを実行する。</p>
+</li>
+<li>
+<p>実行された対象のジョブを一意に判別するためのジョブ実行ID(<code>job execution id</code>)を返却する。</p>
+</li>
+<li>
+<p><code>JobController</code>はWebクライアントに対し、ジョブ実行IDを含むレスポンスを返却する。</p>
+</li>
+<li>
+<p>目的のジョブを実行する。</p>
+<div class="ulist">
+<ul>
+<li>
+<p>ジョブの結果は<code>JobRepository</code>に反映される。</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p><code>Job</code>が実行結果を返却する。これはクライアントへ直接通知できない。</p>
+</li>
+</ol>
+</div>
+<div class="olist arabic">
+<div class="title">ジョブの実行結果確認</div>
+<ol class="arabic" start="8">
+<li>
+<p>Webクライアントはジョブ実行IDを<code>JobController</code>をWebコンテナに送信する。</p>
+</li>
+<li>
+<p><code>JobController</code>はジョブ実行IDを用い<code>JobExplorer</code>にジョブの実行結果を問い合わせる。</p>
+</li>
+<li>
+<p><code>JobExplorer</code>はジョブの実行結果を返却する。</p>
+</li>
+<li>
+<p><code>JobController</code>はWebクライアントに対しレスポンスを返却する。</p>
+<div class="ulist">
+<ul>
+<li>
+<p>レスポンスにはジョブ実行IDを設定する。</p>
+</li>
+</ul>
+</div>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>Webコンテナによるリクエスト受信後、ジョブ実行ID払い出しまでがリクエスト処理と同期するが、
+以降のジョブ実行はWebコンテナとは別のスレッドプールで非同期に行われる。<br>
+これは再度リクエストで問い合わせを受けない限り、Webクライアント側では非同期ジョブの
+実行状態が検知できないことを意味する。</p>
+</div>
+<div class="paragraph">
+<p>このためWebクライアント側では1回のジョブ実行で、リクエストを「ジョブの起動」で1回、
+「結果の確認」が必要な場合は加えてもう1回、Webコンテナにリクエストを送信する必要がある。<br>
+特に初回の「ジョブの起動」時に見え方が異なる異常検知については、
+後述の<a href="#Ch04_AsyncJobWithWeb_Arch_OnError">ジョブ起動時における異常発生の検知について</a>で説明する。</p>
+</div>
+<div class="admonitionblock tip">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+<div class="paragraph">
+<p><code>JobRepository</code>、<code>JobExplorer</code>を使用して直接RDBMSを参照し、ジョブの実行状態を確認することもできる。
+ジョブの実行状態・結果を参照する機能の詳細については、<a href="Ch07_JobManagement.html#Ch07_JobManagement">ジョブの管理</a>を参照。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-warning" title="Warning"></i>
+</td>
+<td class="content">
+<div class="title">ジョブ実行ID(job execution id)の取り扱いについて</div>
+<div class="paragraph">
+<p>ジョブ実行IDは起動対象が同じジョブ、同じジョブパラメータであっても、ジョブ起動ごとに異なるシーケンス値が払い出される。<br>
+リクエスト送信により受付が行われたジョブ実行IDは<code>JobRepository</code>により外部RDBMSで永続化される。<br>
+しかし、Webクライアントの障害などによりこのIDが消失した場合、ジョブ実行状況の特定・追跡が困難となる。<br>
+このため、Webクライアント側ではレスポンスとして返却されたジョブ実行IDをログに記録するなど、ジョブ実行IDの消失に備えておくこと。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="sect2">
+<h3 id="Ch04_AsyncJobWithWeb_Arch_OnError"><a class="anchor" href="#Ch04_AsyncJobWithWeb_Arch_OnError"></a>ジョブ起動時における異常発生の検知について</h3>
+<div class="paragraph">
+<p>Webクライアントからジョブの起動リクエストを送信後、ジョブ実行ID払い出しを境にして異常検知の見え方が異なる。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>ジョブ起動時のレスポンスにて異常がすぐ検知できるもの</p>
+<div class="ulist">
+<ul>
+<li>
+<p>起動対象のジョブが存在しない。</p>
+</li>
+<li>
+<p>ジョブパラメータの形式誤り。</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>ジョブ起動後、Webコンテナに対しジョブ実行状態・結果の問い合わせが必要となるもの</p>
+<div class="ulist">
+<ul>
+<li>
+<p>ジョブの実行ステータス</p>
+</li>
+<li>
+<p>非同期ジョブ実行で使用されるスレッドプールが枯渇したことによるジョブの起動失敗</p>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+<div class="paragraph">
+<p>「ジョブ起動時の異常」は Spring MVCコントローラ内で発生する例外として検知できる。
+ここでは説明を割愛するので、別途 Macchinetta Server 1.x 開発ガイドラインの
+<a href="https://macchinetta.github.io/server-guideline/1.8.3.RELEASE/ja/ArchitectureInDetail/WebServiceDetail/REST.html#resthowtouseexceptionhandling">例外のハンドリングの実装</a>を参照。</p>
+</div>
+<div class="paragraph">
+<p>また、ジョブパラメータとして利用するリクエストの入力チェックは必要に応じて Spring MVC のコントローラ内で行うこと。<br>
+具体的な実装方法については、Macchinetta Server 1.x 開発ガイドラインの
+<a href="https://macchinetta.github.io/server-guideline/1.8.3.RELEASE/ja/ArchitectureInDetail/WebApplicationDetail/Validation.html">入力チェック</a>を参照。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="admonitionblock tip">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+<div class="title">スレッドプール枯渇によるジョブの起動失敗はジョブ起動時に捕捉できない</div>
+<div class="paragraph">
+<p>スレッドプール枯渇によるジョブの起動失敗は、<code>JobOperator</code>から例外があがってこないため、別途確認する必要がある。
+確認方法の1つは、ジョブの実行状態確認時に<code>JobExplorer</code>を用い、以下の条件に合致しているかどうかである。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>ステータスが<code>FAILED</code>である</p>
+</li>
+<li>
+<p><code>jobExecution.getExitStatus().getExitDescription()</code>にて、
+<code>org.springframework.core.task.TaskRejectedException</code>の例外スタックトレースが記録されている</p>
+</li>
+</ul>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect2">
+<h3 id="Ch04_AsyncJobWithWeb_Arch_Components"><a class="anchor" href="#Ch04_AsyncJobWithWeb_Arch_Components"></a>非同期実行(Webコンテナ)のアプリケーション構成</h3>
+<div class="paragraph">
+<p>本機能は<a href="Ch04_AsyncJobWithDB.html#Ch04_AsyncJobWithDB">"非同期実行(DBポーリング)"</a>と同様、
+非同期実行特有の構成としてSpring プロファイルの<code>async</code>と<code>AutomaticJobRegistrar</code>を使用している。</p>
+</div>
+<div class="paragraph">
+<p>一方で、これら機能を非同期実行(Webコンテナ)使用する上で、いくつかの事前知識と設定が必要となる。
+<a href="#Ch04_AsyncJobWithWeb_Arch_AppCtx">"ApplicationContextの構成"</a>を参照。<br>
+具体的な<code>async</code>プロファイルと<code>AutomaticJobRegistrar</code>の設定方法については
+<a href="#Ch04_AsyncJobWithWeb_HowToUse_Impl">"非同期実行(Webコンテナ)によるアプリケーションの実装方法について"</a>で後述する。</p>
+</div>
+<div class="sect3">
+<h4 id="Ch04_AsyncJobWithWeb_Arch_AppCtx"><a class="anchor" href="#Ch04_AsyncJobWithWeb_Arch_AppCtx"></a>ApplicationContextの構成</h4>
+<div class="paragraph">
+<p>上述のとおり、非同期実行(Webコンテナ)のアプリケーション構成として、複数のアプリケーションモジュールが含まれている。<br>
+それぞれのアプリケーションコンテキストとBean定義についての種類、および関係性を把握しておく必要がある。</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/Ch04_AsyncJobWithWebContainer_Package.png" alt="Package structure of async web">
+</div>
+<div class="title">図 2. ApplicationContextの構成</div>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/Ch04_AsyncJobWithWebContainer_BeanDefinitions.png" alt="BeanDefinitions structure of async web">
+</div>
+<div class="title">図 3. Bean定義ファイルの構成</div>
+</div>
+<div class="paragraph">
+<p>非同期実行(Webコンテナ)における<code>ApplicationContext</code>では、
+バッチアプリケーションの<code>ApplicationContext</code>はWebのコンテキスト内に取り込まれる。<br>
+個々のジョブコンテキストはこのWebコンテキストから<code>AutomaticJobRegistrar</code>によりモジュール化され、
+Webコンテキストの子コンテキストとして動作する。</p>
+</div>
+<div class="paragraph">
+<p>以下、それぞれのコンテキストを構成するBean定義ファイルについて説明する。</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 1. Bean定義ファイル一覧</caption>
+<colgroup>
+<col style="width: 10%;">
+<col style="width: 90%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">共通Bean定義ファイル。<br>
+アプリケーション内では親コンテキストとなり、子コンテキストであるジョブ間で一意に共有される。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(2)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ジョブBean定義から必ずインポートされるBean定義ファイル。<br>
+Spring プロファイルが非同期実行時に指定される<code>async</code>の場合は(1)の<code>launch-context.xml</code>を読み込まない。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(3)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ジョブごとに作成するBean定義ファイル。<br>
+<code>AutomaticJobRegistrar</code>によりモジュラー化され、アプリケーション内ではそれぞれ独立した子コンテキストとして使用される。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(4)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>DispatcherServlet</code>から読み込まれる。<br>
+ジョブBean定義のモジュラー化を行う<code>AutomaticJobRegistrar</code>や、ジョブの非同期・並列実行で使用されるスレッドプールである<code>taskExecutor</code>など、非同期実行特有のBeanを定義する。<br>
+また、非同期実行では(1)の<code>launch-context.xml</code><br>
+を直接インポートし親コンテキストとして一意に共有化される。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(5)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>ContextLoaderListener</code>により、Webアプリケーション内で共有される親コンテキストとなる。</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="Ch04_AsyncJobWithWeb_HowToUse"><a class="anchor" href="#Ch04_AsyncJobWithWeb_HowToUse"></a>How to use</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>ここでは、Webアプリケーション側の実装例として、Macchinetta Server Framework (1.x)を用いて説明する。<br>
+あくまで説明のためであり、Macchinetta Server 1.xは非同期実行(Webコンテナ)の必須要件ではないことに留意してほしい。</p>
+</div>
+<div class="sect2">
+<h3 id="Ch04_AsyncJobWithWeb_HowToUse_Impl"><a class="anchor" href="#Ch04_AsyncJobWithWeb_HowToUse_Impl"></a>非同期実行(Webコンテナ)によるアプリケーションの実装概要</h3>
+<div class="paragraph">
+<p>以下の構成を前提とし説明する。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Webアプリケーションプロジェクトとバッチアプリケーションプロジェクトは独立し、
+webアプリケーションからバッチアプリケーションを参照する。</p>
+<div class="ulist">
+<ul>
+<li>
+<p>Webアプリケーションプロジェクトから生成するwarファイルは、
+バッチアプリケーションプロジェクトから生成されるjarファイルを含むこととなる</p>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>非同期実行の実装は<a href="#Ch04_AsyncJobWithWeb_Arch">Architecture</a>に従い、Webアプリケーション内の
+Spring MVCコントローラが、<code>JobOperator</code>によりジョブを起動する。</p>
+</div>
+<div class="admonitionblock tip">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+<div class="title">Web/バッチアプリケーションプロジェクトの分離について</div>
+<div class="paragraph">
+<p>アプリケーションビルドの最終成果物はWebアプリケーションのwarファイルであるが、
+開発プロジェクトはWeb/バッチアプリケーションで分離して実装を行うとよい。<br>
+これはバッチアプリケーション単体で動作可能なライブラリとなるため、開発プロジェクト上の試験を
+容易にする他、作業境界とライブラリ依存関係を明確にする効果がある。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>以降、Web/バッチの開発について、以下2つを利用する前提で説明する。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Macchinetta Batch 2.xによるバッチアプリケーションプロジェクト</p>
+</li>
+<li>
+<p>Macchinetta Server 1.xによるWebアプリケーションプロジェクト</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>バッチアプリケーションプロジェクトの作成および具体的なジョブの実装方法については、
+<a href="Ch03_CreateProject.html#Ch03_CreateProject_HowToCreate">プロジェクトの作成</a>、
+<a href="Ch03_CreateChunkJob.html#Ch03_CreateChunkJob">チャンクモデルジョブの作成</a>、
+<a href="Ch03_CreateTaskletJob.html#Ch03_CreateTaskletJob">タスクレットモデルジョブの作成</a>を参照。
+ここでは、Webアプリケーションからバッチアプリケーションを起動することに終始する。</p>
+</div>
+<div class="paragraph">
+<p>以下のバッチアプリケーションプロジェクトは、Maven archetype:generate を用いてを作成しているものとして説明する。</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 2. ジョブプロジェクト作成例</caption>
+<colgroup>
+<col style="width: 20%;">
+<col style="width: 80%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">名称</th>
+<th class="tableblock halign-left valign-top">値</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">groupId</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">jp.co.ntt.fw.macchinetta.batch.sample</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">artifactId</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">asyncbatch</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">version</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1.0-SNAPSHOT</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">package</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">jp.co.ntt.fw.macchinetta.batch.sample</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>また説明の都合上、ブランクプロジェクトに初めから登録されているジョブを使用する。</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 3. 説明に用いるジョブ</caption>
+<colgroup>
+<col style="width: 20%;">
+<col style="width: 80%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">名称</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ジョブ名</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">job01</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ジョブパラメータ</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">param1=value1</p></td>
+</tr>
+</tbody>
+</table>
+<div class="admonitionblock caution">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-caution" title="Caution"></i>
+</td>
+<td class="content">
+<div class="title">非同期実行(Webコンテナ)ジョブ設計の注意点</div>
+<div class="paragraph">
+<p>非同期実行(Webコンテナ)の特性として個々のジョブは短時間で完了しWebコンテナ上でステートレスに
+動作するケースが適している。<br>
+また複雑さを避ける上では、ジョブ定義を単一のステップのみで構成し、ステップの終了コードによるフローの分岐や
+並列処理・多重処理を定義しないことが望ましい。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>ジョブ実装を含むjarファイルが作成可能な状態として、Webアプリケーションの作成を行う。</p>
+</div>
+<div class="paragraph">
+<div class="title">Webアプリケーションの実装</div>
+<p>Macchinetta Server 1.xが提供するブランクプロジェクトを用い、Webアプリケーションの実装方法を説明する。
+詳細は、Macchinetta Server 1.x 開発ガイドラインの
+<a href="https://macchinetta.github.io/server-guideline/1.8.3.RELEASE/ja/ImplementationAtEachLayer/CreateWebApplicationProject.html">Webアプリケーション向け開発プロジェクトの作成</a>を参照。</p>
+</div>
+<div class="paragraph">
+<p>ここでは非同期実行アプリケーションプロジェクトと同様、以下の名称で作成したものとして説明する。</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 4. Webコンテナプロジェクト作成例</caption>
+<colgroup>
+<col style="width: 20%;">
+<col style="width: 80%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">名称</th>
+<th class="tableblock halign-left valign-top">値</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">groupId</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">jp.co.ntt.fw.macchinetta.batch.sample</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">artifactId</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">asyncapp</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">version</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1.0-SNAPSHOT</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">package</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">jp.co.ntt.fw.macchinetta.batch.sample</p></td>
+</tr>
+</tbody>
+</table>
+<div class="admonitionblock tip">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+<div class="title">groupIdの命名について</div>
+<div class="paragraph">
+<p>プロジェクトの命名は任意であるが、Maven マルチプロジェクトとしてバッチアプリケーションを
+Webアプリケーションの子モジュールとする場合、<code>groupId</code>は統一しておくと管理しやすい。<br>
+ここでは両者の<code>groupId</code>を<code>jp.co.ntt.fw.macchinetta.batch.sample</code>としている。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect2">
+<h3 id="Ch04_AsyncJobWithWeb_HowToUse_Config"><a class="anchor" href="#Ch04_AsyncJobWithWeb_HowToUse_Config"></a>各種設定</h3>
+<div class="paragraph">
+<div class="title">バッチアプリケーションをWebアプリケーションの一部に含める</div>
+<p>pom.xmlを編集し、バッチアプリケーションをWebアプリケーションの一部に含める。</p>
+</div>
+<div class="admonitionblock caution">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-caution" title="Caution"></i>
+</td>
+<td class="content">
+<div class="paragraph">
+<p>バッチアプリケーションを<code>jar</code> としてNEXUSやMavenローカルリポジトリに登録し、
+Webアプリケーションとは別プロジェクトとする場合はこの手順は不要である。<br>
+ただし、Mavenによりビルドされる対象が別プロジェクトとなり、バッチアプリケーションの修正を行ってもWebアプリケーションのビルド時に反映されないため注意すること。<br>
+バッチアプリケーションの修正をWebアプリケーションに反映させるためには同リポジトリに登録する必要がある。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/Ch04_AsyncJobWithWebContainer_DirectoryStructure.png" alt="directory structure">
+</div>
+<div class="title">図 4. ディレクトリ構成</div>
+</div>
+<div class="listingblock">
+<div class="title">asyncapp/pom.xml</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"><span class="tag">&lt;project&gt;</span>
+  <span class="comment">&lt;!-- omitted --&gt;</span>
+  <span class="tag">&lt;modules&gt;</span>
+    <span class="tag">&lt;module&gt;</span>asyncapp-domain<span class="tag">&lt;/module&gt;</span>
+    <span class="tag">&lt;module&gt;</span>asyncapp-env<span class="tag">&lt;/module&gt;</span>
+    <span class="tag">&lt;module&gt;</span>asyncapp-initdb<span class="tag">&lt;/module&gt;</span>
+    <span class="tag">&lt;module&gt;</span>asyncapp-web<span class="tag">&lt;/module&gt;</span>
+    <span class="tag">&lt;module&gt;</span>asyncapp-selenium<span class="tag">&lt;/module&gt;</span>
+    <span class="tag">&lt;module&gt;</span>asyncbatch<span class="tag">&lt;/module&gt;</span> <span class="comment">&lt;!-- (1) --&gt;</span>
+  <span class="tag">&lt;/modules&gt;</span>
+<span class="tag">&lt;/project&gt;</span></code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">asyncapp/asyncbatch/pom.xml</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"><span class="tag">&lt;project&gt;</span>
+  <span class="tag">&lt;modelVersion&gt;</span>4.0.0<span class="tag">&lt;/modelVersion&gt;</span>
+  <span class="tag">&lt;groupId&gt;</span>jp.co.ntt.fw.macchinetta.batch.sample<span class="tag">&lt;/groupId&gt;</span> <span class="comment">&lt;!-- (2) --&gt;</span>
+  <span class="tag">&lt;artifactId&gt;</span>asyncbatch<span class="tag">&lt;/artifactId&gt;</span>
+  <span class="tag">&lt;version&gt;</span>1.0-SNAPSHOT<span class="tag">&lt;/version&gt;</span> <span class="comment">&lt;!-- (2) --&gt;</span>
+  <span class="comment">&lt;!-- (1) --&gt;</span>
+  <span class="tag">&lt;parent&gt;</span>
+    <span class="tag">&lt;groupId&gt;</span>jp.co.ntt.fw.macchinetta.batch.sample<span class="tag">&lt;/groupId&gt;</span>
+    <span class="tag">&lt;artifactId&gt;</span>asyncapp<span class="tag">&lt;/artifactId&gt;</span>
+    <span class="tag">&lt;version&gt;</span>1.0-SNAPSHOT<span class="tag">&lt;/version&gt;</span>
+    <span class="tag">&lt;relativePath&gt;</span>../pom.xml<span class="tag">&lt;/relativePath&gt;</span>
+  <span class="tag">&lt;/parent&gt;</span>
+  <span class="comment">&lt;!-- omitted --&gt;</span>
+<span class="tag">&lt;/project&gt;</span></code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 5. 削除・追加内容</caption>
+<colgroup>
+<col style="width: 10%;">
+<col style="width: 90%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Webアプリケーションを親とし、バッチアプリケーションを子とするための設定を追記する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(2)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">子モジュール化にともない、不要となる記述を削除する。</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<div class="title">依存ライブラリの追加</div>
+<p>バッチアプリケーションをWebアプリケーションの依存ライブラリとして追加する。</p>
+</div>
+<div class="listingblock">
+<div class="title">asyncapp/async-web/pom.xml</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"><span class="tag">&lt;project&gt;</span>
+  <span class="comment">&lt;!-- omitted --&gt;</span>
+  <span class="tag">&lt;dependencies&gt;</span>
+　　<span class="comment">&lt;!-- (1) --&gt;</span>
+    <span class="tag">&lt;dependency&gt;</span>
+        <span class="tag">&lt;groupId&gt;</span>${project.groupId}<span class="tag">&lt;/groupId&gt;</span>
+        <span class="tag">&lt;artifactId&gt;</span>asyncbatch<span class="tag">&lt;/artifactId&gt;</span>
+        <span class="tag">&lt;version&gt;</span>${project.version}<span class="tag">&lt;/version&gt;</span>
+    <span class="tag">&lt;/dependency&gt;</span>
+    <span class="comment">&lt;!-- omitted --&gt;</span>
+  <span class="tag">&lt;/dependencies&gt;</span>
+  <span class="comment">&lt;!-- omitted --&gt;</span>
+<span class="tag">&lt;/project&gt;</span></code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 6. 追加内容</caption>
+<colgroup>
+<col style="width: 10%;">
+<col style="width: 90%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">バッチアプリケーションをWebアプリケーションの依存ライブラリとして追加する。</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect2">
+<h3 id="Ch04_AsyncJobWithWeb_HowToUse_WebApp"><a class="anchor" href="#Ch04_AsyncJobWithWeb_HowToUse_WebApp"></a>Webアプリケーションの実装</h3>
+<div class="paragraph">
+<p>ここではWebアプリケーションとして、以下Macchinetta Server 1.x 開発ガイドラインを参考に、RESTful Webサービスを作成する。</p>
+</div>
+<div class="paragraph">
+<p><a href="https://macchinetta.github.io/server-guideline/1.8.3.RELEASE/ja/ArchitectureInDetail/WebServiceDetail/REST.html#restful-web-servicespring-mvc">RESTful Web Serviceで必要となるSpring MVCのコンポーネントを有効化するための設定</a></p>
+</div>
+<div class="sect3">
+<h4 id="Ch04_AsyncJobWithWeb_HowToUse_WebApp_Config"><a class="anchor" href="#Ch04_AsyncJobWithWeb_HowToUse_WebApp_Config"></a>Webアプリケーションの設定</h4>
+<div class="paragraph">
+<p>まず、Webアプリケーションのブランクプロジェクトから、各種設定ファイルの追加・削除・編集を行う。</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+<div class="paragraph">
+<p>説明の都合上、バッチアプリケーションの実装形態としてRESTful Web Service を用いた実装を行っている。<br>
+従来のWebアプリケーション(Servlet/JSP)やSOAPを使用した場合でも同様な手順となるので、適宜読み替えること。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/Ch04_AsyncJobWithWebContainer_AppendBeanDefinitionsOnBlank.png" alt="AppendBeanDefinitionsOnBlank">
+</div>
+<div class="title">図 5. ブランクプロジェクトから追加・削除するBean定義ファイル</div>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 7. 追加・削除するBean定義ファイル</caption>
+<colgroup>
+<col style="width: 10%;">
+<col style="width: 90%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">spring-mvc.xmlは(2)を作成するため、不要となるので削除する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(2)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">RESTful Web Service用のspring-mvc-rest.xmlを作成する。必要となる定義の記述例を以下に示す。</p></td>
+</tr>
+</tbody>
+</table>
+<div class="listingblock">
+<div class="title">asyncapp/asyncapp-web/src/main/resources/META-INF/spring/spring-mvc-rest.xml の記述例</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"><span class="comment">&lt;!-- omitted --&gt;</span>
+<span class="comment">&lt;!-- (1) --&gt;</span>
+<span class="tag">&lt;import</span> <span class="attribute-name">resource</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">classpath:META-INF/spring/launch-context.xml</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+
+<span class="tag">&lt;bean</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jsonMessageConverter</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">org.springframework.http.converter.json.MappingJackson2HttpMessageConverter</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">p:objectMapper-ref</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">objectMapper</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+
+<span class="tag">&lt;bean</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">objectMapper</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">org.springframework.http.converter.json.Jackson2ObjectMapperFactoryBean</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+  <span class="tag">&lt;property</span> <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">dateFormat</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+      <span class="tag">&lt;bean</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">com.fasterxml.jackson.databind.util.StdDateFormat</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+  <span class="tag">&lt;/property&gt;</span>
+<span class="tag">&lt;/bean&gt;</span>
+
+<span class="tag">&lt;mvc:annotation-driven&gt;</span>
+  <span class="tag">&lt;mvc:message-converters</span> <span class="attribute-name">register-defaults</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">false</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+    <span class="tag">&lt;ref</span> <span class="attribute-name">bean</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jsonMessageConverter</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+  <span class="tag">&lt;/mvc:message-converters&gt;</span>
+<span class="tag">&lt;/mvc:annotation-driven&gt;</span>
+
+<span class="tag">&lt;mvc:default-servlet-handler</span><span class="tag">/&gt;</span>
+
+<span class="comment">&lt;!-- (2) --&gt;</span>
+<span class="tag">&lt;context:component-scan</span> <span class="attribute-name">base-package</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jp.co.ntt.fw.macchinetta.batch.sample.app.api</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+
+<span class="comment">&lt;!-- (3) --&gt;</span>
+<span class="tag">&lt;bean</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">org.springframework.batch.core.configuration.support.AutomaticJobRegistrar</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+    <span class="tag">&lt;property</span> <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">applicationContextFactories</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+        <span class="tag">&lt;bean</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">org.springframework.batch.core.configuration.support.ClasspathXmlApplicationContextsFactoryBean</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+            <span class="tag">&lt;property</span> <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">resources</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+                <span class="tag">&lt;list&gt;</span>
+                  <span class="tag">&lt;value&gt;</span>classpath:/META-INF/jobs/**/*.xml<span class="tag">&lt;/value&gt;</span>
+                <span class="tag">&lt;/list&gt;</span>
+            <span class="tag">&lt;/property&gt;</span>
+        <span class="tag">&lt;/bean&gt;</span>
+    <span class="tag">&lt;/property&gt;</span>
+    <span class="tag">&lt;property</span> <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobLoader</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+        <span class="tag">&lt;bean</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">org.springframework.batch.core.configuration.support.DefaultJobLoader</span><span class="delimiter">&quot;</span></span>
+              <span class="attribute-name">p:jobRegistry-ref</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobRegistry</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+    <span class="tag">&lt;/property&gt;</span>
+<span class="tag">&lt;/bean&gt;</span>
+
+<span class="comment">&lt;!-- (4) --&gt;</span>
+<span class="tag">&lt;task:executor</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">taskExecutor</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">pool-size</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">3</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">queue-capacity</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">10</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+
+<span class="comment">&lt;!-- (5) --&gt;</span>
+<span class="tag">&lt;bean</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobLauncher</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">org.springframework.batch.core.launch.support.SimpleJobLauncher</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">p:jobRepository-ref</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobRepository</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">p:taskExecutor-ref</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">taskExecutor</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+<span class="comment">&lt;!-- omitted --&gt;</span></code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">asyncapp/asyncapp-web/src/main/webapp/WEB-INF/web.xml の記述例</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"><span class="comment">&lt;!-- omitted --&gt;</span>
+<span class="tag">&lt;servlet&gt;</span>
+    <span class="tag">&lt;servlet-name&gt;</span>restApiServlet<span class="tag">&lt;/servlet-name&gt;</span>
+    <span class="tag">&lt;servlet-class&gt;</span>org.springframework.web.servlet.DispatcherServlet<span class="tag">&lt;/servlet-class&gt;</span>
+    <span class="tag">&lt;init-param&gt;</span>
+        <span class="tag">&lt;param-name&gt;</span>contextConfigLocation<span class="tag">&lt;/param-name&gt;</span>
+        <span class="comment">&lt;!-- (6) --&gt;</span>
+        <span class="tag">&lt;param-value&gt;</span>classpath*:META-INF/spring/spring-mvc-rest.xml<span class="tag">&lt;/param-value&gt;</span>
+    <span class="tag">&lt;/init-param&gt;</span>
+    <span class="comment">&lt;!-- (7) --&gt;</span>
+    <span class="tag">&lt;init-param&gt;</span>
+        <span class="tag">&lt;param-name&gt;</span>spring.profiles.active<span class="tag">&lt;/param-name&gt;</span>
+        <span class="tag">&lt;param-value&gt;</span>async<span class="tag">&lt;/param-value&gt;</span>
+    <span class="tag">&lt;/init-param&gt;</span>
+    <span class="tag">&lt;load-on-startup&gt;</span>1<span class="tag">&lt;/load-on-startup&gt;</span>
+<span class="tag">&lt;/servlet&gt;</span>
+
+<span class="tag">&lt;servlet-mapping&gt;</span>
+    <span class="tag">&lt;servlet-name&gt;</span>restApiServlet<span class="tag">&lt;/servlet-name&gt;</span>
+    <span class="tag">&lt;url-pattern&gt;</span>/api/v1/*<span class="tag">&lt;/url-pattern&gt;</span>
+<span class="tag">&lt;/servlet-mapping&gt;</span>
+<span class="comment">&lt;!-- omitted --&gt;</span></code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 8. RESTful Web Service の有効化例</caption>
+<colgroup>
+<col style="width: 10%;">
+<col style="width: 90%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">バッチアプリケーション内にある<code>launch-context.xml</code>のimportし、必須となるBean定義を取り込む。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(2)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">コントローラを動的にスキャンするためのパッケージを記述する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(3)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">個々のジョブBean定義ファイルをモジュラー化することにより子コンテキストとして動的ロードを行う<code>AutomaticJobRegistrar</code>のBean定義を記述する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(4)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">非同期で実行するジョブが用いる<code>TaskExecutor</code>を定義する。<br>
+JobLauncherの<code>TaskExecutor</code>に<code>AsyncTaskExecutor</code>実装クラスを設定することで非同期実行が可能となる。
+<code>AsyncTaskExecutor</code>実装クラスの1つである<code>ThreadPoolTaskExecutor</code>を利用する。</p>
+<p class="tableblock">また、並列起動可能なスレッドの多重度を指定ことができる。<br>
+この例では3スレッドがジョブの実行に割り当てられ、それを超えたリクエストは10までがキューイングされる。
+キューイングされたジョブは未開始の状態ではあるが、REST リクエストは成功とみなされる。<br>
+さらにキューイングの上限を超えたジョブのリクエストは<code>org.springframework.core.task.TaskRejectedException</code>が発生し、
+ジョブの起動要求が拒否される。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(5)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(4)の<code>taskExecutor</code>を有効化するため、<code>launch-context.xml</code>で定義されている<code>jobLauncher</code>をオーバーライドする。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(6)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>DispatcherServlet</code>が読み込むBean定義として、<br>
+上述で記載した<code>spring-mvc-rest.xml</code>を指定する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(7)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Spring Framework のプロファイルとして、非同期バッチを表す<code>async</code>を明示する。</p></td>
+</tr>
+</tbody>
+</table>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-warning" title="Warning"></i>
+</td>
+<td class="content">
+<div class="title">asyncプロファイルの指定をしなかった場合</div>
+<div class="paragraph">
+<p>この場合、Webアプリケーション横断で共有すればよい<code>launch-context.xml</code>に定義されたBeanが、ジョブごとに重複して生成される。<br>
+重複した場合でも機能上動作するため誤りに気づきにくく、予期しないリソース枯渇や性能劣化が発生する恐れがある。
+必ず指定すること。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="admonitionblock caution">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-caution" title="Caution"></i>
+</td>
+<td class="content">
+<div class="title">スレッドプールのサイジング</div>
+<div class="paragraph">
+<p>スレッドプールの上限が過剰である場合、膨大なジョブが並走することとなり、
+アプリケーション全体のスループットが劣化する恐れがある。
+サイジングを行ったうえで適正な上限値を定めること。<br>
+非同期実行のスレッドプールとは別に、Webコンテナのリクエストスレッドや
+同一筐体内で動作している他のアプリケーションも含めて検討する必要がある。</p>
+</div>
+<div class="paragraph">
+<p>また、スレッドプール枯渇に伴う<code>TaskRejectException</code>発生の確認、および再実行は
+Webクライアントから別途リクエストを送信する必要がある。
+そのため、スレッドプール枯渇時、ジョブ起動を待機させる<code>queue-capacity</code>は必ず設定すること。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<div class="title">RESTful Web Service API の定義</div>
+<p>REST APIで使用するリクエストの例として、
+ここでは「ジョブの起動」、「ジョブの状態確認」の2つを定義する。</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 9. REST API 定義例</caption>
+<colgroup>
+<col style="width: 5%;">
+<col style="width: 15%;">
+<col style="width: 25%;">
+<col style="width: 10%;">
+<col style="width: 15%;">
+<col style="width: 10%;">
+<col style="width: 20%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">API</th>
+<th class="tableblock halign-left valign-top">パス</th>
+<th class="tableblock halign-left valign-top">HTTPメソッド</th>
+<th class="tableblock halign-left valign-top">要求/応答</th>
+<th class="tableblock halign-left valign-top">電文形式</th>
+<th class="tableblock halign-left valign-top">電文の説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">ジョブの起動</p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">/api/v1/job/<em>ジョブ名</em></p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">POST</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">リクエスト</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">JSON</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ジョブパラメータ</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">レスポンス</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">JSON</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ジョブ実行ID<br>
+ジョブ名<br>
+メッセージ</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">(2)</p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">ジョブの実行状態確認</p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">/api/v1/job/<em>ジョブ実行ID</em></p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">GET</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">リクエスト</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">N/A</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">N/A</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">レスポンス</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">JSON</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ジョブ実行ID<br>
+ジョブ名<br>
+ジョブ実行ステータス<br>
+ジョブ終了コード<br>
+ステップ実行ID<br>
+ステップ名<br>
+ステップ終了コード</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect3">
+<h4 id="Ch04_AsyncJobWithWeb_HowToUse_WebApp_JavaBeans"><a class="anchor" href="#Ch04_AsyncJobWithWeb_HowToUse_WebApp_JavaBeans"></a>コントローラで使用するJavaBeansの実装</h4>
+<div class="paragraph">
+<p>JSON電文としてRESTクライアントに返却される以下3クラスを作成する。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>ジョブ起動操作 <code>JobOperationResource</code></p>
+</li>
+<li>
+<p>ジョブの実行状態 <code>JobExecutionResource</code></p>
+</li>
+<li>
+<p>ステップの実行状態 <code>StepExecutionResource</code></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>これらクラスは<code>JobOperationResource</code>のジョブ実行ID(<code>job execution id</code>)を除きあくまで参考実装であり、フィールドの実装は任意である。</p>
+</div>
+<div class="listingblock">
+<div class="title">ジョブ起動操作情報実装例</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="java"><span class="comment">// asyncapp/asyncapp-web/src/main/java/jp/co/ntt/fw/macchinetta/batch/sample/app/api/jobinfo/JobOperationResource.java</span>
+<span class="keyword">package</span> <span class="namespace">jp.co.ntt.fw.macchinetta.batch.sample.app.api.jobinfo</span>;
+
+<span class="directive">public</span> <span class="type">class</span> <span class="class">JobOperationResource</span> {
+
+    <span class="directive">private</span> <span class="predefined-type">String</span> jobName = <span class="predefined-constant">null</span>;
+
+    <span class="directive">private</span> <span class="predefined-type">String</span> jobParams = <span class="predefined-constant">null</span>;
+
+    <span class="directive">private</span> <span class="predefined-type">Long</span> jobExecutionId = <span class="predefined-constant">null</span>;
+
+    <span class="directive">private</span> <span class="predefined-type">String</span> errorMessage = <span class="predefined-constant">null</span>;
+
+    <span class="directive">private</span> <span class="exception">Exception</span> error = <span class="predefined-constant">null</span>;
+
+    <span class="comment">// Getter and setter are omitted.</span>
+}</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">ジョブ実行情報実装例</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="java"><span class="comment">// asyncapp/asyncapp-web/src/main/java/jp/co/ntt/fw.macchinetta/batch/sample/app/api/jobinfo/JobExecutionResource.java</span>
+<span class="keyword">package</span> <span class="namespace">jp.co.ntt.fw.macchinetta.batch.sample.app.api.jobinfo</span>;
+
+<span class="comment">// omitted.</span>
+
+<span class="directive">public</span> <span class="type">class</span> <span class="class">JobExecutionResource</span> {
+
+    <span class="directive">private</span> <span class="predefined-type">Long</span> jobExecutionId = <span class="predefined-constant">null</span>;
+
+    <span class="directive">private</span> <span class="predefined-type">String</span> jobName = <span class="predefined-constant">null</span>;
+
+    <span class="directive">private</span> <span class="predefined-type">Long</span> stepExecutionId = <span class="predefined-constant">null</span>;
+
+    <span class="directive">private</span> <span class="predefined-type">String</span> stepName = <span class="predefined-constant">null</span>;
+
+    <span class="directive">private</span> <span class="predefined-type">List</span>&lt;StepExecutionResource&gt; stepExecutions = <span class="keyword">new</span> <span class="predefined-type">ArrayList</span>&lt;&gt;();
+
+    <span class="directive">private</span> <span class="predefined-type">String</span> status = <span class="predefined-constant">null</span>;
+
+    <span class="directive">private</span> <span class="predefined-type">String</span> exitStatus = <span class="predefined-constant">null</span>;
+
+    <span class="directive">private</span> <span class="predefined-type">String</span> errorMessage;
+
+    <span class="directive">private</span> <span class="predefined-type">List</span>&lt;<span class="predefined-type">String</span>&gt; failureExceptions = <span class="keyword">new</span> <span class="predefined-type">ArrayList</span>&lt;&gt;();
+
+    <span class="comment">// Getter and setter are omitted.</span>
+}</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">ステップ実行情報実装例</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="java"><span class="comment">// asyncapp/asyncapp-web/src/main/java/jp/co/ntt/fw/macchinetta/batch/sample/app/api/jobinfo/StepExecutionResource.java</span>
+<span class="keyword">package</span> <span class="namespace">jp.co.ntt.fw.macchinetta.batch.sample.app.api.jobinfo</span>;
+
+<span class="directive">public</span> <span class="type">class</span> <span class="class">StepExecutionResource</span> {
+
+  <span class="directive">private</span> <span class="predefined-type">Long</span> stepExecutionId = <span class="predefined-constant">null</span>;
+
+  <span class="directive">private</span> <span class="predefined-type">String</span> stepName = <span class="predefined-constant">null</span>;
+
+  <span class="directive">private</span> <span class="predefined-type">String</span> status = <span class="predefined-constant">null</span>;
+
+  <span class="directive">private</span> <span class="predefined-type">List</span>&lt;<span class="predefined-type">String</span>&gt; failureExceptions = <span class="keyword">new</span> <span class="predefined-type">ArrayList</span>&lt;&gt;();
+
+    <span class="comment">// Getter and setter are omitted.</span>
+}</code></pre>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="Ch04_AsyncJobWithWeb_HowToUse_WebApp_Controller"><a class="anchor" href="#Ch04_AsyncJobWithWeb_HowToUse_WebApp_Controller"></a>コントローラの実装</h4>
+<div class="paragraph">
+<p><code>@RestController</code>を用い、RESTful Web Service のコントローラを実装する。<br>
+ここでは簡単のため、<code>JobOperator</code>をコントローラにインジェクションし、ジョブの起動や実行状態の取得を行う。
+もちろんMacchinetta Server 1.xに従って、コントローラからServiceをはさんで<code>JobOperator</code>を起動してもよい。</p>
+</div>
+<div class="admonitionblock tip">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+<div class="title">ジョブ起動時に渡されるジョブパラメータについて</div>
+<div class="paragraph">
+<p>起動時に<code>JobOperator#start()</code>の第二引数で渡されるジョブパラメータは<code>String</code>である。
+ジョブパラメータが複数ある場合、同期実行の<code>CommandLineJobRunner</code>とは異なり、カンマ区切りで渡す必要がある。
+具体的には以下の形式をとる。<br>
+<code>{ジョブパラメータ1}={値1},{ジョブパラメータ2}={値2},&#8230;&#8203;</code></p>
+</div>
+<div class="paragraph">
+<p>これは、<a href="Ch04_AsyncJobWithDB.html#Ch04_AsyncJobWithDB">"非同期実行(DBポーリング)"</a>におけるジョブパラメータの指定方法と同様である。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="listingblock">
+<div class="title">コントローラ実装例</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="java"><span class="comment">// asyncapp/asyncapp-web/src/main/java/jp/co/ntt/fw/macchinetta/batch/sample/app/api/JobController.java</span>
+<span class="keyword">package</span> <span class="namespace">jp.co.ntt.fw.macchinetta.batch.sample.app.api</span>;
+
+<span class="comment">// omitted.</span>
+
+<span class="comment">// (1)</span>
+<span class="annotation">@RequestMapping</span>(<span class="string"><span class="delimiter">&quot;</span><span class="content">job</span><span class="delimiter">&quot;</span></span>)
+<span class="annotation">@RestController</span>
+<span class="directive">public</span> <span class="type">class</span> <span class="class">JobController</span> {
+
+    <span class="comment">// (2)</span>
+    <span class="annotation">@Inject</span>
+    JobOperator jobOperator;
+
+    <span class="comment">// (2)</span>
+    <span class="annotation">@Inject</span>
+    JobExplorer jobExplorer;
+
+    <span class="annotation">@RequestMapping</span>(value = <span class="string"><span class="delimiter">&quot;</span><span class="content">{jobName}</span><span class="delimiter">&quot;</span></span>, method = RequestMethod.POST)
+    <span class="directive">public</span> ResponseEntity&lt;JobOperationResource&gt; launch(<span class="annotation">@PathVariable</span>(<span class="string"><span class="delimiter">&quot;</span><span class="content">jobName</span><span class="delimiter">&quot;</span></span>) <span class="predefined-type">String</span> jobName,
+            <span class="annotation">@RequestBody</span> JobOperationResource requestResource) {
+
+        JobOperationResource responseResource = <span class="keyword">new</span> JobOperationResource();
+        responseResource.setJobName(jobName);
+        <span class="keyword">try</span> {
+            <span class="comment">// (3)</span>
+            <span class="predefined-type">Long</span> jobExecutionId = jobOperator.start(jobName, requestResource.getJobParams());
+            responseResource.setJobExecutionId(jobExecutionId);
+            <span class="keyword">return</span> ResponseEntity.ok().body(responseResource);
+        } <span class="keyword">catch</span> (NoSuchJobException | JobInstanceAlreadyExistsException | JobParametersInvalidException e) {
+            responseResource.setError(e);
+            <span class="keyword">return</span> ResponseEntity.badRequest().body(responseResource);
+        }
+    }
+
+    <span class="annotation">@RequestMapping</span>(value = <span class="string"><span class="delimiter">&quot;</span><span class="content">{jobExecutionId}</span><span class="delimiter">&quot;</span></span>, method = RequestMethod.GET)
+    <span class="annotation">@ResponseStatus</span>(HttpStatus.OK)
+    <span class="directive">public</span> JobExecutionResource getJob(<span class="annotation">@PathVariable</span>(<span class="string"><span class="delimiter">&quot;</span><span class="content">jobExecutionId</span><span class="delimiter">&quot;</span></span>) <span class="predefined-type">Long</span> jobExecutionId) {
+
+        JobExecutionResource responseResource = <span class="keyword">new</span> JobExecutionResource();
+        responseResource.setJobExecutionId(jobExecutionId);
+
+        <span class="comment">// (4)</span>
+        JobExecution jobExecution = jobExplorer.getJobExecution(jobExecutionId);
+
+        <span class="keyword">if</span> (jobExecution == <span class="predefined-constant">null</span>) {
+            responseResource.setErrorMessage(<span class="string"><span class="delimiter">&quot;</span><span class="content">Job execution not found.</span><span class="delimiter">&quot;</span></span>);
+        } <span class="keyword">else</span> {
+            mappingExecutionInfo(jobExecution, responseResource);
+        }
+
+        <span class="keyword">return</span> responseResource;
+    }
+
+    <span class="directive">private</span> <span class="type">void</span> mappingExecutionInfo(JobExecution src, JobExecutionResource dest) {
+      dest.setJobName(src.getJobInstance().getJobName());
+      <span class="keyword">for</span> (StepExecution se : src.getStepExecutions()) {
+          StepExecutionResource ser = <span class="keyword">new</span> StepExecutionResource();
+          ser.setStepExecutionId(se.getId());
+          ser.setStepName(se.getStepName());
+          ser.setStatus(se.getStatus().toString());
+          <span class="keyword">for</span> (<span class="predefined-type">Throwable</span> th : se.getFailureExceptions()) {
+              ser.getFailureExceptions().add(th.toString());
+          }
+          dest.getStepExecutions().add(ser);
+      }
+      dest.setStatus(src.getStatus().toString());
+      dest.setExitStatus(src.getExitStatus().toString());
+    }
+}</code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 10. コントローラの実装</caption>
+<colgroup>
+<col style="width: 10%;">
+<col style="width: 90%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>@RestController</code>を指定する。
+さらに<code>@RequestMapping("job")</code>により、<code>web.xml</code>のサーブレットマッピングとあわせると、
+REST APIの基底パスは<code><em>contextName</em>/api/v1/job/</code>となる。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(2)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>JobOperator</code>、<code>JobExplorer</code>のフィールドインジェクションを記述する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(3)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>JobOperator</code> を使用して新規に非同期ジョブを起動する。<br>
+返り値としてジョブ実行IDを受け取り、REST クライアントに返却する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(4)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>JobExplorer</code> を使用し、ジョブ実行IDをもとにジョブの実行状態(<code>JobExecution</code>)を取得する。<br>
+あらかじめ設計された電文フォーマットに変換した上でRESTクライアントに返却する。</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect3">
+<h4 id="Ch04_AsyncJobWithWeb_HowToUse_WebApp_IntegrationConfig"><a class="anchor" href="#Ch04_AsyncJobWithWeb_HowToUse_WebApp_IntegrationConfig"></a>Web/バッチアプリケーションモジュール設定の統合</h4>
+<div class="paragraph">
+<p>バッチアプリケーションモジュール(<code>asyncbatch</code>)は単体で動作可能なアプリケーションとして動作する。
+そのため、バッチアプリケーションモジュール(<code>asyncbatch</code>)は、Webアプリケーションモジュール(<code>asyncapp-web</code>)との間で競合・重複する設定が存在する。
+これらは、必要に応じて統合する必要がある。</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>ログ設定ファイル<code>logback.xml</code>の統合<br>
+Web/バッチ間でLogback定義ファイルが複数定義されている場合、正常に動作しない。<br>
+<code>asyncbatch/src/main/resources/logback.xml</code>の記述内容は<code>asyncapp-env/src/main/resources/</code>の同ファイルに統合した上で削除する。</p>
+</li>
+<li>
+<p>データソース、MyBatis設定ファイルは統合しない<br>
+データソース、MyBatis設定ファイルの定義はWeb/バッチ間では、以下関係によりアプリケーションコンテキストの定義が独立するため、統合しない。</p>
+<div class="ulist">
+<ul>
+<li>
+<p>バッチの<code>asyncbatch</code>モジュールはサーブレットに閉じたコンテキストとして定義される。</p>
+</li>
+<li>
+<p>Webの<code>asyncapp-domain</code>、<code>asyncapp-env</code>モジュールはアプリケーション全体で使用されるコンテキストとして定義される。</p>
+</li>
+</ul>
+</div>
+</li>
+</ol>
+</div>
+<div class="admonitionblock caution">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-caution" title="Caution"></i>
+</td>
+<td class="content">
+<div class="title">Webとバッチモジュールによるデータソース、MyBatis設定の相互参照</div>
+<div class="paragraph">
+<p>Webとバッチモジュールによるコンテキストのスコープが異なるため、
+特にWebモジュールからバッチのデータソース、MyBatis設定、Mapperインタフェースは参照できない。<br>
+RDBMSスキーマ初期化もそれぞれ異なるモジュールの設定に応じて独立して行われるため、相互干渉により
+意図しない初期化が行われないよう配慮すること。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-important" title="Important"></i>
+</td>
+<td class="content">
+<div class="title">REST コントローラ特有のCSRF対策設定</div>
+<div class="paragraph">
+<p>Webブランクプロジェクトの初期設定では、RESTコントローラに対しリクエストを送信するとCSRFエラーとして
+ジョブの実行が拒否される。
+そのため、ここでは以下方法によりCSRF対策を無効化した前提で説明している。</p>
+</div>
+<div class="paragraph">
+<p><a href="https://macchinetta.github.io/server-guideline/1.8.3.RELEASE/ja/ArchitectureInDetail/WebServiceDetail/REST.html#csrf">CSRF対策</a></p>
+</div>
+<div class="paragraph">
+<p>ここで作成されるWebアプリケーションはインターネット上には公開されず、CSRFを攻撃手段として
+悪用しうる第三者からのRESTリクエスト送信が発生しない前提でCSRF対策を無効化している。
+実際のWebアプリケーションでは動作環境により要否が異なる点に注意すること。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect3">
+<h4 id="Ch04_AsyncJobWithWeb_HowToUse_WebApp_Build"><a class="anchor" href="#Ch04_AsyncJobWithWeb_HowToUse_WebApp_Build"></a>ビルド</h4>
+<div class="paragraph">
+<p>Mavenコマンドでビルドし、warファイルを作成する。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="console">$ cd asyncapp
+$ ls
+asyncbatch/  asyncapp-web/  pom.xml
+$ mvn clean package
+[INFO] Scanning for projects...
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Build Order:
+[INFO]
+[INFO] Macchinetta Server Framework (1.x) Web Blank Multi Project (MyBatis3)
+[INFO] Macchinetta Batch Framework (2.x) Blank Project
+[INFO] asyncapp-web
+[INFO]
+[INFO] ------------------------------------------------------------------------
+[INFO] Building Macchinetta Server Framework (1.x) Web Blank Multi Project (MyBatis3) 1.0-SNAPSHOT
+[INFO] ------------------------------------------------------------------------
+
+(omitted)
+
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Summary:
+[INFO]
+[INFO] Macchinetta Server Framework (1.x) Web Blank Multi Project (MyBatis3) SUCCESS [  0.226 s]
+[INFO] Macchinetta Batch Framework (2.x) Blank Project SUCCESS [  6.481s]
+[INFO] asyncapp-web ....................................... SUCCESS [  5.400 s]
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time: 12.597 s
+[INFO] Finished at: 2017-02-10T22:32:43+09:00
+[INFO] Final Memory: 38M/250M
+[INFO] ------------------------------------------------------------------------
+$</code></pre>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="Ch04_AsyncJobWithWeb_HowToUse_WebApp_Deploy"><a class="anchor" href="#Ch04_AsyncJobWithWeb_HowToUse_WebApp_Deploy"></a>デプロイ</h4>
+<div class="paragraph">
+<p>TomcatなどのWebコンテナを起動し、ビルドで生成された<code>war</code>ファイルをデプロイする。
+詳細な手順は割愛する。</p>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="Ch04_AsyncJobWithWeb_HowToUse_Run"><a class="anchor" href="#Ch04_AsyncJobWithWeb_HowToUse_Run"></a>REST Clientによるジョブの起動と実行結果確認</h3>
+<div class="paragraph">
+<p>ここではREST クライアントとしてcurlコマンドを使用し、非同期ジョブを起動する。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="console">$ curl -v \
+  -H &quot;Accept: application/json&quot; -H &quot;Content-type: application/json&quot; \
+  -d '{&quot;jobParams&quot;: &quot;param1=value1&quot;}' \
+  http://localhost:8080/asyncapp-web/api/v1/job/job01
+* timeout on name lookup is not supported
+*   Trying 127.0.0.1...
+* TCP_NODELAY set
+* Connected to localhost (127.0.0.1) port 8088 (#0)
+&gt; POST /asyncapp-web/api/v1/job/job01 HTTP/1.1
+&gt; Host: localhost:8088
+&gt; User-Agent: curl/7.51.0
+&gt; Accept: application/json
+&gt; Content-type: application/json
+&gt; Content-Length: 30
+&gt;
+* upload completely sent off: 30 out of 30 bytes
+&lt; HTTP/1.1 200
+&lt; X-Track: 0267db93977b4552880a4704cf3e4565
+&lt; Content-Type: application/json;charset=UTF-8
+&lt; Transfer-Encoding: chunked
+&lt; Date: Fri, 10 Feb 2017 13:55:46 GMT
+&lt;
+{&quot;jobName&quot;:&quot;job01&quot;,&quot;jobParams&quot;:null,&quot;jobExecutionId&quot;:3,&quot;error&quot;:null,&quot;errorMessag
+e&quot;:null}* Curl_http_done: called premature == 0
+* Connection #0 to host localhost left intact
+$</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>上記より、ジョブ実行ID:<code>jobExecutionId = 3</code>として、ジョブが実行されていることが確認できる。<br>
+続けてこのジョブ実行IDを使用し、ジョブの実行結果を取得する。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="console">$ curl -v http://localhost:8080/asyncapp-web/api/v1/job/3
+* timeout on name lookup is not supported
+*   Trying 127.0.0.1...
+* TCP_NODELAY set
+* Connected to localhost (127.0.0.1) port 8088 (#0)
+&gt; GET /asyncapp-web/api/v1/job/3 HTTP/1.1
+&gt; Host: localhost:8088
+&gt; User-Agent: curl/7.51.0
+&gt; Accept: */*
+&gt;
+&lt; HTTP/1.1 200
+&lt; X-Track: 7d94bf4d383745efb20cbf37cb6a8e13
+&lt; Content-Type: application/json;charset=UTF-8
+&lt; Transfer-Encoding: chunked
+&lt; Date: Fri, 10 Feb 2017 14:07:44 GMT
+&lt;
+{&quot;jobExecutionId&quot;:3,&quot;jobName&quot;:&quot;job01&quot;,&quot;stepExecutions&quot;:[{&quot;stepExecutionId&quot;:5,&quot;st
+epName&quot;:&quot;job01.step01&quot;,&quot;status&quot;:&quot;COMPLETED&quot;,&quot;failureExceptions&quot;:[]}],&quot;status&quot;:&quot;C
+OMPLETED&quot;,&quot;exitStatus&quot;:&quot;exitCode=COMPLETED;exitDescription=&quot;,&quot;errorMessage&quot;:null
+}* Curl_http_done: called premature == 0
+* Connection #0 to host localhost left intact
+$</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><code>exitCode=COMPLETED</code>であることより、ジョブが正常終了していることが確認できる。</p>
+</div>
+<div class="admonitionblock tip">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+<div class="title">シェルスクリプトなどでcurlの実行結果を判定する場合</div>
+<div class="paragraph">
+<p>上記の例ではREST APIによる応答電文まで表示させている。
+curlコマンドでHTTPステータスのみを確認する場合は<code>curl -s URL -o /dev/null -w "%{http_code}\n"</code>とすることで、HTTPステータスが標準出力に表示される。<br>
+ただし、ジョブ実行IDはレスポンスボディ部のJSONを解析する必要があるため、必要に応じてREST
+クライアントアプリケーションを作成すること。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="Ch04_AsyncJobWithWeb_HowToExtend"><a class="anchor" href="#Ch04_AsyncJobWithWeb_HowToExtend"></a>How to extend</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="Ch04_AsyncJobWithWeb_HowToExtend_StopAndRestart"><a class="anchor" href="#Ch04_AsyncJobWithWeb_HowToExtend_StopAndRestart"></a>ジョブの停止とリスタート</h3>
+<div class="paragraph">
+<p>非同期ジョブの停止・リスタートは複数実行しているジョブの中から停止・リスタートする必要がある。
+また、同名のジョブが並走している場合に、問題が発生しているジョブのみを対象にする必要もある。
+よって、対象とするジョブ実行が特定でき、その状態が確認できる必要がある。<br>
+ここではこの前提を満たす場合、非同期実行の停止・リスタートを行うための実装について説明する。</p>
+</div>
+<div class="paragraph">
+<p>以降、<a href="#Ch04_AsyncJobWithWeb_HowToUse_WebApp_Controller">コントローラの実装</a>の<code>JobController</code>に対して、
+ジョブの停止(stop)やリスタート(restart)を追加する方法について説明する。</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+ジョブの停止・リスタートは<code>JobOperator</code>を用いた実装をしなくても実施できる。<br>
+詳細は<a href="Ch07_JobManagement.html#Ch07_JobManagement">ジョブの管理</a>を参照し、目的に合う方式を検討すること。
+</td>
+</tr>
+</table>
+</div>
+<div class="listingblock">
+<div class="title">停止・リスタートの実装例</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="java"><span class="comment">// asyncapp/asyncapp-web/src/main/java/jp/co/ntt/fw/macchinetta/batch/sample/app/api/JobController.java</span>
+<span class="keyword">package</span> <span class="namespace">jp.co.ntt.fw.macchinetta.batch.sample.app.api</span>;
+
+<span class="comment">// omitted.</span>
+
+<span class="annotation">@RequestMapping</span>(<span class="string"><span class="delimiter">&quot;</span><span class="content">job</span><span class="delimiter">&quot;</span></span>)
+<span class="annotation">@RestController</span>
+<span class="directive">public</span> <span class="type">class</span> <span class="class">JobController</span> {
+
+    <span class="comment">// omitted.</span>
+
+    <span class="annotation">@RequestMapping</span>(value = <span class="string"><span class="delimiter">&quot;</span><span class="content">stop/{jobExecutionId}</span><span class="delimiter">&quot;</span></span>, method = RequestMethod.PUT)
+    <span class="annotation">@Deprecated</span>
+    <span class="directive">public</span> ResponseEntity&lt;JobOperationResource&gt; stop(
+            <span class="annotation">@PathVariable</span>(<span class="string"><span class="delimiter">&quot;</span><span class="content">jobExecutionId</span><span class="delimiter">&quot;</span></span>) <span class="predefined-type">Long</span> jobExecutionId) {
+
+      JobOperationResource responseResource = <span class="keyword">new</span> JobOperationResource();
+      responseResource.setJobExecutionId(jobExecutionId);
+      <span class="type">boolean</span> result = <span class="predefined-constant">false</span>;
+      <span class="keyword">try</span> {
+          <span class="comment">// (1)</span>
+          result = jobOperator.stop(jobExecutionId);
+          <span class="keyword">if</span> (!result) {
+              responseResource.setErrorMessage(<span class="string"><span class="delimiter">&quot;</span><span class="content">stop failed.</span><span class="delimiter">&quot;</span></span>);
+              <span class="keyword">return</span> ResponseEntity.badRequest().body(responseResource);
+          }
+          <span class="keyword">return</span> ResponseEntity.ok().body(responseResource);
+      } <span class="keyword">catch</span> (NoSuchJobExecutionException | JobExecutionNotRunningException e) {
+          responseResource.setError(e);
+          <span class="keyword">return</span> ResponseEntity.badRequest().body(responseResource);
+      }
+    }
+
+    <span class="annotation">@RequestMapping</span>(value = <span class="string"><span class="delimiter">&quot;</span><span class="content">restart/{jobExecutionId}</span><span class="delimiter">&quot;</span></span>,
+                    method = RequestMethod.PUT)
+    <span class="annotation">@Deprecated</span>
+    <span class="directive">public</span> ResponseEntity&lt;JobOperationResource&gt; restart(
+            <span class="annotation">@PathVariable</span>(<span class="string"><span class="delimiter">&quot;</span><span class="content">jobExecutionId</span><span class="delimiter">&quot;</span></span>) <span class="predefined-type">Long</span> jobExecutionId) {
+
+        JobOperationResource responseResource = <span class="keyword">new</span> JobOperationResource();
+        responseResource.setJobExecutionId(jobExecutionId);
+        <span class="keyword">try</span> {
+            <span class="comment">// (2)</span>
+            <span class="predefined-type">Long</span> id = jobOperator.restart(jobExecutionId);
+            responseResource.setJobExecutionId(id);
+            <span class="keyword">return</span> ResponseEntity.ok().body(responseResource);
+        } <span class="keyword">catch</span> (JobInstanceAlreadyCompleteException |
+                  NoSuchJobExecutionException | NoSuchJobException |
+                  JobRestartException | JobParametersInvalidException e) {
+            responseResource.setErrorMessage(e.getMessage());
+            <span class="keyword">return</span> ResponseEntity.badRequest().body(responseResource);
+        }
+    }
+
+    <span class="comment">// omitted.</span>
+}</code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 11. コントローラによる停止・リスタート実装例</caption>
+<colgroup>
+<col style="width: 10%;">
+<col style="width: 90%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>JobOperator#stop()</code>を呼び出すことにより、実行中のジョブに対し停止を指示する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(2)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>JobOperator#restart()</code>を呼び出すことにより、異常終了・停止したステップから再実行させる。</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect2">
+<h3 id="Ch04_AsyncJobWithWeb_HowToExtend_MultipleLaunch"><a class="anchor" href="#Ch04_AsyncJobWithWeb_HowToExtend_MultipleLaunch"></a>複数起動</h3>
+<div class="paragraph">
+<p>ここでの複数起動とは、Webコンテナを複数起動し、それぞれがジョブ要求を待ち受けることを指す。</p>
+</div>
+<div class="paragraph">
+<p>非同期ジョブの実行管理は外部RDBMSによって行われるため、各アプリケーションの接続先となる
+外部RDBMSを共有することで、同一筐体あるいは別筐体にまたがって非同期ジョブ起動を待ち受けることができる。</p>
+</div>
+<div class="paragraph">
+<p>用途としては特定のジョブに対する負荷分散や冗長化などがあげられる。
+しかし、<a href="#Ch04_AsyncJobWithWeb_HowToUse_WebApp">Webアプリケーションの実装</a>
+で述べたように、Webコンテナを複数起動し並列性を高めるだけでこれらの効果が容易に得られるわけではない。
+効果を得るためには、一般的なWebアプリケーションと同様の対処が求められる場合がある。
+以下にその一例を示す。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Webアプリケーションの特性上、1リクエスト処理はステートレスに動作するが、
+バッチの非同期実行はジョブの起動と結果の確認を合わせて設計しなければ、かえって障害耐性が低下する恐れもある。<br>
+たとえば、ジョブ起動用Webコンテナを冗長化した場合でもクライアント側の障害によりジョブ起動後にジョブ実行IDを
+ロストすることでジョブの途中経過や結果の確認は困難となる。</p>
+</li>
+<li>
+<p>複数のWebコンテナにかかる負荷を分散させるために、クライアント側にリクエスト先を振り分ける機能を実装したり、
+ロードバランサを導入したりする必要がある。</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>このように、複数起動の適性は一概に定めることができない。
+そのため、目的と用途に応じてロードバランサの利用やWebクライアントによるリクエスト送信制御方式などを検討し、
+非同期実行アプリケーションの性能や耐障害性を落とさない設計が必要となる。</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+<link rel="stylesheet" href="./theme/css/coderay-asciidoctor.css">
+<div class="container">
+
+  <div class="common-bg">
+    <div class="information">
+      Macchinetta Batch Framework (2.x) Development Guideline - version 2.3.3.RELEASE, 2024-3-28
+    </div>
+    <div class="index">
+      <a href="index.html">&gt; INDEX</a>
+    </div>
+  </div>
+
+  <div class="footer-bg">
+    <div class="copyright">
+      &copy; Copyright 2017 NTT Corporation.
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
