@@ -3,10 +3,126 @@ include::_include_all.adoc[]
 [[Ch03_CreateProject]]
 = バッチアプリケーションの開発
 
+[[Ch03_CreateProject_BeanDefinition]]
+== バッチアプリケーションのBean定義の構成
+{batch5_fullname}のバッチアプリケーションでは、Bean定義をもちいて各種設定を行う。
+
+Spring Frameworkや、Spring Batchをはじめとする、様々なOSSを基盤としているフレームワークである{batch5_fullname}は、Bean定義で設定できる機能も多岐に及び、これらのOSSに対する設定を行う、Bean定義も複雑なものになりやすい。
+
+{batch5_fullname}では、Bean定義の複雑さを緩和し、管理が行いやすくなるように、役割ごとにBean定義ファイルを作成することを想定している。本ガイドラインで想定するBean定義の分類は以下の通りである。
+
+[cols="30,35,35", options="header"]
+.役割別のBean定義の分類
+|===
+|分類
+|役割
+|開発者のやること
+
+|アプリケーション全体のBean定義
+|アプリケーション全体で共通する設定をここにまとめる。これによってジョブ定義間の設定の重複を抑止する。
+|カスタマイズ（必要な場合）
+
+|ジョブのBean定義
+|業務要件にもとづくバッチ処理の定義をここにまとめる。
+|新規作成
+
+|非同期バッチデーモンのBean定義
+|非同期処理をおこなう場合の定義をここにまとめる。
+|カスタマイズ（必要な場合）
+|===
+
+各Bean定義とBean定義ファイルの関係は、<<Ch03_CreateProject_BeanDefinition_Classification>>を参照のこと。
+
+開発者がいちから作成するのはジョブのBean定義のみである。
+
+ブランクプロジェクト（後述）では、アプリケーション全体のBean定義、非同期バッチデーモンのBean定義の定義ファイルを、初期設定済みの状態で提供する。これらは必要なときのみカスタマイズすればよい。
+
+各Bean定義で記述する設定の詳細は、以降で説明する。
+
+[[Ch03_CreateProject_Common_Definition]]
+=== アプリケーション全体のBean定義
+代表的な設定内容としては主に以下がある。
+
+* {batch5_fullname}を構成するOSSスタックの初期設定
+** {SB}の挙動設定（トランザクションの設定など）
+** MyBatis3の挙動設定（データソースからのフェッチサイズのチューニングなど）
+* 上記以外の複数のジョブに共通する設定
+** 入力チェック用バリデータの設定
+** メッセージファイルの設定
+
+このBean定義は、他のBean定義（ジョブのBean定義、非同期バッチデーモンのBean定義）から参照される。
+
+詳細は<<Ch03_CreateProject_Make_Setting>>のこと。
+
+[[Ch03_CreateProject_Job_Definition]]
+=== ジョブのBean定義
+ジョブの構成要素（ジョブ、ステップ）を定義する。
+
+
+詳細は<<Ch03_CreateProject_CreateJob>>を参照のこと。
+
+[[Ch03_CreateProject_AsyncBatchDaemon_Definition]]
+=== 非同期バッチデーモンのBean定義
+非同期バッチデーモンの起動設定を行う。
+
+{batch5_fullname}では、ジョブの非同期実行が可能である。テーブルに登録されているジョブの情報を監視し、非同期でジョブを起動するモジュールを非同期バッチデーモンという。
+
+詳細は<<Ch04_AsyncJobWithDB.adoc#Ch04_AsyncJobWithDB,非同期実行(DBポーリング)>>を参照のこと。
+
+== Bean定義の記述方法
+{batch5_fullname}では、Bean定義の記述方法としてJavaConfig または XMLConfig のいずれかを選択することができる。
+
+[NOTE]
+.JavaConfig/XMLConfigの説明の併記
+====
+以降、説明対象が同じであるがBean定義の媒体が異なる場合、JavaConfig/XMLConfigという形式で併記する。また、JavaConfig/XMLConfigで異なる説明が必要な箇所では、タブ切り替えを用いる。
+====
+
+Springの各種OSSにおけるリファレンスドキュメントでは、コード例の提示がJavaConfigしかないケースが増えているため、開発元からの正式なアナウンスは現状ないものの、今後はSpring全体として、XMLConfigよりもJavaConfigにより注力すると考えられる。
+
+[[Ch03_CreateProject_BeanDefinition_Classification]]
+== Bean定義の分類とBean定義ファイルの対応関係
+
+各Bean定義の分類と、ブランクプロジェクトのBean定義ファイルとの関係は以下の通り。
+
+[cols="30,35,35", options="header"]
+.Bean定義の分類とBean定義ファイルの対応関係
+|===
+|Bean定義の分類
+|Bean定義ファイル(JavaConfig)
+|Bean定義ファイル(XMLConfig)
+
+|アプリケーション全体のBean定義
+|JobBaseContextConfig.java +
+LaunchContextConfig.java +
+TerasolunaBatchConfiguration.java
+|job-base-context.xml +
+launch-context.xml
+
+|ジョブのBean定義 +
+（ジョブ毎にBean定義ファイル作成）
+|Job01Config.java
+|job01.xml
+
+|非同期バッチデーモンのBean定義
+|AsyncBatchDaemonConfig.java
+|async-batch-daemon.xml
+
+|===
+
+上表からも明らかなように、JavaConfigの``TerasolunaBatchConfiguration.java``に相当するBean定義ファイルがXMLConfigには存在しない。この理由は、Spring Batchから提供される、Bean定義をサポートする仕組み（``DefaultBatchConfiguration``）が、JavaConfig向けにしかないためである。
+
+``DefaultBatchConfiguration``の詳細は、<<Ch03_CreateProject_Appendix>>の<<Ch03_CreateProject_Appendix_DefaultBatchConfiguration>>を参照のこと。
+
+{batch5_fullname}では、``DefaultBatchConfiguration``を直接使用せず、その継承クラス``TerasolunaBatchConfiguration``を使用する。これは、{batch5_fullname}の動作上、``DefaultBatchConfiguration``の一部のBean定義のカスタマイズが必須となるためである。
+
+``TerasolunaBatchConfiguration``の詳細は、<<Ch03_CreateProject_Appendix>>の<<Ch03_CreateProject_Appendix_TerasolunaBatchConfiguration>>を参照のこと。
+
+
 [[Ch03_CreateProject_blank]]
 == ブランクプロジェクトとは
 
-ブランクプロジェクトとは、{SB}やMyBatis3をはじめとする各種設定をあらかじめ行った開発プロジェクトの雛形であり、
+ブランクプロジェクトとは、各Bean定義（アプリケーション全体のBean定義、ジョブのBean定義（サンプル）、非同期バッチデーモンのBean定義）をあらかじめ行った開発プロジェクトの雛形であり、
 アプリケーション開発のスタート地点である。 +
 本ガイドラインでは、シングルプロジェクト構成のブランクプロジェクトを提供する。 +
 構成の説明については、<<Ch03_CreateProject_ProjectStructure>>を参照。
@@ -17,7 +133,7 @@ include::_include_all.adoc[]
 {server5_shortname}はマルチプロジェクト構成を推奨している。
 この理由は主に、以下の様なメリットを享受するためである。
 
-* 環境差分の吸収しやすくする
+* 環境差分を吸収しやすくする
 * ビジネスロジックとプレゼンテーションを分離しやすくする
 
 しかし、本ガイドラインでは{server5_shortname}と異なりシングルプロジェクト構成としている。
@@ -45,44 +161,6 @@ include::_include_all.adoc[]
 ** Spring Tool Suite / Eclipse 等
 ====
 
-[IMPORTANT]
-.JavaConfigの採用
-====
-バージョン``{batch5_version}``のブランクプロジェクトでは、ジョブ定義以外のBean定義として JavaConfig または XMLConfig のいずれかを選択することができる。
-
-* JavaConfig：``artifactId``に``macchinetta-batch-archetype``を指定
-* XMLConfig：``artifactId``に``macchinetta-batch**-xmlconfig**-archetype``を指定
-
-ブランクプロジェクトで作成されるBean定義ファイルは下記となる。
-
-[cols="20,40,40", options="header"]
-.ブランクプロジェクトのBean定義ファイル
-|===
-|Bean定義
-|macchinetta-batch-archetype
-|macchinetta-batch-xmlconfig-archetype
-
-|ジョブ定義 *1
-|job01.xml
-|job01.xml
-
-.3+.^|ジョブ定義以外
-|AsyncBatchDaemonConfig.java
-|async-batch-daemon.xml
-
-|JobBaseContextConfig.java
-|job-base-context.xml
-
-|LaunchContextConfig.java
-|launch-context.xml
-|===
-
-. バージョン ``2.4.0.RELEASE`` の経過措置として ``artifactId``に JavaConfigが選択された場合であっても、ジョブ定義はXMLConfigを使用する。
-
-公式からの正式なアナウンスは現状ないものの、Springのドキュメントでコード例の説明がJavaConfigしかないケースが増えているため、
-今後はSpring Framework本体がXMLConfigよりもJavaConfigにより注力すると考えられる。
-====
-
 プロジェクトを作成するディレクトリにて、以下のコマンドを実行する。
 
 // ============ Java/XML Config Tab start. ============ 
@@ -93,6 +171,8 @@ include::_include_all.adoc[]
   <div class="tabcontent" name="JavaConfigContent">
 ++++
 // Java Config start.
+``archetypeArtifactId``に``macchinetta-batch-archetype``を指定
+
 .コマンドプロンプト(Windows)
 [source,console,subs="normal,attributes"]
 ----
@@ -116,6 +196,8 @@ $ mvn archetype:generate \
   <div class="tabcontent" name="XMLConfigContent">
 ++++
 // XML Config start.
+``archetypeArtifactId``に``macchinetta-batch**-xmlconfig**-archetype``を指定
+
 .コマンドプロンプト(Windows)
 [source,console,subs="normal,attributes"]
 ----
@@ -140,11 +222,6 @@ $ mvn archetype:generate \
 ++++
 // ============ Java/XML Config Tab end. ============ 
 
-[NOTE]
-.JavaConfig/XMLConfigの説明の併記
-====
-以降、説明対象が同じであるがBean定義の媒体が異なる場合、JavaConfig/XMLConfigという形式で併記する。また、JavaConfig/XMLConfigで異なる説明が必要な箇所では、上記のようにタブ切り替えを用いる。
-====
 
 その後、利用者の状況に合わせて、以下を対話式に設定する。
 
@@ -270,8 +347,108 @@ package: com.example.batch
 
 以上により、プロジェクトの作成が完了した。
 
-正しく作成出来たかどうかは、以下の要領で確認できる。
+正しく作成出来たかどうかは、ブランクプロジェクトに同梱されているサンプルジョブ(`job01`)を以下の要領で実行することで確認できる。
 
+// ============ Java/XML Config Tab start. ============
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup030102" class="JavaConfigTab" id="tabgroup030102_1" checked><label for="tabgroup030102_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup030102" class="XMLConfigTab" id="tabgroup030102_2"><label for="tabgroup030102_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+.コマンドプロンプトでの実行(正しく作成できたことの確認)
+[source,console]
+----
+C:\xxx>cd batch
+C:\xxx\batch>mvn clean dependency:copy-dependencies -DoutputDirectory=lib package
+C:\xxx\batch>java -cp "lib/*;target/*" ^
+org.springframework.batch.core.launch.support.CommandLineJobRunner ^
+com.example.batch.jobs.Job01Config job01
+----
+
+.Bashでの実行(正しく作成できたことの確認)
+[source,console]
+----
+$ cd batch
+$ mvn clean dependency:copy-dependencies -DoutputDirectory=lib package
+$ java -cp 'lib/*:target/*' \
+org.springframework.batch.core.launch.support.CommandLineJobRunner \
+com.example.batch.jobs.Job01Config job01
+----
+
+以下が確認出来れば、プロジェクトの作成は成功である。
+
+* ``C:\xxx\batch\target``配下に``output.csv``が作成されていること。
+* 標準出力に``following status: [COMPLETED]``が表示されていること（以下例）。
+
+.コマンドプロンプトでの出力例
+[source,console]
+----
+C:\xxx\batch>mvn clean dependency:copy-dependencies -DoutputDirectory=lib package
+[INFO] Scanning for projects...
+[INFO]
+[INFO] ------------------------------------------------------------------------
+[INFO] Building Macchinetta Batch Framework (2.x) Blank Project 1.0.0-SNAPSHOT
+[INFO] ------------------------------------------------------------------------
+
+(.. omitted)
+
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time: 56.497 s
+[INFO] Finished at: 2019-09-03T10:39:59+09:00
+[INFO] Final Memory: 25M/145M
+[INFO] ------------------------------------------------------------------------
+
+C:\xxx\batch>java -cp "lib/*;target/*" ^
+More? org.springframework.batch.core.launch.support.CommandLineJobRunner ^
+More? com.example.batch.jobs.Job01Config job01
+
+(.. omitted)
+
+[2019/09/03 10:41:24] [main] [o.s.b.c.l.s.TaskExecutorJobLauncher] [INFO ] Job: [FlowJob: [name=job01]] launched with the following parameters: [{jsr_batch_run_id=1}]
+[2019/09/03 10:41:24] [main] [o.s.b.c.j.SimpleStepHandler] [INFO ] Executing step: [job01.step01]
+[2019/09/03 10:41:24] [main] [o.s.b.c.l.s.TaskExecutorJobLauncher] [INFO ] Job: [FlowJob: [name=job01]] completed with the following parameters: [{jsr_batch_run_id=1}] and the following status: [COMPLETED]
+----
+
+.Bashでの出力例
+[source,console]
+----
+$ mvn clean dependency:copy-dependencies -DoutputDirectory=lib package
+[INFO] Scanning for projects...
+[INFO]
+[INFO] ------------------------------------------------------------------------
+[INFO] Building Macchinetta Batch Framework (2.x) Blank Project 1.0.0-SNAPSHOT
+[INFO] ------------------------------------------------------------------------
+
+(.. omitted)
+
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time: 02:39 min
+[INFO] Finished at: 2019-09-03T02:43:01+00:00
+[INFO] Final Memory: 27M/189M
+[INFO] ------------------------------------------------------------------------
+
+$ java -cp 'lib/*:target/*' \
+> org.springframework.batch.core.launch.support.CommandLineJobRunner \
+> com.example.batch.jobs.Job01Config job01
+
+(.. omitted)
+
+[2019/09/03 02:43:11] [main] [o.s.b.c.l.s.TaskExecutorJobLauncher] [INFO ] Job: [FlowJob: [name=job01]] launched with the following parameters: [{jsr_batch_run_id=1}]
+[2019/09/03 02:43:11] [main] [o.s.b.c.j.SimpleStepHandler] [INFO ] Executing step: [job01.step01]
+[2019/09/03 02:43:11] [main] [o.s.b.c.l.s.TaskExecutorJobLauncher] [INFO ] Job: [FlowJob: [name=job01]] completed with the following parameters: [{jsr_batch_run_id=1}] and the following status: [COMPLETED]
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
 .コマンドプロンプトでの実行(正しく作成できたことの確認)
 [source,console]
 ----
@@ -320,9 +497,9 @@ More? META-INF/jobs/job01.xml job01
 
 (.. omitted)
 
-[2019/09/03 10:41:24] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=job01]] launched with the following parameters: [{jsr_batch_run_id=1}]
+[2019/09/03 10:41:24] [main] [o.s.b.c.l.s.TaskExecutorJobLauncher] [INFO ] Job: [FlowJob: [name=job01]] launched with the following parameters: [{jsr_batch_run_id=1}]
 [2019/09/03 10:41:24] [main] [o.s.b.c.j.SimpleStepHandler] [INFO ] Executing step: [job01.step01]
-[2019/09/03 10:41:24] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=job01]] completed with the following parameters: [{jsr_batch_run_id=1}] and the following status: [COMPLETED]
+[2019/09/03 10:41:24] [main] [o.s.b.c.l.s.TaskExecutorJobLauncher] [INFO ] Job: [FlowJob: [name=job01]] completed with the following parameters: [{jsr_batch_run_id=1}] and the following status: [COMPLETED]
 ----
 
 .Bashでの出力例
@@ -351,10 +528,16 @@ $ java -cp 'lib/*:target/*' \
 
 (.. omitted)
 
-[2019/09/03 02:43:11] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=job01]] launched with the following parameters: [{jsr_batch_run_id=1}]
+[2019/09/03 02:43:11] [main] [o.s.b.c.l.s.TaskExecutorJobLauncher] [INFO ] Job: [FlowJob: [name=job01]] launched with the following parameters: [{jsr_batch_run_id=1}]
 [2019/09/03 02:43:11] [main] [o.s.b.c.j.SimpleStepHandler] [INFO ] Executing step: [job01.step01]
-[2019/09/03 02:43:11] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=job01]] completed with the following parameters: [{jsr_batch_run_id=1}] and the following status: [COMPLETED]
+[2019/09/03 02:43:11] [main] [o.s.b.c.l.s.TaskExecutorJobLauncher] [INFO ] Job: [FlowJob: [name=job01]] completed with the following parameters: [{jsr_batch_run_id=1}] and the following status: [COMPLETED]
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============
 
 [[Ch03_CreateProject_ProjectStructure]]
 == プロジェクトの構成
@@ -372,13 +555,78 @@ $ java -cp 'lib/*:target/*' \
 // ============ Java/XML Config Tab start. ============ 
 ++++
 <div class="tabbox">
-  <input type="radio" name="tabgroup030102" class="JavaConfigTab" id="tabgroup030102_1" checked><label for="tabgroup030102_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup030102" class="XMLConfigTab" id="tabgroup030102_2"><label for="tabgroup030102_2" class="tab">XMLConfig</label>
+  <input type="radio" name="tabgroup030103" class="JavaConfigTab" id="tabgroup030103_1" checked><label for="tabgroup030103_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup030103" class="XMLConfigTab" id="tabgroup030103_2"><label for="tabgroup030103_2" class="tab">XMLConfig</label>
   <div class="tabcontent" name="JavaConfigContent">
 ++++
 // Java Config start.
 .プロジェクトのディレクトリ構造
 image::Ch03_CreateProject_BlankProjectDir.png[BlankProject Structure]
+
+[cols="10,90", options="header"]
+.ブランクプロジェクトの各要素の説明
+|===
+|項番
+|説明
+
+|(1)
+|バッチアプリケーション全体の各種クラスを格納するrootパッケージ。
+
+|(2)
+|バッチアプリケーション全体に関わるBean定義ファイルを格納するディレクトリ。 +
+{SB}やMyBatisの初期設定や、同期/非同期といった起動契機に依らずにジョブを起動するための設定を行っている。
+
+|(3)
+|非同期実行(DBポーリング)機能に関連する設定を記述したBean定義ファイル。
+Ch04～Ch08以外（commonとか）の新規クラスについて、Copyrightとsinceの修正が完了しました。レビューをお願いします。
+|(4)
+|ジョブ固有のBean定義ファイルにてimportすることで、各種設定を削減するためのBean定義ファイル。 +
+これをimportすることで、ジョブは起動契機によるBean定義の差を吸収することが出来る。
+
+|(5)
+|{SB}の挙動や、ジョブ共通の設定に対するBean定義ファイル。
+
+|(6)
+|{SB}の挙動のうち、インフラストラクチャBeanに関するBean定義ファイル。
+
+|(7)
+|ジョブ定義ファイルから参照される各種クラスを格納するパッケージ。 +
+ここには、DTO、TaskletやProcessorの実装、MyBatis3のMapperインタフェースを格納する。 +
+初期状態を参考にユーザにて自由にカスタムしてよいが、各ジョブで利用する資材をジョブごとにまとめて格納することで、
+``@ComponentScan``や``@MapperScan``によるスキャン範囲を最小限にする構成が望ましい。 +
+スキャン範囲の影響や設定方法ついては<<Ch05_DBAccess.adoc#Ch05_DBAccess_HowToUse_Config_Scan,MyBatis-Springの設定>>を参考にすること。
+
+|(8)
+|ジョブ定義ファイルを格納するディレクトリ。 +
+階層構造はジョブ個別の設計に応じて構成する。(7)のパッケージ階層と合わせておくとよい。
+
+|(9)
+|バッチアプリケーション全体に関わる設定ファイルで、``LaunchContextConfig.java/launch-context.xml``から読み込まれる。 +
+環境依存となるプロパティ値はここに記述する。 +
+初期状態では、データベースの接続や、非同期実行に関する設定を記述している。 +
+設定方法の詳細は、<<Ch03_CreateProject_Make_Setting_DB>>を参照のこと。
+
+|(10)
+|Logback(ログ出力)の設定ファイル。
+
+|(11)
+|BeanValidationを用いた入力チェックにて、エラーとなった際に表示するメッセージを定義する設定ファイル。 +
+初期状態では、BeanValidationと、その実装であるHibernateValidatorのデフォルトメッセージを定義したうえで、
+すべてコメントアウトしている。 +
+この状態ではデフォルトメッセージを使うため、メッセージをカスタマイズしたい場合にのみ
+アンコメントし任意のメッセージに修正すること。 +
+詳細は、<<Ch06_InputValidation.adoc#Ch06_InputValidation,入力チェック>>の表「主な比較一覧」＞「エラーメッセージの設定」を参照のこと。
+
+|(12)
+|MyBatis3のMapperインタフェースの対となるMapper XMLファイル。
+
+|(13)
+|主にログ出力時に用いるメッセージを定義するプロパティファイル。
+|===
+
+また、各ファイルの関連図を以下に示す。
+
+image::Ch03_CreateProject_FilesRelation.png[Files Relation]
 // Java Config end.
 ++++
   </div>
@@ -387,13 +635,6 @@ image::Ch03_CreateProject_BlankProjectDir.png[BlankProject Structure]
 // XML Config start.
 .プロジェクトのディレクトリ構造
 image::Ch03_CreateProject_BlankProjectDir_XMLConfig.png[BlankProject Structure]
-// XML Config end.
-++++
-  </div>
-</div>
-++++
-// ============ Java/XML Config Tab end. ============ 
-
 
 [cols="10,90", options="header"]
 .ブランクプロジェクトの各要素の説明
@@ -419,16 +660,17 @@ image::Ch03_CreateProject_BlankProjectDir_XMLConfig.png[BlankProject Structure]
 |{SB}の挙動や、ジョブ共通の設定に対するBean定義ファイル。
 
 |(6)
-|1ジョブに関する各種クラスを格納するパッケージ。 +
+|ジョブ定義ファイルから参照される各種クラスを格納するパッケージ。 +
 ここには、DTO、TaskletやProcessorの実装、MyBatis3のMapperインタフェースを格納する。 +
 初期状態を参考にユーザにて自由にカスタムしてよいが、各ジョブで利用する資材をジョブごとにまとめて格納することで、
 ``<context:component-scan>``や``<mybatis:scan>``によるスキャン範囲を最小限にする構成が望ましい。 +
 スキャン範囲の影響や設定方法ついては<<Ch05_DBAccess.adoc#Ch05_DBAccess_HowToUse_Config_Scan,MyBatis-Springの設定>>を参考にすること。
 
 |(7)
-|バッチアプリケーション全体に関わる設定ファイル。 +
-初期状態では、データベースの接続や、非同期実行に関する設定を記述している。
-ユーザにて、自由に追記してよい。
+|バッチアプリケーション全体に関わる設定ファイルで、``LaunchContextConfig.java/launch-context.xml``から読み込まれる。 +
+環境依存となるプロパティ値はここに記述する。 +
+初期状態では、データベースの接続や、非同期実行に関する設定を記述している。 +
+設定方法の詳細は、<<Ch03_CreateProject_Make_Setting_DB>>を参照のこと。
 
 |(8)
 |Logback(ログ出力)の設定ファイル。
@@ -438,7 +680,8 @@ image::Ch03_CreateProject_BlankProjectDir_XMLConfig.png[BlankProject Structure]
 初期状態では、BeanValidationと、その実装であるHibernateValidatorのデフォルトメッセージを定義したうえで、
 すべてコメントアウトしている。 +
 この状態ではデフォルトメッセージを使うため、メッセージをカスタマイズしたい場合にのみ
-アンコメントし任意のメッセージに修正すること。
+アンコメントし任意のメッセージに修正すること。 +
+詳細は、<<Ch06_InputValidation.adoc#Ch06_InputValidation,入力チェック>>の表「主な比較一覧」＞「エラーメッセージの設定」を参照のこと。
 
 |(10)
 |MyBatis3のMapperインタフェースの対となるMapper XMLファイル。
@@ -447,29 +690,12 @@ image::Ch03_CreateProject_BlankProjectDir_XMLConfig.png[BlankProject Structure]
 |主にログ出力時に用いるメッセージを定義するプロパティファイル。
 
 |(12)
-|ジョブ固有のBean定義ファイルを格納するディレクトリ。 +
-階層構造はジョブ数に応じて自由に構成してよい。
+|ジョブ定義ファイルを格納するディレクトリ。 +
+階層構造はジョブ個別の設計に応じて構成する。(6)のパッケージ階層と合わせておくとよい。
 |===
 
 また、各ファイルの関連図を以下に示す。
 
-// ============ Java/XML Config Tab start. ============ 
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup030103" class="JavaConfigTab" id="tabgroup030103_1" checked><label for="tabgroup030103_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup030103" class="XMLConfigTab" id="tabgroup030103_2"><label for="tabgroup030103_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
-// Java Config start.
-.各ファイルの関連図
-image::Ch03_CreateProject_FilesRelation.png[Files Relation]
-// Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
-// XML Config start.
-.各ファイルの関連図
 image::Ch03_CreateProject_FilesRelation_XMLConfig.png[Files Relation]
 // XML Config end.
 ++++
@@ -492,7 +718,7 @@ image::Ch03_CreateProject_FilesRelation_XMLConfig.png[Files Relation]
 
 [[Ch03_CreateProject_Make_Setting]]
 === アプリケーション全体の設定
-ユーザの状況に応じて以下をカスタマイズする。
+ブランクプロジェクトによってあらかじめ設定されているものは説明を割愛する。以下では、ユーザの状況に応じてカスタマイズする箇所について説明する。
 
 * <<Ch03_CreateProject_Make_Setting_POM>>
 * <<Ch03_CreateProject_Make_Setting_DB>>
@@ -792,7 +1018,63 @@ public SqlSessionFactory adminSqlSessionFactory(@Qualifier("adminDataSource") Da
 
 [[Ch03_CreateProject_CreateJob]]
 == ジョブの作成
-ジョブの作成方法は、以下を参照。
+
+ジョブは、ジョブのBean定義ファイルと、そこから参照されるコンポーネントで構成される。
+
+基本的な実装方針を下表にまとめた。
+
+[cols="30,35,35", options="header"]
+|===
+|
+|JavaConfig
+|XMLConfig
+
+|ジョブのBean定義
+|``@Bean``を付与したメソッドで定義する。メソッド内で``JobBuilder``を使用する。
+|``<batch:job>``で定義する。
+
+|ステップのBean定義
+|``@Bean``を付与したメソッドで定義する。メソッド内で``StepBuilder``を使用する。
+|``<batch:job>``の内側で``<batch:step>``を定義する。
+
+|タスクレットの定義 +
+（タスクレットモデル）
+|``@Component``をつけたクラスとして実装し、ジョブのBean定義ファイルから``@ComponentScan``で読み込む。
+|``@Component``をつけたクラスとして実装し、ジョブのBean定義ファイルから``<context:component-scan>``で読み込む。
+
+|ItemReader/ItemWriter +
+（チャンクモデル）
+|``@Bean``を付与したメソッドで定義する。
+|``<bean>``で定義する。
+
+|ItemProcessor +
+（チャンクモデル）
+|``@Component``をつけたクラスとして実装し、ジョブのBean定義ファイルから``@ComponentScan``で読み込む。
+|``@Component``をつけたクラスとして実装し、ジョブのBean定義ファイルから``<context:component-scan>``で読み込む。
+
+|Bean名（BeanID）の決定
+|``@Bean``を付与したメソッドのメソッド名
+|``<bean>``、``<batch:job>``、``<batch:step>``等の``id``属性に指定した名前
+
+|Beanのインジェクション方法
+|メソッドインジェクションを使用する
+|``<bean>``の``p``、``c``ネームスペースや、``<batch:job>``、``<batch:step>``等がもつそれぞれの属性にBean名を指定する。
+|===
+
+ネームスペースについては、以下の公式ドキュメントを参照のこと。
+
+* https://docs.spring.io/spring-framework/reference/core/beans/dependencies/factory-properties-detailed.html#beans-p-namespace[p-namespaceを使用したXMLショートカット]
+* https://docs.spring.io/spring-framework/reference/core/beans/dependencies/factory-properties-detailed.html#beans-c-namespace[c-namespaceを使用したXMLショートカット]
+
+[CAUTION]
+.JavaConfigでのBeanのインジェクション時の注意事項
+====
+- Beanのインジェクションをフィールドインジェクションやコンストラクタインジェクションで行うと、シングルトンでないBean（``step``スコープなど）をインジェクションしたいときに対応できないので、使用しない。
+- 同じ型名のBeanが複数定義されている場合、引数に指定したBeanが見つからずエラーとなる。その場合は``@Qualifier``を付与する。
+====
+
+
+より詳細な作成方法の説明は、以下を参照。
 
 * <<Ch03_CreateChunkJob.adoc#Ch03_CreateChunkJob,チャンクモデルジョブの作成>>
 * <<Ch03_CreateTaskletJob.adoc#Ch03_CreateTaskletJob,タスクレットモデルジョブの作成>>
@@ -920,11 +1202,77 @@ $ mvn clean dependency:copy-dependencies -DoutputDirectory=lib package
 $ mvn -P profile-1,profile-2
 ----
 
+[NOTE]
+.LocalVariableTableParameterNameDiscovererの廃止について
+====
+``Spring Framework`` 6.1から、``LocalVariableTableParameterNameDiscoverer``が削除された。
+``LocalVariableTableParameterNameDiscoverer``は、``Spring Framework``内部で、リフレクションを用いたメソッドパラメータ名を取得する処理で用いられていた。
+
+アプリケーションで``LocalVariableTableParameterNameDiscoverer``を用いてメソッドパラメータ名を取得する処理を実装している場合は、以下の対応が必要となる。
+
+**  ``LocalVariableTableParameterNameDiscoverer``のかわりに``StandardReflectionParameterNameDiscoverer``を利用する。
+**  ``maven-compiler-plugin``の``<configuration>``に``<parameters>true</parameters>``を追加する。
+
+.pom.xmlの記述例
+[source,xml]
+----
+<plugin>
+    <groupId>org.apache.maven.plugins</groupId>
+    <artifactId>maven-compiler-plugin</artifactId>
+    <version>${maven-compiler-plugin.version}</version>
+    <configuration>
+        <source>${java-version}</source>
+        <target>${java-version}</target>
+        <parameters>true</parameters> // 追加
+    </configuration>
+</plugin>
+----
+====
+
 [[Ch03_CreateProject_BuildAndExec_AppExecution]]
 === アプリケーションの実行
 前段でビルドした結果をもとに、ジョブを実行する例を示す。 +
 ``[artifactId]``と``[version]``は<<Ch03_CreateProject_HowToCreate>>にて設定したものに、ユーザに応じて読み替えてほしい。
 
+// ============ Java/XML Config Tab start. ============
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup030106" class="JavaConfigTab" id="tabgroup030106_1" checked><label for="tabgroup030106_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup030106" class="XMLConfigTab" id="tabgroup030106_2"><label for="tabgroup030106_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start
+.コマンドプロンプト(Windows)
+[source,console]
+----
+C:\xxx>java -cp "target\[artifactId]-[version].jar;lib\*" ^
+org.springframework.batch.core.launch.support.CommandLineJobRunner ^
+com.example.batch.jobs.Job01Config job01
+
+(.. omitted)
+[2019/09/03 10:41:24] [main] [o.s.b.c.l.s.TaskExecutorJobLauncher] [INFO ] Job: [FlowJob: [name=job01]] launched with the following parameters: [{jsr_batch_run_id=1}]
+[2019/09/03 10:41:24] [main] [o.s.b.c.j.SimpleStepHandler] [INFO ] Executing step: [job01.step01]
+[2019/09/03 10:41:24] [main] [o.s.b.c.l.s.TaskExecutorJobLauncher] [INFO ] Job: [FlowJob: [name=job01]] completed with the following parameters: [{jsr_batch_run_id=1}] and the following status: [COMPLETED]
+----
+
+.Bash(Unix, Linux, ...)
+[source,console]
+----
+$ java -cp 'target/[artifactId]-[version].jar:lib/*' \
+org.springframework.batch.core.launch.support.CommandLineJobRunner \
+com.example.batch.jobs.Job01Config job01
+
+(.. omitted)
+[2019/09/03 02:43:11] [main] [o.s.b.c.l.s.TaskExecutorJobLauncher] [INFO ] Job: [FlowJob: [name=job01]] launched with the following parameters: [{jsr_batch_run_id=1}]
+[2019/09/03 02:43:11] [main] [o.s.b.c.j.SimpleStepHandler] [INFO ] Executing step: [job01.step01]
+[2019/09/03 02:43:11] [main] [o.s.b.c.l.s.TaskExecutorJobLauncher] [INFO ] Job: [FlowJob: [name=job01]] completed with the following parameters: [{jsr_batch_run_id=1}] and the following status: [COMPLETED]
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
 .コマンドプロンプト(Windows)
 [source,console]
 ----
@@ -933,9 +1281,9 @@ org.springframework.batch.core.launch.support.CommandLineJobRunner ^
 META-INF/jobs/job01.xml job01
 
 (.. omitted)
-[2019/09/03 10:41:24] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=job01]] launched with the following parameters: [{jsr_batch_run_id=1}]
+[2019/09/03 10:41:24] [main] [o.s.b.c.l.s.TaskExecutorJobLauncher] [INFO ] Job: [FlowJob: [name=job01]] launched with the following parameters: [{jsr_batch_run_id=1}]
 [2019/09/03 10:41:24] [main] [o.s.b.c.j.SimpleStepHandler] [INFO ] Executing step: [job01.step01]
-[2019/09/03 10:41:24] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=job01]] completed with the following parameters: [{jsr_batch_run_id=1}] and the following status: [COMPLETED]
+[2019/09/03 10:41:24] [main] [o.s.b.c.l.s.TaskExecutorJobLauncher] [INFO ] Job: [FlowJob: [name=job01]] completed with the following parameters: [{jsr_batch_run_id=1}] and the following status: [COMPLETED]
 ----
 
 .Bash(Unix, Linux, ...)
@@ -946,10 +1294,16 @@ org.springframework.batch.core.launch.support.CommandLineJobRunner \
 META-INF/jobs/job01.xml job01
 
 (.. omitted)
-[2019/09/03 02:43:11] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=job01]] launched with the following parameters: [{jsr_batch_run_id=1}]
+[2019/09/03 02:43:11] [main] [o.s.b.c.l.s.TaskExecutorJobLauncher] [INFO ] Job: [FlowJob: [name=job01]] launched with the following parameters: [{jsr_batch_run_id=1}]
 [2019/09/03 02:43:11] [main] [o.s.b.c.j.SimpleStepHandler] [INFO ] Executing step: [job01.step01]
-[2019/09/03 02:43:11] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=job01]] completed with the following parameters: [{jsr_batch_run_id=1}] and the following status: [COMPLETED]
+[2019/09/03 02:43:11] [main] [o.s.b.c.l.s.TaskExecutorJobLauncher] [INFO ] Job: [FlowJob: [name=job01]] completed with the following parameters: [{jsr_batch_run_id=1}] and the following status: [COMPLETED]
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============
 
 これにより、<ルートディレクトリ>/target/output.csvが生成される。
 
@@ -988,3 +1342,121 @@ fi
 ----
 
 ====
+
+[[Ch03_CreateProject_Appendix]]
+== Appendix
+
+[[Ch03_CreateProject_Appendix_DefaultBatchConfiguration]]
+=== DefaultBatchConfiguration
+
+``org.springframework.batch.core.configuration.support.DefaultBatchConfiguration``は、Spring Batchにより、JavaConfig向けにのみ提供されるConfigurationクラスである。
+
+詳しくは、{SB}の公式リファレンス（以下）を参照のこと。
+
+* https://docs.spring.io/spring-batch/reference/job/java-config.html[Java構成]
+* https://docs.spring.io/spring-batch/docs/{spring_batch_version}/org/springframework/batch/core/configuration/support/DefaultBatchConfiguration.html[クラス DefaultBatchConfiguration]
+
+``DefaultBatchConfiguration``は、Spring Batchの動作に必要ないくつかのBean定義（以下）を、あらかじめ設定済みにして提供する。
+
+* ``JobRepository``
+* ``JobExplorer``
+* ``JobLauncher``
+* ``JobRegistry``
+* ``JobOperator``
+
+``DefaultBatchConfiguration``に相当する仕組みは、XMLConfig向けには提供されない。そのためXMLConfigでは、上述の5つのBean定義は、``launch-context.xml``に記述している。
+
+[[Ch03_CreateProject_Appendix_TerasolunaBatchConfiguration]]
+=== TerasolunaBatchConfiguration
+
+``TerasolunaBatchConfiguration``は、``DefaultBatchConfiguration``のBean定義をカスタマイズするために用意されている。Bean定義のカスタマイズは、``DefaultBatchConfiguration``のBeanメソッドをオーバーライドすることで実現する。
+
+``TerasolunaBatchConfiguration``でカスタマイズするBeanと、カスタマイズ内容は以下となる。
+
+* ``JobRepository``
+** トランザクション分離レベルを``SERIALIZABLE``から``READ COMMITTED``に変更
+* ``JobOperator``
+** ``JobParametersConverter``の実装クラスを、``org.springframework.batch.core.converter.DefaultJobParametersConverter``から``org.terasoluna.batch.converter.JobParametersConverterImpl``に変更
+
+以下は、``JobRepository``と``JobOperator``のカスタマイズ箇所のコードとなる。
+
+.TerasolunaBatchConfiguration.java
+[source,java]
+----
+// omitted.
+@Override
+@Bean
+public JobRepository jobRepository() throws BatchConfigurationException {
+    JobRepositoryFactoryBean jobRepositoryFactoryBean = new JobRepositoryFactoryBean();
+    jobRepositoryFactoryBean.setDataSource(
+            getDataSource());
+    jobRepositoryFactoryBean.setTransactionManager(
+            getTransactionManager());
+    jobRepositoryFactoryBean.setIncrementerFactory(getIncrementerFactory());
+    jobRepositoryFactoryBean.setClobType(getClobType());
+    jobRepositoryFactoryBean.setTablePrefix(getTablePrefix());
+    jobRepositoryFactoryBean.setSerializer(getExecutionContextSerializer());
+    jobRepositoryFactoryBean.setConversionService(getConversionService());
+    jobRepositoryFactoryBean.setJdbcOperations(getJdbcOperations());
+    jobRepositoryFactoryBean.setLobHandler(getLobHandler());
+    jobRepositoryFactoryBean.setCharset(getCharset());
+    jobRepositoryFactoryBean.setMaxVarCharLength(getMaxVarCharLength());
+    jobRepositoryFactoryBean.setIsolationLevelForCreateEnum(
+            Isolation.READ_COMMITTED); // (1)
+    jobRepositoryFactoryBean.setValidateTransactionState(
+            getValidateTransactionState());
+
+     try {
+        jobRepositoryFactoryBean.setDatabaseType(getDatabaseType());
+        jobRepositoryFactoryBean.afterPropertiesSet();
+        return jobRepositoryFactoryBean.getObject();
+
+    } catch (BatchConfigurationException e) {
+        throw e;
+    } catch (Exception e) {
+        throw new BatchConfigurationException(
+                "Unable to configure the customized job repository", e);
+    }
+}
+// omitted.
+@Override
+@Bean
+public JobOperator jobOperator() throws BatchConfigurationException {
+    JobOperatorFactoryBean jobOperatorFactoryBean = new JobOperatorFactoryBean();
+    jobOperatorFactoryBean.setTransactionManager(
+            getTransactionManager());
+    jobOperatorFactoryBean.setJobRepository(jobRepository());
+    jobOperatorFactoryBean.setJobExplorer(jobExplorer());
+    jobOperatorFactoryBean.setJobRegistry(jobRegistry());
+    jobOperatorFactoryBean.setJobLauncher(jobLauncher());
+    JobParametersConverterImpl jobParametersConverter = new JobParametersConverterImpl(
+            getDataSource()); // (2)
+    jobOperatorFactoryBean.setJobParametersConverter(
+            jobParametersConverter);
+
+    try {
+        jobParametersConverter.afterPropertiesSet();
+        jobOperatorFactoryBean.afterPropertiesSet();
+        return jobOperatorFactoryBean.getObject();
+
+    } catch (BatchConfigurationException e) {
+        throw e;
+    } catch (Exception e) {
+        throw new BatchConfigurationException(
+                "Unable to configure the customized job operator", e);
+    }
+}
+// omitted.
+----
+
+[cols="10,90", options="header"]
+|===
+|項番
+|説明
+
+|(1)
+|トランザクション分離レベルを``READ COMMITTED``に変更する。
+
+|(2)
+|``JobParametersConverter``の実装クラスを``JobParametersConverterImpl``に変更する。
+|===

@@ -211,28 +211,15 @@ Bean定義ファイルにて、チャンクモデルでデータベースアク�
   <div class="tabcontent" name="JavaConfigContent">
 ++++
 // Java Config start.
-[source, xml]
-.src/main/resources/META-INF/jobs/dbaccess/jobPointAddChunk.xml
+[source, java]
+.com.example.batch.tutorial.config.dbaccess.JobPointAddChunkConfig.java
 ----
-<?xml version="1.0" encoding="UTF-8"?>
-<beans xmlns="http://www.springframework.org/schema/beans"
-       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-       xmlns:context="http://www.springframework.org/schema/context"
-       xmlns:batch="http://www.springframework.org/schema/batch"
-       xmlns:p="http://www.springframework.org/schema/p"
-       xmlns:mybatis="http://mybatis.org/schema/mybatis-spring"
-       xsi:schemaLocation="http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd
-             http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd
-             http://www.springframework.org/schema/batch https://www.springframework.org/schema/batch/spring-batch.xsd
-             http://mybatis.org/schema/mybatis-spring http://mybatis.org/schema/mybatis-spring.xsd">
+@Configuration
+@Import(JobBaseContextConfig.class) // (1)
+@ComponentScan("com.example.batch.tutorial.dbaccess.chunk") // (2)
+public class JobPointAddChunkConfig {
 
-    <!-- (1) -->
-    <bean class="com.example.batch.tutorial.config.JobBaseContextConfig" />
-
-    <!-- (2) -->
-    <context:component-scan base-package="com.example.batch.tutorial.dbaccess.chunk"/>
-
-</beans>
+}
 ----
 // Java Config end.
 ++++
@@ -268,15 +255,7 @@ Bean定義ファイルにて、チャンクモデルでデータベースアク�
   </div>
 </div>
 ++++
-// ============ Java/XML Config Tab end. ============ 
-
-
-
-
-
-
-
-
+// ============ Java/XML Config Tab end. ============
 
 [cols="10,90", options="header"]
 .説明
@@ -289,7 +268,7 @@ Bean定義ファイルにて、チャンクモデルでデータベースアク�
 
 |(2)
 |コンポーネントスキャンの設定を行う。 +
-``base-package``属性に、使用するコンポーネント(ItemProcessorの実装クラスなど)が格納されているパッケージを指定する。
+``value属性(省略可能)/base-package属性``に、使用するコンポーネント(ItemProcessorの実装クラスなど)が格納されているパッケージを指定する。
 |===
 
 [[Ch09_Impl_DBAccessJob_Chunk_Dto]]
@@ -490,40 +469,41 @@ MyBatisによるデータベースアクセスするための設定として、�
   <div class="tabcontent" name="JavaConfigContent">
 ++++
 // Java Config start.
-[source, xml]
-.src/main/resources/META-INF/jobs/dbaccess/jobPointAddChunk.xml
+[source, java]
+.com.example.batch.tutorial.config.dbaccess.JobPointAddChunkConfig.java
 ----
-<?xml version="1.0" encoding="UTF-8"?>
-<beans xmlns="http://www.springframework.org/schema/beans"
-       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-       xmlns:context="http://www.springframework.org/schema/context"
-       xmlns:batch="http://www.springframework.org/schema/batch"
-       xmlns:p="http://www.springframework.org/schema/p"
-       xmlns:mybatis="http://mybatis.org/schema/mybatis-spring"
-       xsi:schemaLocation="http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd
-             http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd
-             http://www.springframework.org/schema/batch https://www.springframework.org/schema/batch/spring-batch.xsd
-             http://mybatis.org/schema/mybatis-spring http://mybatis.org/schema/mybatis-spring.xsd">
+@Configuration
+@Import(JobBaseContextConfig.class)
+@PropertySource(value = "classpath:batch-application.properties")
+@ComponentScan("com.example.batch.tutorial.dbaccess.chunk")
+@MapperScan(basePackages = "com.example.batch.tutorial.common.repository", sqlSessionFactoryRef = "jobSqlSessionFactory") // (1)
+public class JobPointAddChunkConfig {
 
-    <bean class="com.example.batch.tutorial.config.JobBaseContextConfig" />
+    // (2)
+    @Bean
+    public MyBatisCursorItemReader<MemberInfoDto> reader(
+            @Qualifier("jobSqlSessionFactory") SqlSessionFactory jobSqlSessionFactory) {
+        return new MyBatisCursorItemReaderBuilder<MemberInfoDto>()
+                .sqlSessionFactory(jobSqlSessionFactory)
+                .queryId(
+                        "com.example.batch.tutorial.common.repository.MemberInfoRepository.cursor")
+                .build();
+    }
 
-    <context:component-scan base-package="com.example.batch.tutorial.dbaccess.chunk"/>
+    // (3)
+    @Bean
+    public MyBatisBatchItemWriter<MemberInfoDto> writer(
+            @Qualifier("jobSqlSessionFactory") SqlSessionFactory jobSqlSessionFactory,
+            SqlSessionTemplate batchModeSqlSessionTemplate) {
+        return new MyBatisBatchItemWriterBuilder<MemberInfoDto>()
+                .sqlSessionFactory(jobSqlSessionFactory)
+                .statementId(
+                        "com.example.batch.tutorial.common.repository.MemberInfoRepository.updatePointAndStatus")
+                .sqlSessionTemplate(batchModeSqlSessionTemplate)
+                .build();
+    }
 
-    <!-- (1) -->
-    <mybatis:scan base-package="com.example.batch.tutorial.common.repository" factory-ref="jobSqlSessionFactory"/>
-
-    <!-- (2) -->
-    <bean id="reader"
-          class="org.mybatis.spring.batch.MyBatisCursorItemReader"
-          p:queryId="com.example.batch.tutorial.common.repository.MemberInfoRepository.cursor"
-          p:sqlSessionFactory-ref="jobSqlSessionFactory"/>
-
-    <!-- (3) -->
-    <bean id="writer" class="org.mybatis.spring.batch.MyBatisBatchItemWriter"
-          p:statementId="com.example.batch.tutorial.common.repository.MemberInfoRepository.updatePointAndStatus"
-          p:sqlSessionTemplate-ref="batchModeSqlSessionTemplate"/>
-
-</beans>
+}
 ----
 // Java Config end.
 ++++
@@ -581,19 +561,19 @@ MyBatisによるデータベースアクセスするための設定として、�
 
 |(1)
 |Repositoryインタフェースをスキャンするための設定を行う。 +
-``base-package``属性に、Repositoryインタフェースが格納されている基底パッケージを指定する。
+``basePackages属性/base-package属性``に、Repositoryインタフェースが格納されている基底パッケージを指定する。
 
 |(2)
 |ItemReaderの設定を行う。 +
-``class``属性に、MyBatisが提供しているSpring連携ライブラリであるMyBatis-Springから提供されている``org.mybatis.spring.batch.MyBatisCursorItemReader``を指定する。
+``戻り値の型/class属性``に、MyBatisが提供しているSpring連携ライブラリであるMyBatis-Springから提供されている``org.mybatis.spring.batch.MyBatisCursorItemReader``を指定する。
 データベースから大量データを取得する際は、この``MyBatisCursorItemReader``を使用する。
 詳細は<<Ch05_DBAccess.adoc#Ch05_DBAccess_HowToUse_Input,入力>>を参照。 +
-``queryId``属性に、MapperXMLファイルに設定するSQLの``namespace``+``id``を指定する。
+``MyBatisCursorItemReaderBuilderのqueryIdメソッド/queryId属性``に、MapperXMLファイルに設定するSQLの``namespace``+``id``を指定する。
 
 |(3)
 |ItemWriterの設定を行う。 +
-``class``属性に、MyBatisが提供しているSpring連携ライブラリであるMyBatis-Springから提供されている``org.mybatis.spring.batch.MyBatisBatchItemWriter``を指定する。 +
-``statementId``属性に、MapperXMLファイルに設定するSQLの``namespace``+``id``を指定する。
+``戻り値の型/class属性``に、MyBatisが提供しているSpring連携ライブラリであるMyBatis-Springから提供されている``org.mybatis.spring.batch.MyBatisBatchItemWriter``を指定する。 +
+``MyBatisBatchItemWriterBuilderのstatementIdメソッド/statementId属性``に、MapperXMLファイルに設定するSQLの``namespace``+``id``を指定する。
 
 |===
 
@@ -717,47 +697,63 @@ public class PointAddItemProcessor implements ItemProcessor<MemberInfoDto, Membe
   <div class="tabcontent" name="JavaConfigContent">
 ++++
 // Java Config start.
-[source, xml]
-.src/main/resources/META-INF/jobs/dbaccess/jobPointAddChunk.xml
+[source, java]
+.com.example.batch.tutorial.config.dbaccess.JobPointAddChunkConfig.java
 ----
-<?xml version="1.0" encoding="UTF-8"?>
-<beans xmlns="http://www.springframework.org/schema/beans"
-       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-       xmlns:context="http://www.springframework.org/schema/context"
-       xmlns:batch="http://www.springframework.org/schema/batch"
-       xmlns:p="http://www.springframework.org/schema/p"
-       xmlns:mybatis="http://mybatis.org/schema/mybatis-spring"
-       xsi:schemaLocation="http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd
-             http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd
-             http://www.springframework.org/schema/batch https://www.springframework.org/schema/batch/spring-batch.xsd
-             http://mybatis.org/schema/mybatis-spring http://mybatis.org/schema/mybatis-spring.xsd">
+@Configuration
+@Import(JobBaseContextConfig.class)
+@PropertySource(value = "classpath:batch-application.properties")
+@ComponentScan("com.example.batch.tutorial.dbaccess.chunk")
+@MapperScan(basePackages = "com.example.batch.tutorial.common.repository", sqlSessionFactoryRef = "jobSqlSessionFactory")
+public class JobPointAddChunkConfig {
 
-    <bean class="com.example.batch.tutorial.config.JobBaseContextConfig" />
+    @Bean
+    public MyBatisCursorItemReader<MemberInfoDto> reader(
+            @Qualifier("jobSqlSessionFactory") SqlSessionFactory jobSqlSessionFactory) {
+        return new MyBatisCursorItemReaderBuilder<MemberInfoDto>()
+                .sqlSessionFactory(jobSqlSessionFactory)
+                .queryId(
+                        "com.example.batch.tutorial.common.repository.MemberInfoRepository.cursor")
+                .build();
+    }
 
-    <context:component-scan base-package="com.example.batch.tutorial.dbaccess.chunk"/>
+    @Bean
+    public MyBatisBatchItemWriter<MemberInfoDto> writer(
+            @Qualifier("jobSqlSessionFactory") SqlSessionFactory jobSqlSessionFactory,
+            SqlSessionTemplate batchModeSqlSessionTemplate) {
+        return new MyBatisBatchItemWriterBuilder<MemberInfoDto>()
+                .sqlSessionFactory(jobSqlSessionFactory)
+                .statementId(
+                        "com.example.batch.tutorial.common.repository.MemberInfoRepository.updatePointAndStatus")
+                .sqlSessionTemplate(batchModeSqlSessionTemplate)
+                .build();
+    }
 
-    <mybatis:scan base-package="com.example.batch.tutorial.common.repository" factory-ref="jobSqlSessionFactory"/>
+    // (2)
+    @Bean
+    public Step step01(JobRepository jobRepository,
+                       @Qualifier("jobTransactionManager") PlatformTransactionManager transactionManager,
+                       ItemReader<MemberInfoDto> reader,
+                       PointAddItemProcessor processor,
+                       ItemWriter<MemberInfoDto> writer) {
+        return new StepBuilder("jobPointAddChunk.step01",
+                jobRepository)
+                .<MemberInfoDto, MemberInfoDto>chunk(10, // (3)
+                        transactionManager)
+                .reader(reader)
+                .processor(processor)
+                .writer(writer)
+                .build();
+    }
 
-    <bean id="reader"
-          class="org.mybatis.spring.batch.MyBatisCursorItemReader"
-          p:queryId="com.example.batch.tutorial.common.repository.MemberInfoRepository.cursor"
-          p:sqlSessionFactory-ref="jobSqlSessionFactory"/>
-
-    <bean id="writer" class="org.mybatis.spring.batch.MyBatisBatchItemWriter"
-          p:statementId="com.example.batch.tutorial.common.repository.MemberInfoRepository.updatePointAndStatus"
-          p:sqlSessionTemplate-ref="batchModeSqlSessionTemplate"/>
-
-    <!-- (1) -->
-    <batch:job id="jobPointAddChunk" job-repository="jobRepository">
-        <batch:step id="jobPointAddChunk.step01"> <!-- (2) -->
-            <batch:tasklet transaction-manager="jobTransactionManager">
-                <batch:chunk reader="reader"
-                             processor="pointAddItemProcessor"
-                             writer="writer" commit-interval="10"/> <!-- (3) -->
-            </batch:tasklet>
-        </batch:step>
-    </batch:job>
-</beans>
+    @Bean
+    public Job jobPointAddChunk(JobRepository jobRepository,
+                                             Step step01) {
+        return new JobBuilder("jobPointAddChunk", jobRepository) // (1)
+                .start(step01)
+                .build();
+    }
+}
 ----
 // Java Config end.
 ++++
@@ -822,20 +818,20 @@ public class PointAddItemProcessor implements ItemProcessor<MemberInfoDto, Membe
 
 |(1)
 |ジョブの設定を行う。 +
-``id``属性は、1つのバッチアプリケーションに含まれる全ジョブの範囲内で一意とする必要がある。 +
+``JobBuilderのコンストラクタの引数name/id属性``は、1つのバッチアプリケーションに含まれる全ジョブの範囲内で一意とする必要がある。 +
 ここでは、チャンクモデルのジョブ名として``jobPointAddChunk``を指定する。
 
 |(2)
 |ステップの設定を行う。 +
-``id``属性は、1つのバッチアプリケーションに含まれる全ジョブの範囲内で一意とする必要はないが、障害発生時に追跡しやすくなる等の様々なメリットがあるため一意とする。 +
-特別な理由がない限り、(1)で指定した``id``属性に[step+連番]を付加する形式とする。 +
+``StepBuilderのコンストラクタの引数name/id属性``は、1つのバッチアプリケーションに含まれる全ジョブの範囲内で一意とする必要はないが、障害発生時に追跡しやすくなる等の様々なメリットがあるため一意とする。 +
+特別な理由がない限り、(1)で指定した``JobBuilderのコンストラクタの引数name/id属性``に[step+連番]を付加する形式とする。 +
 ここでは、チャンクモデルのジョブのステップ名として``jobPointAddChunk.step01``を指定する。
 
 |(3)
 |チャンクモデルジョブの設定を行う。 +
-``reader``、``writer``それぞれの属性に、前項までに定義した``ItemReader``、``ItemWriter``のBeanIDを指定する。 +
-``processor``属性に、ItemProcessorの実装クラスのBeanIDである``pointAddItemProcessor``を指定する。 +
-``commit-interval``属性に、1チャンクあたりの入力データ件数を10件として設定する。
+``StepBuilderのreaderメソッド、writerメソッド/reader、writerそれぞれの属性``に、前項までに定義した``ItemReader``、``ItemWriter``のBeanIDを指定する。 +
+``StepBuilderのprocessorメソッド/processor属性``に、ItemProcessorの実装クラスのBeanIDである``pointAddItemProcessor``を指定する。 +
+``chunkメソッドの引数chunkSize/commit-interval属性``に、1チャンクあたりの入力データ件数を10件として設定する。
 
 |===
 
@@ -861,12 +857,38 @@ commit-intervalはチャンクモデルジョブにおける、性能上のチ�
 実行構成の作成手順は<<Ch09_EnvironmentConstruction.adoc#Ch09_EnvironmentConstruction_OperationCheck,プロジェクトの動作確認>>を参照。
 
 実行構成の設定値::
+// ============ Java/XML Config Tab start. ============
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup09040107" class="JavaConfigTab" id="tabgroup09040107_1" checked><label for="tabgroup09040107_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup09040107" class="XMLConfigTab" id="tabgroup09040107_2"><label for="tabgroup09040107_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+* Name: 任意の名称(例: Run DBAccessJob for ChunkModel)
+* Mainタブ
+** Project: ``macchinetta-batch-tutorial``
+** Main class: ``org.springframework.batch.core.launch.support.CommandLineJobRunner``
+* Argumentsタブ
+** Program arguments: ``com.example.batch.tutorial.config.dbaccess.JobPointAddChunkConfig jobPointAddChunk``
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
 * Name: 任意の名称(例: Run DBAccessJob for ChunkModel)
 * Mainタブ
 ** Project: ``macchinetta-batch-tutorial``
 ** Main class: ``org.springframework.batch.core.launch.support.CommandLineJobRunner``
 * Argumentsタブ
 ** Program arguments: ``META-INF/jobs/dbaccess/jobPointAddChunk.xml jobPointAddChunk``
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============
 
 [[Ch09_Impl_DBAccessJob_Chunk_Execution_Console]]
 ==== コンソールログの確認
@@ -879,10 +901,10 @@ Console Viewを開き、以下の内容のログが出力されていること�
 ----
 (.. omitted)
 
-[2020/03/10 13:07:50] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=jobPointAddChunk]] launched with the following parameters: [{jsr_batch_run_id=112}]
+[2020/03/10 13:07:50] [main] [o.s.b.c.l.s.TaskExecutorJobLauncher] [INFO ] Job: [FlowJob: [name=jobPointAddChunk]] launched with the following parameters: [{jsr_batch_run_id=112}]
 [2020/03/10 13:07:50] [main] [o.s.b.c.j.SimpleStepHandler] [INFO ] Executing step: [jobPointAddChunk.step01]
 [2020/03/10 13:07:50] [main] [o.s.b.c.s.AbstractStep] [INFO ] Step: [jobPointAddChunk.step01] executed in 173ms
-[2020/03/10 13:07:50] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=jobPointAddChunk]] completed with the following parameters: [{jsr_batch_run_id=112}] and the following status: [COMPLETED] in 330ms
+[2020/03/10 13:07:50] [main] [o.s.b.c.l.s.TaskExecutorJobLauncher] [INFO ] Job: [FlowJob: [name=jobPointAddChunk]] completed with the following parameters: [{jsr_batch_run_id=112}] and the following status: [COMPLETED] in 330ms
 ----
 
 [[Ch09_Impl_DBAccessJob_Chunk_Execution_Exitcode]]
@@ -936,28 +958,15 @@ Bean定義ファイルにて、タスクレットモデルでデータベース�
   <div class="tabcontent" name="JavaConfigContent">
 ++++
 // Java Config start.
-[source, xml]
-.src/main/resources/META-INF/jobs/dbaccess/jobPointAddTasklet.xml
+[source, java]
+.com.example.batch.tutorial.config.dbaccess.JobPointAddTaskletConfig.java
 ----
-<?xml version="1.0" encoding="UTF-8"?>
-<beans xmlns="http://www.springframework.org/schema/beans"
-       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-       xmlns:context="http://www.springframework.org/schema/context"
-       xmlns:batch="http://www.springframework.org/schema/batch"
-       xmlns:p="http://www.springframework.org/schema/p"
-       xmlns:mybatis="http://mybatis.org/schema/mybatis-spring"
-       xsi:schemaLocation="http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd
-             http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd
-             http://www.springframework.org/schema/batch https://www.springframework.org/schema/batch/spring-batch.xsd
-             http://mybatis.org/schema/mybatis-spring http://mybatis.org/schema/mybatis-spring.xsd">
+@Configuration
+@Import(JobBaseContextConfig.class) // (1)
+@ComponentScan("com.example.batch.tutorial.dbaccess.tasklet") // (2)
+public class JobPointAddTaskletConfig {
 
-    <!-- (1) -->
-    <bean class="com.example.batch.tutorial.config.JobBaseContextConfig" />
-
-    <!-- (2) -->
-    <context:component-scan base-package="com.example.batch.tutorial.dbaccess.tasklet"/>
-
-</beans>
+}
 ----
 // Java Config end.
 ++++
@@ -1006,7 +1015,7 @@ Bean定義ファイルにて、タスクレットモデルでデータベース�
 
 |(2)
 |コンポーネントスキャンの設定を行う。 +
-``base-package``属性に、使用するコンポーネント(Taskletの実装クラスなど)が格納されているパッケージを指定する。
+``basePackages属性/base-package属性``に、使用するコンポーネント(Taskletの実装クラスなど)が格納されているパッケージを指定する。
 |===
 
 [[Ch09_Impl_DBAccessJob_Tasklet_Dto]]
@@ -1207,40 +1216,40 @@ MyBatisによるデータベースアクセスするための設定として、�
   <div class="tabcontent" name="JavaConfigContent">
 ++++
 // Java Config start.
-[source, xml]
-.src/main/resources/META-INF/jobs/dbaccess/jobPointAddTasklet.xml
+[source, java]
+.com.example.batch.tutorial.config.dbaccess.JobPointAddTaskletConfig.java
 ----
-<?xml version="1.0" encoding="UTF-8"?>
-<beans xmlns="http://www.springframework.org/schema/beans"
-       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-       xmlns:context="http://www.springframework.org/schema/context"
-       xmlns:batch="http://www.springframework.org/schema/batch"
-       xmlns:p="http://www.springframework.org/schema/p"
-       xmlns:mybatis="http://mybatis.org/schema/mybatis-spring"
-       xsi:schemaLocation="http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd
-             http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd
-             http://www.springframework.org/schema/batch https://www.springframework.org/schema/batch/spring-batch.xsd
-             http://mybatis.org/schema/mybatis-spring http://mybatis.org/schema/mybatis-spring.xsd">
+@Configuration
+@Import(JobBaseContextConfig.class)
+@PropertySource(value = "classpath:batch-application.properties")
+@ComponentScan("com.example.batch.tutorial.dbaccess.tasklet")
+@MapperScan(basePackages = "com.example.batch.tutorial.common.repository", sqlSessionFactoryRef = "jobSqlSessionFactory") // (1)
+public class JobPointAddTaskletConfig {
 
-    <bean class="com.example.batch.tutorial.config.JobBaseContextConfig" />
+    // (2)
+    @Bean
+    public MyBatisCursorItemReader<MemberInfoDto> reader(
+            @Qualifier("jobSqlSessionFactory") SqlSessionFactory jobSqlSessionFactory) {
+        return new MyBatisCursorItemReaderBuilder<MemberInfoDto>()
+                .sqlSessionFactory(jobSqlSessionFactory)
+                .queryId(
+                        "com.example.batch.tutorial.common.repository.MemberInfoRepository.cursor")
+                .build();
+    }
 
-    <context:component-scan base-package="com.example.batch.tutorial.dbaccess.tasklet"/>
-
-    <!-- (1) -->
-    <mybatis:scan base-package="com.example.batch.tutorial.common.repository" factory-ref="jobSqlSessionFactory"/>
-
-    <!-- (2) -->
-    <bean id="reader"
-          class="org.mybatis.spring.batch.MyBatisCursorItemReader"
-          p:queryId="com.example.batch.tutorial.common.repository.MemberInfoRepository.cursor"
-          p:sqlSessionFactory-ref="jobSqlSessionFactory"/>
-
-    <!-- (3) -->
-    <bean id="writer" class="org.mybatis.spring.batch.MyBatisBatchItemWriter"
-          p:statementId="com.example.batch.tutorial.common.repository.MemberInfoRepository.updatePointAndStatus"
-          p:sqlSessionTemplate-ref="batchModeSqlSessionTemplate"/>
-
-</beans>
+    // (3)
+    @Bean
+    public MyBatisBatchItemWriter<MemberInfoDto> writer(
+            @Qualifier("jobSqlSessionFactory") SqlSessionFactory jobSqlSessionFactory,
+            SqlSessionTemplate batchModeSqlSessionTemplate) {
+        return new MyBatisBatchItemWriterBuilder<MemberInfoDto>()
+                .sqlSessionFactory(jobSqlSessionFactory)
+                .statementId(
+                        "com.example.batch.tutorial.common.repository.MemberInfoRepository.updatePointAndStatus")
+                .sqlSessionTemplate(batchModeSqlSessionTemplate)
+                .build();
+    }
+}
 ----
 // Java Config end.
 ++++
@@ -1298,17 +1307,17 @@ MyBatisによるデータベースアクセスするための設定として、�
 
 |(1)
 |Repositoryインタフェースをスキャンするための設定を行う。 +
-``base-package``属性に、Repositoryインタフェースが格納されている基底パッケージを指定する。
+``basePackages属性/base-package属性``に、Repositoryインタフェースが格納されている基底パッケージを指定する。
 
 |(2)
 |ItemReaderの設定を行う。 +
-``class``属性に、MyBatisが提供しているSpring連携ライブラリMyBatis-Springから提供されている``org.mybatis.spring.batch.MyBatisCursorItemReader``を指定する。 +
-``queryId``属性に、MapperXMLファイルに設定するSQLの``namespace``+``id``を指定する。
+``戻り値の型/class属性``に、MyBatisが提供しているSpring連携ライブラリMyBatis-Springから提供されている``org.mybatis.spring.batch.MyBatisCursorItemReader``を指定する。 +
+``MyBatisCursorItemReaderBuilderのqueryIdメソッド/queryId属性``に、MapperXMLファイルに設定するSQLの``namespace``+``id``を指定する。
 
 |(3)
 |ItemWriterの設定を行う。 +
-``class``属性に、MyBatisが提供しているSpring連携ライブラリMyBatis-Springから提供されている``org.mybatis.spring.batch.MyBatisBatchItemWriter``を指定する。 +
-``statementId``属性に、MapperXMLファイルに設定するSQLの``namespace``+``id``を指定する。
+``戻り値の型/class属性``に、MyBatisが提供しているSpring連携ライブラリMyBatis-Springから提供されている``org.mybatis.spring.batch.MyBatisBatchItemWriter``を指定する。 +
+``MyBatisBatchItemWriterBuilderのstatementIdメソッド/statementId属性``に、MapperXMLファイルに設定するSQLの``namespace``+``id``を指定する。
 
 |===
 
@@ -1516,44 +1525,58 @@ public class PointAddTasklet implements Tasklet {
   <div class="tabcontent" name="JavaConfigContent">
 ++++
 // Java Config start.
-[source, xml]
-.src/main/resources/META-INF/jobs/dbaccess/jobPointAddTasklet.xml
+[source, java]
+.com.example.batch.tutorial.config.dbaccess.JobPointAddTaskletConfig.java
 ----
-<?xml version="1.0" encoding="UTF-8"?>
-<beans xmlns="http://www.springframework.org/schema/beans"
-       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-       xmlns:context="http://www.springframework.org/schema/context"
-       xmlns:batch="http://www.springframework.org/schema/batch"
-       xmlns:p="http://www.springframework.org/schema/p"
-       xmlns:mybatis="http://mybatis.org/schema/mybatis-spring"
-       xsi:schemaLocation="http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd
-             http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd
-             http://www.springframework.org/schema/batch https://www.springframework.org/schema/batch/spring-batch.xsd
-             http://mybatis.org/schema/mybatis-spring http://mybatis.org/schema/mybatis-spring.xsd">
+@Configuration
+@Import(JobBaseContextConfig.class)
+@PropertySource(value = "classpath:batch-application.properties")
+@ComponentScan("com.example.batch.tutorial.dbaccess.tasklet")
+@MapperScan(basePackages = "com.example.batch.tutorial.common.repository", sqlSessionFactoryRef = "jobSqlSessionFactory")
+public class JobPointAddTaskletConfig {
 
-    <bean class="com.example.batch.tutorial.config.JobBaseContextConfig" />
+    @Bean
+    public MyBatisCursorItemReader<MemberInfoDto> reader(
+            @Qualifier("jobSqlSessionFactory") SqlSessionFactory jobSqlSessionFactory) {
+        return new MyBatisCursorItemReaderBuilder<MemberInfoDto>()
+                .sqlSessionFactory(jobSqlSessionFactory)
+                .queryId(
+                        "com.example.batch.tutorial.common.repository.MemberInfoRepository.cursor")
+                .build();
+    }
 
-    <context:component-scan base-package="com.example.batch.tutorial.dbaccess.tasklet"/>
+    @Bean
+    public MyBatisBatchItemWriter<MemberInfoDto> writer(
+            @Qualifier("jobSqlSessionFactory") SqlSessionFactory jobSqlSessionFactory,
+            SqlSessionTemplate batchModeSqlSessionTemplate) {
+        return new MyBatisBatchItemWriterBuilder<MemberInfoDto>()
+                .sqlSessionFactory(jobSqlSessionFactory)
+                .statementId(
+                        "com.example.batch.tutorial.common.repository.MemberInfoRepository.updatePointAndStatus")
+                .sqlSessionTemplate(batchModeSqlSessionTemplate)
+                .build();
+    }
 
-    <mybatis:scan base-package="com.example.batch.tutorial.common.repository" factory-ref="jobSqlSessionFactory"/>
+    // (2)
+    @Bean
+    public Step step01(JobRepository jobRepository,
+                       @Qualifier("jobTransactionManager") PlatformTransactionManager transactionManager,
+                       PointAddTasklet tasklet) {
+        return new StepBuilder("jobPointAddTasklet.step01",
+                jobRepository)
+                .tasklet(tasklet, transactionManager) // (3)
+                .build();
+    }
 
-    <bean id="reader"
-          class="org.mybatis.spring.batch.MyBatisCursorItemReader"
-          p:queryId="com.example.batch.tutorial.common.repository.MemberInfoRepository.cursor"
-          p:sqlSessionFactory-ref="jobSqlSessionFactory"/>
-
-    <bean id="writer" class="org.mybatis.spring.batch.MyBatisBatchItemWriter"
-          p:statementId="com.example.batch.tutorial.common.repository.MemberInfoRepository.updatePointAndStatus"
-         p:sqlSessionTemplate-ref="batchModeSqlSessionTemplate"/>
-
-    <!-- (1) -->
-    <batch:job id="jobPointAddTasklet" job-repository="jobRepository">
-        <batch:step id="jobPointAddTasklet.step01"> <!-- (2) -->
-            <batch:tasklet transaction-manager="jobTransactionManager"
-                           ref="pointAddTasklet"/> <!-- (3) -->
-        </batch:step>
-    </batch:job>
-</beans>
+    // (1)
+    @Bean
+    public Job jobPointAddTasklet(JobRepository jobRepository,
+                                             Step step01) {
+        return new JobBuilder("jobPointAddTasklet", jobRepository)
+                .start(step01)
+                .build();
+    }
+}
 ----
 // Java Config end.
 ++++
@@ -1615,18 +1638,18 @@ public class PointAddTasklet implements Tasklet {
 
 |(1)
 |ジョブの設定を行う。 +
-``id``属性は、1つのバッチアプリケーションに含まれる全ジョブの範囲内で一意とする必要がある。 +
+``JobBuilderのコンストラクタの引数name/id属性``は、1つのバッチアプリケーションに含まれる全ジョブの範囲内で一意とする必要がある。 +
 ここでは、タスクレットモデルのジョブ名として``jobPointAddTasklet``を指定する。
 
 |(2)
 |ステップの設定を行う。 +
-``id``属性は、1つのバッチアプリケーションに含まれる全ジョブの範囲内で一意とする必要はないが、障害発生時に追跡しやすくなる等の様々なメリットがあるため一意とする。 +
- 特別な理由がない限り、(1)で指定した``id``属性に[step+連番]を付加する形式とする。 +
+``StepBuilderのコンストラクタの引数name/id属性``は、1つのバッチアプリケーションに含まれる全ジョブの範囲内で一意とする必要はないが、障害発生時に追跡しやすくなる等の様々なメリットがあるため一意とする。 +
+ 特別な理由がない限り、(1)で指定した``JobBuilderのコンストラクタの引数name/id属性``に[step+連番]を付加する形式とする。 +
 ここでは、タスクレットモデルのジョブのステップ名として``jobPointAddTasklet.step01``を指定する。
 
 |(3)
 |タスクレットの設定を行う。 +
-``ref``属性に、Taskletの実装クラスのBeanIDである``pointAddTasklet``を指定する。
+``StepBuilderのtaskletメソッドの引数tasklet/ref属性``に、Taskletの実装クラスのBeanIDである``pointAddTasklet``を指定する。
 
 |===
 
@@ -1640,12 +1663,38 @@ public class PointAddTasklet implements Tasklet {
 実行構成の作成手順は<<Ch09_EnvironmentConstruction.adoc#Ch09_EnvironmentConstruction_OperationCheck,プロジェクトの動作確認>>を参照。
 
 実行構成の設定値::
+// ============ Java/XML Config Tab start. ============
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup09040108" class="JavaConfigTab" id="tabgroup09040108_1" checked><label for="tabgroup09040108_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup09040108" class="XMLConfigTab" id="tabgroup09040108_2"><label for="tabgroup09040108_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+* Name: 任意の名称(例: Run DBAccessJob for TaskletModel)
+* Mainタブ
+** Project: ``macchinetta-batch-tutorial``
+** Main class: ``org.springframework.batch.core.launch.support.CommandLineJobRunner``
+* Argumentsタブ
+** Program arguments: ``com.example.batch.tutorial.config.dbaccess.JobPointAddTaskletConfig jobPointAddTasklet``
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
 * Name: 任意の名称(例: Run DBAccessJob for TaskletModel)
 * Mainタブ
 ** Project: ``macchinetta-batch-tutorial``
 ** Main class: ``org.springframework.batch.core.launch.support.CommandLineJobRunner``
 * Argumentsタブ
 ** Program arguments: ``META-INF/jobs/dbaccess/jobPointAddTasklet.xml jobPointAddTasklet``
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============
 
 [[Ch09_Impl_DBAccessJob_Tasklet_Execution_Console]]
 ==== コンソールログの確認
@@ -1658,10 +1707,10 @@ Console Viewを開き、以下の内容のログが出力されていること�
 ----
 (.. omitted)
 
-[2020/03/10 13:10:12] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=jobPointAddTasklet]] launched with the following parameters: [{jsr_batch_run_id=114}]
+[2020/03/10 13:10:12] [main] [o.s.b.c.l.s.TaskExecutorJobLauncher] [INFO ] Job: [FlowJob: [name=jobPointAddTasklet]] launched with the following parameters: [{jsr_batch_run_id=114}]
 [2020/03/10 13:10:12] [main] [o.s.b.c.j.SimpleStepHandler] [INFO ] Executing step: [jobPointAddTasklet.step01]
 [2020/03/10 13:10:12] [main] [o.s.b.c.s.AbstractStep] [INFO ] Step: [jobPointAddTasklet.step01] executed in 94ms
-[2020/03/10 13:10:12] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=jobPointAddTasklet]] completed with the following parameters: [{jsr_batch_run_id=114}] and the following status: [COMPLETED] in 168ms
+[2020/03/10 13:10:12] [main] [o.s.b.c.l.s.TaskExecutorJobLauncher] [INFO ] Job: [FlowJob: [name=jobPointAddTasklet]] completed with the following parameters: [{jsr_batch_run_id=114}] and the following status: [COMPLETED] in 168ms
 ----
 
 [[Ch09_Impl_DBAccessJob_Tasklet_Execution_Exitcode]]

@@ -40,7 +40,7 @@ include::_include_all.adoc[]
 |Apache Maven 3.8.6
 
 |RDBMS
-|H2 Database 2.1.214
+|H2 Database 2.2.224
 
 |===
 

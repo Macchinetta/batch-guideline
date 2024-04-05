@@ -120,8 +120,131 @@ image::Ch08_ParallelAndMultiple_Parallel_Step.png[Parallel Step]
 
 Parallel Stepの概要図を例にしたParallel Stepの定義方法を以下に示す。
 
-[source,xml]
 .Parallel Stepのジョブ定義
+// ============ Java/XML Config Tab start. ============
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup080201" class="JavaConfigTab" id="tabgroup080201_1" checked><label for="tabgroup080201_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup080201" class="XMLConfigTab" id="tabgroup080201_2"><label for="tabgroup080201_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+[source,java]
+----
+// (1)
+@Bean
+public TaskExecutor parallelTaskExecutor() {
+    ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+    executor.setCorePoolSize(10);
+    executor.setQueueCapacity(200);
+    return executor;
+}
+
+// (4)
+@Bean
+public Step stepChunkDb(JobRepository jobRepository,
+                  ItemReader fileReader,
+                  ItemWriter databaseWriter,
+                  @Qualifier("jobTransactionManager") PlatformTransactionManager transactionManager) {
+    return new StepBuilder("parallelStepJob.step.chunk.db", jobRepository)
+            .chunk(100, transactionManager)
+            .reader(fileReader)
+            .writer(databaseWriter)
+            .build();
+}
+
+// (5)
+@Bean
+public Step stepTaskletChunk(JobRepository jobRepository,
+                  Tasklet chunkTransactionTasklet,
+                  @Qualifier("jobTransactionManager") PlatformTransactionManager transactionManager) {
+    return new StepBuilder("parallelStepJob.step.tasklet.chunk", jobRepository)
+            .tasklet(chunkTransactionTasklet, transactionManager)
+            .build();
+}
+
+// (6)
+@Bean
+public Step stepTaskletSingle(JobRepository jobRepository,
+                  Tasklet singleTransactionTasklet,
+                  @Qualifier("jobTransactionManager") PlatformTransactionManager transactionManager) {
+    return new StepBuilder("parallelStepJob.step.tasklet.single", jobRepository)
+            .tasklet(singleTransactionTasklet, transactionManager)
+            .build();
+}
+
+// (7)
+@Bean
+public Step stepChunkDb(JobRepository jobRepository,
+                  ItemReader databaseReader,
+                  ItemWriter fileWriter,
+                  @Qualifier("jobTransactionManager") PlatformTransactionManager transactionManager) {
+    return new StepBuilder("parallelStepJob.step.chunk.file", jobRepository)
+            .chunk(200, transactionManager)
+            .reader(databaseReader)
+            .writer(fileWriter)
+            .build();
+}
+
+// (3)
+@Bean
+public Flow flow1(Step stepChunkDb) {
+    return new FlowBuilder<SimpleFlow>("flow1")
+            .start(stepChunkDb)
+            .build();
+}
+
+// (3)
+@Bean
+public Flow flow2(Step stepTaskletChunk) {
+    return new FlowBuilder<SimpleFlow>("flow2")
+            .start(stepTaskletChunk)
+            .build();
+}
+
+// (3)
+@Bean
+public Flow flow3(Step stepTaskletSingle) {
+    return new FlowBuilder<SimpleFlow>("flow3")
+            .start(stepTaskletSingle)
+            .build();
+}
+
+// (3)
+@Bean
+public Flow flow4(Step stepChunkDb) {
+    return new FlowBuilder<SimpleFlow>("flow4")
+            .start(stepChunkDb)
+            .build();
+}
+
+// (2)
+@Bean
+public Flow splitFlow(
+        @Qualifier("parallelTaskExecutor") TaskExecutor taskExecutor,
+        Flow flow1, Flow flow2, Flow flow3, Flow flow4) {
+    return new FlowBuilder<SimpleFlow>("parallelStepJob.split")
+            .split(taskExecutor)
+            .add(flow1, flow2, flow3, flow4)
+            .build();
+}
+
+@Bean
+public Job parallelSummarizeJob(JobRepository jobRepository,
+                                Flow splitFlow) {
+    return new JobBuilder("parallelStepJob", jobRepository)
+            .start(splitFlow)
+            .end()
+            .build();
+}
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
+[source,xml]
 ----
 <!-- Task Executor -->
 <!-- (1) -->
@@ -170,6 +293,12 @@ Parallel Stepの概要図を例にしたParallel Stepの定義方法を以下に
   </batch:split>
 </batch:job>
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============
 
 [cols="10,90",options="header"]
 .説明
@@ -181,11 +310,11 @@ Parallel Stepの概要図を例にしたParallel Stepの定義方法を以下に
 |並列処理のために、各スレッドに割り当てるためのスレッドプールを定義する。
 
 |(2)
-|``<batch:split>``要素内に並列実行するステップを``<batch:flow>``要素を使用した形式で定義をする。 +
-``task-executor``属性に(1)で定義したスレッドプールのBeanを設定する
+|``FlowBuilderのaddメソッドの引数flows/<batch:split>要素内に``並列実行するステップを``Bean定義したFlowクラス/<batch:flow>要素``を使用した形式で定義をする。 +
+``splitメソッドの引数executor/task-executor属性``に(1)で定義したスレッドプールのBeanを設定する
 
 |(3)
-|``<batch:flow>``ごとに並列位処理したい``<batch:step>``を定義する。
+|``Bean定義したFlow/<batch:flow>``ごとに並列位処理したい``Bean定義したStep/<batch:step>``を定義する。
 
 |(4)
 |概要図のStep1：チャンクモデルの中間コミット方式処理を定義する。
@@ -217,8 +346,103 @@ Parallel Stepの概要図を例にしたParallel Stepの定義方法を以下に
 
 また、Parallel Stepの前後に共通処理のステップを定義することも可能である。
 
-[source,xml]
 .共通処理ステップを含むParallel Stepの例
+// ============ Java/XML Config Tab start. ============
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup080202" class="JavaConfigTab" id="tabgroup080202_1" checked><label for="tabgroup080202_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup080202" class="XMLConfigTab" id="tabgroup080202_2"><label for="tabgroup080202_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+[source,java]
+----
+@Bean
+public Step stepPreprocess(JobRepository jobRepository,
+                        StepExecutionLoggingListener listener,
+                        DeleteDetailTasklet deleteDetailTasklet,
+                        @Qualifier("jobTransactionManager") PlatformTransactionManager transactionManager) {
+    return new StepBuilder("parallelRegisterJob.step.preprocess", jobRepository)
+            .tasklet(deleteDetailTasklet, transactionManager)
+            .listener(listener)
+            .build();
+}
+
+@Bean
+public Step stepPlan(JobRepository jobRepository,
+                  StepExecutionLoggingListener listener,
+                  @Qualifier("planReader") ItemReader<SalesPlanDetail> reader,
+                  @Qualifier("planWriter") ItemWriter<SalesPlanDetail> writer,
+                  @Qualifier("jobTransactionManager") PlatformTransactionManager transactionManager) {
+    return new StepBuilder("parallelRegisterJob.step.plan", jobRepository)
+            .<SalesPlanDetail, SalesPlanDetail> chunk(1,
+                    transactionManager)
+            .listener(listener)
+            .reader(reader)
+            .writer(writer)
+            .build();
+}
+
+@Bean
+public Step stepPerformance(JobRepository jobRepository,
+                  StepExecutionLoggingListener listener,
+                  @Qualifier("performanceReader") ItemReader<SalesPerformanceDetail> reader,
+                  @Qualifier("performanceWriter") ItemWriter<SalesPerformanceDetail> writer,
+                  @Qualifier("jobTransactionManager") PlatformTransactionManager transactionManager) {
+    return new StepBuilder("parallelRegisterJob.step.performance",
+            jobRepository)
+            .<SalesPerformanceDetail, SalesPerformanceDetail> chunk(1,
+                    transactionManager)
+            .listener(listener)
+            .reader(reader)
+            .writer(writer)
+            .build();
+}
+
+@Bean
+public Flow flow1(Step stepPlan) {
+    return new FlowBuilder<SimpleFlow>("flow1")
+            .start(stepPlan)
+            .build();
+}
+
+@Bean
+public Flow flow2(Step stepPerformance) {
+    return new FlowBuilder<SimpleFlow>("flow2")
+            .start(stepPerformance)
+            .build();
+}
+
+// (2)
+@Bean
+public Flow splitFlow(
+        @Qualifier("parallelTaskExecutor") TaskExecutor taskExecutor,
+        Flow flow1, Flow flow2) {
+    return new FlowBuilder<SimpleFlow>("parallelRegisterJob.split")
+            .split(taskExecutor) // (1)
+            .add(flow1, flow2)
+            .build();
+}
+
+@Bean
+public Job parallelRegisterJob(JobRepository jobRepository,
+                                Flow splitFlow,
+                                Step stepPreprocess) {
+    return new JobBuilder("parallelRegisterJob", jobRepository)
+            .start(stepPreprocess)
+            .on("*")
+            .to(splitFlow)
+            .end()
+            .build();
+}
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
+[source,xml]
 ----
 <batch:job id="parallelRegisterJob" job-repository="jobRepository">
     <!-- (1) -->
@@ -250,6 +474,12 @@ Parallel Stepの概要図を例にしたParallel Stepの定義方法を以下に
 </batch:job>
 
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============
 
 [cols="10,90",options="header"]
 .説明
@@ -258,12 +488,12 @@ Parallel Stepの概要図を例にしたParallel Stepの定義方法を以下に
 |説明
 
 |(1)
-|前処理として処理するステップを定義する。``next``属性に``<batch:split>``に設定したidを指定する。 +
-``next``属性による後続ステップの指定に関する詳細は<<Ch08_FlowControll.adoc#Ch08_FlowControll_HowToUse_SequencialFlow,"シーケンシャルフロー">>を参照。
+|前処理として処理するステップを定義する。``FlowBuilderクラスのsplitメソッドの引数executor/next属性``に``Bean定義したTaskExecutorクラス/<batch:split>``に設定したidを指定する。 +
+``addメソッド/next属性``による後続ステップの指定に関する詳細は<<Ch08_FlowControll.adoc#Ch08_FlowControll_HowToUse_SequencialFlow,"シーケンシャルフロー">>を参照。
 
 |(2)
 |Parallel Stepを定義する。 +
-``<batch:flow>``ごとに並列処理したい``<batch:step>``を定義する。
+``Bean定義したFlow/<batch:flow>``ごとに並列処理したい``Bean定義したStep/<batch:step>``を定義する。
 
 |===
 
@@ -414,8 +644,102 @@ public class BranchPartitioner implements Partitioner {
 
 ----
 
-[source,xml]
 .Bean定義
+// ============ Java/XML Config Tab start. ============
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup080203" class="JavaConfigTab" id="tabgroup080203_1" checked><label for="tabgroup080203_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup080203" class="XMLConfigTab" id="tabgroup080203_2"><label for="tabgroup080203_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+[source,java]
+----
+// (6)
+@Bean
+public TaskExecutor parallelTaskExecutor(
+        @Value("${thread.size}") int threadSize) {
+    ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+    executor.setCorePoolSize(threadSize);
+    executor.setQueueCapacity(10);
+    return executor;
+}
+
+// (7)
+@Bean
+@StepScope
+public MyBatisCursorItemReader<SalesPerformanceDetail> reader(
+        @Qualifier("jobSqlSessionFactory") SqlSessionFactory jobSqlSessionFactory,
+        @Value("#{stepExecutionContext['branchId']}") String branchId) { // (8)
+    final Map<String, Object> parameterValues = new LinkedHashMap<>();
+    parameterValues.put("branchId", branchId);
+    return new MyBatisCursorItemReaderBuilder<SalesPerformanceDetail>()
+            .sqlSessionFactory(jobSqlSessionFactory)
+            .queryId(
+                    "org.terasoluna.batch.functionaltest.app.repository.performance.InvoiceRepository.summarizeInvoice")
+            .parameterValues(parameterValues)
+            .build();
+}
+
+// omitted
+
+// (12)
+@Bean
+public Step step1(JobRepository jobRepository,
+                  StepExecutionLoggingListener listener,
+                  @Qualifier("reader") ItemReader<SalesPerformanceDetail> reader,
+                  @Qualifier("writer") ItemWriter<SalesPerformanceDetail> writer,
+                  @Qualifier("jobTransactionManager") PlatformTransactionManager transactionManager) {
+    return new StepBuilder("multipleInvoiceSummarizeJob.worker",
+            jobRepository)
+            .<SalesPerformanceDetail, SalesPerformanceDetail> chunk(1,
+                    transactionManager)
+            .listener(listener)
+            .reader(reader)
+            .writer(writer)
+            .build();
+}
+
+@Bean
+public PartitionHandler partitionHandler(
+        @Qualifier("parallelTaskExecutor") TaskExecutor taskExecutor,
+        @Value("${grid.size}") int gridSize, Step step1) {
+    TaskExecutorPartitionHandler handler = new TaskExecutorPartitionHandler();
+    handler.setTaskExecutor(taskExecutor);
+    handler.setStep(step1);
+    handler.setGridSize(gridSize); // (11)
+    return handler;
+}
+
+// (9)
+@Bean
+public Step step1Manager(JobRepository jobRepository,
+                         BranchPartitioner partitioner,
+                         PartitionHandler partitionHandlerandler) {
+    return new StepBuilder("multipleInvoiceSummarizeJob.manager",
+            jobRepository)
+            .partitioner("multipleInvoiceSummarizeJob.worker", partitioner) // (10)
+            .partitionHandler(partitionHandlerandler)
+            .build();
+}
+
+@Bean
+public Job multipleInvoiceSummarizeJob(JobRepository jobRepository,
+                                       JobExecutionLoggingListener listener,
+                                       Step step1Manager) {
+    return new JobBuilder("multipleInvoiceSummarizeJob", jobRepository)
+            .start(step1Manager)
+            .listener(listener)
+            .build();
+}
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
+[source,xml]
 ----
 <!-- (6) -->
 <task:executor id="parallelTaskExecutor"
@@ -454,6 +778,12 @@ public class BranchPartitioner implements Partitioner {
     </batch:tasklet>
 </batch:step>
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============
 
 [cols="10,90",options="header"]
 .説明
@@ -491,16 +821,16 @@ Managerステップはメインスレッドで処理される。
 
 |(10)
 |データの分割条件を生成する処理を定義する。 +
-``partitioner``属性には、``Partitioner``インタフェース実装を設定する。 +
-``step``属性には、(12)で定義するWorkerステップのBeanIDを設定する。
+``StepBuilderのpartitionerメソッドの引数partitioner/partitioner属性``には、``Partitioner``インタフェース実装を設定する。 +
+``partitionerメソッドの引数stepName/step属性``には、(12)で定義するWorkerステップのBeanIDを設定する。
 
 |(11)
-|``partitioner``では``grid-size``を使用しないため、``grid-size``属性には任意の値を設定する。
-``task-executor``属性に(6)で定義したスレッドプールのBeanIDを設定する。
+|``partitioner``では``grid-size``を使用しないため、``TaskExecutorPartitionHandlerのsetGridSizeメソッドの引数gridSize/grid-size属性``には任意の値を設定する。
+``setTaskExecutorメソッドの引数taskExecutor/task-executor``属性に(6)で定義したスレッドプールのBeanIDを設定する。
 
 |(12)
 |Workerステップを定義する。 +
-``reader``属性に(7)で定義したItemReaderを設定する。
+``StepBuilderのreaderメソッド/reader属性``に(7)で定義したItemReaderを設定する。
 
 |===
 
@@ -510,8 +840,110 @@ Managerステップはメインスレッドで処理される。
 
 ``MultiResourcePartitioner``の利用例を以下に示す。
 
-[source,xml]
 .ファイル処理を多重化する例
+// ============ Java/XML Config Tab start. ============
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup080204" class="JavaConfigTab" id="tabgroup080204_1" checked><label for="tabgroup080204_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup080204" class="XMLConfigTab" id="tabgroup080204_2"><label for="tabgroup080204_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+[source,java]
+----
+// (1)
+@Bean
+public TaskExecutor parallelTaskExecutor(
+        @Value("${thread.size}") int threadSize) {
+    ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+    executor.setCorePoolSize(threadSize);
+    executor.setQueueCapacity(200);
+    return executor;
+}
+
+// (2)
+@Bean
+@StepScope
+public FlatFileItemReader<SalesPlanDetail> reader(
+        @Value("#{stepExecutionContext['fileName']}") File fileName) {
+    final DelimitedLineTokenizer tokenizer = new DelimitedLineTokenizer();
+    tokenizer.setNames("branchId", "year", "month", "customerId", "amount");
+    final BeanWrapperFieldSetMapper<SalesPlanDetail> fieldSetMapper = new BeanWrapperFieldSetMapper<>();
+    fieldSetMapper.setTargetType(SalesPlanDetail.class);
+    final DefaultLineMapper<SalesPlanDetail> lineMapper = new DefaultLineMapper<>();
+    lineMapper.setLineTokenizer(tokenizer);
+    lineMapper.setFieldSetMapper(fieldSetMapper);
+    return new FlatFileItemReaderBuilder<SalesPlanDetail>()
+            .name(ClassUtils.getShortName(FlatFileItemReader.class))
+            .resource(new FileSystemResource(fileName)) // (3)
+            .lineMapper(lineMapper)
+            .build();
+}
+
+// (4)
+@Bean
+@StepScope
+public MultiResourcePartitioner partitioner(
+        @Value("#{jobParameters['inputdir']}") File inputdir) throws Exception { // (5)
+    MultiResourcePartitioner partitioner = new MultiResourcePartitioner();
+    ResourcePatternResolver resolver = new PathMatchingResourcePatternResolver();
+    Resource[] resources = resolver.getResources(
+            new FileSystemResource(inputdir).getURL() + File.separator + "salesPlanDetail_*.csv");
+    partitioner.setResources(resources);
+    return partitioner;
+}
+
+// (7)
+@Bean
+public Step stepWorker(JobRepository jobRepository,
+                        ItemReader<SalesPlanDetail> reader,
+                        LoggingItemWriter writer,
+                        @Qualifier("jobTransactionManager") PlatformTransactionManager transactionManager) {
+    return new StepBuilder("jobEvaluationReport.worker", jobRepository)
+            .<SalesPlanDetail, SalesPlanDetail> chunk(20,
+                    transactionManager)
+            .reader(reader)
+            .writer(writer)
+            .build();
+}
+
+@Bean
+public PartitionHandler partitionHandler(
+        TaskExecutor parallelTaskExecutor,
+        Step stepWorker) {
+    TaskExecutorPartitionHandler handler = new TaskExecutorPartitionHandler();
+    handler.setTaskExecutor(parallelTaskExecutor);
+    handler.setStep(stepWorker);
+    handler.setGridSize(0);
+    return handler;
+}
+
+// (6)
+@Bean
+public Step stepManager(JobRepository jobRepository,
+                        MultiResourcePartitioner partitioner,
+                        PartitionHandler partitionHandler) {
+    return new StepBuilder("multiplePartitioninglStepFileJob.manager", jobRepository)
+            .partitioner("multiplePartitioninglStepFileJob.worker", partitioner)
+            .partitionHandler(partitionHandler)
+            .build();
+}
+
+@Bean
+public Job multiplePartitioninglStepFileJob(JobRepository jobRepository,
+                                       Step stepManager) {
+    return new JobBuilder("multiplePartitioninglStepFileJob", jobRepository)
+            .start(stepManager)
+            .build();
+}
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
+[source,xml]
 ----
 <!-- (1) -->
 <task:executor id="parallelTaskExecutor" pool-size="10" queue-capacity="200"/>
@@ -556,6 +988,12 @@ Managerステップはメインスレッドで処理される。
     </batch:tasklet>
 </batch:step>
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============
 
 [cols="10,90",options="header"]
 .説明
@@ -571,7 +1009,7 @@ Managerステップはメインスレッドで処理される。
 |1つのファイルを読み込むためのItemReaderを定義する。
 
 |(3)
-|``resouce``属性に、``MultiResourcePartitioner``で分割されたファイルを入力ファイルに指定する。 +
+|``FlatFileItemReaderBuilderのresourceメソッドの引数resource/resouce属性``に、``MultiResourcePartitioner``で分割されたファイルを入力ファイルに指定する。 +
 ``MultiResourcePartitioner``は、"fileName"というキーでステップコンテキストにファイルパスを格納している。
 
 |(4)
@@ -587,7 +1025,7 @@ Managerステップはメインスレッドで処理される。
 
 |(7)
 |Workerステップを定義する。 +
-``reader``属性に(2)で定義したItemReaderを設定する。
+``StepBuilderのreaderメソッド/reader属性``に(2)で定義したItemReaderを設定する。
 
 |===
 
@@ -671,8 +1109,109 @@ public class SalesDataPartitioner implements Partitioner {
 }
 ----
 
-[source,xml]
 .Bean定義
+// ============ Java/XML Config Tab start. ============
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup080205" class="JavaConfigTab" id="tabgroup080205_1" checked><label for="tabgroup080205_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup080205" class="XMLConfigTab" id="tabgroup080205_2"><label for="tabgroup080205_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+[source,java]
+----
+// (8)
+@Bean
+public TaskExecutor parallelTaskExecutor(
+        @Value("${thread.size}") int threadSize) {
+    ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+    executor.setCorePoolSize(threadSize);
+    executor.setQueueCapacity(10);
+    return executor;
+}
+
+// (9)
+@Bean
+@StepScope
+public MyBatisCursorItemReader<SalesPerformanceSummary> reader(
+        @Qualifier("jobSqlSessionFactory") SqlSessionFactory jobSqlSessionFactory,
+        @Value("#{jobParameters['year']}") Integer year,
+        @Value("#{jobParameters['month']}") Integer month,
+        @Value("#{stepExecutionContext['dataSize']}") Integer dataSize, // (10)
+        @Value("#{stepExecutionContext['offset']}") Integer offset) { // (11)
+    Map<String, Object> parameterValues = new HashMap<>();
+    parameterValues.put("year", year);
+    parameterValues.put("month", month);
+    parameterValues.put("dataSize", dataSize);
+    parameterValues.put("offset", offset);
+    return new MyBatisCursorItemReaderBuilder<SalesPerformanceSummary>()
+            .sqlSessionFactory(jobSqlSessionFactory)
+            .queryId(
+                    "org.terasoluna.batch.functionaltest.ch08.parallelandmultiple.repository.SalesSummaryRepository.findByYearAndMonth")
+            .parameterValues(parameterValues)
+            .build();
+}
+
+// omitted
+
+// (15)
+@Bean
+public Step stepWorker(JobRepository jobRepository,
+                        StepExecutionLoggingListener listener,
+                        ItemReader<SalesPerformanceSummary> reader,
+                        ItemWriter<SalesPlanSummary> writer,
+                        AddProfitsItemProcessor addProfitsItemProcessor,
+                        @Qualifier("jobTransactionManager") PlatformTransactionManager transactionManager) {
+    return new StepBuilder("multipleCreateSalesPlanSummaryJob.worker", jobRepository)
+            .<SalesPerformanceSummary, SalesPlanSummary> chunk(10,
+                    transactionManager)
+            .listener(listener)
+            .reader(reader)
+            .processor(addProfitsItemProcessor)
+            .writer(writer)
+            .build();
+}
+
+@Bean
+public PartitionHandler partitionHandler(
+        TaskExecutor parallelTaskExecutor,
+        @Value("${grid.size}") int gridSize,
+        Step stepWorker) {
+    TaskExecutorPartitionHandler handler = new TaskExecutorPartitionHandler();
+    handler.setTaskExecutor(parallelTaskExecutor); // (14)
+    handler.setStep(stepWorker);
+    handler.setGridSize(gridSize); // (14)
+    return handler;
+}
+
+// (12)
+@Bean
+public Step stepManager(JobRepository jobRepository,
+                        SalesDataPartitioner salesDataPartitioner,
+                        PartitionHandler partitionHandler) {
+    return new StepBuilder("multipleCreateSalesPlanSummaryJob.manager", jobRepository)
+            .partitioner("multipleCreateSalesPlanSummaryJob.worker", salesDataPartitioner) // (13)
+            .partitionHandler(partitionHandler)
+            .build();
+}
+
+@Bean
+public Job multipleCreateSalesPlanSummaryJob(JobRepository jobRepository,
+                                       JobExecutionLoggingListener listener,
+                                       Step stepManager) {
+    return new JobBuilder("multipleCreateSalesPlanSummaryJob", jobRepository)
+            .start(stepManager)
+            .listener(listener)
+            .build();
+}
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
+[source,xml]
 ----
 <!-- (8) -->
 <task:executor id="parallelTaskExecutor"
@@ -717,6 +1256,12 @@ public class SalesDataPartitioner implements Partitioner {
     </batch:tasklet>
 </batch:step>
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============
 
 [cols="10,90",options="header"]
 .説明
@@ -765,15 +1310,15 @@ Managerステップはメインスレッドで処理される。
 
 |(13)
 |データの分割条件を生成する処理を定義する。 +
-``partitioner``属性には、``Partitioner``インタフェース実装を設定する。 +
-``step``属性には、(15)で定義するWorkerステップのBeanIDを設定する。
+``StepBuilderのpartitionerメソッドの引数partitioner/partitioner属性``には、``Partitioner``インタフェース実装を設定する。 +
+``partitionerメソッドの引数stepName/step属性``には、(15)で定義するWorkerステップのBeanIDを設定する。
 
 |(14)
-|``grid-size``属性に分割数(固定値)を設定する。 +
-``task-executor``属性に(8)で定義したスレッドプールのBeanIDを設定する。
+|``TaskExecutorPartitionHandlerのsetGridSizeメソッドの引数gridSize/grid-size属性``に分割数(固定値)を設定する。 +
+``setTaskExecutorメソッドの引数taskExecutor/task-executor属性``に(8)で定義したスレッドプールのBeanIDを設定する。
 
 |(15)
 |Workerステップを定義する。 +
-``reader``属性に(9)で定義したItemReaderを設定する。
+``StepBuilderのreaderメソッド/reader属性``に(9)で定義したItemReaderを設定する。
 
 |===

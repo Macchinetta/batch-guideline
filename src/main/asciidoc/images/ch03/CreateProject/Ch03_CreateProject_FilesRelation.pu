@@ -4,10 +4,11 @@
 artifact "Employee.class\n EmployeeProcessor.class\n EmployeeRepository.class\n  EmployeeRepository.xml" as 1
 artifact "batch-application.properties" as 2
 artifact "application-messages.properties" as 3
-artifact "META-INF/jobs/job01.xml" as 4
+artifact "Job01Config.class" as 4
 artifact "AsyncBatchDaemonConfig.class" as 5
 artifact "JobBaseContextConfig.class" as 6
 artifact "LaunchContextConfig.class" as 7
+artifact "TerasolunaBatchConfiguration.class" as 8
 
 node "Job Sync Execution" as sync
 node "Job ASync Execution" as async
@@ -19,6 +20,7 @@ node "Job ASync Execution" as async
 7-up->2 : load
 7-up->3 : load
 4-up->1 : use
+7-up->8 : import
 
 sync-right->4 : load at start-up
 async-right->5 :load at start-up

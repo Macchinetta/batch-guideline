@@ -26,7 +26,7 @@ image::Ch02_MacchinettaBatchStack_Stack.png[{batch5_fullname} Stack]
 ====
 {batch5_fullname}で使用するOSSのバージョンは、原則として、Spring Boot Dependenciesの定義に準じている。
 なお、バージョン{batch5_version}におけるSpring Boot Dependenciesのバージョンは、
-https://docs.spring.io/spring-boot/docs/3.0.1/reference/htmlsingle/[3.0.1]である。
+https://docs.spring.io/spring-boot/docs/3.2.2/reference/htmlsingle/[3.2.2]である。
 ====
 
 [cols="25,25,25,15,5,5", options="header"]
@@ -112,21 +112,21 @@ https://docs.spring.io/spring-boot/docs/3.0.1/reference/htmlsingle/[3.0.1]であ
 |Spring Retry
 |org.springframework.retry
 |spring-retry
-|2.0.0
+|2.0.5
 ^|*
 |
 
 |MyBatis3
 |org.mybatis
 |mybatis
-|3.5.11
+|3.5.15
 |
 |*1
 
 |MyBatis3
 |org.mybatis
 |mybatis-spring
-|3.0.1
+|3.0.3
 |
 |*1
 
@@ -140,21 +140,21 @@ https://docs.spring.io/spring-boot/docs/3.0.1/reference/htmlsingle/[3.0.1]であ
 |ログ出力
 |ch.qos.logback
 |logback-classic
-|1.4.5
+|1.4.14
 ^|*
 |
 
 |ログ出力
 |org.slf4j
 |jcl-over-slf4j
-|2.0.6
+|2.0.11
 ^|*
 |
 
 |ログ出力
 |org.slf4j
 |slf4j-api
-|1.7.36
+|2.0.12
 ^|
 |*2
 
@@ -168,14 +168,14 @@ https://docs.spring.io/spring-boot/docs/3.0.1/reference/htmlsingle/[3.0.1]であ
 |入力チェック
 |org.hibernate.validator
 |hibernate-validator
-|8.0.0.Final
+|8.0.1.Final
 ^|*
 |
 
 |コネクションプール
 |org.apache.commons
 |commons-dbcp2
-|2.9.0
+|2.10.0
 ^|*
 |
 
@@ -189,49 +189,49 @@ https://docs.spring.io/spring-boot/docs/3.0.1/reference/htmlsingle/[3.0.1]であ
 |インメモリデータベース
 |com.h2database
 |h2
-|2.1.214
+|2.2.224
 ^|*
 |
 
 |JDBCドライバ
 |org.postgresql
 |postgresql
-|42.5.1
-^|*
-|
+|42.7.1
+^|
+|*2
 
 |JSON
 |com.fasterxml.jackson.core
 |jackson-databind
-|2.14.1
+|2.15.3
 ^|*
-^|
+|
 
 |XML
 |jakarta.xml.bind
 |jakarta.xml.bind-api
-|4.0.0
+|4.0.1
 ^|*
 |
 
 |XML
 |com.sun.xml.bind
 |jaxb-core
-|4.0.1
+|4.0.4
 ^|
 |*1
 
 |XML
 |com.sun.xml.bind
 |jaxb-impl
-|4.0.1
+|4.0.4
 ^|
 |*1
 
 |TERASOLUNA Batch
 |org.terasoluna.batch
 |terasoluna-batch
-|5.5.0.RELEASE
+|5.6.0-SNAPSHOT
 |
 |*1
 
@@ -256,12 +256,12 @@ image::Ch02_MacchinettaBatchStack_Stack_Detail.png[{batch5_fullname} Components 
 基盤フレームワーク::
   フレームワークの基盤として、Spring Frameworkを利用する。DIコンテナをはじめ各種機能を活用する。
 
-  ** https://docs.spring.io/spring-framework/docs/{spring_fw_version}/reference/html/core.html[Spring Framework 6.0.0]
+  ** https://docs.spring.io/spring-framework/reference/{spring_fw_version}/core.html[Spring Framework 6.1.3]
 
 バッチフレームワーク::
   バッチフレームワークとして、{SB}を利用する。同期実行には{SB}が提供するCommandLineJobRunnerを利用する。
 
-  ** https://docs.spring.io/spring-batch/docs/{spring_batch_version}/reference/html/index.html[{SB} 5.0.0]
+  ** https://docs.spring.io/spring-batch/reference/{spring_batch_version}/index.html[{SB} 5.1.0]
 
 非同期実行::
   非同期実行を実現する方法として、以下の機能を利用する。
@@ -274,16 +274,16 @@ image::Ch02_MacchinettaBatchStack_Stack_Detail.png[{batch5_fullname} Components 
   Webコンテナ起動:::
   Spring MVCを使用して、{SB}と連携をする。
 
-  *** https://docs.spring.io/spring-framework/docs/{spring_fw_version}/reference/html/web.html#mvc[Spring MVC 6.0.0]
+  *** https://docs.spring.io/spring-framework/docs/{spring_fw_version}/reference/html/web.html#mvc[Spring MVC 6.1.3]
 
 O/R Mapper::
   MyBatisを利用し、Spring Frameworkとの連携ライブラリとして、MyBatis-Springを使用する。
 
   ** https://mybatis.org/mybatis-3/[MyBatis 3.5]
-  ** https://mybatis.org/spring/[MyBatis-Spring 2.1.0]
+  ** https://mybatis.org/spring/[MyBatis-Spring 3.0.3]
 
 ファイルアクセス::
-  https://docs.spring.io/spring-batch/docs/{spring_batch_version}/reference/html/readersAndWriters.html#flatFiles[{SB}から提供されている機能]
+  https://docs.spring.io/spring-batch/reference/{spring_batch_version}/readers-and-writers/flat-files.html[{SB}から提供されている機能]
   に加えて、補助機能を{terasoluna_batch5_fullname}が提供する。
 
   ** <<Ch05_FileAccess.adoc#Ch05_FileAccess,"ファイルアクセス">>
@@ -304,7 +304,7 @@ O/R Mapper::
   相関チェック:::
     相関チェックにはBean Validation、もしくはSpring Validationを利用する。
 
-      *** https://docs.spring.io/spring-framework/docs/{spring_fw_version}/reference/html/core.html#validation[Spring Validation 6.0.0]
+      *** https://docs.spring.io/spring-framework/reference/{spring_fw_version}/core/validation.html[Spring Validation 6.1.3]
 
 コネクションプール::
   コネクションプールには、DBCPを利用する。

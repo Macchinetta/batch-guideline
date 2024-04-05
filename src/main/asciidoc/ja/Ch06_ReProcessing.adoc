@@ -123,25 +123,15 @@ include::_include_all.adoc[]
 
 リスタート時の入力::
   {SB}が提供しているItemReaderのほとんどが件数ベースのリスタートに対応しているため、特別な対応は不要である。 +
-  件数ベースのリスタート可能なItemReaderを自作する場合は、リスタート処理が実装されている以下の抽象クラスを拡張すればよい。
+  件数ベースのリスタート可能なItemReaderを自作する場合は、リスタート処理が実装されている抽象クラス ``org.springframework.batch.item.support.AbstractItemCountingItemStreamItemReader`` を拡張すればよい。件数ベースリスタートは、あくまで件数のみを基準としてリスタート開始点を決定するため、処理済みの入力データの変更/追加/削除を検出することができない。 +
+  新たに入力データを追加する際に、以下のようなケースに留意すること。
 
-    :::
-    * ``org.springframework.batch.item.support.AbstractItemCountingItemStreamItemReader``
-
-  ::
-  件数ベースリスタートは、あくまで件数のみを基準としてリスタート開始点を決定するため、入力データの変更/追加/削除を検出することができない。
-  ジョブが異常終了した後、回復するために入力データを補正することはしばしばあるが、
-  以下のようなデータの変更を行った場合は、ジョブが正常終了した結果と、ジョブが異常終了した後リスタートして回復できた結果、
-  の間で出力に差が出るため注意すること。
-
-    :::
-    * データの取得順を変更する
-    ** リスタート時に、重複処理や未処理となるデータが発生してしまい、リランした結果と異なる回復結果になるため、決して行ってはいけない。
-    * 処理済みデータを更新する
-    ** リスタート時に更新したデータは読み飛ばされるので、リランした結果とリスタートした結果で回復結果が変わるため好ましくない場合がある。
-    * 未処理データを更新または追加する
-    ** リランした結果と同じ回復結果になるため許容する。ただし、初回実行で正常終了した結果とは異なる。
-       これは異常なデータを緊急対処的にパッチする場合や、実行時点で受領したデータを可能な限り多く処理する際に限定して使うとよい。
+  * データの取得順を変更する
+  ** リスタート時に、重複処理や未処理となるデータが発生してしまい、リランした結果と異なる回復結果になるため、決して行ってはいけない。
+  * 処理済みデータを更新する
+  ** リスタート時に更新したデータは読み飛ばされるので、リランした結果とリスタートした結果で回復結果が変わるため好ましくない場合がある。
+  * 未処理データを更新または追加する
+  ** リランした結果と同じ回復結果になるため許容する。ただし、初回実行で正常終了した結果とは異なる。これは異常なデータを緊急対処的にパッチする場合や、実行時点で受領したデータを可能な限り多く処理する際に限定して使うとよい。
 
 リスタート時の出力::
   非トランザクショナルなリソースへの出力には注意が必要である。たとえば、ファイルではどの位置まで出力していたかを把握し、その位置から出力を行わなければいけない。 +
@@ -180,7 +170,7 @@ $ java -cp dependency/* org.springframework.batch.core.launch.support.CommandLin
 例えば、実行するべきコマンドをスクリプト化し、これを実行する運用とするなど、出来る限り直にコマンドを入力しない運用を検討してほしい。
 
 なお、ジョブのリスタートを防止する場合には、<<Ch06_RerunRestart_HowToUse_StatefullRestart>>で後述するように、
-ジョブのBean定義で、``restartable``属性を``-restart``にすることも考えられる。
+ジョブのBean定義で、``restartable``属性を``false``にすることも考えられる。
 これにより、誤って``-restart``オプションをつけて起動した場合に、エラーにすることができる。
 ====
 
@@ -303,8 +293,108 @@ public long restart(long JobExecutionId) throws Execption {
 
 ----
 
-[source, xml]
 .restartOnConditionBasisJob.xml
+// ============ Java/XML Config Tab start. ============
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup060301" class="JavaConfigTab" id="tabgroup060301_1" checked><label for="tabgroup060301_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup060301" class="XMLConfigTab" id="tabgroup060301_2"><label for="tabgroup060301_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+[source, java]
+----
+// (3)
+@Bean
+public MyBatisCursorItemReader<SalesPlanDetail> reader(
+        @Qualifier("jobSqlSessionFactory") SqlSessionFactory jobSqlSessionFactory) {
+    return new MyBatisCursorItemReaderBuilder<SalesPlanDetail>()
+            .sqlSessionFactory(jobSqlSessionFactory)
+            .queryId(
+                    "org.terasoluna.batch.functionaltest.ch06.reprocessing.repository.RestartOnConditionRepository.findByZeroOrLessAmount")
+            .build();
+}
+
+// (4)
+@Bean
+public MyBatisBatchItemWriter<SalesPlanDetail> dbWriter(
+        @Qualifier("jobSqlSessionFactory") SqlSessionFactory jobSqlSessionFactory,
+        SqlSessionTemplate batchModeSqlSessionTemplate) {
+    return new MyBatisBatchItemWriterBuilder<SalesPlanDetail>()
+            .sqlSessionFactory(jobSqlSessionFactory)
+            .statementId(
+                    "org.terasoluna.batch.functionaltest.ch06.reprocessing.repository.RestartOnConditionRepository.update")
+            .sqlSessionTemplate(batchModeSqlSessionTemplate)
+            .build();
+}
+
+@Bean
+@StepScope
+public FlatFileItemWriter<SalesPlanDetail> fileWriter(
+        @Value("#{jobParameters['outputFile']}") File outputFile) {
+    DelimitedLineAggregator<SalesPlanDetail> lineAggregator = new DelimitedLineAggregator<>();
+    BeanWrapperFieldExtractor<SalesPlanDetail> fieldExtractor = new BeanWrapperFieldExtractor<>();
+    fieldExtractor.setNames(new String[] {"branchId", "year", "month", "customerId", "amount"});
+    lineAggregator.setFieldExtractor(fieldExtractor);
+    return new FlatFileItemWriterBuilder<SalesPlanDetail>()
+            .name(ClassUtils.getShortName(FlatFileItemWriter.class))
+            .resource(new FileSystemResource(outputFile))
+            .lineAggregator(lineAggregator)
+            .append(true) // (5)
+            .build();
+}
+
+// (6)
+@Bean(destroyMethod="")
+public CompositeItemWriter<SalesPlanDetail> compositeWriter(
+        @Qualifier("fileWriter") FlatFileItemWriter<SalesPlanDetail> fileWriter,
+        @Qualifier("dbWriter") MyBatisBatchItemWriter<SalesPlanDetail> dbWriter) throws Exception {
+
+    List<ItemWriter<? super SalesPlanDetail>> list = new ArrayList<>();
+    list.add(fileWriter);
+    list.add(dbWriter);
+
+    return new CompositeItemWriterBuilder<SalesPlanDetail>()
+            .delegates(list)
+            .build();
+}
+
+@Bean
+public Step step01(JobRepository jobRepository,
+                   @Qualifier("jobTransactionManager") PlatformTransactionManager transactionManager,
+                   ItemReader<SalesPlanDetail> reader,
+                   @Qualifier("amountUpdateItemProcessor") ItemProcessor<SalesPlanDetail, SalesPlanDetail> processor,
+                   @Qualifier("compositeWriter") ItemWriter<SalesPlanDetail> compositeWriter,
+                   LoggingItemReaderListener listener) {
+    return new StepBuilder("restartOnConditionBasisJob.step01",
+            jobRepository)
+            .<SalesPlanDetail, SalesPlanDetail> chunk(10, transactionManager)
+            .reader(reader)
+            .processor(processor)
+            .writer(compositeWriter)
+            .listener(listener)
+            .build();
+}
+
+@Bean
+public Job restartOnConditionBasisJob(JobRepository jobRepository,
+                                        Step step01,
+                                        JobExecutionLoggingListener listener) {
+    return new JobBuilder("restartOnConditionBasisJob",
+            jobRepository)
+            .preventRestart() // (7)
+            .start(step01)
+            .listener(listener)
+            .build();
+}
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
+[source, xml]
 ----
 <!-- (3) -->
 <bean id="reader" class="org.mybatis.spring.batch.MyBatisCursorItemReader"
@@ -351,6 +441,12 @@ public long restart(long JobExecutionId) throws Execption {
 
 </batch:job>
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============
 
 [source,console]
 .リスタートのコマンド実行例
@@ -384,7 +480,7 @@ $ java -cp dependency/* org.springframework.batch.core.launch.support.CommandLin
 |ファイル出力 -> データベース更新の順序で処理されるように``CompositeItemWriter``を定し、chunkのwriterに設定する。
 
 |(7)
-|必須ではないが、誤って``-restart``オプションをつけて起動された場合にエラーになるように``restartable``属性をfalseに設定しておく。
+|必須ではないが、誤って``-restart``オプションをつけて起動された場合にエラーになるように``JobBuilderのpreventRestartメソッドの追加/restartable属性をfalseに設定``しておく。
 
 |(8)
 |失敗したジョブの実行条件で再度実行を行う。

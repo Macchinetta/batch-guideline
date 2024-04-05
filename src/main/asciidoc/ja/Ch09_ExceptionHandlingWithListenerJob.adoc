@@ -375,6 +375,60 @@ public class ChunkErrorLoggingListener implements ChunkListener {
 ==== ジョブBean定義ファイルの設定
 例外ハンドリングをChunkListenerで行うためのジョブBean定義ファイルの設定を以下に示す。
 
+// ============ Java/XML Config Tab start. ============
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup09040403" class="JavaConfigTab" id="tabgroup09040403_1" checked><label for="tabgroup09040403_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup09040403" class="XMLConfigTab" id="tabgroup09040403_2"><label for="tabgroup09040403_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+[source, java]
+.com.example.batch.tutorial.config.dbaccess.JobPointAddChunkConfig.java
+----
+@Configuration
+@Import(JobBaseContextConfig.class)
+@PropertySource(value = "classpath:batch-application.properties")
+@ComponentScan({"com.example.batch.tutorial.dbaccess.chunk",
+    "com.example.batch.tutorial.common.listener"}) // (1)
+@MapperScan(basePackages = "com.example.batch.tutorial.common.repository", sqlSessionFactoryRef = "jobSqlSessionFactory")
+public class JobPointAddChunkConfig {
+
+    // omitted
+
+    @Bean
+    public Step step01(JobRepository jobRepository,
+                       @Qualifier("jobTransactionManager") PlatformTransactionManager transactionManager,
+                       ItemReader<MemberInfoDto> reader,
+                       PointAddItemProcessor processor,
+                       ItemWriter<MemberInfoDto> writer,
+                       ChunkErrorLoggingListener listener) {
+        return new StepBuilder("jobPointAddChunk.step01",
+                jobRepository)
+                .<MemberInfoDto, MemberInfoDto>chunk(10,
+                        transactionManager)
+                .listener(listener) // (2)
+                .reader(reader)
+                .processor(processor)
+                .writer(writer)
+                .build();
+    }
+
+    @Bean
+    public Job jobPointAddChunk(JobRepository jobRepository,
+                                             Step step01) {
+        return new JobBuilder("jobPointAddChunk", jobRepository)
+                .start(step01)
+                .build();
+    }
+}
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
 [source, xml]
 .src/main/resources/META-INF/jobs/dbaccess/jobPointAddChunk.xml
 ----
@@ -412,6 +466,12 @@ public class ChunkErrorLoggingListener implements ChunkListener {
 
 </beans>
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============
 
 [cols="10,90", options="header"]
 .説明
@@ -421,7 +481,7 @@ public class ChunkErrorLoggingListener implements ChunkListener {
 
 |(1)
 |コンポーネントスキャン対象とするベースパッケージの設定を行う。 +
-``base-package``属性に、``ChunkListener``の実装クラスが格納されているパッケージを追加で指定する。
+``basePackages属性/base-package属性``に、``ChunkListener``の実装クラスが格納されているパッケージを追加で指定する。
 
 |(2)
 |``StepListener``の実装クラスを設定する。
@@ -481,7 +541,7 @@ Console Viewを開き、以下の内容のログが出力されていること�
 ----
 (.. omitted)
 
-[2020/03/10 16:08:08] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=jobPointAddChunk]] launched with the following parameters: [{jsr_batch_run_id=144}]
+[2020/03/10 16:08:08] [main] [o.s.b.c.l.s.TaskExecutorJobLauncher] [INFO ] Job: [FlowJob: [name=jobPointAddChunk]] launched with the following parameters: [{jsr_batch_run_id=144}]
 [2020/03/10 16:08:08] [main] [o.s.b.c.j.SimpleStepHandler] [INFO ] Executing step: [jobPointAddChunk.step01]
 [2020/03/10 16:08:08] [main] [c.e.b.t.c.l.ChunkErrorLoggingListener] [ERROR] The point exceeds 1000000.
 [2020/03/10 16:08:08] [main] [o.s.b.c.s.AbstractStep] [ERROR] Encountered an error executing step jobPointAddChunk.step01 in job jobPointAddChunk
@@ -495,7 +555,7 @@ Caused by: org.springframework.validation.BindException: org.springframework.val
 Field error in object 'item' on field 'point': rejected value [1000001]; codes [Max.item.point,Max.point,Max.int,Max]; arguments [org.springframework.context.support.DefaultMessageSourceResolvable: codes [item.point,point]; arguments []; default message [point],1000000]; default message [must be less than or equal to 1000000]
 	... 29 common frames omitted
 [2020/03/10 16:08:08] [main] [o.s.b.c.s.AbstractStep] [INFO ] Step: [jobPointAddChunk.step01] executed in 235ms
-[2020/03/10 16:08:08] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=jobPointAddChunk]] completed with the following parameters: [{jsr_batch_run_id=144}] and the following status: [FAILED] in 297ms
+[2020/03/10 16:08:08] [main] [o.s.b.c.l.s.TaskExecutorJobLauncher] [INFO ] Job: [FlowJob: [name=jobPointAddChunk]] completed with the following parameters: [{jsr_batch_run_id=144}] and the following status: [FAILED] in 297ms
 ----
 
 [[Ch09_Impl_ExceptionHandlingWithListenerJob_Chunk_Execution_Exitcode]]
@@ -719,6 +779,54 @@ public class ChunkErrorLoggingListener implements ChunkListener {
 ==== ジョブBean定義ファイルの設定
 例外ハンドリングをChunkListenerで行うためのジョブBean定義ファイルの設定を以下に示す。
 
+// ============ Java/XML Config Tab start. ============
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup09040404" class="JavaConfigTab" id="tabgroup09040404_1" checked><label for="tabgroup09040404_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup09040404" class="XMLConfigTab" id="tabgroup09040404_2"><label for="tabgroup09040404_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+[source, java]
+.com.example.batch.tutorial.config.dbaccess.JobPointAddTaskletConfig.java
+----
+@Configuration
+@Import(JobBaseContextConfig.class)
+@PropertySource(value = "classpath:batch-application.properties")
+@ComponentScan({"com.example.batch.tutorial.dbaccess.tasklet",
+    "com.example.batch.tutorial.common.listener"}) // (1)
+@MapperScan(basePackages = "com.example.batch.tutorial.common.repository", sqlSessionFactoryRef = "jobSqlSessionFactory")
+public class JobPointAddTaskletConfig {
+
+    // omitted
+
+    @Bean
+    public Step step01(JobRepository jobRepository,
+                       @Qualifier("jobTransactionManager") PlatformTransactionManager transactionManager,
+                       PointAddTasklet tasklet,
+                       ChunkErrorLoggingListener listener) {
+        return new StepBuilder("jobPointAddTasklet.step01",
+                jobRepository)
+                .tasklet(tasklet, transactionManager)
+                .listener(listener) // (2)
+                .build();
+    }
+
+    @Bean
+    public Job jobPointAddTasklet(JobRepository jobRepository,
+                                             Step step01) {
+        return new JobBuilder("jobPointAddTasklet", jobRepository)
+                .start(step01)
+                .build();
+    }
+}
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
 [source, xml]
 .src/main/resources/META-INF/jobs/dbaccess/jobPointAddTasklet.xml
 ----
@@ -754,6 +862,12 @@ public class ChunkErrorLoggingListener implements ChunkListener {
 
 </beans>
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============
 
 [cols="10,90", options="header"]
 .説明
@@ -763,7 +877,7 @@ public class ChunkErrorLoggingListener implements ChunkListener {
 
 |(1)
 |コンポーネントスキャン対象とするベースパッケージの設定を行う。 +
-``base-package``属性に、``ChunkListener``の実装クラスが格納されているパッケージを追加で指定する。
+``basePackages属性/base-package属性``に、``ChunkListener``の実装クラスが格納されているパッケージを追加で指定する。
 
 |(2)
 |``StepListener``の実装クラスを設定する。
@@ -823,7 +937,7 @@ Console Viewを開き、以下の内容のログが出力されていること�
 ----
 (.. omitted)
 
-[2020/03/10 16:09:34] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=jobPointAddTasklet]] launched with the following parameters: [{jsr_batch_run_id=146}]
+[2020/03/10 16:09:34] [main] [o.s.b.c.l.s.TaskExecutorJobLauncher] [INFO ] Job: [FlowJob: [name=jobPointAddTasklet]] launched with the following parameters: [{jsr_batch_run_id=146}]
 [2020/03/10 16:09:34] [main] [o.s.b.c.j.SimpleStepHandler] [INFO ] Executing step: [jobPointAddTasklet.step01]
 [2020/03/10 16:09:35] [main] [c.e.b.t.c.l.ChunkErrorLoggingListener] [ERROR] The point exceeds 1000000.
 [2020/03/10 16:09:35] [main] [o.s.b.c.s.AbstractStep] [ERROR] Encountered an error executing step jobPointAddTasklet.step01 in job jobPointAddTasklet
@@ -837,7 +951,7 @@ Caused by: org.springframework.validation.BindException: org.springframework.val
 Field error in object 'item' on field 'point': rejected value [1000001]; codes [Max.item.point,Max.point,Max.int,Max]; arguments [org.springframework.context.support.DefaultMessageSourceResolvable: codes [item.point,point]; arguments []; default message [point],1000000]; default message [must be less than or equal to 1000000]
 	... 24 common frames omitted
 [2020/03/10 16:09:35] [main] [o.s.b.c.s.AbstractStep] [INFO ] Step: [jobPointAddTasklet.step01] executed in 193ms
-[2020/03/10 16:09:35] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=jobPointAddTasklet]] completed with the following parameters: [{jsr_batch_run_id=146}] and the following status: [FAILED] in 273ms
+[2020/03/10 16:09:35] [main] [o.s.b.c.l.s.TaskExecutorJobLauncher] [INFO ] Job: [FlowJob: [name=jobPointAddTasklet]] completed with the following parameters: [{jsr_batch_run_id=146}] and the following status: [FAILED] in 273ms
 ----
 
 [[Ch09_Impl_ExceptionHandlingWithListenerJob_Tasklet_Execution_Exitcode]]

@@ -498,8 +498,48 @@ public PlatformTransactionManager jobTransactionManager(@Qualifier("jobDataSourc
 チャンクモデルの場合は、中間コミット方式となり、{SB}にトランザクション制御を委ねる。
 ユーザにて制御することは一切行わないようにする。
 
-[source,xml]
 .設定例(ジョブ定義)
+// ============ Java/XML Config Tab start. ============
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup050102" class="JavaConfigTab" id="tabgroup050102_1" checked><label for="tabgroup050102_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup050102" class="XMLConfigTab" id="tabgroup050102_2"><label for="tabgroup050102_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+[source,java]
+----
+@Bean
+public Step step01(JobRepository jobRepository,
+                   @Qualifier("jobTransactionManager") PlatformTransactionManager transactionManager,
+                   ItemReader<SalesPlanDetail> reader,
+                   ItemWriter<SalesPlanDetail> writer,
+                   LoggingItemReaderListener listener) {
+    return new StepBuilder("jobSalesPlan01.step01", jobRepository)
+            .<SalesPlanDetail, SalesPlanDetail> chunk(10, // (2)
+                    transactionManager) // (1)
+            .reader(reader)
+            .writer(writer)
+            .listener(listener)
+            .build();
+}
+
+@Bean
+public Job jobSalesPlan01(JobRepository jobRepository, Step step01,
+                          LoggingItemReaderListener listener) {
+    return new JobBuilder("jobSalesPlan01", jobRepository)
+            .start(step01)
+            .listener(listener)
+            .build();
+}
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
+[source,xml]
 ----
 <batch:job id="jobSalesPlan01" job-repository="jobRepository">
     <batch:step id="jobSalesPlan01.step01">
@@ -511,6 +551,12 @@ public PlatformTransactionManager jobTransactionManager(@Qualifier("jobDataSourc
     </batch:step>
 </batch:job>
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============
 
 [cols="10,90", options="header"]
 |===
@@ -518,11 +564,11 @@ public PlatformTransactionManager jobTransactionManager(@Qualifier("jobDataSourc
 |説明
 
 |(1)
-|``<batch:tasklet>``要素の``transaction-manager``属性に定義済みの``jobTransactionManager``を設定する。 +
+|``StepBuilderのchunkメソッドの引数transactionManager/<batch:tasklet>要素のtransaction-manager属性``に定義済みの``jobTransactionManager``を設定する。 +
 ここに設定したトランザクションマネージャで中間コミット方式のトランザクションを制御する。
 
 |(2)
-|``commit-interval``属性にチャンクサイズを設定する。この例では10件処理するごとに1回コミットが発行される。
+|``StepBuilderのchunkメソッドの引数chunkSize/commit-interval属性``にチャンクサイズを設定する。この例では10件処理するごとに1回コミットが発行される。
 
 |===
 
@@ -532,8 +578,42 @@ public PlatformTransactionManager jobTransactionManager(@Qualifier("jobDataSourc
 
 一括コミット方式:: {SB}にトランザクション制御を委ねる。
 
-[source,xml]
 .設定例(ジョブ定義)
+// ============ Java/XML Config Tab start. ============
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup050103" class="JavaConfigTab" id="tabgroup050103_1" checked><label for="tabgroup050103_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup050103" class="XMLConfigTab" id="tabgroup050103_2"><label for="tabgroup050103_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+[source,java]
+----
+@Bean
+public Step step01(JobRepository jobRepository,
+                   @Qualifier("jobTransactionManager") PlatformTransactionManager transactionManager,
+                   Tasklet salesPlanSingleTranTask) {
+    return new StepBuilder("jobSalesPlan01.step01", jobRepository)
+            .tasklet(salesPlanSingleTranTask, transactionManager) // (1)
+            .build();
+}
+
+@Bean
+public Job jobSalesPlan01(JobRepository jobRepository, Step step01,
+                          LoggingItemReaderListener listener) {
+    return new JobBuilder("jobSalesPlan01", jobRepository)
+            .start(step01)
+            .listener(listener)
+            .build();
+}
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
+[source,xml]
 ----
 <batch:job id="jobSalesPlan01" job-repository="jobRepository">
     <batch:step id="jobSalesPlan01.step01">
@@ -543,6 +623,12 @@ public PlatformTransactionManager jobTransactionManager(@Qualifier("jobDataSourc
     </batch:step>
 </batch:job>
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============
 
 [cols="10,90", options="header"]
 |===
@@ -550,7 +636,7 @@ public PlatformTransactionManager jobTransactionManager(@Qualifier("jobDataSourc
 |説明
 
 |(1)
-|``<batch:tasklet>``要素の``transaction-manager``属性に定義済みの``jobTransactionManager``を設定する。 +
+|``StepBuilderのtaskletメソッドの引数transactionManager/<batch:tasklet>要素のtransaction-manager属性``に定義済みの``jobTransactionManager``を設定する。 +
 ここに設定したトランザクションマネージャで一括コミット方式のトランザクションを制御する。
 
 |===
@@ -558,8 +644,42 @@ public PlatformTransactionManager jobTransactionManager(@Qualifier("jobDataSourc
 中間コミット方式:: ユーザにてトランザクション制御を行う。
 ** 処理の途中でコミットを発行する場合は、``TransactionManager``をInjectして手動で行う。
 
-[source,xml]
 .設定例(ジョブ定義)
+// ============ Java/XML Config Tab start. ============
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup050104" class="JavaConfigTab" id="tabgroup050104_1" checked><label for="tabgroup050104_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup050104" class="XMLConfigTab" id="tabgroup050104_2"><label for="tabgroup050104_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+[source,java]
+----
+@Bean
+public Step step01(JobRepository jobRepository,
+                   @Qualifier("jobResourcelessTransactionManager") PlatformTransactionManager transactionManager,
+                   Tasklet salesPlanSingleTranTask) {
+    return new StepBuilder("jobSalesPlan01.step01", jobRepository)
+            .tasklet(salesPlanSingleTranTask, transactionManager) // (1)
+            .build();
+}
+
+@Bean
+public Job jobSalesPlan01(JobRepository jobRepository, Step step01,
+                          LoggingItemReaderListener listener) {
+    return new JobBuilder("jobSalesPlan01", jobRepository)
+            .start(step01)
+            .listener(listener)
+            .build();
+}
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
+[source,xml]
 ----
 <batch:job id="jobSalesPlan01" job-repository="jobRepository">
     <batch:step id="jobSalesPlan01.step01">
@@ -569,6 +689,12 @@ public PlatformTransactionManager jobTransactionManager(@Qualifier("jobDataSourc
     </batch:step>
 </batch:job>
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============
 
 [source,java]
 .実装例
@@ -595,6 +721,7 @@ public class SalesPlanChunkTranTask implements Tasklet {
 
         DefaultTransactionDefinition definition = new DefaultTransactionDefinition();
         TransactionStatus status = null;
+        int count = 0;
 
         try {
             // omitted.
@@ -607,21 +734,27 @@ public class SalesPlanChunkTranTask implements Tasklet {
                     status = transactionManager.getTransaction(definition); // (3)
                 }
                 count++;
-
-                // omitted.
-
                 repository.create(item);
                 if (count % CHUNK_SIZE == 0) {
                     transactionManager.commit(status);  // (4)
                 }
             }
+            if (status != null && !status.isCompleted()) {
+                transactionManager.commit(status);    // (5)
+            }
         } catch (Exception e) {
             logger.error("Exception occurred while reading.", e);
-            transactionManager.rollback(status);    // (5)
+            if (status != null && !status.isCompleted()) {
+            	transactionManager.rollback(status);    // (6)
+            }
             throw e;
         } finally {
             if (status != null && !status.isCompleted()) {
-                transactionManager.commit(status);   // (6)
+                try {
+                    transactionManager.rollback(status);    // (7)
+                } catch (TransactionException e2) {
+                	logger.error("TransactionException occurred while rollback.", e2);
+                }
             }
             itemReader.close();
         }
@@ -638,7 +771,7 @@ public class SalesPlanChunkTranTask implements Tasklet {
 |説明
 
 |(1)
-|``<batch:tasklet>``要素の``transaction-manager``属性に定義済みの``jobResourcelessTransactionManager``を設定する。
+|``StepBuilderのtaskletメソッドの引数transactionManager/<batch:tasklet>要素のtransaction-manager属性``に定義済みの``jobResourcelessTransactionManager``を設定する。
 
 |(2)
 |トランザクションマネージャをInjectする。 +
@@ -651,10 +784,13 @@ public class SalesPlanChunkTranTask implements Tasklet {
 |チャンク終了時にトランザクションをコミットする。
 
 |(5)
-|例外発生時にはトランザクションをロールバックする。
+|最後のチャンクについて、トランザクションをコミットする。
 
 |(6)
-|最後のチャンクについて、トランザクションをコミットする。
+|例外発生時にはトランザクションをロールバックする。
+
+|(7)
+|トランザクションが終わっていない場合、トランザクションをロールバックする。
 
 |===
 
@@ -684,15 +820,50 @@ ItemWriterを利用することで実装がシンプルになる効果があり�
 [NOTE]
 .ファイルしか扱わないジョブにおけるTransactionManagerの設定について
 ====
-以下に示すジョブ定義のように、``batch:tasklet``の``transaction-manager``属性はxsdスキーマにおいて必須のため省略できない。
+以下に示すジョブ定義のように、``StepBuilderのchunkメソッドの引数transactionManager/batch:taskletのtransaction-manager属性``は必須のため省略できない。
 
-[source, xml]
 .TransactionManager設定箇所の抜粋
+// ============ Java/XML Config Tab start. ============
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup050105" class="JavaConfigTab" id="tabgroup050105_1" checked><label for="tabgroup050105_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup050105" class="XMLConfigTab" id="tabgroup050105_2"><label for="tabgroup050105_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+[source, java]
+----
+@Bean
+public Step step01(JobRepository jobRepository,
+                   @Qualifier("jobTransactionManager") PlatformTransactionManager transactionManager,
+                   ItemReader<SalesPlanDetail> reader,
+                   ItemWriter<SalesPlanDetail> writer) {
+    return new StepBuilder("jobSalesPlan01.step01", jobRepository)
+            .<SalesPlanDetail, SalesPlanDetail> chunk(100,
+                    transactionManager)
+            .reader(reader)
+            .writer(writer)
+            .build();
+}
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
+[source, xml]
 ----
 <batch:tasklet transaction-manager="jobTransactionManager">
 <batch:chunk reader="reader" writer="writer" commit-interval="100" />
 </batch:tasklet>
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============
 
 そのため、``jobTransactionManager``を常に指定すること。この時、以下の挙動となる。
 
@@ -707,13 +878,48 @@ ItemWriterを利用することで実装がシンプルになる効果があり�
 また、実害がある場合や空振りでも参照するトランザクションを発行したくない場合は、リソースを必要としない``ResourcelessTransactionManager``を使用することができる。
 ``ResourcelessTransactionManager``は``LaunchContextConfig.java/launch-context.xml``に``jobResourcelessTransactionManager``として定義済みである。
 
-[source, xml]
 .ResourcelessTransactionManagerの使用例
+// ============ Java/XML Config Tab start. ============
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup050106" class="JavaConfigTab" id="tabgroup050106_1" checked><label for="tabgroup050106_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup050106" class="XMLConfigTab" id="tabgroup050106_2"><label for="tabgroup050106_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+[source, java]
+----
+@Bean
+public Step step01(JobRepository jobRepository,
+                   @Qualifier("jobResourcelessTransactionManager") PlatformTransactionManager transactionManager,
+                   ItemReader<SalesPlanDetail> reader,
+                   ItemWriter<SalesPlanDetail> writer) {
+    return new StepBuilder("jobSalesPlan01.step01", jobRepository)
+            .<SalesPlanDetail, SalesPlanDetail> chunk(100,
+                    transactionManager)
+            .reader(reader)
+            .writer(writer)
+            .build();
+}
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
+[source, xml]
 ----
 <batch:tasklet transaction-manager="jobResourcelessTransactionManager">
     <batch:chunk reader="reader" writer="writer" commit-interval="100" />
 </batch:tasklet>
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============
 ====
 
 [[Ch05_Transaction_HowToUse_MultiDataSource]]
@@ -773,8 +979,49 @@ public class BranchMasterReadStepListener implements StepExecutionListener {
 }
 ----
 
-[source,xml]
 .一括取得するListenerの定義
+// ============ Java/XML Config Tab start. ============
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup050107" class="JavaConfigTab" id="tabgroup050107_1" checked><label for="tabgroup050107_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup050107" class="XMLConfigTab" id="tabgroup050107_2"><label for="tabgroup050107_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+[source, java]
+----
+@Bean
+public Step step01(JobRepository jobRepository,
+                   @Qualifier("jobTransactionManager") PlatformTransactionManager transactionManager,
+                   ItemReader<Customer> reader,
+                   ItemWriter<Customer> writer,
+                   RetrieveBranchFromContextItemProcessor processor,
+                   BranchMasterReadStepListener listener) {
+    return new StepBuilder("outputAllCustomerList01.step01",
+            jobRepository)
+            .<Customer, Customer> chunk(10, transactionManager)
+            .reader(reader)
+            .processor(processor)
+            .listener(listener) // (6)
+            .writer(writer)
+            .build();
+}
+
+@Bean
+public Job outputAllCustomerList01(JobRepository jobRepository,
+                                        Step step01) {
+    return new JobBuilder("outputAllCustomerList01",jobRepository)
+            .start(step01)
+            .build();
+}
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
+[source, xml]
 ----
 <batch:job id="outputAllCustomerList01" job-repository="jobRepository">
     <batch:step id="outputAllCustomerList01.step01">
@@ -789,6 +1036,12 @@ public class BranchMasterReadStepListener implements StepExecutionListener {
     </batch:step>
 </batch:job>
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============
 
 [source,java]
 .一括取得したデータを後続ステップのItemProcessorで参照する例
@@ -886,8 +1139,33 @@ public class RetrieveBranchFromRepositoryItemProcessor implements
 }
 ----
 
-[source,xml]
 .都度取得用と業務処理用のItemProcessorの定義例
+// ============ Java/XML Config Tab start. ============
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup050108" class="JavaConfigTab" id="tabgroup050108_1" checked><label for="tabgroup050108_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup050108" class="XMLConfigTab" id="tabgroup050108_2"><label for="tabgroup050108_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+[source, java]
+----
+@Bean
+public CompositeItemProcessor<Customer, CustomerWithBranch> compositeItemProcessor(
+        RetrieveBranchFromRepositoryItemProcessor retrieveBranchFromRepositoryItemProcessor,
+        BusinessLogicItemProcessor businessLogicItemProcessor) {
+    return new CompositeItemProcessorBuilder<Customer, CustomerWithBranch>()
+            .delegates(retrieveBranchFromRepositoryItemProcessor, businessLogicItemProcessor) // (4), (5)
+            .build();
+}
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
+[source, xml]
 ----
 <bean id="compositeItemProcessor"
       class="org.springframework.batch.item.support.CompositeItemProcessor">
@@ -899,6 +1177,12 @@ public class RetrieveBranchFromRepositoryItemProcessor implements
     </property>
 </bean>
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============
 
 [cols="10,90", options="header"]
 |===
@@ -985,8 +1269,53 @@ image::Ch05_transaction_Best_Efforts_1PC.png[Best Efforts 1PC Overview]
 <dependencies>
 ----
 
-[source,xml]
 .chainedTransactionManagerの使用例
+// ============ Java/XML Config Tab start. ============
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup050109" class="JavaConfigTab" id="tabgroup050109_1" checked><label for="tabgroup050109_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup050109" class="XMLConfigTab" id="tabgroup050109_2"><label for="tabgroup050109_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+[source, java]
+----
+// (2)
+@Bean
+public ChainedTransactionManager chainedTransactionManager(
+        @Qualifier("transactionManager1") PlatformTransactionManager transactionManager1,
+        @Qualifier("transactionManager2") PlatformTransactionManager transactionManager2) {
+    return new ChainedTransactionManager(transactionManager1, transactionManager2); // (3)
+}
+
+@Bean
+public Step step01(JobRepository jobRepository,
+                @Qualifier("chainedTransactionManager") PlatformTransactionManager transactionManager, // (4)
+                ItemReader<SalesPlanDetail> reader,
+                ItemWriter<SalesPlanDetail> writer) {
+    return new StepBuilder("jobSalesPlan01.step01",
+            jobRepository)
+            .<SalesPlanDetail, SalesPlanDetail> chunk(10, transactionManager)
+            .reader(reader)
+            .writer(writer)
+            .build();
+}
+
+@Bean
+public Job jobSalesPlan01(JobRepository jobRepository,
+                                        Step step01) {
+    return new JobBuilder("jobSalesPlan01", jobRepository)
+            .start(step01)
+            .build();
+}
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
+[source, xml]
 ----
 <!-- Chained Transaction Manager -->
 <!-- (2) -->
@@ -1009,8 +1338,13 @@ image::Ch05_transaction_Best_Efforts_1PC.png[Best Efforts 1PC Overview]
         </batch:tasklet>
     </batch:step>
 </batch:job>
-
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============
 
 [cols="10,90", options="header"]
 |===
@@ -1021,13 +1355,15 @@ image::Ch05_transaction_Best_Efforts_1PC.png[Best Efforts 1PC Overview]
 |``ChainedTransactionManager``を利用するために、依存関係を追加する。
 
 |(2)
-|``ChainedTransactionManager``のBean定義を行う。
+|``ChainedTransactionManager``のBean定義を行う。 +
+尚、 https://github.com/spring-projects/spring-data-commons[spring-data-commons] 2.5.0で``ChainedTransactionManager``は非推奨であり、予告なく削除される場合があるため注意すること。 + 
+https://docs.spring.io/spring-data/commons/docs/current/api/org/springframework/data/transaction/ChainedTransactionManager.html[spring-data-commons/ChainedTransactionManager]
 
 |(3)
 |まとめたい複数のトランザクションマネージャをリストで定義する。
 
 |(4)
-|ジョブが利用するトランザクションマネージャに(1)で定義したBeanIDを指定する。
+|ジョブが利用するトランザクションマネージャに(2)で定義したBeanIDを指定する。
 
 |===
 

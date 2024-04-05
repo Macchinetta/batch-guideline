@@ -82,70 +82,77 @@ Bean定義ファイルにて、チャンクモデルジョブを構成する要�
 ++++
 // Java Config start.
 [[Ch03_CreateChunkJob_HowToUse_JobConfig_example]]
-[source,xml]
+[source,java]
 .Bean定義ファイルの例(チャンクモデル)
 ----
-<?xml version="1.0" encoding="UTF-8"?>
-<beans xmlns="http://www.springframework.org/schema/beans"
-       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-       xmlns:context="http://www.springframework.org/schema/context"
-       xmlns:batch="http://www.springframework.org/schema/batch"
-       xmlns:p="http://www.springframework.org/schema/p"
-       xmlns:mybatis="http://mybatis.org/schema/mybatis-spring"
-       xsi:schemaLocation="http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd
-             http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd
-             http://www.springframework.org/schema/batch https://www.springframework.org/schema/batch/spring-batch.xsd
-             http://mybatis.org/schema/mybatis-spring http://mybatis.org/schema/mybatis-spring.xsd">
+@Configuration
+@Import(JobBaseContextConfig.class) // (1)
+@ComponentScan("org.terasoluna.batch.functionaltest.app.common") // (2)
+@MapperScan(value = "org.terasoluna.batch.functionaltest.app.repository.mst", sqlSessionFactoryRef = "jobSqlSessionFactory") // (3)
+public class JobCustomerList01Config {
 
-    <!-- (1) -->
-    <bean class="jp.co.ntt.fw.macchinetta.batch.functionaltest.config.JobBaseContextConfig"/>
+    // (4)
+    @Bean
+    @StepScope
+    public MyBatisCursorItemReader<Customer> reader(
+            @Qualifier("jobSqlSessionFactory") SqlSessionFactory jobSqlSessionFactory) {
+        return new MyBatisCursorItemReaderBuilder<Customer>()
+                .sqlSessionFactory(jobSqlSessionFactory)
+                .queryId(
+                        "org.terasoluna.batch.functionaltest.app.repository.mst.CustomerRepository.findAll")
+                .build();
+    }
 
-    <!-- (2) -->
-    <context:component-scan
-        base-package="jp.co.ntt.fw.macchinetta.batch.functionaltest.app.common" />
+    // (5)
+    // Item Processor
+    // Item Processor in order that based on the Bean defined by the annotations, not defined here
 
-    <!-- (3) -->
-    <mybatis:scan
-        base-package="jp.co.ntt.fw.macchinetta.batch.functionaltest.app.repository.mst"
-        factory-ref="jobSqlSessionFactory"/>
+    // (6)
+    @Bean
+    @StepScope
+    public FlatFileItemWriter<Customer> writer(
+            @Value("#{jobParameters['outputFile']}") File outputFile) {
+        final BeanWrapperFieldExtractor<Customer> fieldExtractor = new BeanWrapperFieldExtractor<>();
+        fieldExtractor.setNames(
+                new String[] { "customerId", "customerName", "customerAddress",
+                        "customerTel", "chargeBranchId" });
+        final DelimitedLineAggregator<Customer> lineAggregator = new DelimitedLineAggregator<>();
+        lineAggregator.setDelimiter(",");
+        lineAggregator.setFieldExtractor(fieldExtractor);
+        return new FlatFileItemWriterBuilder<Customer>()
+                .name(ClassUtils.getShortName(FlatFileItemWriter.class))
+                .resource(new FileSystemResource(outputFile))
+                .transactional(false)
+                .lineAggregator(lineAggregator)
+                .build();
+    }
 
-    <!-- (4) -->
-    <bean id="reader"
-          class="org.mybatis.spring.batch.MyBatisCursorItemReader" scope="step"
-          p:queryId="jp.co.ntt.fw.macchinetta.batch.functionaltest.app.repository.mst.CustomerRepository.findAll"
-          p:sqlSessionFactory-ref="jobSqlSessionFactory"/>
+    @Bean
+    public Step step01(JobRepository jobRepository, // (8)
+                       @Qualifier("jobTransactionManager") PlatformTransactionManager transactionManager,
+                       @Qualifier("reader") ItemReader<Customer> reader,
+                       @Qualifier("processor") ItemProcessor<Customer, Customer> processor,
+                       @Qualifier("writer") ItemWriter<Customer> writer,
+                       @Qualifier("loggingItemReaderListener") LoggingItemReaderListener listener) {
+        return new StepBuilder("jobCustomerList01.step01", jobRepository) // // (9)
+                .<Customer, Customer> chunk(10, transactionManager) // (10)
+                .reader(reader) // (11)
+                .processor(processor)
+                .writer(writer)
+                .listener(listener)
+                .build();
+    }
 
-    <!-- (5) -->
-    <!-- Item Processor -->
-    <!-- Item Processor in order that based on the Bean defined by the annotations, not defined here -->
-
-    <!-- (6) -->
-    <bean id="writer"
-          class="org.springframework.batch.item.file.FlatFileItemWriter"
-          scope="step"
-          p:resource="file:#{jobParameters['outputFile']}">
-        <property name="lineAggregator">
-            <bean class="org.springframework.batch.item.file.transform.DelimitedLineAggregator">
-                <property name="fieldExtractor">
-                    <bean class="org.springframework.batch.item.file.transform.BeanWrapperFieldExtractor"
-                          p:names="customerId,customerName,customerAddress,customerTel,chargeBranchId"/>
-                </property>
-            </bean>
-        </property>
-    </bean>
-
-    <!-- (7) -->
-    <batch:job id="jobCustomerList01" job-repository="jobRepository"> <!-- (8) -->
-        <batch:step id="jobCustomerList01.step01"> <!-- (9) -->
-            <batch:tasklet transaction-manager="jobTransactionManager"> <!-- (10) -->
-                <batch:chunk reader="reader"
-                             processor="processor"
-                             writer="writer"
-                             commit-interval="10" /> <!-- (11) -->
-            </batch:tasklet>
-        </batch:step>
-    </batch:job>
-</beans>
+    @Bean
+    public Job jobCustomerList01(JobRepository jobRepository, // (8)
+                                 Step step01,
+                                 @Qualifier("jobExecutionLoggingListener") JobExecutionLoggingListener listener) {
+        return new JobBuilder("jobCustomerList01", jobRepository) // (7)
+                .start(step01)
+                .listener(listener)
+                .build();
+    }
+}
 ----
 // Java Config end.
 ++++
@@ -249,8 +256,7 @@ public class CustomerProcessor implements ItemProcessor<Customer, Customer> {
 |{batch5_shortname}を利用する際に、常に必要なBean定義を読み込む設定をインポートする。
 
 |(2)
-|コンポーネントスキャン対象のベースパッケージを設定する。 +
-icon:warning[] コンポーネントスキャンを使用したアノテーションベースのBean定義を行わない場合、かつアノテーションを使用してBeanの依存性解決を行う場合は、``<context:annotation-config/>``要素の定義が必要となる。
+|コンポーネントスキャン対象のベースパッケージを設定する。
 
 |(3)
 |MyBatis-Springの設定。 +
@@ -269,43 +275,56 @@ ItemWriterの詳細は、<<Ch05_DBAccess.adoc#Ch05_DBAccess,データベース�
 
 |(7)
 |ジョブの設定。 +
-``id``属性は、1つのバッチアプリケーションに含まれる全ジョブの範囲内で一意とする必要がある。
+``JobBuilderのコンストラクタの引数name/<batch:job>のid属性``は、1つのバッチアプリケーションに含まれる全ジョブの範囲内で一意とする必要がある。
 
 |(8)
 |``JobRepository``の設定。 +
-``job-repository``属性に設定する値は、特別な理由がない限り``jobRepository``固定とすること。 +
+``JobBuilder、StepBuilderのコンストラクタの引数jobRepository/<batch:job>のjob-repository属性``に設定する値は、特別な理由がない限り``jobRepository``固定とすること。 +
 これにより、すべてのジョブが1つの``JobRepository``で管理できる。
 ``jobRepository``のBean定義は、(1)により解決する。
 
 |(9)
 |ステップの設定。 +
-``id``属性は、1つのバッチアプリケーションに含まれる全ジョブの範囲内で一意とする必要はないが、障害発生時に追跡しやすくなる等の様々なメリットがあるため一意とする。 +
-特別な理由がない限り、(7)で指定した``id``属性に[step+連番]を付加する形式とする。
+``StepBuilderのコンストラクタの引数name/<batch:job>のid属性``は、1つのバッチアプリケーションに含まれる全ジョブの範囲内で一意とする必要はないが、障害発生時に追跡しやすくなる等の様々なメリットがあるため一意とする。 +
+特別な理由がない限り、(7)で指定した``JobBuilderのコンストラクタの引数name/<batch:job>のid属性``に[step+連番]を付加する形式とする。
 
 |(10)
 |タスクレットの設定。 +
-``transaction-manager``属性に設定する値は、特別な理由がない限り``jobTransactionManager``固定とすること。 +
+``StepBuilderのchunkメソッドの引数transactionManager/<batch:tasklet>のtransaction-manager属性``に設定する値は、特別な理由がない限り``jobTransactionManager``固定とすること。 +
 これにより、(11)の``commit-interval``ごとにトランザクションが管理される。
 詳細については、<<Ch05_Transaction.adoc#Ch05_Transaction,トランザクション制御>>を参照。 +
 ``jobTransactionManager``のBean定義は、(1)により解決する。
 
 |(11)
 |チャンクモデルジョブの設定。 +
-``reader``、``writer``それぞれの属性に、前項までに定義した``ItemReader``、``ItemWriter``のBeanIDを指定する。 +
-``processor``属性に、ItemProcessorの実装クラスのBeanIDを指定する。 +
-``commit-interval``属性に1チャンクあたりの入力データ件数を設定する。
+``StepBuilderのreaderメソッド、writerメソッド/<batch:chunk>のreader属性、writer属性``に、前項までに定義した``ItemReader``、``ItemWriter``のBeanIDを指定する。 +
+``StepBuilderのprocessorメソッド/processor属性``に、ItemProcessorの実装クラスのBeanIDを指定する。 +
+``StepBuilderのchunkメソッドの引数chunkSize/<batch:chunk>のcommit-interval属性``に1チャンクあたりの入力データ件数を設定する。
 |===
 
 [IMPORTANT]
-.commit-intervalのチューニング
+.アノテーションベースのBeanの依存性解決の有効化方法
 ====
-``commit-interval``はチャンクモデルジョブにおける、性能上のチューニングポイントである。
+アノテーションベースのBeanの依存性解決を有効化する方法は、JavaConfig/XMLConfigで異なる。
+
+* JavaConfig
+** ジョブのBean定義ファイルのクラスに付与する``@Configuration``によって有効化される。
+
+* XMLConfig
+** ジョブのBean定義ファイルに``<context:component-scan>``を設定することで有効化される（正確には、``<context:component-scan>``が内部で呼び出す``<context:annotation-config>``によって有効化される）。コンポーネントスキャンを利用しない場合は``<context:annotation-config>``を設定する必要がある。
+
+====
+
+[IMPORTANT]
+.chunkSize/commit-intervalのチューニング
+====
+``chunkSize/commit-interval``はチャンクモデルジョブにおける、性能上のチューニングポイントである。
 
 前述の例では10件としているが、利用できるマシンリソースやジョブの特性によって適切な件数は異なる。
 複数のリソースにアクセスしてデータを加工するジョブであれば10件から100件程度で処理スループットが頭打ちになることもある。
 一方、入出力リソースが1:1対応しておりデータを移し替える程度のジョブであれば5000件や10000件でも処理スループットが伸びることがある。
 
-ジョブ実装時の``commit-interval``は100件程度で仮置きしておき、
+ジョブ実装時の``chunkSize/commit-interval``は100件程度で仮置きしておき、
 その後に実施した性能測定の結果に応じてジョブごとにチューニングするとよい。
 ====
 
@@ -421,13 +440,92 @@ endif::[]
 ====
 
 [NOTE]
+.PassThroughItemProcessorの省略
+====
+ジョブを定義する場合は、ItemProcessorの設定を省略することができる。
+省略した場合、PassThroughItemProcessorと同様に何もせずに入力データをItemWriterへ受け渡すことになる。
+
+[source,xml]
+.ItemProcessorの省略
+// ============ Java/XML Config Tab start. ============
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup020302" class="JavaConfigTab" id="tabgroup020302_1" checked><label for="tabgroup020302_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup020302" class="XMLConfigTab" id="tabgroup020302_2"><label for="tabgroup020302_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+----
+@Bean
+public Step exampleStep(JobRepository jobRepository,
+                   @Qualifier("jobTransactionManager") PlatformTransactionManager transactionManager,
+                   ItemReader reader,
+                   ItemWriter writer) {
+    return new StepBuilder("exampleJob.exampleStep",
+            jobRepository)
+            .<ItemReader, ItemWriter> chunk(10, transactionManager)
+            .reader(reader)
+            .writer(writer)
+            .build();
+}
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
+----
+<batch:job id="exampleJob">
+    <batch:step id="exampleStep">
+        <batch:tasklet>
+            <batch:chunk reader="reader" writer="writer" commit-interval="10" />
+        </batch:tasklet>
+    </batch:step>
+</batch:job>
+----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============
+====
+
+[NOTE]
 .複数のItemProcessorを同時に利用する
 ====
 汎用的なItemProcessorを用意し、個々のジョブに適用したい場合は、
 {SB}が提供する``CompositeItemProcessor``を利用し連結することで実現できる。
 
-[source,xml]
 .CompositeItemProcessorによる複数ItemProcessorの連結
+// ============ Java/XML Config Tab start. ============
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup050302" class="JavaConfigTab" id="tabgroup050302_1" checked><label for="tabgroup050302_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup050302" class="XMLConfigTab" id="tabgroup050302_2"><label for="tabgroup050302_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+[source,java]
+----
+@Bean
+public CompositeItemProcessor processor(
+        ItemProcessor commonItemProcessor,
+        ItemProcessor businessLogicItemProcessor) {
+    return new CompositeItemProcessorBuilder<>()
+            .delegates(commonItemProcessor)
+            .delegates(businessLogicItemProcessor)
+            .build();
+}
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
+[source,xml]
 ----
 <bean id="processor"
       class="org.springframework.batch.item.support.CompositeItemProcessor">
@@ -439,6 +537,12 @@ endif::[]
     </property>
 </bean>
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============
 
 ``delegates``属性に指定した順番に処理されることに留意すること。
 ====

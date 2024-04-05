@@ -192,26 +192,15 @@ Bean定義ファイルにて、チャンクモデルでのファイルアクセ�
   <div class="tabcontent" name="JavaConfigContent">
 ++++
 // Java Config start.
-[source, xml]
-.src/main/resources/META-INF/jobs/fileaccess/jobPointAddChunk.xml
+[source, java]
+.com.example.batch.tutorial.config.fileaccess.JobPointAddChunkConfig.java
 ----
-<?xml version="1.0" encoding="UTF-8"?>
-<beans xmlns="http://www.springframework.org/schema/beans"
-       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-       xmlns:context="http://www.springframework.org/schema/context"
-       xmlns:batch="http://www.springframework.org/schema/batch"
-       xmlns:p="http://www.springframework.org/schema/p"
-       xsi:schemaLocation="http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd
-             http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd
-             http://www.springframework.org/schema/batch https://www.springframework.org/schema/batch/spring-batch.xsd">
+@Configuration
+@Import(JobBaseContextConfig.class) // (1)
+@ComponentScan("com.example.batch.tutorial.fileaccess.chunk") // (2)
+public class JobPointAddChunkConfig {
 
-    <!-- (1) -->
-    <bean class="com.example.batch.tutorial.config.JobBaseContextConfig"/>
-
-    <!-- (2) -->
-    <context:component-scan base-package="com.example.batch.tutorial.fileaccess.chunk"/>
-
-</beans>
+}
 ----
 // Java Config end.
 ++++
@@ -258,7 +247,7 @@ Bean定義ファイルにて、チャンクモデルでのファイルアクセ�
 
 |(2)
 |コンポーネントスキャン対象とするベースパッケージの設定を行う。 +
-``base-package``属性に、使用するコンポーネント(ItemProcessorの実装クラスなど)が格納されているパッケージを指定する。
+``basePackages属性/base-package属性``に、使用するコンポーネント(ItemProcessorの実装クラスなど)が格納されているパッケージを指定する。
 |===
 
 [[Ch09_Impl_FileAccessJob_Chunk_Dto]]
@@ -354,66 +343,60 @@ ItemReader、ItemWriterの設定として、ジョブBean定義ファイルに�
   <div class="tabcontent" name="JavaConfigContent">
 ++++
 // Java Config start.
-[source, xml]
-.src/main/resources/META-INF/jobs/fileaccess/jobPointAddChunk.xml
+[source, java]
+.com.example.batch.tutorial.config.fileaccess.JobPointAddChunkConfig.java
 ----
-<?xml version="1.0" encoding="UTF-8"?>
-<beans xmlns="http://www.springframework.org/schema/beans"
-       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-       xmlns:context="http://www.springframework.org/schema/context"
-       xmlns:batch="http://www.springframework.org/schema/batch"
-       xmlns:p="http://www.springframework.org/schema/p"
-       xsi:schemaLocation="http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd
-             http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd
-             http://www.springframework.org/schema/batch https://www.springframework.org/schema/batch/spring-batch.xsd">
+@Configuration
+@Import(JobBaseContextConfig.class)
+@PropertySource(value = "classpath:batch-application.properties")
+@ComponentScan("com.example.batch.tutorial.fileaccess.chunk")
+public class JobPointAddChunkConfig {
 
-    <bean class="com.example.batch.tutorial.config.JobBaseContextConfig"/>
+    // (1)
+    @Bean
+    @StepScope
+    public FlatFileItemReader<MemberInfoDto> reader(
+            @Value("#{jobParameters['inputFile']}") File inputFile) {
+        DefaultLineMapper<MemberInfoDto> lineMapper = new DefaultLineMapper<>();
+        DelimitedLineTokenizer lineTokenizer = new DelimitedLineTokenizer(); // (3)
+        lineTokenizer.setNames("id", "type", "status", "point"); // (4)
+        lineTokenizer.setDelimiter(","); // (5)
+        lineTokenizer.setQuoteCharacter('"');
+        BeanWrapperFieldSetMapper<MemberInfoDto> fieldSetMapper = new BeanWrapperFieldSetMapper<>(); // (6)
+        fieldSetMapper.setTargetType(MemberInfoDto.class);
+        lineMapper.setLineTokenizer(lineTokenizer);
+        lineMapper.setFieldSetMapper(fieldSetMapper);
+        return new FlatFileItemReaderBuilder<MemberInfoDto>()
+                .name(ClassUtils.getShortName(FlatFileItemReader.class))
+                .lineMapper(lineMapper)
+                .resource(new FileSystemResource(inputFile)) // (2)
+                .encoding("MS932")
+                .strict(true)
+                .build();
+    }
 
-    <context:component-scan base-package="com.example.batch.tutorial.fileaccess.chunk"/>
-
-    <!-- (1) (2) -->
-    <bean id="reader"
-          class="org.springframework.batch.item.file.FlatFileItemReader" scope="step"
-          p:resource="file:#{jobParameters['inputFile']}"
-          p:encoding="UTF-8"
-          p:strict="true">
-        <property name="lineMapper">
-            <bean class="org.springframework.batch.item.file.mapping.DefaultLineMapper">
-                <property name="lineTokenizer"> <!-- (3) -->
-                    <bean class="org.springframework.batch.item.file.transform.DelimitedLineTokenizer"
-                          p:names="id,type,status,point"
-                          p:delimiter=","
-                          p:quoteCharacter='"'/> <!-- (4) (5) -->
-                </property>
-                <property name="fieldSetMapper"> <!-- (6) -->
-                    <bean class="org.springframework.batch.item.file.mapping.BeanWrapperFieldSetMapper"
-                          p:targetType="com.example.batch.tutorial.common.dto.MemberInfoDto"/>
-                </property>
-            </bean>
-        </property>
-    </bean>
-
-    <!-- (7) (8) -->
-    <bean id="writer"
-          class="org.springframework.batch.item.file.FlatFileItemWriter" scope="step"
-          p:resource="file:#{jobParameters['outputFile']}"
-          p:encoding="UTF-8"
-          p:lineSeparator="&#x0A;"
-          p:appendAllowed="false"
-          p:shouldDeleteIfExists="true"
-          p:transactional="true">
-        <property name="lineAggregator"> <!-- (9) -->
-            <bean class="org.springframework.batch.item.file.transform.DelimitedLineAggregator"
-                  p:delimiter=","> <!-- (10) -->
-                <property name="fieldExtractor"> <!-- (11) -->
-                    <bean class="org.springframework.batch.item.file.transform.BeanWrapperFieldExtractor"
-                          p:names="id,type,status,point"/> <!-- (12) -->
-                </property>
-            </bean>
-        </property>
-    </bean>
-
-</beans>
+    // (7)
+    @Bean
+    @StepScope
+    public FlatFileItemWriter<MemberInfoDto> writer(
+            @Value("#{jobParameters['outputFile']}") File outputFile) {
+        BeanWrapperFieldExtractor<MemberInfoDto> fieldExtractor = new BeanWrapperFieldExtractor<>(); // (11)
+        fieldExtractor.setNames(new String[] {"id", "type", "status", "point"}); // (12)
+        DelimitedLineAggregator<MemberInfoDto> lineAggregator = new DelimitedLineAggregator<>(); // (9)
+        lineAggregator.setDelimiter(","); // (10)
+        lineAggregator.setFieldExtractor(fieldExtractor);
+        return new FlatFileItemWriterBuilder<MemberInfoDto>()
+                .name(ClassUtils.getShortName(FlatFileItemWriter.class))
+                .resource(new FileSystemResource(outputFile)) // (8)
+                .lineAggregator(lineAggregator)
+                .encoding("UTF-8")
+                .lineSeparator("\n")
+                .append(false)
+                .shouldDeleteIfExists(true)
+                .transactional(true)
+                .build();
+    }
+}
 ----
 // Java Config end.
 ++++
@@ -497,64 +480,64 @@ ItemReader、ItemWriterの設定として、ジョブBean定義ファイルに�
 
 |(1)
 |ItemReaderの設定を行う。 +
-``class``属性に、{SB}が提供するフラットファイルを読み込むための``ItemReader``の実装クラスである
+``戻り値の型/class属性``に、{SB}が提供するフラットファイルを読み込むための``ItemReader``の実装クラスである
 ``org.springframework.batch.item.file.FlatFileItemReader``を指定する。 +
-``scope``属性に、``step``スコープを指定する。
+``@Beanの後に@StepScope/scope属性に、stepスコープ``を指定する。
 
 |(2)
-|``resource``属性に入力ファイルのパスを設定する。 +
+|``FlatFileItemReaderBuilderのresourceメソッド/resource属性``に入力ファイルのパスを設定する。 +
 パスは直接指定することも可能であるが、ここでは、ジョブ起動時にパラメータで渡すようにするため、
 入力ファイルパスのパラメータ名を指定している。
 
 |(3)
 |lineTokenizerの設定を行う。 +
-``class``属性に、{SB}が提供する区切り文字を指定してレコードを分割する``LineTokenizer``の実装クラスである
+``インスタンス作成のクラス/class属性``に、{SB}が提供する区切り文字を指定してレコードを分割する``LineTokenizer``の実装クラスである
 ``org.springframework.batch.item.file.transform.DelimitedLineTokenizer``を指定する。 +
 CSV形式の一般的書式とされるRFC-4180の仕様に定義されている、エスケープされた改行、区切り文字、囲み文字の読み込みに対応している。
 
 |(4)
-|``names``属性に、1レコードの各項目に付与する名前を設定する。 +
+|``DelimitedLineTokenizerのsetNamesメソッド/names属性``に、1レコードの各項目に付与する名前を設定する。 +
 ``FieldSetMapper``で使われる``FieldSet``で設定した名前を用いて各項目を取り出すことができるようになる。 +
 レコードの先頭から各名前をカンマ区切りで指定する。
 
 |(5)
-|``delimiter``属性に、区切り文字としてカンマを指定する。
+|``DelimitedLineTokenizerのsetDelimiterメソッド/delimiter属性``に、区切り文字としてカンマを指定する。
 
 |(6)
 |``fieldSetMapper``の設定を行う。 +
 今回は文字列や数字など特別な変換処理が不要なため、
-``class``属性に、``org.springframework.batch.item.file.mapping.BeanWrapperFieldSetMapper``を指定する。 +
-``targetType``属性には、変換対象クラスとして<<Ch09_Impl_FileAccessJob_Chunk_Dto>>で作成したDTOクラスを指定する。
+``インスタンス作成のクラス/class属性``に、``org.springframework.batch.item.file.mapping.BeanWrapperFieldSetMapper``を指定する。 +
+``指定する型/targetType属性``には、変換対象クラスとして<<Ch09_Impl_FileAccessJob_Chunk_Dto>>で作成したDTOクラスを指定する。
 これにより、(4)で設定した各項目の名前と一致するフィールドに値を自動的に設定したインスタンスを生成する。
 
 |(7)
 |ItemWriterの設定を行う。 +
-``class``属性に、{SB}が提供するフラットファイルへ書き込むための``ItemWriter``の実装クラスである
+``戻り値の型/class属性``に、{SB}が提供するフラットファイルへ書き込むための``ItemWriter``の実装クラスである
 ``org.springframework.batch.item.file.FlatFileItemWriter``を指定する。 +
-``scope``属性に、``step``スコープを指定する。 +
-このチュートリアルでは、``appendAllowed``属性は``false``(追記しない)、``shouldDeleteIfExists``属性は``true``(既存ファイルを削除する)を指定して
+``@Beanの後に@StepScope/scope属性に、stepスコープ``を指定する。 +
+このチュートリアルでは、``FlatFileItemWriterBuilderのappendメソッド/appendAllowed属性``は``false``(追記しない)、``shouldDeleteIfExistsメソッド/shouldDeleteIfExists``属性は``true``(既存ファイルを削除する)を指定して
 ジョブを何度実行しても新規にファイルが作成されるようにする。 +
-``transactional``属性に、``true``を指定して、擬似的トランザクション制御を有効にする。
+``transactionalメソッド/transactional属性``に、``true``を指定して、擬似的トランザクション制御を有効にする。
 
 |(8)
-|``resource``属性に出力ファイルのパスを設定する。 +
+|``FlatFileItemWriterBuilderのresourceメソッド/resource属性``に出力ファイルのパスを設定する。 +
 ジョブ起動時にパラメータで渡すようにするため、出力ファイルパスのパラメータ名を指定している。
 
 |(9)
 |``lineAggregator``の設定を行う。 +
-``class``属性に、対象Beanを1レコードへマッピングするための``org.springframework.batch.item.file.transform.LineAggregator``を指定する。 +
+``インスタンス作成のクラス/class属性``に、対象Beanを1レコードへマッピングするための``org.springframework.batch.item.file.transform.LineAggregator``を指定する。 +
 Beanのプロパティとレコード内の各項目とのマッピングは``FieldExtractor``で行う。
 
 |(10)
-|``delimiter``属性に、区切り文字としてカンマを指定する。
+|``DelimitedLineAggregatorのsetDelimiterメソッド/delimiter属性``に、区切り文字としてカンマを指定する。
 
 |(11)
 |``fieldExtractor``の設定を行う。 +
  (12)で指定する各項目の名前に(6)で指定したDTOクラスのフィールドと一致する値をマッピングする。  +
-``class``属性に、``org.springframework.batch.item.file.transform.BeanWrapperFieldExtractor``を指定する。 +
+``インスタンス作成のクラス/class属性``に、``org.springframework.batch.item.file.transform.BeanWrapperFieldExtractor``を指定する。 +
 
 |(12)
-|``names``属性に、1レコードの各項目に付与する名前を指定する。
+|``BeanWrapperFieldExtractorのsetNamesメソッド/names属性``に、1レコードの各項目に付与する名前を指定する。
 
 |===
 
@@ -679,74 +662,84 @@ public class PointAddItemProcessor implements ItemProcessor<MemberInfoDto, Membe
   <div class="tabcontent" name="JavaConfigContent">
 ++++
 // Java Config start.
-[source, xml]
-.src/main/resources/META-INF/jobs/fileaccess/jobPointAddChunk.xml
+[source, java]
+.com.example.batch.tutorial.config.fileaccess.JobPointAddChunkConfig.java
 ----
-<?xml version="1.0" encoding="UTF-8"?>
-<beans xmlns="http://www.springframework.org/schema/beans"
-       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-       xmlns:context="http://www.springframework.org/schema/context"
-       xmlns:batch="http://www.springframework.org/schema/batch"
-       xmlns:p="http://www.springframework.org/schema/p"
-       xsi:schemaLocation="http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd
-             http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd
-             http://www.springframework.org/schema/batch https://www.springframework.org/schema/batch/spring-batch.xsd">
+@Configuration
+@Import(JobBaseContextConfig.class)
+@PropertySource(value = "classpath:batch-application.properties")
+@ComponentScan("com.example.batch.tutorial.fileaccess.chunk")
+public class JobPointAddChunkConfig {
 
-    <bean class="com.example.batch.tutorial.config.JobBaseContextConfig"/>
+    @Bean
+    @StepScope
+    public FlatFileItemReader<MemberInfoDto> reader(
+            @Value("#{jobParameters['inputFile']}") File inputFile) {
+        DefaultLineMapper<MemberInfoDto> lineMapper = new DefaultLineMapper<>();
+        DelimitedLineTokenizer lineTokenizer = new DelimitedLineTokenizer();
+        lineTokenizer.setNames("id", "type", "status", "point");
+        lineTokenizer.setDelimiter(",");
+        lineTokenizer.setQuoteCharacter('"');
+        BeanWrapperFieldSetMapper<MemberInfoDto> fieldSetMapper = new BeanWrapperFieldSetMapper<>();
+        fieldSetMapper.setTargetType(MemberInfoDto.class);
+        lineMapper.setLineTokenizer(lineTokenizer);
+        lineMapper.setFieldSetMapper(fieldSetMapper);
+        return new FlatFileItemReaderBuilder<MemberInfoDto>()
+                .name(ClassUtils.getShortName(FlatFileItemReader.class))
+                .lineMapper(lineMapper)
+                .resource(new FileSystemResource(inputFile))
+                .encoding("MS932")
+                .strict(true)
+                .build();
+    }
 
-    <context:component-scan base-package="com.example.batch.tutorial.fileaccess.chunk"/>
+    @Bean
+    @StepScope
+    public FlatFileItemWriter<MemberInfoDto> writer(
+            @Value("#{jobParameters['outputFile']}") File outputFile) {
+        DelimitedLineAggregator<MemberInfoDto> lineAggregator = new DelimitedLineAggregator<>();
+        lineAggregator.setDelimiter(",");
+        BeanWrapperFieldExtractor<MemberInfoDto> fieldExtractor = new BeanWrapperFieldExtractor<>();
+        fieldExtractor.setNames(new String[] {"id", "type", "status", "point"});
+        lineAggregator.setFieldExtractor(fieldExtractor);
+        return new FlatFileItemWriterBuilder<MemberInfoDto>()
+                .name(ClassUtils.getShortName(FlatFileItemWriter.class))
+                .resource(new FileSystemResource(outputFile))
+                .lineAggregator(lineAggregator)
+                .encoding("UTF-8")
+                .lineSeparator("\n")
+                .append(false)
+                .shouldDeleteIfExists(true)
+                .transactional(true)
+                .build();
+    }
 
-    <bean id="reader"
-          class="org.springframework.batch.item.file.FlatFileItemReader" scope="step"
-          p:resource="file:#{jobParameters['inputFile']}"
-          p:encoding="UTF-8"
-          p:strict="true">
-        <property name="lineMapper">
-            <bean class="org.springframework.batch.item.file.mapping.DefaultLineMapper">
-                <property name="lineTokenizer">
-                    <bean class="org.springframework.batch.item.file.transform.DelimitedLineTokenizer"
-                          p:names="id,type,status,point"
-                          p:delimiter=","
-                          p:quoteCharacter='"'/>
-                </property>
-                <property name="fieldSetMapper">
-                    <bean class="org.springframework.batch.item.file.mapping.BeanWrapperFieldSetMapper"
-                          p:targetType="com.example.batch.tutorial.common.dto.MemberInfoDto"/>
-                </property>
-            </bean>
-        </property>
-    </bean>
+    // (1)
+    @Bean
+    public Step step01(JobRepository jobRepository,
+                       @Qualifier("jobTransactionManager") PlatformTransactionManager transactionManager,
+                       ItemReader<MemberInfoDto> reader,
+                       PointAddItemProcessor processor,
+                       ItemWriter<MemberInfoDto> writer) {
+        return new StepBuilder("jobPointAddChunk.step01",
+                jobRepository)
+                .<MemberInfoDto, MemberInfoDto>chunk(10, // (3)
+                        transactionManager)
+                .reader(reader)
+                .processor(processor)
+                .writer(writer)
+                .build();
+    }
 
-    <bean id="writer"
-          class="org.springframework.batch.item.file.FlatFileItemWriter" scope="step"
-          p:resource="file:#{jobParameters['outputFile']}"
-          p:encoding="UTF-8"
-          p:lineSeparator="&#x0A;"
-          p:appendAllowed="false"
-          p:shouldDeleteIfExists="true"
-          p:transactional="true">
-        <property name="lineAggregator">
-            <bean class="org.springframework.batch.item.file.transform.DelimitedLineAggregator"
-                  p:delimiter=",">
-                <property name="fieldExtractor">
-                    <bean class="org.springframework.batch.item.file.transform.BeanWrapperFieldExtractor"
-                          p:names="id,type,status,point"/>
-                </property>
-            </bean>
-        </property>
-    </bean>
-
-    <!-- (1) -->
-    <batch:job id="jobPointAddChunk" job-repository="jobRepository">
-        <batch:step id="jobPointAddChunk.step01"> <!-- (2) -->
-            <batch:tasklet transaction-manager="jobTransactionManager">
-                <batch:chunk reader="reader"
-                             processor="pointAddItemProcessor"
-                             writer="writer" commit-interval="10"/> <!-- (3) -->
-            </batch:tasklet>
-        </batch:step>
-    </batch:job>
-</beans>
+    // (1)
+    @Bean
+    public Job jobPointAddChunk(JobRepository jobRepository,
+                                             Step step01) {
+        return new JobBuilder("jobPointAddChunk", jobRepository)
+                .start(step01)
+                .build();
+    }
+}
 ----
 // Java Config end.
 ++++
@@ -838,33 +831,33 @@ public class PointAddItemProcessor implements ItemProcessor<MemberInfoDto, Membe
 
 |(1)
 |ジョブの設定を行う。 +
-``id``属性は、1つのバッチアプリケーションに含まれる全ジョブの範囲内で一意とする必要がある。 +
+``JobBuilderのコンストラクタの引数name/id属性``は、1つのバッチアプリケーションに含まれる全ジョブの範囲内で一意とする必要がある。 +
 ここでは、チャンクモデルのジョブ名として``jobPointAddChunk``を指定する。
 
 |(2)
 |ステップの設定を行う。 +
-``id``属性は、1つのバッチアプリケーションに含まれる全ジョブの範囲内で一意とする必要はないが、障害発生時に追跡しやすくなる等の様々なメリットがあるため一意とする。 +
-特別な理由がない限り、(1)で指定した``id``属性に[step+連番]を付加する形式とする。 +
+``StepBuilderのコンストラクタの引数name/id属性``は、1つのバッチアプリケーションに含まれる全ジョブの範囲内で一意とする必要はないが、障害発生時に追跡しやすくなる等の様々なメリットがあるため一意とする。 +
+特別な理由がない限り、(1)で指定した``JobBuilderのコンストラクタの引数name/id属性``に[step+連番]を付加する形式とする。 +
 ここでは、チャンクモデルのジョブのステップ名として``jobPointAddChunk.step01``を指定する。
 
 |(3)
 |チャンクモデルジョブの設定を行う。 +
-``reader``、``writer``それぞれの属性に、前項までに定義した``ItemReader``、``ItemWriter``のBeanIDを指定する。 +
-``processor``属性に、ItemProcessorの実装クラスのBeanIDである``pointAddItemProcessor``を指定する。 +
-``commit-interval``属性に、1チャンクあたりの入力データ件数を10件として設定する。
+```StepBuilderのreaderメソッド、writerメソッド/reader、writerそれぞれの属性``に、前項までに定義した``ItemReader``、``ItemWriter``のBeanIDを指定する。 +
+``StepBuilderのprocessorメソッド/processor属性``に、ItemProcessorの実装クラスのBeanIDである``pointAddItemProcessor``を指定する。 +
+``chunkメソッドの引数chunkSize/commit-interval属性``に、1チャンクあたりの入力データ件数を10件として設定する。
 
 |===
 
 [NOTE]
-.commit-intervalのチューニング
+.chunkメソッドの引数chunkSize/commit-intervalのチューニング
 ====
-commit-intervalはチャンクモデルジョブにおける、性能上のチューニングポイントである。
+``chunkメソッドの引数chunkSize/commit-interval``はチャンクモデルジョブにおける、性能上のチューニングポイントである。
 
 このチュートリアルでは10件としているが、利用できるマシンリソースやジョブの特性によって適切な件数は異なる。
 複数のリソースにアクセスしてデータを加工するジョブであれば10件から100件程度で処理スループットが頭打ちになることもある。
 一方、入出力リソースが1:1対応しておりデータを移し替える程度のジョブであれば5,000件や10,000件でも処理スループットが伸びることがある。
 
-ジョブ実装時のcommit-intervalは100件程度で仮置きしておき、 その後に実施した性能測定の結果に応じてジョブごとにチューニングするとよい。
+ジョブ実装時の``chunkメソッドの引数chunkSize/commit-interval``は100件程度で仮置きしておき、 その後に実施した性能測定の結果に応じてジョブごとにチューニングするとよい。
 ====
 
 [[Ch09_Impl_FileAccessJob_Chunk_Execution]]
@@ -880,12 +873,38 @@ commit-intervalはチャンクモデルジョブにおける、性能上のチ�
 Argumentsタブに入出力ファイルのパラメータを引数として追加する。
 
 実行構成の設定値::
+// ============ Java/XML Config Tab start. ============
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup09040207" class="JavaConfigTab" id="tabgroup09040207_1" checked><label for="tabgroup09040207_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup09040207" class="XMLConfigTab" id="tabgroup09040207_2"><label for="tabgroup09040207_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+* Name: 任意の名称(例: Run FileAccessJob for ChunkModel)
+* Mainタブ
+** Project: ``macchinetta-batch-tutorial``
+** Main class: ``org.springframework.batch.core.launch.support.CommandLineJobRunner``
+* Argumentsタブ
+** Program arguments: ``com.example.batch.tutorial.config.fileaccess.JobPointAddChunkConfig jobPointAddChunk inputFile=files/input/input-member-info-data.csv outputFile=files/output/output-member-info-data.csv``
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
 * Name: 任意の名称(例: Run FileAccessJob for ChunkModel)
 * Mainタブ
 ** Project: ``macchinetta-batch-tutorial``
 ** Main class: ``org.springframework.batch.core.launch.support.CommandLineJobRunner``
 * Argumentsタブ
 ** Program arguments: ``META-INF/jobs/fileaccess/jobPointAddChunk.xml jobPointAddChunk inputFile=files/input/input-member-info-data.csv outputFile=files/output/output-member-info-data.csv``
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============
 
 [[Ch09_Impl_FileAccessJob_Chunk_Execution_Console]]
 ==== コンソールログの確認
@@ -898,10 +917,10 @@ Console Viewを開き、以下の内容のログが出力されていること�
 ----
 (.. omitted)
 
-[2020/03/10 13:11:26] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=jobPointAddChunk]] launched with the following parameters: [{inputFile=files/input/input-member-info-data.csv, outputFile=files/output/output-member-info-data.csv, jsr_batch_run_id=116}]
+[2020/03/10 13:11:26] [main] [o.s.b.c.l.s.TaskExecutorJobLauncher] [INFO ] Job: [FlowJob: [name=jobPointAddChunk]] launched with the following parameters: [{inputFile=files/input/input-member-info-data.csv, outputFile=files/output/output-member-info-data.csv, jsr_batch_run_id=116}]
 [2020/03/10 13:11:26] [main] [o.s.b.c.j.SimpleStepHandler] [INFO ] Executing step: [jobPointAddChunk.step01]
 [2020/03/10 13:11:26] [main] [o.s.b.c.s.AbstractStep] [INFO ] Step: [jobPointAddChunk.step01] executed in 388ms
-[2020/03/10 13:11:26] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=jobPointAddChunk]] completed with the following parameters: [{inputFile=files/input/input-member-info-data.csv, outputFile=files/output/output-member-info-data.csv, jsr_batch_run_id=116}] and the following status: [COMPLETED] in 461ms
+[2020/03/10 13:11:26] [main] [o.s.b.c.l.s.TaskExecutorJobLauncher] [INFO ] Job: [FlowJob: [name=jobPointAddChunk]] completed with the following parameters: [{inputFile=files/input/input-member-info-data.csv, outputFile=files/output/output-member-info-data.csv, jsr_batch_run_id=116}] and the following status: [COMPLETED] in 461ms
 ----
 
 [[Ch09_Impl_FileAccessJob_Chunk_Execution_Exitcode]]
@@ -957,26 +976,15 @@ Bean定義ファイルにて、タスクレットモデルでのファイルア�
   <div class="tabcontent" name="JavaConfigContent">
 ++++
 // Java Config start.
-[source, xml]
-.src/main/resources/META-INF/jobs/fileaccess/jobPointAddTasklet.xml
+[source, java]
+.com.example.batch.tutorial.config.fileaccess.JobPointAddTaskletConfig.java
 ----
-<?xml version="1.0" encoding="UTF-8"?>
-<beans xmlns="http://www.springframework.org/schema/beans"
-       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-       xmlns:context="http://www.springframework.org/schema/context"
-       xmlns:batch="http://www.springframework.org/schema/batch"
-       xmlns:p="http://www.springframework.org/schema/p"
-       xsi:schemaLocation="http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd
-             http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd
-             http://www.springframework.org/schema/batch https://www.springframework.org/schema/batch/spring-batch.xsd">
+@Configuration
+@Import(JobBaseContextConfig.class) // (1)
+@ComponentScan(value = "com.example.batch.tutorial.fileaccess.tasklet", scopedProxy = ScopedProxyMode.TARGET_CLASS) // (2)
+public class JobPointAddTaskletConfig {
 
-    <!-- (1) -->
-    <bean class="com.example.batch.tutorial.config.JobBaseContextConfig"/>
-
-    <!-- (2) -->
-    <context:component-scan base-package="com.example.batch.tutorial.fileaccess.tasklet"/>
-
-</beans>
+}
 ----
 // Java Config end.
 ++++
@@ -1022,7 +1030,7 @@ Bean定義ファイルにて、タスクレットモデルでのファイルア�
 |{batch5_shortname}を利用する際に、常に必要なBean定義を読み込む設定をインポートする。
 
 |(2)
-|``base-package``属性に、使用するコンポーネント(Taskletの実装クラスなど)が格納されているパッケージを指定する。
+|``basePackages属性/base-package属性``に、使用するコンポーネント(Taskletの実装クラスなど)が格納されているパッケージを指定する。
 |===
 
 [[Ch09_Impl_FileAccessJob_Tasklet_Dto]]
@@ -1118,66 +1126,60 @@ ItemReader、ItemWriterの設定として、ジョブBean定義ファイルに�
   <div class="tabcontent" name="JavaConfigContent">
 ++++
 // Java Config start.
-[source, xml]
-.src/main/resources/META-INF/jobs/fileaccess/jobPointAddTasklet.xml
+[source, java]
+.com.example.batch.tutorial.config.fileaccess.JobPointAddTaskletConfig.java
 ----
-<?xml version="1.0" encoding="UTF-8"?>
-<beans xmlns="http://www.springframework.org/schema/beans"
-       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-       xmlns:context="http://www.springframework.org/schema/context"
-       xmlns:batch="http://www.springframework.org/schema/batch"
-       xmlns:p="http://www.springframework.org/schema/p"
-       xsi:schemaLocation="http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd
-             http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd
-             http://www.springframework.org/schema/batch https://www.springframework.org/schema/batch/spring-batch.xsd">
+@Configuration
+@Import(JobBaseContextConfig.class)
+@PropertySource(value = "classpath:batch-application.properties")
+@ComponentScan(value = "com.example.batch.tutorial.fileaccess.tasklet", scopedProxy = ScopedProxyMode.TARGET_CLASS)
+public class JobPointAddTaskletConfig {
 
-    <bean class="com.example.batch.tutorial.config.JobBaseContextConfig"/>
+    // (1)
+    @Bean
+    @StepScope
+    public FlatFileItemReader<MemberInfoDto> reader(
+            @Value("#{jobParameters['inputFile']}") File inputFile) {  // (2)
+        DefaultLineMapper<MemberInfoDto> lineMapper = new DefaultLineMapper<>();
+        DelimitedLineTokenizer lineTokenizer = new DelimitedLineTokenizer(); // (3)
+        lineTokenizer.setNames("id", "type", "status", "point"); // (4)
+        lineTokenizer.setDelimiter(","); // (5)
+        lineTokenizer.setQuoteCharacter('"');
+        BeanWrapperFieldSetMapper<MemberInfoDto> fieldSetMapper = new BeanWrapperFieldSetMapper<>(); // (6)
+        fieldSetMapper.setTargetType(MemberInfoDto.class);
+        lineMapper.setLineTokenizer(lineTokenizer);
+        lineMapper.setFieldSetMapper(fieldSetMapper);
+        return new FlatFileItemReaderBuilder<MemberInfoDto>()
+                .name(ClassUtils.getShortName(FlatFileItemReader.class))
+                .lineMapper(lineMapper)
+                .resource(new FileSystemResource(inputFile))
+                .encoding("MS932")
+                .strict(true)
+                .build();
+    }
 
-    <context:component-scan base-package="com.example.batch.tutorial.fileaccess.tasklet"/>
-
-    <!-- (1) (2) -->
-    <bean id="reader"
-          class="org.springframework.batch.item.file.FlatFileItemReader" scope="step"
-          p:resource="file:#{jobParameters['inputFile']}"
-          p:encoding="UTF-8"
-          p:strict="true">
-        <property name="lineMapper">
-            <bean class="org.springframework.batch.item.file.mapping.DefaultLineMapper">
-                <property name="lineTokenizer"> <!-- (3) -->
-                    <bean class="org.springframework.batch.item.file.transform.DelimitedLineTokenizer"
-                          p:names="id,type,status,point"
-                          p:delimiter=","
-                          p:quoteCharacter='"'/> <!-- (4) (5) -->
-                </property>
-                <property name="fieldSetMapper"> <!-- (6) -->
-                    <bean class="org.springframework.batch.item.file.mapping.BeanWrapperFieldSetMapper"
-                          p:targetType="com.example.batch.tutorial.common.dto.MemberInfoDto"/>
-                </property>
-            </bean>
-        </property>
-    </bean>
-
-    <!-- (7) (8) -->
-    <bean id="writer"
-          class="org.springframework.batch.item.file.FlatFileItemWriter" scope="step"
-          p:resource="file:#{jobParameters['outputFile']}"
-          p:encoding="UTF-8"
-          p:lineSeparator="&#x0A;"
-          p:appendAllowed="false"
-          p:shouldDeleteIfExists="true"
-          p:transactional="true">
-        <property name="lineAggregator"> <!-- (9) -->
-            <bean class="org.springframework.batch.item.file.transform.DelimitedLineAggregator"
-                  p:delimiter=","> <!-- (10) -->
-                <property name="fieldExtractor"> <!-- (11) -->
-                    <bean class="org.springframework.batch.item.file.transform.BeanWrapperFieldExtractor"
-                          p:names="id,type,status,point"/> <!-- (12) -->
-                </property>
-            </bean>
-        </property>
-    </bean>
-
-</beans>
+    // (7)
+    @Bean
+    @StepScope
+    public FlatFileItemWriter<MemberInfoDto> writer(
+            @Value("#{jobParameters['outputFile']}") File outputFile) { // (8)
+        DelimitedLineAggregator<MemberInfoDto> lineAggregator = new DelimitedLineAggregator<>(); // (9)
+        lineAggregator.setDelimiter(","); // (10)
+        BeanWrapperFieldExtractor<MemberInfoDto> fieldExtractor = new BeanWrapperFieldExtractor<>(); // (11)
+        fieldExtractor.setNames(new String[] {"id", "type", "status", "point"}); // (12)
+        lineAggregator.setFieldExtractor(fieldExtractor);
+        return new FlatFileItemWriterBuilder<MemberInfoDto>()
+                .name(ClassUtils.getShortName(FlatFileItemWriter.class))
+                .resource(new FileSystemResource(outputFile))
+                .lineAggregator(lineAggregator)
+                .encoding("UTF-8")
+                .lineSeparator("\n")
+                .append(false)
+                .shouldDeleteIfExists(true)
+                .transactional(true)
+                .build();
+    }
+}
 ----
 // Java Config end.
 ++++
@@ -1261,64 +1263,64 @@ ItemReader、ItemWriterの設定として、ジョブBean定義ファイルに�
 
 |(1)
 |ItemReaderの設定を行う。 +
-``class``属性に、{SB}が提供するフラットファイルを読み込むための``ItemReader``の実装クラスである
+``戻り値の型/class属性``に、{SB}が提供するフラットファイルを読み込むための``ItemReader``の実装クラスである
 ``org.springframework.batch.item.file.FlatFileItemReader``を指定する。 +
-``scope``属性に、``step``スコープを指定する。
+``@Beanの後に@StepScope/scope属性に、stepスコープ``を指定する。
 
 |(2)
-|``resource``属性に入力ファイルのパスを設定する。 +
+|``FlatFileItemReaderBuilderのresourceメソッド/resource属性``に入力ファイルのパスを設定する。 +
 パスは直接指定することも可能であるが、ここでは、ジョブ起動時にパラメータで渡すようにするため、
 入力ファイルパスのパラメータ名を指定している。
 
 |(3)
 |lineTokenizerの設定を行う。 +
-``class``属性に、{SB}が提供する区切り文字を指定してレコードを分割する``LineTokenizer``の実装クラスである
+``インスタンス作成のクラス/class属性``に、{SB}が提供する区切り文字を指定してレコードを分割する``LineTokenizer``の実装クラスである
 ``org.springframework.batch.item.file.transform.DelimitedLineTokenizer``を指定する。 +
 CSV形式の一般的書式とされるRFC-4180の仕様に定義されている、エスケープされた改行、区切り文字、囲み文字の読み込みに対応している。
 
 |(4)
-|``names``属性に、1レコードの各項目に付与する名前を設定する。 +
+|``DelimitedLineTokenizerのsetNamesメソッド/names属性``に、1レコードの各項目に付与する名前を設定する。 +
 ``FieldSetMapper``で使われる``FieldSet``で設定した名前を用いて各項目を取り出すことができるようになる。 +
 レコードの先頭から各名前をカンマ区切りで指定する。
 
 |(5)
-|``delimiter``属性に、区切り文字としてカンマを指定する。
+|``DelimitedLineTokenizerのsetDelimiterメソッド/delimiter属性``に、区切り文字としてカンマを指定する。
 
 |(6)
 |``fieldSetMapper``の設定を行う。 +
 今回は文字列や数字など特別な変換処理が不要なため、
-``class``属性に、``org.springframework.batch.item.file.mapping.BeanWrapperFieldSetMapper``を指定する。 +
-``targetType``属性には、変換対象クラスとして<<Ch09_Impl_FileAccessJob_Tasklet_Dto>>で作成したDTOクラスを指定する。
+``インスタンス作成のクラス/class属性``に、``org.springframework.batch.item.file.mapping.BeanWrapperFieldSetMapper``を指定する。 +
+``指定する型/targetType属性``には、変換対象クラスとして<<Ch09_Impl_FileAccessJob_Tasklet_Dto>>で作成したDTOクラスを指定する。
 これにより、(4)で設定した各項目の名前と一致するフィールドに値を自動的に設定したインスタンスを生成する。
 
 |(7)
 |ItemWriterの設定を行う。 +
-``class``属性に、{SB}が提供するフラットファイルへ書き込むための``ItemWriter``の実装クラスである
+``戻り値の型/class属性``に、{SB}が提供するフラットファイルへ書き込むための``ItemWriter``の実装クラスである
 ``org.springframework.batch.item.file.FlatFileItemWriter``を指定する。 +
-``scope``属性に、``step``スコープを指定する。 +
-このチュートリアルでは、``appendAllowed``属性は``false``(追記しない)、``shouldDeleteIfExists``属性は``true``(既存ファイルを削除する)を指定して
+``@Beanの後に@StepScope/scope属性に、stepスコープ``を指定する。 +
+このチュートリアルでは、``FlatFileItemWriterBuilderのappendメソッド/appendAllowed属性``は``false``(追記しない)、``shouldDeleteIfExistsメソッド/shouldDeleteIfExists``属性は``true``(既存ファイルを削除する)を指定して
 ジョブを何度実行しても新規にファイルが作成されるようにする。 +
-``transactional``属性に、``true``を指定して、擬似的トランザクション制御を有効にする。
+``transactionalメソッド/transactional属性``に、``true``を指定して、擬似的トランザクション制御を有効にする。
 
 |(8)
-|``resource``属性に出力ファイルのパスを設定する。 +
+|``FlatFileItemWriterBuilderのresourceメソッド/resource属性``に出力ファイルのパスを設定する。 +
 ジョブ起動時にパラメータで渡すようにするため、出力ファイルパスのパラメータ名を指定している。
 
 |(9)
 |``lineAggregator``の設定を行う。 +
-``class``属性に、対象Beanを1レコードへマッピングするための``org.springframework.batch.item.file.transform.LineAggregator``を指定する。 +
+``インスタンス作成のクラス/class属性``に、対象Beanを1レコードへマッピングするための``org.springframework.batch.item.file.transform.LineAggregator``を指定する。 +
 Beanのプロパティとレコード内の各項目とのマッピングは``FieldExtractor``で行う。
 
 |(10)
-|``delimiter``属性に、区切り文字としてカンマを指定する。
+|``DelimitedLineAggregatorのsetDelimiterメソッド/delimiter属性``に、区切り文字としてカンマを指定する。
 
 |(11)
 |``fieldExtractor``の設定を行う。 +
  (12)で指定する各項目の名前に(6)で指定したDTOクラスのフィールドと一致する値をマッピングする。  +
-``class``属性に、``org.springframework.batch.item.file.transform.BeanWrapperFieldExtractor``を指定する。 +
+``インスタンス作成のクラス/class属性``に、``org.springframework.batch.item.file.transform.BeanWrapperFieldExtractor``を指定する。
 
 |(12)
-|``names``属性に、1レコードの各項目に付与する名前を設定する。
+|``BeanWrapperFieldExtractorのsetNamesメソッド/names属性``に、1レコードの各項目に付与する名前を設定する。
 
 |===
 
@@ -1529,71 +1531,78 @@ public class PointAddTasklet implements Tasklet {
   <div class="tabcontent" name="JavaConfigContent">
 ++++
 // Java Config start.
-[source, xml]
-.src/main/resources/META-INF/jobs/fileaccess/jobPointAddTasklet.xml
+[source, java]
+.com.example.batch.tutorial.config.fileaccess.JobPointAddTaskletConfig.java
 ----
-<?xml version="1.0" encoding="UTF-8"?>
-<beans xmlns="http://www.springframework.org/schema/beans"
-       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-       xmlns:context="http://www.springframework.org/schema/context"
-       xmlns:batch="http://www.springframework.org/schema/batch"
-       xmlns:p="http://www.springframework.org/schema/p"
-       xsi:schemaLocation="http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd
-             http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd
-             http://www.springframework.org/schema/batch https://www.springframework.org/schema/batch/spring-batch.xsd">
+@Configuration
+@Import(JobBaseContextConfig.class)
+@PropertySource(value = "classpath:batch-application.properties")
+@ComponentScan(value = "com.example.batch.tutorial.fileaccess.tasklet", scopedProxy = ScopedProxyMode.TARGET_CLASS)
+public class JobPointAddTaskletConfig {
 
-    <bean class="com.example.batch.tutorial.config.JobBaseContextConfig"/>
+    @Bean
+    @StepScope
+    public FlatFileItemReader<MemberInfoDto> reader(
+            @Value("#{jobParameters['inputFile']}") File inputFile) {
+        DefaultLineMapper<MemberInfoDto> lineMapper = new DefaultLineMapper<>();
+        DelimitedLineTokenizer lineTokenizer = new DelimitedLineTokenizer();
+        lineTokenizer.setNames("id", "type", "status", "point");
+        lineTokenizer.setDelimiter(",");
+        lineTokenizer.setQuoteCharacter('"');
+        BeanWrapperFieldSetMapper<MemberInfoDto> fieldSetMapper = new BeanWrapperFieldSetMapper<>();
+        fieldSetMapper.setTargetType(MemberInfoDto.class);
+        lineMapper.setLineTokenizer(lineTokenizer);
+        lineMapper.setFieldSetMapper(fieldSetMapper);
+        return new FlatFileItemReaderBuilder<MemberInfoDto>()
+                .name(ClassUtils.getShortName(FlatFileItemReader.class))
+                .lineMapper(lineMapper)
+                .resource(new FileSystemResource(inputFile))
+                .encoding("MS932")
+                .strict(true)
+                .build();
+    }
 
-    <context:component-scan base-package="com.example.batch.tutorial.fileaccess.tasklet"/>
+    @Bean
+    @StepScope
+    public FlatFileItemWriter<MemberInfoDto> writer(
+            @Value("#{jobParameters['outputFile']}") File outputFile) {
+        DelimitedLineAggregator<MemberInfoDto> lineAggregator = new DelimitedLineAggregator<>();
+        lineAggregator.setDelimiter(",");
+        BeanWrapperFieldExtractor<MemberInfoDto> fieldExtractor = new BeanWrapperFieldExtractor<>();
+        fieldExtractor.setNames(new String[] {"id", "type", "status", "point"});
+        lineAggregator.setFieldExtractor(fieldExtractor);
+        return new FlatFileItemWriterBuilder<MemberInfoDto>()
+                .name(ClassUtils.getShortName(FlatFileItemWriter.class))
+                .resource(new FileSystemResource(outputFile))
+                .lineAggregator(lineAggregator)
+                .encoding("UTF-8")
+                .lineSeparator("\n")
+                .append(false)
+                .shouldDeleteIfExists(true)
+                .transactional(true)
+                .build();
+    }
 
-    <bean id="reader"
-          class="org.springframework.batch.item.file.FlatFileItemReader" scope="step"
-          p:resource="file:#{jobParameters['inputFile']}"
-          p:encoding="UTF-8"
-          p:strict="true">
-        <property name="lineMapper">
-            <bean class="org.springframework.batch.item.file.mapping.DefaultLineMapper">
-                <property name="lineTokenizer">
-                    <bean class="org.springframework.batch.item.file.transform.DelimitedLineTokenizer"
-                          p:names="id,type,status,point"
-                          p:delimiter=","
-                          p:quoteCharacter='"'/>
-                </property>
-                <property name="fieldSetMapper">
-                    <bean class="org.springframework.batch.item.file.mapping.BeanWrapperFieldSetMapper"
-                          p:targetType="com.example.batch.tutorial.common.dto.MemberInfoDto"/>
-                </property>
-            </bean>
-        </property>
-    </bean>
+    // (2)
+    @Bean
+    public Step step01(JobRepository jobRepository,
+                       @Qualifier("jobTransactionManager") PlatformTransactionManager transactionManager,
+                       PointAddTasklet tasklet) {
+        return new StepBuilder("jobPointAddTasklet.step01",
+                jobRepository)
+                .tasklet(tasklet, transactionManager) // (3)
+                .build();
+    }
 
-    <bean id="writer"
-          class="org.springframework.batch.item.file.FlatFileItemWriter" scope="step"
-          p:resource="file:#{jobParameters['outputFile']}"
-          p:encoding="UTF-8"
-          p:lineSeparator="&#x0A;"
-          p:appendAllowed="false"
-          p:shouldDeleteIfExists="true"
-          p:transactional="true">
-        <property name="lineAggregator">
-            <bean class="org.springframework.batch.item.file.transform.DelimitedLineAggregator"
-                  p:delimiter=",">
-                <property name="fieldExtractor">
-                    <bean class="org.springframework.batch.item.file.transform.BeanWrapperFieldExtractor"
-                          p:names="id,type,status,point"/>
-                </property>
-            </bean>
-        </property>
-    </bean>
-
-    <!-- (1) -->
-    <batch:job id="jobPointAddTasklet" job-repository="jobRepository">
-        <batch:step id="jobPointAddTasklet.step01"> <!-- (2) -->
-            <batch:tasklet transaction-manager="jobTransactionManager"
-                           ref="pointAddTasklet"/> <!-- (3) -->
-        </batch:step>
-    </batch:job>
-</beans>
+    // (1)
+    @Bean
+    public Job jobPointAddTasklet(JobRepository jobRepository,
+                                             Step step01) {
+        return new JobBuilder("jobPointAddTasklet", jobRepository)
+                .start(step01)
+                .build();
+    }
+}
 ----
 // Java Config end.
 ++++
@@ -1682,18 +1691,18 @@ public class PointAddTasklet implements Tasklet {
 
 |(1)
 |ジョブの設定を行う。 +
-``id``属性は、1つのバッチアプリケーションに含まれる全ジョブの範囲内で一意とする必要がある。 +
+``JobBuilderのコンストラクタの引数name/id属性``は、1つのバッチアプリケーションに含まれる全ジョブの範囲内で一意とする必要がある。 +
 ここでは、タスクレットモデルのジョブ名として``jobPointAddTasklet``を指定する。
 
 |(2)
 |ステップの設定を行う。 +
-``id``属性は、1つのバッチアプリケーションに含まれる全ジョブの範囲内で一意とする必要はないが、障害発生時に追跡しやすくなる等の様々なメリットがあるため一意とする。 +
- 特別な理由がない限り、(1)で指定した``id``属性に[step+連番]を付加する形式とする。 +
+``StepBuilderのコンストラクタの引数name/id属性``は、1つのバッチアプリケーションに含まれる全ジョブの範囲内で一意とする必要はないが、障害発生時に追跡しやすくなる等の様々なメリットがあるため一意とする。 +
+ 特別な理由がない限り、(1)で指定した``JobBuilderのコンストラクタの引数name/id属性``に[step+連番]を付加する形式とする。 +
 ここでは、タスクレットモデルのジョブのステップ名として``jobPointAddTasklet.step01``を指定する。
 
 |(3)
 |タスクレットの設定を行う。 +
-``ref``属性に、Taskletの実装クラスのBeanIDである``pointAddTasklet``を指定する。
+``StepBuilderのtaskletメソッド/ref属性``に、Taskletの実装クラスのBeanIDである``pointAddTasklet``を指定する。
 
 |===
 
@@ -1710,12 +1719,38 @@ public class PointAddTasklet implements Tasklet {
 Argumentsタブに入出力ファイルのパラメータを引数として追加する。
 
 実行構成の設定値::
+// ============ Java/XML Config Tab start. ============
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup09040208" class="JavaConfigTab" id="tabgroup09040208_1" checked><label for="tabgroup09040208_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup09040208" class="XMLConfigTab" id="tabgroup09040208_2"><label for="tabgroup09040208_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+* Name: 任意の名称(例: Run FileAccessJob for TaskletModel)
+* Mainタブ
+** Project: ``macchinetta-batch-tutorial``
+** Main class: ``org.springframework.batch.core.launch.support.CommandLineJobRunner``
+* Argumentsタブ
+** Program arguments: ``com.example.batch.tutorial.config.fileaccess.JobPointAddTaskletConfig jobPointAddTasklet inputFile=files/input/input-member-info-data.csv outputFile=files/output/output-member-info-data.csv``
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
 * Name: 任意の名称(例: Run FileAccessJob for TaskletModel)
 * Mainタブ
 ** Project: ``macchinetta-batch-tutorial``
 ** Main class: ``org.springframework.batch.core.launch.support.CommandLineJobRunner``
 * Argumentsタブ
 ** Program arguments: ``META-INF/jobs/fileaccess/jobPointAddTasklet.xml jobPointAddTasklet inputFile=files/input/input-member-info-data.csv outputFile=files/output/output-member-info-data.csv``
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============
 
 [[Ch09_Impl_FileAccessJob_Tasklet_Execution_Console]]
 ==== コンソールログの確認
@@ -1728,10 +1763,10 @@ Console Viewを開き、以下の内容のログが出力されていること�
 ----
 (.. omitted)
 
-[2020/03/10 13:18:03] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=jobPointAddTasklet]] launched with the following parameters: [{inputFile=files/input/input-member-info-data.csv, outputFile=files/output/output-member-info-data.csv, jsr_batch_run_id=118}]
+[2020/03/10 13:18:03] [main] [o.s.b.c.l.s.TaskExecutorJobLauncher] [INFO ] Job: [FlowJob: [name=jobPointAddTasklet]] launched with the following parameters: [{inputFile=files/input/input-member-info-data.csv, outputFile=files/output/output-member-info-data.csv, jsr_batch_run_id=118}]
 [2020/03/10 13:18:03] [main] [o.s.b.c.j.SimpleStepHandler] [INFO ] Executing step: [jobPointAddTasklet.step01]
 [2020/03/10 13:18:03] [main] [o.s.b.c.s.AbstractStep] [INFO ] Step: [jobPointAddTasklet.step01] executed in 161ms
-[2020/03/10 13:18:03] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=jobPointAddTasklet]] completed with the following parameters: [{inputFile=files/input/input-member-info-data.csv, outputFile=files/output/output-member-info-data.csv, jsr_batch_run_id=118}] and the following status: [COMPLETED] in 229ms
+[2020/03/10 13:18:03] [main] [o.s.b.c.l.s.TaskExecutorJobLauncher] [INFO ] Job: [FlowJob: [name=jobPointAddTasklet]] completed with the following parameters: [{inputFile=files/input/input-member-info-data.csv, outputFile=files/output/output-member-info-data.csv, jsr_batch_run_id=118}] and the following status: [COMPLETED] in 229ms
 ----
 
 [[Ch09_Impl_FileAccessJob_Tasklet_Execution_Exitcode]]

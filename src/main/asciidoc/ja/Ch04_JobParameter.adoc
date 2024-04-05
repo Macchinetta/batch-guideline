@@ -63,7 +63,7 @@ include::_include_all.adoc[]
 
 .パラメータ変換クラスの設定について
 
-ブランクプロジェクトでは、あらかじめ``LaunchContextConfig.java/launch-context.xml``にて``JobParametersConverterImpl``を使用するように設定している。 +
+ブランクプロジェクトでは、あらかじめ``TerasolunaBatchConfiguration.java/launch-context.xml``にて``JobParametersConverterImpl``を使用するように設定している。 +
 そのため{batch5_shortname}を推奨設定で使用する場合は``JobParametersConverter``の設定を行う必要はない。
 
 // ============ Java/XML Config Tab start. ============ 
@@ -77,24 +77,46 @@ include::_include_all.adoc[]
 [source, java]
 .com.example.batch.config.LaunchContextConfig.java
 ----
+@Configuration
+@Import(TerasolunaBatchConfiguration.class)
+@PropertySource(value = "classpath:batch-application.properties")
+public class LaunchContextConfig {
+// omitted
 @Bean
-public JobParametersConverter jobParametersConverter(@Qualifier("adminDataSource") DataSource adminDataSource) {
+public JobParametersConverter jobParametersConverter(
+        @Qualifier("adminDataSource") DataSource adminDataSource) {
     return new JobParametersConverterImpl(adminDataSource);
 }
-
+----
+[source, java]
+.com.example.batch.config.TerasolunaBatchConfiguration.java
+----
+@Override
 @Bean
-public JobOperator jobOperator(@Qualifier("jobRepository") JobRepository jobRepository,
-                               @Qualifier("jobRegistry") JobRegistry jobRegistry,
-                               @Qualifier("jobExplorer") JobExplorer jobExplorer,
-                               @Qualifier("jobParametersConverter") JobParametersConverter jobParametersConverter,
-                               @Qualifier("jobLauncher") JobLauncher jobLauncher) {
-    final SimpleJobOperator simpleJobOperator = new SimpleJobOperator();
-    simpleJobOperator.setJobRepository(jobRepository);
-    simpleJobOperator.setJobRegistry(jobRegistry);
-    simpleJobOperator.setJobExplorer(jobExplorer);
-    simpleJobOperator.setJobParametersConverter(jobParametersConverter);
-    simpleJobOperator.setJobLauncher(jobLauncher);
-    return simpleJobOperator;
+public JobOperator jobOperator() throws BatchConfigurationException {
+    JobOperatorFactoryBean jobOperatorFactoryBean = new JobOperatorFactoryBean();
+    jobOperatorFactoryBean.setTransactionManager(
+            getTransactionManager());
+    jobOperatorFactoryBean.setJobRepository(jobRepository());
+    jobOperatorFactoryBean.setJobExplorer(jobExplorer());
+    jobOperatorFactoryBean.setJobRegistry(jobRegistry());
+    jobOperatorFactoryBean.setJobLauncher(jobLauncher());
+    JobParametersConverterImpl jobParametersConverter = new JobParametersConverterImpl(
+            getDataSource());
+    jobOperatorFactoryBean.setJobParametersConverter(
+            jobParametersConverter); // (1)
+
+    try {
+        jobParametersConverter.afterPropertiesSet();
+        jobOperatorFactoryBean.afterPropertiesSet();
+        return jobOperatorFactoryBean.getObject();
+
+    } catch (BatchConfigurationException e) {
+        throw e;
+    } catch (Exception e) {
+        throw new BatchConfigurationException(
+                "Unable to configure the customized job operator", e);
+    }
 }
 ----
 // Java Config end.
@@ -115,7 +137,7 @@ public JobOperator jobOperator(@Qualifier("jobRepository") JobRepository jobRepo
       p:jobRepository-ref="jobRepository"
       p:jobRegistry-ref="jobRegistry"
       p:jobExplorer-ref="jobExplorer"
-      p:jobParametersConverter-ref="jobParametersConverter"
+      p:jobParametersConverter-ref="jobParametersConverter" <!-- (1) -->
       p:jobLauncher-ref="jobLauncher" />
 ----
 // XML Config end.
@@ -123,7 +145,19 @@ public JobOperator jobOperator(@Qualifier("jobRepository") JobRepository jobRepo
   </div>
 </div>
 ++++
-// ============ Java/XML Config Tab end. ============ 
+// ============ Java/XML Config Tab end. ============
+
+[cols="10,90", options="header"]
+|===
+|項番
+|説明
+
+|(1)
+|jobOperatorのjobParametersConverterの設定 +
+XMLConfigでは``jobParametersConverter-ref``属性にBean定義した``jobParametersConverter``を指定している。 +
+JavaConfigでは``JobOperator``の``JobParametersConverter``の実装クラスがデフォルトでは``DefaultJobParametersConverter``のため、Bean定義をオーバーライドして``JobParametersConverterImpl``を設定するようにしている。
+
+|===
 
 以降は``JobParametersConverterImpl``を利用する前提で説明する。
 
@@ -141,13 +175,40 @@ public JobOperator jobOperator(@Qualifier("jobRepository") JobRepository jobRepo
 そのため、あまりに大量の引数が必要な場合は、<<Ch04_JobParameter_HowToUse_FromFile>>や
 <<Ch04_JobParameter_HowToExtend_PropertyConbination>>などの方法を活用すること。
 
-[source, console]
+// ============ Java/XML Config Tab start. ============
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup040214" class="JavaConfigTab" id="tabgroup040214_1" checked><label for="tabgroup040214_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup040214" class="XMLConfigTab" id="tabgroup040214_2"><label for="tabgroup040214_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
 .コマンドライン引数としてパラメータを設定する例
+[source, console]
+----
+$ # Execute job
+$ java org.springframework.batch.core.launch.support.CommandLineJobRunner \
+    com.example.batch.jobs.JobDefinedConfig.JobDefinedConfig JOBID param1=abc outputFileName=/tmp/result.csv
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
+.コマンドライン引数としてパラメータを設定する例
+[source, console]
 ----
 $ # Execute job
 $ java org.springframework.batch.core.launch.support.CommandLineJobRunner \
     JobDefined.xml JOBID param1=abc outputFileName=/tmp/result.csv
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============
 
 .パラメータの参照
 
@@ -176,25 +237,83 @@ Spring Frameworkの``ApplicationContext``は、デフォルトでは各種Bean�
 ====
 
 [IMPORTANT]
-.{batch5_shortname}では、Stepスコープの指定に@StepScopeを使用しない
+.Stepスコープの定義方法
 ====
-``Step``スコープの指定は以下のいずれかの方法で行える。
+Spring Batchのlate bindingを使用してJobParametersを参照するreaderやwriterは``Step``スコープとする必要があるが、それ等を参照するコンポーネント(``ItemProcessor``、``Tasklet``)も``Step``スコープとする必要がある。 +
+スコープを統一する理由は<<Ch03_CreateTaskletJob_HowToUse_InOutImpl,チャンクモデルのコンポーネントを利用するTasklet実装>>で説明しているスコープの統一についてを参照。
 
-* XMLでのBean定義で、``<bean>``要素に``scope="step"``を設定する
-* アノテーションでのBean定義で、``@Component``を付与するクラスに``@Scope("step")``を付与する
-* JavaConfigでのBean定義で、``@Bean``を付与するメソッドに``@StepScope``を付与する
+ジョブのBean定義にはジョブの構成要素による定義とジョブから呼ばれるコンポーネントの2種類あり、それぞれの定義場所や定義方法は異なる。 +
+``Step``スコープの定義方法も、それぞれのBean定義方法に応じて異なる。
+Bean定義に対する``Step``スコープの定義方法を以下に示す。
 
-しかし{batch5_shortname}では、以下二つの前提によってStepスコープの指定にはlink:https://docs.spring.io/spring-batch/docs/{spring_batch_version}/api/org/springframework/batch/core/configuration/annotation/StepScope.html[``@StepScope``]ではなく、``scope="step"``か``@Scope("step")``を使用する。
+[cols="20,20,20,20,20", options="header"]
+.Bean定義とStepスコープの定義まとめ
+|===
 
-* ジョブの定義は、XMLによるBean定義ファイルに記述する
-* チャンクモデル/タスクレットモデルの構成要素を実装したクラスは、``@Component``を付与してBean定義する
+|ジョブのBean定義
+|Beanの定義場所
+|Beanの定義方法
+|``Step``スコープの定義方法(定義場所はBeanの定義場所と同じ)
+|実装例
 
-``scope="step"``の実装例は<<Ch04_JobParameter_HowToUse_CLIArgs_RefByXML>>を参照し、``@Scope("step")``の実装例は<<Ch04_JobParameter_HowToUse_CLIArgs_RefByJava>>を参照。
+
+.2+|ジョブの構成要素(job, step, reader, writer等)
+|JavaConfigの場合 +
+ジョブのBean定義ファイル(.java)
+|``@Bean``を付与したメソッド
+|対象のBeanメソッドに``@StepScope``を設定 +
+``@ComponentScan``に以下の属性を追加 +
+``scopedProxy = ScopedProxyMode.TARGET_CLASS``
+.2+|<<Ch04_JobParameter_HowToUse_CLIArgs_RefByXML,コマンドライン引数で与えたパラメータをBean定義で参照する例>>
+
+|XMLConfigの場合 +
+ジョブのBean定義ファイル(.xml)
+|``<bean>``タグ
+|対象の``<bean>``タグの属性に以下を設定 +
+``scope="step"``
+
+|ジョブのBean定義ファイルから参照されるコンポーネント(ItemprocessorやTasklet)
+|Java実装クラス(.java)
+|``@Component``を付与
+|``@Scope("step")``を付与
+|<<Ch04_JobParameter_HowToUse_CLIArgs_RefByJava>>
+
+|===
+
+現状、コンポーネントに``@StepScope``を付与したときの挙動はJavaConfigとXMLConfigで非互換があるため、コンポーネントの``Step``スコープ定義では``@StepScope``は定義してはならない。
+
 ====
 
-[[Ch04_JobParameter_HowToUse_CLIArgs_RefByXML]]
+++++
+<div class="listingblock" id="Ch04_JobParameter_HowToUse_CLIArgs_RefByXML">
+<div class="title">
+コマンドライン引数で与えたパラメータをBean定義で参照する例
+</div>
+++++
+// ============ Java/XML Config Tab start. ============
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup040206" class="JavaConfigTab" id="tabgroup040206_1" checked><label for="tabgroup040206_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup040206" class="XMLConfigTab" id="tabgroup040206_2"><label for="tabgroup040206_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+[source, java]
+----
+@Bean
+@StepScope // (1)
+public FlatFileItemReader<SalesPlanDetail> reader(
+    @Value("#{jobParameters['inputFile']}") File inputFile) { // (2)
+    // omitted
+}
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
 [source, xml]
-.コマンドライン引数で与えたパラメータをBean定義で参照する例
 ----
 <!-- (1) -->
 <bean id="reader"
@@ -205,6 +324,15 @@ Spring Frameworkの``ApplicationContext``は、デフォルトでは各種Bean�
     </property>
 </bean>
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============
+++++
+</div>
+++++
 
 [cols="10,90", options="header"]
 .設定内容の項目一覧
@@ -214,7 +342,7 @@ Spring Frameworkの``ApplicationContext``は、デフォルトでは各種Bean�
 |説明
 
 |(1)
-|``<bean>``要素の``scope``属性でスコープを指定する。
+|``@Beanを付与するメソッドに@StepScopeを付与する/<bean>要素のscope属性でスコープを指定する``
 
 |(2)
 |参照するパラメータを指定する。
@@ -273,13 +401,40 @@ outputFile=/tmp/result.csv
 
 コマンドライン引数としてパラメータを定義したファイルをリダイレクトする。
 
-[source, console]
+// ============ Java/XML Config Tab start. ============
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup040215" class="JavaConfigTab" id="tabgroup040215_1" checked><label for="tabgroup040215_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup040215" class="XMLConfigTab" id="tabgroup040215_2"><label for="tabgroup040215_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
 .実行方法
+[source, console]
+----
+$ # Execute job
+$ java org.springframework.batch.core.launch.support.CommandLineJobRunner \
+    com.example.batch.jobs.JobDefinedConfig.JobDefinedConfig JOBID < params.txt
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
+.実行方法
+[source, console]
 ----
 $ # Execute job
 $ java org.springframework.batch.core.launch.support.CommandLineJobRunner \
     JobDefined.xml JOBID < params.txt
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============
 
 .パラメータの参照
 
@@ -301,8 +456,32 @@ $ java org.springframework.batch.core.launch.support.CommandLineJobRunner \
 
 該当するパラメータが設定されなかった場合にデフォルト値に設定した値が参照される。
 
-[source, xml]
+// ============ Java/XML Config Tab start. ============
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup040207" class="JavaConfigTab" id="tabgroup040207_1" checked><label for="tabgroup040207_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup040207" class="XMLConfigTab" id="tabgroup040207_2"><label for="tabgroup040207_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
 .コマンドライン引数で与えたパラメータをBean定義で参照する例
+[source, java]
+----
+@Bean
+@StepScope // (1)
+public FlatFileItemReader<SalesPlanDetail> reader(
+    @Value("#{jobParameters['inputFile'] ?: '/input/sample.csv'}") File inputFile) { // (2)
+    // omitted
+}
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
+.コマンドライン引数で与えたパラメータをBean定義で参照する例
+[source, xml]
 ----
 <!-- (1) -->
 <bean id="reader"
@@ -312,8 +491,13 @@ $ java org.springframework.batch.core.launch.support.CommandLineJobRunner \
         <!-- omitted settings -->
     </property>
 </bean>
-
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============
 
 [cols="10,90", options="header"]
 .設定内容の項目一覧
@@ -323,7 +507,7 @@ $ java org.springframework.batch.core.launch.support.CommandLineJobRunner \
 |説明
 
 |(1)
-|``<bean>``要素の``scope``属性でスコープを指定する。
+|``@Beanを付与するメソッドに@StepScopeを付与する/<bean>要素のscope属性でスコープを指定する``
 
 |(2)
 |参照するパラメータを指定する。 +
@@ -401,8 +585,60 @@ public class ParamRefInJavaTasklet implements Tasklet {
 
 以下に定義例を示す。
 
-[source, xml]
+// ============ Java/XML Config Tab start. ============
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup040202" class="JavaConfigTab" id="tabgroup040202_1" checked><label for="tabgroup040202_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup040202" class="XMLConfigTab" id="tabgroup040202_2"><label for="tabgroup040202_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
 .DefaultJobParametersValidatorを使用する妥当性検証の定義
+[source, java]
+----
+@Configuration
+@Import(JobBaseContextConfig.class)
+@ComponentScan(value = "org.terasoluna.batch.functionaltest.ch04.jobparameter", scopedProxy = ScopedProxyMode.TARGET_CLASS)
+public class JobDefaultJobParametersValidatorConfig {
+
+    // (1)
+    @Bean
+    public DefaultJobParametersValidator jobParametersValidator() {
+        return new DefaultJobParametersValidator(
+                new String[] {"jsr_batch_run_id", "inputFileName", "outputFileName"}, // (2), (3)
+                new String[] {"param1", "param2"}); // (4)
+    }
+
+    @Bean
+    public Step step01(JobRepository jobRepository,
+                       @Qualifier("jobTransactionManager") PlatformTransactionManager transactionManager,
+                       RefWithDefaultInJavaTasklet tasklet) {
+        return new StepBuilder("jobDefaultJobParametersValidator.step01", jobRepository)
+                .tasklet(tasklet, transactionManager)
+                .build();
+    }
+
+    @Bean
+    public Job jobDefaultJobParametersValidator(JobRepository jobRepository,
+                                       Step step01,
+                                       DefaultJobParametersValidator jobParametersValidator) {
+        return new JobBuilder("jobDefaultJobParametersValidator",
+                jobRepository)
+                .start(step01)
+                .validator(jobParametersValidator) // (5)
+                .build();
+    }
+
+}
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
+.DefaultJobParametersValidatorを使用する妥当性検証の定義
+[source, xml]
 ----
 <!-- (1) -->
 <bean id="jobParametersValidator"
@@ -429,6 +665,12 @@ public class ParamRefInJavaTasklet implements Tasklet {
   <batch:validator ref="jobParametersValidator"/>  <!-- (5) -->
 </batch:job>
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============
 
 [cols="10,90", options="header"]
 .設定内容の項目一覧
@@ -441,7 +683,7 @@ public class ParamRefInJavaTasklet implements Tasklet {
 
 |(2)
 |必須パラメータは``requiredKeys``に設定する。 +
-``<list>``要素を使用して必須パラメータのパラメータ名を複数指定できる。
+``String配列/<list>要素``を使用して必須パラメータのパラメータ名を複数指定できる。
 
 |(3)
 |必須パラメータに``jsr_batch_run_id``を設定する。 +
@@ -450,10 +692,10 @@ public class ParamRefInJavaTasklet implements Tasklet {
 
 |(4)
 |任意パラメータは``optionalKeys``に設定する。 +
-``<list>``要素を使用して任意パラメータのパラメータ名を複数指定できる。
+``String配列/<list>要素``を使用して任意パラメータのパラメータ名を複数指定できる。
 
 |(5)
-|``<batch:job>``要素内に``<batch:validator>``要素を使用してジョブにバリデータを適用する。
+|``JobBuilderのvalidatorメソッド/<batch:job>要素内の<batch:validator>要素``を使用してジョブにバリデータを適用する。
 |===
 
 [IMPORTANT]
@@ -466,8 +708,32 @@ public class ParamRefInJavaTasklet implements Tasklet {
 そのため、``requiredKeys``には、``jsr_batch_run_id``を必ず含めること。 +
 詳細な説明は、<<Ch04_JobParameter_HowToUse_Converter>>を参照。
 
-[source, xml]
+// ============ Java/XML Config Tab start. ============
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup040203" class="JavaConfigTab" id="tabgroup040203_1" checked><label for="tabgroup040203_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup040203" class="XMLConfigTab" id="tabgroup040203_2"><label for="tabgroup040203_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
 .パラメータの定義例
+[source, java]
+----
+@Bean
+public DefaultJobParametersValidator jobParametersValidator() {
+    return new DefaultJobParametersValidator(
+            new String[] {"jsr_batch_run_id", "inputFileName", "outputFileName"},
+            new String[] {"param1", "param2"});
+}
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
+.パラメータの定義例
+[source, xml]
 ----
 <bean id="jobParametersValidator"
       class="org.springframework.batch.core.job.DefaultJobParametersValidator">
@@ -486,60 +752,205 @@ public class ParamRefInJavaTasklet implements Tasklet {
   </property>
 </bean>
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============
+
 ====
 
 .DefaultJobParametersValidatorを使用した場合のOKケースとNGケース
 
 ``DefaultJobParametersValidator``にて検証可能な条件の理解を深めるため、検証結果がOKとなる場合とNGとなる場合の例を示す。
 
-[source, xml]
+// ============ Java/XML Config Tab start. ============
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup040204" class="JavaConfigTab" id="tabgroup040204_1" checked><label for="tabgroup040204_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup040204" class="XMLConfigTab" id="tabgroup040204_2"><label for="tabgroup040204_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
 .DefaultJobParametersValidator定義例
+[source, java]
+----
+@Bean
+public DefaultJobParametersValidator jobParametersValidator() {
+    return new DefaultJobParametersValidator(
+            new String[] {"outputFileName"},
+            new String[] {"param1"});
+}
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
+.DefaultJobParametersValidator定義例
+[source, xml]
 ----
 <bean id="jobParametersValidator"
     class="org.springframework.batch.core.job.DefaultJobParametersValidator"
     p:requiredKeys="outputFileName"
     p:optionalKeys="param1"/>
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============
 
+// ============ Java/XML Config Tab start. ============
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup040208" class="JavaConfigTab" id="tabgroup040208_1" checked><label for="tabgroup040208_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup040208" class="XMLConfigTab" id="tabgroup040208_2"><label for="tabgroup040208_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
 [source, console]
-.NGケース1
+.NGケース1（任意パラメータのみ指定）
+----
+$ # Execute job
+$ java org.springframework.batch.core.launch.support.CommandLineJobRunner \
+    com.example.batch.jobs.JobDefinedConfig JOBID param1=aaa
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
+[source, console]
+.NGケース1（任意パラメータのみ指定）
 ----
 $ # Execute job
 $ java org.springframework.batch.core.launch.support.CommandLineJobRunner \
     JobDefined.xml JOBID param1=aaa
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============
 
-必須パラメータ``outputFile``が設定されていないためNGとなる。
+必須パラメータ``outputFileName``が設定されていないためNGとなる。
 
+// ============ Java/XML Config Tab start. ============
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup040209" class="JavaConfigTab" id="tabgroup040209_1" checked><label for="tabgroup040209_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup040209" class="XMLConfigTab" id="tabgroup040209_2"><label for="tabgroup040209_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
 [source, console]
-.NGケース2
+.OKケース1（必須パラメータのみ指定）
 ----
 $ # Execute job
 $ java org.springframework.batch.core.launch.support.CommandLineJobRunner \
-    JobDefined.xml JOBID outputFileName=/tmp/result.csv param2=aaa
+    com.example.batch.jobs.JobDefinedConfig.JobDefinedConfig JOBID outputFileName=/tmp/result.csv
 ----
-
-必須パラメータ、任意パラメータのどちらにも指定されていないパラメータ``param2``が設定されたためNGとなる。
-
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
 [source, console]
-.OKケース1
+.OKケース1（必須パラメータのみ指定）
+----
+$ # Execute job
+$ java org.springframework.batch.core.launch.support.CommandLineJobRunner \
+    JobDefined.xml JOBID outputFileName=/tmp/result.csv
+----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============
+
+必須パラメータ``outputFileName``が設定されるためOKとなる。任意パラメータ``param1``は設定されていなくてもよい。
+
+// ============ Java/XML Config Tab start. ============
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup040210" class="JavaConfigTab" id="tabgroup040210_1" checked><label for="tabgroup040210_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup040210" class="XMLConfigTab" id="tabgroup040210_2"><label for="tabgroup040210_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+[source, console]
+.OKケース2（必須パラメータと任意パラメータ指定）
+----
+$ # Execute job
+$ java org.springframework.batch.core.launch.support.CommandLineJobRunner \
+    com.example.batch.jobs.JobDefinedConfig.JobDefinedConfig JOBID param1=aaa outputFileName=/tmp/result.csv
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
+[source, console]
+.OKケース2（必須パラメータと任意パラメータ指定）
 ----
 $ # Execute job
 $ java org.springframework.batch.core.launch.support.CommandLineJobRunner \
     JobDefined.xml JOBID param1=aaa outputFileName=/tmp/result.csv
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============
 
-必須および任意として指定されたパラメータが設定されているためOKとなる。
+必須パラメータ``outputFileName``が設定されるためOKとなる。
 
+// ============ Java/XML Config Tab start. ============
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup040211" class="JavaConfigTab" id="tabgroup040211_1" checked><label for="tabgroup040211_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup040211" class="XMLConfigTab" id="tabgroup040211_2"><label for="tabgroup040211_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
 [source, console]
-.OKケース2
+.OKケース3（必須パラメータとBean定義にないパラメータ指定）
 ----
 $ # Execute job
 $ java org.springframework.batch.core.launch.support.CommandLineJobRunner \
-    JobDefined.xml JOBID fileoutputFilename=/tmp/result.csv
+    com.example.batch.jobs.JobDefinedConfig.JobDefinedConfig JOBID fileoutputFilename=/tmp/result.csv param2=aaa
 ----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
+[source, console]
+.OKケース3（必須パラメータとBean定義にないパラメータ指定）
+----
+$ # Execute job
+$ java org.springframework.batch.core.launch.support.CommandLineJobRunner \
+    JobDefined.xml JOBID fileoutputFilename=/tmp/result.csv param2=aaa
+----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============
 
-必須パラメータが設定されているためOKとなる、任意パラメータは設定されていなくてもよい。
+必須パラメータ``outputFileName``が設定されるためOKとなる。Bean定義にないパラメータ``param2``が設定されてもよい。
 
 [[Ch04_JobParameter_HowToUse_ParamsValidation_Origin]]
 ==== 複雑な妥当性検証
@@ -601,8 +1012,45 @@ public class ComplexJobParametersValidator implements JobParametersValidator {  
 |パラメータ``str``の文字列長がパラメータ``num``の値を超えている場合に妥当性検証結果NGとしている。
 |===
 
-[source, xml]
+// ============ Java/XML Config Tab start. ============
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup040205" class="JavaConfigTab" id="tabgroup040205_1" checked><label for="tabgroup040205_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup040205" class="XMLConfigTab" id="tabgroup040205_2"><label for="tabgroup040205_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
 .ジョブの定義例
+[source, java]
+----
+@Bean
+public Step step01(JobRepository jobRepository,
+                   @Qualifier("jobTransactionManager") PlatformTransactionManager transactionManager,
+                   RefWithDefaultInJavaTasklet tasklet) {
+    return new StepBuilder("jobDefaultJobParametersValidator.step01", jobRepository)
+            .tasklet(tasklet, transactionManager)
+            .build();
+}
+
+@Bean
+public Job jobDefaultJobParametersValidator(JobRepository jobRepository,
+                                   Step step01,
+                                   DefaultJobParametersValidator jobParametersValidator) {
+    return new JobBuilder("jobDefaultJobParametersValidator",
+            jobRepository)
+            .start(step01)
+            .validator(jobParametersValidator) // (1)
+            .build();
+}
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
+.ジョブの定義例
+[source, xml]
 ----
 <batch:job id="jobUseComplexJobParametersValidator" job-repository="jobRepository">
     <batch:step id="jobUseComplexJobParametersValidator.step01">
@@ -613,6 +1061,12 @@ public class ComplexJobParametersValidator implements JobParametersValidator {  
     </batch:validator>
 </batch:job>
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============
 
 [cols="10,90", options="header"]
 .設定内容の項目一覧
@@ -621,7 +1075,8 @@ public class ComplexJobParametersValidator implements JobParametersValidator {  
 |説明
 
 |(1)
-|``<batch:job>``要素内に``<batch:validator>``要素を使用してジョブにバリデータを適用する。
+|``JobBuilderのvalidatorメソッド/<batch:job>要素内の<batch:validator>要素``を使用してジョブにバリデータを適用する。 +
+
 |===
 
 [WARNING]
@@ -687,8 +1142,33 @@ public class ComplexJobParametersValidator implements JobParametersValidator {  
 環境変数による設定に加えて、コマンドライン引数を使用してパラメータを設定する方法を説明する。 +
 Bean定義においても同様に参照可能である。
 
-[source, console]
+// ============ Java/XML Config Tab start. ============
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup040212" class="JavaConfigTab" id="tabgroup040212_1" checked><label for="tabgroup040212_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup040212" class="XMLConfigTab" id="tabgroup040212_2"><label for="tabgroup040212_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
 .環境変数に加えてコマンドライン引数でパラメータを設定する例
+[source, console]
+----
+$ # Set environment variables
+$ export env1=aaa
+$ export env2=bbb
+
+$ # Execute job
+$ java org.springframework.batch.core.launch.support.CommandLineJobRunner \
+    com.example.batch.jobs.JobDefinedConfig.JobDefinedConfig JOBID param3=ccc outputFile=/tmp/result.csv
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
+.環境変数に加えてコマンドライン引数でパラメータを設定する例
+[source, console]
 ----
 $ # Set environment variables
 $ export env1=aaa
@@ -698,6 +1178,12 @@ $ # Execute job
 $ java org.springframework.batch.core.launch.support.CommandLineJobRunner \
     JobDefined.xml JOBID param3=ccc outputFile=/tmp/result.csv
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============
 
 [source, java]
 .Javaにおいて環境変数とパラメータを参照する例
@@ -731,10 +1217,32 @@ public void setParam3(String param3) {
 参照する際の形式は``#{jobParameters['パラメータ名']``である。
 |===
 
-.環境変数をデフォルト値とし、コマンドライン引数で上書き設定する場合
-
-[source, console]
+// ============ Java/XML Config Tab start. ============
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup040213" class="JavaConfigTab" id="tabgroup040213_1" checked><label for="tabgroup040213_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup040213" class="XMLConfigTab" id="tabgroup040213_2"><label for="tabgroup040213_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
 .環境変数をデフォルトとする場合の例
+[source, console]
+----
+$ # Set environment variables
+$ export env1=aaa
+
+$ # Execute job
+$ java org.springframework.batch.core.launch.support.CommandLineJobRunner \
+    com.example.batch.jobs.JobDefinedConfig.JobDefinedConfig JOBID param1=bbb outputFile=/tmp/result.csv
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
+.環境変数をデフォルトとする場合の例
+[source, console]
 ----
 $ # Set environment variables
 $ export env1=aaa
@@ -743,6 +1251,12 @@ $ # Execute job
 $ java org.springframework.batch.core.launch.support.CommandLineJobRunner \
     JobDefined.xml JOBID param1=bbb outputFile=/tmp/result.csv
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============
 
 [source, java]
 .Javaにおいて環境変数をデフォルト値としてパラメータを参照する例

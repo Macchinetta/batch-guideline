@@ -904,9 +904,9 @@ public class JobErrorLoggingListener implements JobExecutionListener {
 
 [[Ch06_ExceptionHandling_HowToUse_ContinuationPropriety_Skip_Chunk_ItemReader]]
 ItemReaderでのスキップ::
-  ``<batch:chunk>``の``skip-policy``属性にスキップ方法を指定する。
-  ``<batch:skippable-exception-classes>``に、スキップ対象とするItemReaderで発生する例外クラスを指定する。 +
-  ``skip-policy``属性には、{SB}が提供している下記に示すいづれかのクラスを使用する。
+  ``StepBuilderのskipPolicyメソッド/<batch:chunk>のskip-policy属性``にスキップ方法を指定する。
+  ``skipメソッド/<batch:skippable-exception-classes>``に、スキップ対象とするItemReaderで発生する例外クラスを指定する。 +
+  ``skipPolicyメソッドの引数skipPolicy/skip-policy属性``には、{SB}が提供している下記に示すいづれかのクラスを使用する。
 
 [cols="40,60", options="header"]
 .skip-policy一覧
@@ -942,8 +942,42 @@ ItemReaderでのスキップ::
 
 ``skip-policy``別に定義方法を示す。
 
-[source, xml]
 .前提とするItemReaderの定義
+// ============ Java/XML Config Tab start. ============
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup060201" class="JavaConfigTab" id="tabgroup060201_1" checked><label for="tabgroup060201_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup060201" class="XMLConfigTab" id="tabgroup060201_2"><label for="tabgroup060201_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+[source, java]
+----
+@Bean
+@StepScope
+public FlatFileItemReader<SalesPerformanceDetail> detailCSVReader(
+        @Value("#{jobParameters['inputFile']}") File inputFile) {
+    final DelimitedLineTokenizer tokenizer = new DelimitedLineTokenizer();
+    tokenizer.setNames("branchId", "year", "month", "customerId", "amount");
+    final BeanWrapperFieldSetMapper<SalesPerformanceDetail> fieldSetMapper = new BeanWrapperFieldSetMapper<SalesPerformanceDetail>();
+    fieldSetMapper.setTargetType(SalesPerformanceDetail.class);
+    final DefaultLineMapper<SalesPerformanceDetail> lineMapper = new DefaultLineMapper<SalesPerformanceDetail>();
+    lineMapper.setLineTokenizer(tokenizer);
+    lineMapper.setFieldSetMapper(fieldSetMapper);
+    return new FlatFileItemReaderBuilder<SalesPerformanceDetail>()
+            .name(ClassUtils.getShortName(FlatFileItemReader.class))
+            .resource(new FileSystemResource(inputFile))
+            .lineMapper(lineMapper)
+            .build();
+}
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
+[source, xml]
 ----
 <bean id="detailCSVReader"
       class="org.springframework.batch.item.file.FlatFileItemReader" scope="step">
@@ -962,12 +996,72 @@ ItemReaderでのスキップ::
     </property>
 </bean>
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============
 
 [[Ch06_ExceptionHandling_HowToUse_ContinuationPropriety_Skip_Chunk_AlwaysSkipItemSkipPolicy]]
 AlwaysSkipItemSkipPolicy::
 
-[source, xml]
 .AlwaysSkipItemSkipPolicyの指定例
+// ============ Java/XML Config Tab start. ============
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup060202" class="JavaConfigTab" id="tabgroup060202_1" checked><label for="tabgroup060202_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup060202" class="XMLConfigTab" id="tabgroup060202_2"><label for="tabgroup060202_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+[source, java]
+----
+// (1)
+@Bean
+public AlwaysSkipItemSkipPolicy skipPolicy() {
+    AlwaysSkipItemSkipPolicy skipPolicy = new AlwaysSkipItemSkipPolicy();
+    return skipPolicy;
+}
+
+@Bean
+public Step step01(JobRepository jobRepository,
+                   @Qualifier("jobTransactionManager") PlatformTransactionManager transactionManager,
+                   @Qualifier("detailCSVReader") ItemReader<SalesPerformanceDetail> reader,
+                   @Qualifier("amountCheckProcessor") ItemProcessor<SalesPerformanceDetail, SalesPerformanceDetail> processor,
+                   @Qualifier("detailWriter") ItemWriter<SalesPerformanceDetail> writer,
+                   AlwaysSkipItemSkipPolicy skipPolicy,
+                   SkipLoggingListener listener) {
+    return new StepBuilder("jobSalesPerfAtSkipAllReadError.step01",
+            jobRepository)
+            .<SalesPerformanceDetail, SalesPerformanceDetail> chunk(10,
+                    transactionManager)
+            .reader(reader)
+            .processor(processor)
+            .writer(writer)
+            .faultTolerant()
+            .skipPolicy(skipPolicy) // (2)
+            .listener(listener)
+            .build();
+}
+
+@Bean
+public Job jobSalesPerfAtSkipAllReadError(JobRepository jobRepository,
+                                          Step step01,
+                                          JobExecutionLoggingListener listener) {
+    return new JobBuilder("jobSalesPerfAtSkipAllReadError", jobRepository)
+            .start(step01)
+            .listener(listener)
+            .build();
+}
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
+[source, xml]
 ----
 <!-- (1) -->
 <bean id="skipPolicy"
@@ -985,6 +1079,12 @@ AlwaysSkipItemSkipPolicy::
     </batch:step>
 </batch:job>
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============
 
 [cols="10,90", options="header"]
 .説明
@@ -996,14 +1096,67 @@ AlwaysSkipItemSkipPolicy::
 |``AlwaysSkipItemSkipPolicy``をBean定義する。
 
 |(2)
-|``<batch:chunk>``の``skip-policy``属性に(1)で定義したBeanを設定する。
+|``StepBuilderのskipPolicyメソッド/<batch:chunk>のskip-policy属性``に(1)で定義したBeanを設定する。
 |===
 
 [[Ch06_ExceptionHandling_HowToUse_ContinuationPropriety_Skip_Chunk_NeverSkipItemSkipPolicy]]
 NeverSkipItemSkipPolicy::
 
-[source, xml]
 .NeverSkipItemSkipPolicyの指定例
+// ============ Java/XML Config Tab start. ============
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup060209" class="JavaConfigTab" id="tabgroup060209_1" checked><label for="tabgroup060209_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup060209" class="XMLConfigTab" id="tabgroup060209_2"><label for="tabgroup060209_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+[source, java]
+----
+// (1)
+@Bean
+public NeverSkipItemSkipPolicy skipPolicy() {
+    return new NeverSkipItemSkipPolicy();
+}
+
+@Bean
+public Step step01(JobRepository jobRepository,
+                   @Qualifier("jobTransactionManager") PlatformTransactionManager transactionManager,
+                   @Qualifier("detailCSVReader") ItemReader<SalesPerformanceDetail> reader,
+                   @Qualifier("amountCheckProcessor") ItemProcessor<SalesPerformanceDetail, SalesPerformanceDetail> processor,
+                   @Qualifier("detailWriter") ItemWriter<SalesPerformanceDetail> writer,
+                   SkipLoggingListener skipLoggingListener,
+                   NeverSkipItemSkipPolicy skipPolicy) {
+    return new StepBuilder("jobSalesPerfAtSkipNeverReadError.step01",
+            jobRepository)
+            .<SalesPerformanceDetail, SalesPerformanceDetail> chunk(10,
+                    transactionManager)
+            .reader(reader)
+            .processor(processor)
+            .writer(writer)
+            .faultTolerant()
+            .listener(skipLoggingListener)
+            .skipPolicy(skipPolicy) // (2)
+            .build();
+}
+
+@Bean
+public Job jobSalesPerfAtSkipNeverReadError(JobRepository jobRepository,
+                                          Step step01,
+                                          JobExecutionLoggingListener listener) {
+    return new JobBuilder("jobSalesPerfAtSkipNeverReadError", jobRepository)
+            .start(step01)
+            .listener(listener)
+            .build();
+}
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
+[source, xml]
 ----
 <!-- (1) -->
 <bean id="skipPolicy"
@@ -1021,6 +1174,12 @@ NeverSkipItemSkipPolicy::
     </batch:step>
 </batch:job>
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============
 
 [cols="10,90", options="header"]
 .説明
@@ -1032,16 +1191,69 @@ NeverSkipItemSkipPolicy::
 |``NeverSkipItemSkipPolicy``をBean定義する。
 
 |(2)
-|``<batch:chunk>``の``skip-policy``属性に(1)で定義したBeanを設定する。
+|``StepBuilderのskipPolicyメソッド/<batch:chunk>のskip-policy属性``に(1)で定義したBeanを設定する。
 |===
 
 [[Ch06_ExceptionHandling_HowToUse_ContinuationPropriety_Skip_Chunk_LimitCheckingItemSkipPolicy]]
 LimitCheckingItemSkipPolicy::
 
-[source, xml]
 .LimitCheckingItemSkipPolicyの指定例
+// ============ Java/XML Config Tab start. ============
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup060203" class="JavaConfigTab" id="tabgroup060203_1" checked><label for="tabgroup060203_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup060203" class="XMLConfigTab" id="tabgroup060203_2"><label for="tabgroup060203_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+[source, java]
 ----
-(1)
+// (1)
+// @Bean
+// public LimitCheckingItemSkipPolicy skipPolicy() {
+//     return new LimitCheckingItemSkipPolicy();
+// }
+
+@Bean
+public Step step01(JobRepository jobRepository,
+                   @Qualifier("jobTransactionManager") PlatformTransactionManager transactionManager,
+                   @Qualifier("detailCSVReader") ItemReader<SalesPerformanceDetail> reader,
+                   @Qualifier("amountCheckProcessor") ItemProcessor<SalesPerformanceDetail, SalesPerformanceDetail> processor,
+                   @Qualifier("detailWriter") ItemWriter<SalesPerformanceDetail> writer,
+                   SkipLoggingListener listener) {
+    return new StepBuilder("jobSalesPerfAtValidSkipReadError.step01",
+            jobRepository)
+            .<SalesPerformanceDetail, SalesPerformanceDetail> chunk(10,
+                    transactionManager)
+            .reader(reader)
+            .processor(processor)
+            .writer(writer)
+            .faultTolerant()
+            .skipLimit(2) // (2)
+            .skip(ItemReaderException.class) // (3) (4)
+            .listener(listener)
+            .build();
+}
+
+@Bean
+public Job jobSalesPerfAtValidSkipReadError(JobRepository jobRepository,
+                                            Step step01,
+                                            JobExecutionLoggingListener listener) {
+    return new JobBuilder("jobSalesPerfAtValidSkipReadError", jobRepository)
+            .start(step01)
+            .listener(listener)
+            .build();
+}
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
+[source, xml]
+----
+<!-- (1) -->
 <!--
 <bean id="skipPolicy"
       class="org.springframework.batch.core.step.skip.LimitCheckingItemSkipPolicy"/>
@@ -1065,6 +1277,12 @@ LimitCheckingItemSkipPolicy::
     </batch:step>
 </batch:job>
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============
 
 [cols="10,90", options="header"]
 .説明
@@ -1074,14 +1292,14 @@ LimitCheckingItemSkipPolicy::
 
 |(1)
 |``LimitCheckingItemSkipPolicy``をBean定義する。 +
-``skip-policy``属性省略時のデフォルトであるため、定義しなくてもよい。
+``StepBuilderのskipPolicyメソッド/skip-policy属性``省略時のデフォルトであるため、定義しなくてもよい。
 
 |(2)
-|``<batch:chunk>``の``skip-limit``属性にスキップ数の上限値を設定する。 +
-``skip-policy``属性はデフォルトを使用ため省略。
+|``StepBuilderのskipLimitメソッド/<batch:chunk>のskip-limit属性``にスキップ数の上限値を設定する。 +
+``skipPolicyメソッド/skip-policy属性``はデフォルトを使用ため省略。
 
 |(3)
-|``<batch:skippable-exception-classes>``を定義し、要素内に対象となる例外を設定する。
+|``StepBuilderのskipメソッド/<batch:skippable-exception-classes>``を定義し、要素内に対象となる例外を設定する。
 
 |(4)
 |``ItemReaderException``をスキップ対象クラスとして設定を行う。
@@ -1090,8 +1308,72 @@ LimitCheckingItemSkipPolicy::
 [[Ch06_ExceptionHandling_HowToUse_ContinuationPropriety_Skip_Chunk_ExceptionClassifierSkipPolicy]]
 ExceptionClassifierSkipPolicy::
 
-[source, xml]
 .ExceptionClassifierSkipPolicyの指定例
+// ============ Java/XML Config Tab start. ============
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup060204" class="JavaConfigTab" id="tabgroup060204_1" checked><label for="tabgroup060204_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup060204" class="XMLConfigTab" id="tabgroup060204_2"><label for="tabgroup060204_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+[source, java]
+----
+// (1)
+@Bean
+public ExceptionClassifierSkipPolicy skipPolicy(
+        AlwaysSkipItemSkipPolicy alwaysSkip) {
+    ExceptionClassifierSkipPolicy skipPolicy = new ExceptionClassifierSkipPolicy();
+    Map<Class<? extends Throwable>, SkipPolicy> policyMap = new HashMap<>();
+    policyMap.put(ItemReaderException.class, alwaysSkip); // (2)
+    skipPolicy.setPolicyMap(policyMap);
+    return skipPolicy;
+}
+
+// (3)
+@Bean
+public AlwaysSkipItemSkipPolicy alwaysSkip() {
+    return new AlwaysSkipItemSkipPolicy();
+}
+
+@Bean
+public Step step01(JobRepository jobRepository,
+                   @Qualifier("jobTransactionManager") PlatformTransactionManager transactionManager,
+                   @Qualifier("detailCSVReader") ItemReader<SalesPerformanceDetail> reader,
+                   @Qualifier("amountCheckProcessor") ItemProcessor<SalesPerformanceDetail, SalesPerformanceDetail> processor,
+                   @Qualifier("detailWriter") ItemWriter<SalesPerformanceDetail> writer,
+                   SkipLoggingListener skipLoggingListener,
+                   ExceptionClassifierSkipPolicy skipPolicy) {
+    return new StepBuilder("jobSalesPerfAtValidNolimitSkipReadError.step01",
+            jobRepository)
+            .<SalesPerformanceDetail, SalesPerformanceDetail> chunk(10,
+                    transactionManager)
+            .reader(reader)
+            .processor(processor)
+            .writer(writer)
+            .faultTolerant()
+            .skipPolicy(skipPolicy) // (4)
+            .listener(skipLoggingListener)
+            .build();
+}
+
+@Bean
+public Job jobSalesPerfAtValidNolimitSkipReadError(JobRepository jobRepository,
+                                          Step step01,
+                                          JobExecutionLoggingListener listener) {
+    return new JobBuilder("jobSalesPerfAtValidNolimitSkipReadError", jobRepository)
+            .start(step01)
+            .listener(listener)
+            .build();
+}
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
+[source, xml]
 ----
 <!-- (1) -->
 <bean id="skipPolicy"
@@ -1122,6 +1404,12 @@ ExceptionClassifierSkipPolicy::
     </batch:step>
 </batch:job>
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============
 
 [cols="10,90", options="header"]
 .説明
@@ -1141,7 +1429,7 @@ ExceptionClassifierSkipPolicy::
 この例では、``AlwaysSkipItemSkipPolicy``を定義している。
 
 |(4)
-|``<batch:chunk>``の``skip-policy``属性に(1)で定義したBeanを設定する。
+|``StepBuilderのskipPolicyメソッド/<batch:chunk>のskip-policy属性``に(1)で定義したBeanを設定する。
 
 |===
 
@@ -1155,7 +1443,7 @@ ItemProcessorでのスキップ::
 .ItemProcessorにおける例外ハンドリンクの制約
 ====
 <<Ch06_ExceptionHandling_Appendix_SkippableExceptionClasses>>にあるように、
-ItemProcessorでは、``<batch:skippable-exception-classes>``を利用したスキップは禁止している。
+ItemProcessorでは、``skipメソッド/<batch:skippable-exception-classes>``を利用したスキップは禁止している。
 そのため、<<Ch06_ExceptionHandling_HowToUse_StepExceptionHandling_Chunk_ItemProcessor>>で説明している
 「<<Ch04_Listener.adoc#Ch04_Listener_Overview_Types_ItemProcessListener,ItemProcessListener>>インタフェースを使用する方法」を応用したスキップはできない。
 ====
@@ -1357,8 +1645,77 @@ public class RetryableAmountCheckProcessor implements
 
 ----
 
-[source, xml]
 .Bean定義
+// ============ Java/XML Config Tab start. ============
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup060205" class="JavaConfigTab" id="tabgroup060205_1" checked><label for="tabgroup060205_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup060205" class="XMLConfigTab" id="tabgroup060205_2"><label for="tabgroup060205_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+[source, java]
+----
+@Bean
+@StepScope
+public RetryableAmountCheckProcessor amountCheckProcessor(
+        @Value("#{jobParameters['adjust-times']}") int adjustTimes,
+        SimpleRetryPolicy retryPolicy) {
+    RetryableAmountCheckProcessor processor = new RetryableAmountCheckProcessor();
+    processor.setAmountLimit(BigDecimal.valueOf(10000));
+    processor.setAdjustTimes(adjustTimes);
+    processor.setRetryPolicy(retryPolicy); // (5)
+    return processor;
+}
+
+// (6)
+@Bean
+public SimpleRetryPolicy retryPolicy(
+        Map<Class<? extends Throwable>, Boolean> exceptionMap) {
+    return new SimpleRetryPolicy(3, exceptionMap); // (7) (8)
+}
+
+// (9)
+@Bean
+public Map<Class<? extends Throwable>, Boolean> exceptionMap() {
+    Map<Class<? extends Throwable>, Boolean> exceptionMap = new HashMap<>();
+    exceptionMap.put(UnsupportedOperationException.class, true);
+    return exceptionMap;
+}
+
+@Bean
+public Step step01(JobRepository jobRepository,
+                   @Qualifier("jobTransactionManager") PlatformTransactionManager transactionManager,
+                   @Qualifier("detailCSVReader") ItemReader<SalesPerformanceDetail> reader,
+                   @Qualifier("amountCheckProcessor") ItemProcessor<SalesPerformanceDetail, SalesPerformanceDetail> processor,
+                   @Qualifier("detailWriter") ItemWriter<SalesPerformanceDetail> writer) {
+    return new StepBuilder("jobSalesPerfWithRetryPolicy.step01",
+            jobRepository)
+            .<SalesPerformanceDetail, SalesPerformanceDetail> chunk(10,
+                    transactionManager)
+            .reader(reader)
+            .processor(processor)
+            .writer(writer)
+            .build();
+}
+
+@Bean
+public Job jobSalesPerfWithRetryPolicy(JobRepository jobRepository,
+                                          Step step01,
+                                          JobExecutionLoggingListener listener) {
+    return new JobBuilder("jobSalesPerfWithRetryPolicy", jobRepository)
+            .start(step01)
+            .listener(listener)
+            .build();
+}
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
+[source, xml]
 ----
 <!-- omitted -->
 
@@ -1388,6 +1745,12 @@ public class RetryableAmountCheckProcessor implements
 </batch:job>
 
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============
 
 [cols="10,90", options="header"]
 .説明
@@ -1437,8 +1800,55 @@ public class RetryableAmountCheckProcessor implements
 <<Ch06_ExceptionHandling_HowToUse_ContinuationPropriety_Skip_Chunk_LimitCheckingItemSkipPolicy,LimitCheckingItemSkipPolicy>>をもとに、スキップの実装例を示す。
 
 
-[source,xml]
 .Bean定義
+// ============ Java/XML Config Tab start. ============
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup060206" class="JavaConfigTab" id="tabgroup060206_1" checked><label for="tabgroup060206_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup060206" class="XMLConfigTab" id="tabgroup060206_2"><label for="tabgroup060206_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+[source, java]
+----
+@Bean
+public Step step01(JobRepository jobRepository,
+                   @Qualifier("jobTransactionManager") PlatformTransactionManager transactionManager,
+                   @Qualifier("detailCSVReader") ItemReader<SalesPerformanceDetail> reader,
+                   @Qualifier("amountCheckProcessor") ItemProcessor<SalesPerformanceDetail, SalesPerformanceDetail> processor,
+                   @Qualifier("detailWriter") ItemWriter<SalesPerformanceDetail> writer,
+                   SkipLoggingListener listener) {
+    return new StepBuilder("jobSalesPerfAtValidSkipReadError.step01",
+            jobRepository)
+            .<SalesPerformanceDetail, SalesPerformanceDetail> chunk(10,
+                    transactionManager)
+            .reader(reader)
+            .processor(processor)
+            .writer(writer)
+            .faultTolerant()
+            .skipLimit(2)
+            .skip(ValidationException.class) // (1)
+            .listener(listener)
+            .build();
+}
+
+@Bean
+public Job jobSalesPerfAtValidSkipReadError(JobRepository jobRepository,
+                                            Step step01,
+                                            JobExecutionLoggingListener listener) {
+    return new JobBuilder("jobSalesPerfAtValidSkipReadError", jobRepository)
+            .start(step01)
+            .listener(listener)
+            .build();
+}
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
+[source, xml]
 ----
 <batch:job id="jobSalesPerfAtValidSkipReadError" job-repository="jobRepository">
     <batch:step id="jobSalesPerfAtValidSkipReadError.step01">
@@ -1456,6 +1866,12 @@ public class RetryableAmountCheckProcessor implements
     </batch:step>
 </batch:job>
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============
 
 [cols="10,90", options="header"]
 .説明
@@ -1470,8 +1886,63 @@ public class RetryableAmountCheckProcessor implements
 
 <<Ch06_ExceptionHandling_HowToUse_ContinuationPropriety_Retry>>をもとに、リトライの実装例を示す。
 
-[source,xml]
 .Bean定義
+// ============ Java/XML Config Tab start. ============
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup060207" class="JavaConfigTab" id="tabgroup060207_1" checked><label for="tabgroup060207_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup060207" class="XMLConfigTab" id="tabgroup060207_2"><label for="tabgroup060207_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+[source, java]
+----
+@Bean
+public SimpleRetryPolicy retryPolicy(
+        Map<Class<? extends Throwable>, Boolean> exceptionMap) {
+    return new SimpleRetryPolicy(3, exceptionMap);
+}
+
+@Bean
+public Map<Class<? extends Throwable>, Boolean> exceptionMap() {
+    Map<Class<? extends Throwable>, Boolean> exceptionMap = new HashMap<>();
+    exceptionMap.put(UnsupportedOperationException.class, true); // (1)
+    return exceptionMap;
+}
+
+@Bean
+public Step step01(JobRepository jobRepository,
+                   @Qualifier("jobTransactionManager") PlatformTransactionManager transactionManager,
+                   @Qualifier("detailCSVReader") ItemReader<SalesPerformanceDetail> reader,
+                   @Qualifier("amountCheckProcessor") ItemProcessor<SalesPerformanceDetail, SalesPerformanceDetail> processor,
+                   @Qualifier("detailWriter") ItemWriter<SalesPerformanceDetail> writer) {
+    return new StepBuilder("jobSalesPerfWithRetryPolicy.step01",
+            jobRepository)
+            .<SalesPerformanceDetail, SalesPerformanceDetail> chunk(10,
+                    transactionManager)
+            .reader(reader)
+            .processor(processor)
+            .writer(writer)
+            .build();
+}
+
+@Bean
+public Job jobSalesPerfWithRetryPolicy(JobRepository jobRepository,
+                                          Step step01,
+                                          JobExecutionLoggingListener listener) {
+    return new JobBuilder("jobSalesPerfWithRetryPolicy", jobRepository)
+            .start(step01)
+            .listener(listener)
+            .build();
+}
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
+[source, xml]
 ----
 <!-- omitted -->
 
@@ -1495,6 +1966,12 @@ public class RetryableAmountCheckProcessor implements
 </batch:job>
 
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============
 
 [cols="10,90", options="header"]
 .説明
@@ -1516,10 +1993,56 @@ public class RetryableAmountCheckProcessor implements
 
 {SB}では、ジョブ全体を対象としてスキップする例外を指定し、例外が発生したアイテムへの処理をスキップして処理を継続させる機能を提供している。
 
-その機能は、以下のように``<chunk>``要素配下に``<skippable-exception-classes>``要素を設定し、スキップ対象の例外を指定する形で実装する。
+その機能は、以下のように``StepBuilderのskipメソッド/<chunk>要素配下に<skippable-exception-classes>要素``を設定し、スキップ対象の例外を指定する形で実装する。
 
 [source, xml]
-.<skippable-exception-classes>の使用例
+.skip/<skippable-exception-classes>の使用例
+// ============ Java/XML Config Tab start. ============
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup060208" class="JavaConfigTab" id="tabgroup060208_1" checked><label for="tabgroup060208_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup060208" class="XMLConfigTab" id="tabgroup060208_2"><label for="tabgroup060208_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+[source, java]
+----
+@Bean
+public Step retryStep(JobRepository jobRepository,
+                   @Qualifier("jobTransactionManager") PlatformTransactionManager transactionManager,
+                   ItemReader itemReader,
+                   ItemProcessor itemProcessor,
+                   ItemWriter itemWriter) {
+    return new StepBuilder("flowJob.retryStep",
+            jobRepository)
+            .chunk(20, transactionManager)
+            .reader(itemReader)
+            .processor(itemProcessor)
+            .writer(itemWriter)
+            .faultTolerant()
+            .skipLimit(10)
+            .skip(Exception.class)
+            .noSkip(NullPointerException.class)
+            .build();
+}
+
+@Bean
+public Job flowJob(JobRepository jobRepository,
+                                            Step retryStep,
+                                            JobExecutionLoggingListener listener) {
+    return new JobBuilder("flowJob", jobRepository)
+            .start(retryStep)
+            .listener(listener)
+            .build();
+}
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
+[source, xml]
 ----
 <job id="flowJob">
     <step id="retryStep">
@@ -1537,16 +2060,22 @@ public class RetryableAmountCheckProcessor implements
     </step>
 </job>
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============
 
 この機能を利用することによって、入力チェックエラーが発生したレコードをスキップして後続データの処理を継続することは可能だが、
 {batch5_shortname}では以下の理由により使用しない。
 
-* ``<skippable-exception-classes>``要素を利用して例外をスキップした場合、
+* ``skipメソッド/<skippable-exception-classes>要素``を利用して例外をスキップした場合、
   1つのチャンクに含まれるデータ件数が変動するため、性能劣化を引き起こす可能性がある。
 ** これは、例外の発生箇所(``ItemReader``/``ItemProcessor``/``ItemWriter``)によって変わる。詳細は後述する。
 
 [IMPORTANT]
-.<skippable-exception-classes>を定義せずにSkipPolicyを利用することは必ず避ける
+.skip/<skippable-exception-classes>を定義せずにSkipPolicyを利用することは必ず避ける
 ====
 暗黙的にすべての例外が登録された状況になり、性能劣化の可能性が飛躍的に高まる。
 ====
@@ -1581,6 +2110,6 @@ ItemWriterで例外が発生した場合::
 これらはジョブ全体の処理時間が長期化することを意味し、異常時に状況を悪化させる可能性が高い。
 また、二重処理すること自体が問題化する可能性を秘めており、設計製造に追加の考慮事項を生む。
 
-よって、``<skippable-exception-classes>``を使用することは推奨しない。
+よって、``skipメソッド/<skippable-exception-classes>``を使用することは推奨しない。
 ``ItemReader``でエラーになったデータをスキップすることはこれらの問題を引き起こさないが、
 事故を未然に防ぐためには基本的に避けるようにし、どうしても必要な場合に限定的に適用すること。

@@ -38,38 +38,35 @@ Bean定義ファイルにて、タスクレットモデルジョブを定義す�
   <div class="tabcontent" name="JavaConfigContent">
 ++++
 // Java Config start.
-[source,xml]
+[source,java]
 .Bean定義ファイルの例(タスクレットモデル)
 ----
-<?xml version="1.0" encoding="UTF-8"?>
-<beans xmlns="http://www.springframework.org/schema/beans"
-       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-       xmlns:context="http://www.springframework.org/schema/context"
-       xmlns:batch="http://www.springframework.org/schema/batch"
-       xsi:schemaLocation="http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd
-             http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd
-             http://www.springframework.org/schema/batch https://www.springframework.org/schema/batch/spring-batch.xsd">
+@Configuration
+@Import(JobBaseContextConfig.class) // (1)
+@ComponentScan("org.terasoluna.batch.functionaltest.app.common") // (2)
+public class JobSimpleJobConfig {
 
-    <!-- (1) -->
-    <import resource="classpath:jp.co.ntt.fw.macchinetta.batch.functionaltest.config.JobBaseContextConfig"/>
+    // (3)
+    // Tasklet
+    // Tasklet in order that based on the Bean defined by the annotations, not defined here
 
-    <!-- (2) -->
-    <context:component-scan
-          base-package="jp.co.ntt.fw.macchinetta.batch.functionaltest.app.common"/>
+    @Bean
+    public Step step01(JobRepository jobRepository, // (5)
+                       @Qualifier("jobTransactionManager") PlatformTransactionManager transactionManager,
+                       SimpleJobTasklet simpleJobTasklet) {
+        return new StepBuilder("jobSimpleJob.step01", jobRepository) // (6)
+                .tasklet(simpleJobTasklet, transactionManager) // (7)
+                .build();
+    }
 
-    <!-- (3) -->
-    <!-- Tasklet -->
-    <!-- Tasklet in order that based on the Bean defined by the annotations, not defined here -->
-
-    <!-- (4) -->
-    <batch:job id="simpleJob" job-repository="jobRepository"> <!-- (5) -->
-        <batch:step id="simpleJob.step01"> <!-- (6) -->
-            <batch:tasklet transaction-manager="jobTransactionManager"
-                           ref="simpleJobTasklet"/> <!-- (7) -->
-        </batch:step>
-    </batch:job>
-
-</beans>
+    @Bean
+    public Job jobSimpleJob(JobRepository jobRepository, // (5)
+                            Step step01) {
+        return new JobBuilder("jobSimpleJob", jobRepository) // (4)
+                .start(step01)
+                .build();
+    }
+}
 ----
 // Java Config end.
 ++++
@@ -145,27 +142,27 @@ public class SimpleJobTasklet implements Tasklet {
 
 |(4)
 |ジョブの設定。 +
-``id``属性は、1つのバッチアプリケーションに含まれる全ジョブの範囲内で一意とする必要がある。
+``JobBuilderのコンストラクタのname引数/<batch:job>のid属性``は、1つのバッチアプリケーションに含まれる全ジョブの範囲内で一意とする必要がある。
 
 |(5)
 |``JobRepository``の設定。 +
-``job-repository``属性に設定する値は、特別な理由がない限り``jobRepository``固定とすること。 +
+``JobBuilder、StepBuilderのコンストラクタの引数jobRepository/<batch:job>のjob-repository属性``に設定する値は、特別な理由がない限り``jobRepository``固定とすること。 +
 これにより、すべてのジョブが1つの``JobRepository``で管理できる。
 ``jobRepository``のBean定義は、(1)により解決する。
 
 |(6)
 |ステップの設定。 +
-``id``属性は、1つのバッチアプリケーションに含まれる全ジョブの範囲内で一意とする必要はないが、障害発生時に追跡しやすくなる等の様々なメリットがあるため一意とする。 +
- 特別な理由がない限り、(3)で指定した``id``属性に[step+連番]を付加する形式とする。
+``StepBuilderのコンストラクタのname引数/<batch:step>のid属性``は、1つのバッチアプリケーションに含まれる全ジョブの範囲内で一意とする必要はないが、障害発生時に追跡しやすくなる等の様々なメリットがあるため一意とする。 +
+ 特別な理由がない限り、(4)で指定した``JobBuilderのコンストラクタのname引数/<batch:job>のid属性``に[step+連番]を付加する形式とする。
 
 |(7)
 |タスクレットの設定。 +
-``transaction-manager``属性に設定する値は、特別な理由がない限り``jobTransactionManager``固定とすること。 +
+``StepBuilderのtaskletメソッドのtransactionManager引数/<batch:tasklet>のtransaction-manager属性``に設定する値は、特別な理由がない限り``jobTransactionManager``固定とすること。 +
 これにより、タスクレット全体の処理が1つのトランザクションで管理される。
 詳細については、<<Ch05_Transaction.adoc#Ch05_Transaction,トランザクション制御>>を参照。 +
 ``jobTransactionManager``のBean定義は、(1)により解決する。 +
 
-また、``ref``属性は、(2)により解決するTaskletの実装クラスのBeanIDを指定する。 +
+また、``StepBuilderのtaskletメソッドの引数tasklet/<batch:tasklet>のref属性``は、(2)により解決するTaskletの実装クラスのBeanIDを指定する。 +
 ここでは、Tasklet実装クラス名``SimpleJobTasklet``の先頭を小文字にした``simpleJobTasklet``となる。
 |===
 
@@ -322,47 +319,53 @@ public class SalesPlanChunkTranTask implements Tasklet {
   <div class="tabcontent" name="JavaConfigContent">
 ++++
 // Java Config start.
-[source,xml]
+[source,java]
 .Bean定義例1
 ----
-<!-- omitted -->
-<import resource="classpath:jp.co.ntt.fw.macchinetta.batch.functionaltest.config.JobBaseContextConfig"/>
+@Configuration
+@Import(JobBaseContextConfig.class)
+@ComponentScan(value = "org.terasoluna.batch.functionaltest.ch05.transaction.component", scopedProxy = ScopedProxyMode.TARGET_CLASS)
+@MapperScan(basePackages = "org.terasoluna.batch.functionaltest.app.repository.plan", sqlSessionFactoryRef = "jobSqlSessionFactory") // (9)
+public class CreateSalesPlanChunkTranTaskConfig {
 
-<context:component-scan
-    base-package="jp.co.ntt.fw.macchinetta.batch.functionaltest.app.plan" />
-<context:component-scan
-    base-package="jp.co.ntt.fw.macchinetta.batch.functionaltest.ch05.transaction.component" />
+    // (10)
+    @Bean
+    @StepScope
+    public FlatFileItemReader<SalesPlanDetail> detailCSVReader(
+            @Value("#{jobParameters['inputFile']}") File inputFile) {
+        DelimitedLineTokenizer lineTokenizer = new DelimitedLineTokenizer();
+        lineTokenizer.setNames("branchId", "year", "month", "customerId", "amount");
+        BeanWrapperFieldSetMapper<SalesPlanDetail> fieldSetMapper = new BeanWrapperFieldSetMapper<>();
+        fieldSetMapper.setTargetType(SalesPlanDetail.class);
+        DefaultLineMapper<SalesPlanDetail> lineMapper = new DefaultLineMapper<>();
+        lineMapper.setLineTokenizer(lineTokenizer);
+        lineMapper.setFieldSetMapper(fieldSetMapper);
+        return new FlatFileItemReaderBuilder<SalesPlanDetail>()
+                .name(ClassUtils.getShortName(FlatFileItemReader.class))
+                .resource(new FileSystemResource(inputFile))
+                .lineMapper(lineMapper)
+                .build();
+    }
 
-<!-- (9) -->
-<mybatis:scan
-    base-package="jp.co.ntt.fw.macchinetta.batch.functionaltest.app.repository.plan"
-    factory-ref="jobSqlSessionFactory"/>
+    // (11)
+    @Bean
+    public Step step01(JobRepository jobRepository,
+                       @Qualifier("jobResourcelessTransactionManager") PlatformTransactionManager transactionManager,
+                       SalesPlanChunkTranTask salesPlanChunkTranTask) {
+        return new StepBuilder("createSalesPlanChunkTranTask.step01",
+                jobRepository)
+                .tasklet(salesPlanChunkTranTask, transactionManager)
+                .build();
+    }
 
-<!-- (10) -->
-<bean id="detailCSVReader"
-      class="org.springframework.batch.item.file.FlatFileItemReader" scope="step"
-      p:resource="file:#{jobParameters['inputFile']}">
-    <property name="lineMapper">
-        <bean class="org.springframework.batch.item.file.mapping.DefaultLineMapper">
-            <property name="lineTokenizer">
-                <bean class="org.springframework.batch.item.file.transform.DelimitedLineTokenizer"
-                      p:names="branchId,year,month,customerId,amount"/>
-            </property>
-            <property name="fieldSetMapper">
-                <bean class="org.springframework.batch.item.file.mapping.BeanWrapperFieldSetMapper"
-                      p:targetType="org.terasoluna.batch.functionaltest.app.model.plan.SalesPlanDetail"/>
-            </property>
-        </bean>
-    </property>
-</bean>
-
-<!-- (11) -->
-<batch:job id="createSalesPlanChunkTranTask" job-repository="jobRepository">
-    <batch:step id="createSalesPlanChunkTranTask.step01">
-        <batch:tasklet transaction-manager="jobTransactionManager"
-                       ref="salesPlanChunkTranTask"/>
-    </batch:step>
-</batch:job>
+    @Bean
+    public Job createSalesPlanChunkTranTask(JobRepository jobRepository,
+                                            Step step01) {
+        return new JobBuilder("createSalesPlanChunkTranTask",jobRepository)
+                .start(step01)
+                .build();
+    }
+}
 ----
 // Java Config end.
 ++++
@@ -485,7 +488,6 @@ Tasklet実装クラスと、InjectするBeanのスコープは、同じスコー
 結果、Tasklet実装クラスをインスタンス化できないと判断し``ApplicationContext``生成に失敗してしまう。
 ====
 
-
 [IMPORTANT]
 .@Injectを付与するフィールドの型について
 ====
@@ -574,49 +576,66 @@ public class SalesPerformanceTasklet implements Tasklet {
   <div class="tabcontent" name="JavaConfigContent">
 ++++
 // Java Config start.
-[source,xml]
+[source,java]
 .Bean定義例2
 ----
-<!-- omitted -->
-<import resource="classpath:jp.co.ntt.fw.macchinetta.batch.functionaltest.config.JobBaseContextConfig"/>
+@Configuration
+@Import(JobBaseContextConfig.class)
+@ComponentScan(value = { "org.terasoluna.batch.functionaltest.app.common",
+        "org.terasoluna.batch.functionaltest.ch06.exceptionhandling" }, scopedProxy = ScopedProxyMode.TARGET_CLASS)
+@MapperScan(value = "org.terasoluna.batch.functionaltest.app.repository.performance", sqlSessionFactoryRef = "jobSqlSessionFactory")
+public class JobSalesPerfTaskletConfig {
 
-<context:component-scan
-    base-package="jp.co.ntt.fw.macchinetta.batch.functionaltest.app.common,
-        jp.co.ntt.fw.macchinetta.batch.functionaltest.ch06.exceptionhandling"/>
-<mybatis:scan
-    base-package="jp.co.ntt.fw.macchinetta.batch.functionaltest.app.repository.performance"
-    factory-ref="jobSqlSessionFactory"/>
+    @Bean
+    @StepScope
+    public FlatFileItemReader<SalesPerformanceDetail> detailCSVReader(
+            @Value("#{jobParameters['inputFile']}") File inputFile) {
+        final DelimitedLineTokenizer tokenizer = new DelimitedLineTokenizer();
+        tokenizer.setNames("branchId", "year", "month", "customerId", "amount");
+        final BeanWrapperFieldSetMapper<SalesPerformanceDetail> fieldSetMapper = new BeanWrapperFieldSetMapper<>();
+        fieldSetMapper.setTargetType(SalesPerformanceDetail.class);
+        final DefaultLineMapper<SalesPerformanceDetail> lineMapper = new DefaultLineMapper<>();
+        lineMapper.setLineTokenizer(tokenizer);
+        lineMapper.setFieldSetMapper(fieldSetMapper);
+        return new FlatFileItemReaderBuilder<SalesPlanDetail>()
+                .name(ClassUtils.getShortName(FlatFileItemReader.class))
+                .resource(new FileSystemResource(inputFile))
+                .lineMapper(lineMapper)
+                .build();
+    }
 
-<bean id="detailCSVReader"
-      class="org.springframework.batch.item.file.FlatFileItemReader" scope="step"
-      p:resource="file:#{jobParameters['inputFile']}">
-    <property name="lineMapper">
-        <bean class="org.springframework.batch.item.file.mapping.DefaultLineMapper">
-            <property name="lineTokenizer">
-                <bean class="org.springframework.batch.item.file.transform.DelimitedLineTokenizer"
-                      p:names="branchId,year,month,customerId,amount"/>
-            </property>
-            <property name="fieldSetMapper">
-                <bean class="org.springframework.batch.item.file.mapping.BeanWrapperFieldSetMapper"
-                      p:targetType="org.terasoluna.batch.functionaltest.app.model.performance.SalesPerformanceDetail"/>
-            </property>
-        </bean>
-    </property>
-</bean>
+    // (1)
+    @Bean
+    public MyBatisBatchItemWriter<SalesPerformanceDetail> detailWriter(
+            @Qualifier("jobSqlSessionFactory") SqlSessionFactory jobSqlSessionFactory,
+            SqlSessionTemplate batchModeSqlSessionTemplate) {
+        return new MyBatisBatchItemWriterBuilder<SalesPerformanceDetail>()
+                .sqlSessionFactory(jobSqlSessionFactory)
+                .statementId(
+                        "org.terasoluna.batch.functionaltest.app.repository.performance.SalesPerformanceDetailRepository.create")
+                .sqlSessionTemplate(batchModeSqlSessionTemplate).build();
+    }
 
-<!-- (1) -->
-<bean id="detailWriter"
-      class="org.mybatis.spring.batch.MyBatisBatchItemWriter"
-      p:statementId="org.terasoluna.batch.functionaltest.app.repository.performance.SalesPerformanceDetailRepository.create"
-      p:sqlSessionTemplate-ref="batchModeSqlSessionTemplate"/>
+    @Bean
+    public Step step01(JobRepository jobRepository,
+                       @Qualifier("jobTransactionManager") PlatformTransactionManager transactionManager,
+                       SalesPerformanceTasklet salesPerformanceTasklet) {
+        return new StepBuilder("jobSalesPerfTasklet.step01",
+                jobRepository)
+                .tasklet(salesPerformanceTasklet, transactionManager)
+                .build();
+    }
 
-
-<batch:job id="jobSalesPerfTasklet" job-repository="jobRepository">
-    <batch:step id="jobSalesPerfTasklet.step01">
-        <batch:tasklet ref="salesPerformanceTasklet"
-                       transaction-manager="jobTransactionManager"/>
-    </batch:step>
-</batch:job>
+    @Bean
+    public Job jobSalesPerfTasklet(JobRepository jobRepository,
+                                              Step step01,
+                                              JobExecutionLoggingListener listener) {
+        return new JobBuilder("jobSalesPerfTasklet", jobRepository)
+                .start(step01)
+                .listener(listener)
+                .build();
+    }
+}
 ----
 // Java Config end.
 ++++

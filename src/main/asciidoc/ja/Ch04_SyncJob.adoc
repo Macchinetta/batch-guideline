@@ -17,6 +17,12 @@ image::Ch04_syncjob_seq.png[sequence of sync job]
 
 本機能は、チャンクモデルとタスクレットモデルとで同じ使い方になる。
 
+[[Ch04_SyncJob_Overview_AboutSync_Function_Premise]]
+===== 利用前提
+ジョブの実行結果を呼び出しもとに返却するため、``JobRepository``を前提とした再処理(<<Ch06_ReProcessing.adoc#Ch06_RerunRestart,処理の再実行>>を参照)を
+利用しない限り``JobRepository``によるジョブの実行状況および結果の参照は必須ではない。
+そのため、``JobRepository``に永続化が不要なインメモリデータベースをデフォルトで使用することを前提とする。
+
 [[Ch04_SyncJob_HowToUse]]
 == How to use
 
@@ -66,7 +72,62 @@ $ java org.springframework.batch.core.launch.support.CommandLineJobRunner <jobPa
 |===
 
 以下に、必須項目のみを指定した場合の実行例を示す。
+// ============ Java/XML Config Tab start. ============
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup040101" class="JavaConfigTab" id="tabgroup040101_1" checked><label for="tabgroup040101_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup040101" class="XMLConfigTab" id="tabgroup040101_2"><label for="tabgroup040101_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+[source,console]
+.コマンドプロンプトでのCommandLineJobRunnerの実行例
+----
+C:\xxx>java -cp "target\[artifactId]-[version].jar;lib\*" ^   # (1)
+    org.springframework.batch.core.launch.support.CommandLineJobRunner ^ # (2)
+    xxxxxx.yyyyyy.zzzzzz.projectName.jobs.Job01Config job01 # (3)
+----
 
+[source,console]
+.BashでのCommandLineJobRunnerの実行例
+----
+$ java -cp 'target/[artifactId]-[version].jar:lib/*' \ # (1)
+    org.springframework.batch.core.launch.support.CommandLineJobRunner \ # (2)
+    xxxxxx.yyyyyy.zzzzzz.projectName.jobs.Job01Config job01 # (3)
+----
+
+[source,java]
+.Bean定義の設定(抜粋)
+----
+@Bean
+public Step step01(JobRepository jobRepository,
+                   @Qualifier("jobTransactionManager") PlatformTransactionManager transactionManager,
+                   ListItemReader<Employee> employeeReader,
+                   EmployeeProcessor employeeProcessor,
+                   FlatFileItemWriter<Employee> employeeWriter) {
+    return new StepBuilder("job01.step01",
+            jobRepository)
+            .<Employee, Employee> chunk(10, transactionManager)
+            .reader(employeeReader)
+            .processor(employeeProcessor)
+            .writer(employeeWriter)
+            .build();
+}
+
+@Bean
+public Job job01(JobRepository jobRepository,
+                                        Step step01) {
+    return new JobBuilder("job01",jobRepository)
+            .start(step01)
+            .build();
+}
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
 [source,console]
 .コマンドプロンプトでのCommandLineJobRunnerの実行例
 ----
@@ -75,13 +136,13 @@ C:\xxx>java -cp "target\[artifactId]-[version].jar;lib\*" ^   # (1)
     META-INF/jobs/job01.xml job01 # (3)
 ----
 
+[source,console]
 .BashでのCommandLineJobRunnerの実行例
 ----
 $ java -cp 'target/[artifactId]-[version].jar:lib/*' \ # (1)
     org.springframework.batch.core.launch.support.CommandLineJobRunner \ # (2)
     META-INF/jobs/job01.xml job01 # (3)
 ----
-
 
 [source,xml]
 .Bean定義の設定(抜粋)
@@ -96,6 +157,12 @@ $ java -cp 'target/[artifactId]-[version].jar:lib/*' \ # (1)
     </batch:step>
 </batch:job>
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============
 
 [cols="10,90", options="header"]
 .設定内容の項目一覧
@@ -118,6 +185,35 @@ $ java -cp 'target/[artifactId]-[version].jar:lib/*' \ # (1)
 
 次に、任意項目として起動パラメータを指定した場合の実行例を示す。
 
+// ============ Java/XML Config Tab start. ============
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup040102" class="JavaConfigTab" id="tabgroup040102_1" checked><label for="tabgroup040102_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup040102" class="XMLConfigTab" id="tabgroup040102_2"><label for="tabgroup040102_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+[source,console]
+.コマンドプロンプトでのCommandLineJobRunnerの実行例
+----
+C:\xxx>java -cp "target\[artifactId]-[version].jar;lib\*" ^
+    org.springframework.batch.core.launch.support.CommandLineJobRunner ^
+    xxxxxx.yyyyyy.zzzzzz.projectName.jobs.SetupJobConfig setupJob target=server1 outputFile=/tmp/result.csv # (1)
+----
+
+[source,console]
+.BashでのCommandLineJobRunnerの実行例
+----
+$ java -cp 'target/[artifactId]-[version].jar:lib/*' \
+    org.springframework.batch.core.launch.support.CommandLineJobRunner \
+    xxxxxx.yyyyyy.zzzzzz.projectName.jobs.SetupJobConfig setupJob target=server1 outputFile=/tmp/result.csv # (1)
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
 [source,console]
 .コマンドプロンプトでのCommandLineJobRunnerの実行例
 ----
@@ -126,12 +222,19 @@ C:\xxx>java -cp "target\[artifactId]-[version].jar;lib\*" ^
     META-INF/jobs/setupJob.xml setupJob target=server1 outputFile=/tmp/result.csv # (1)
 ----
 
+[source,console]
 .BashでのCommandLineJobRunnerの実行例
 ----
 $ java -cp 'target/[artifactId]-[version].jar:lib/*' \
     org.springframework.batch.core.launch.support.CommandLineJobRunner \
     META-INF/jobs/setupJob.xml setupJob target=server1 outputFile=/tmp/result.csv # (1)
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============
 
 [cols="10,90", options="header"]
 .設定内容の項目一覧

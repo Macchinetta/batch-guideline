@@ -97,21 +97,6 @@ icon:tags[] 1ステップ=1バッチ処理=1ビジネスロジック
 ::
   チャンクモデルの概要は、 <<Ch02_SpringBatchArchitecture.adoc#Ch02_SpringBatchArch_Arch_BusinessLogic_Chunk,"チャンクモデル">> を参照。
 
-[source,xml]
-.チャンクモデルのジョブ設定例
-----
-<batch:job id="exampleJob">
-    <batch:step id="exampleStep">
-        <batch:tasklet>
-            <batch:chunk reader="reader"
-                         processor="processor"
-                         writer="writer"
-                         commit-interval="100" />
-        </batch:tasklet>
-    </batch:step>
-</batch:job>
-----
-
 使用目的::
   一定件数のデータをまとめて処理を行うため、大量データを取り扱う場合に用いられる。
 
@@ -122,16 +107,6 @@ icon:tags[] 1ステップ=1バッチ処理=1ビジネスロジック
 定義::
   Tasklet実装だけを設定する。 +
   タスクレットモデルの概要は、 <<Ch02_SpringBatchArchitecture.adoc#Ch02_SpringBatchArch_Arch_BusinessLogic_Tasklet,"タスクレットモデル">> を参照。
-
-[source,xml]
-.タスクレットモデルのジョブ設定例
-----
-<batch:job id="exampleJob">
-    <batch:step id="exampleStep">
-        <batch:tasklet ref="myTasklet">
-    </batch:step>
-</batch:job>
-----
 
 使用目的::
   システムコマンドの実行など、入出力を伴わない処理を実行するために用いられる。 +

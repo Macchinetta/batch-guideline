@@ -412,9 +412,9 @@ MyBatis-Springが提供するItemReaderおよびItemWriterを使用する場合�
 設定方法としては、以下の2つが考えられる。
 
 . 共通設定として、すべてのジョブで使用するMapper XMLを登録する。
-** ``META-INF/spring/launch-context.xml``にすべてのMapper XMLを記述することになる。
+** ``LaunchContextConfig.java/launch-context.xml``にすべてのMapper XMLを記述することになる。
 . 個別設定として、ジョブ単位で利用するMapper XMLを登録する。
-** ``META-INF/jobs/``配下のBean定義に、個々のジョブごとに必要なMapper XMLを記述することになる。
+** ``jobs/``配下のBean定義に、個々のジョブごとに必要なMapper XMLを記述することになる。
 
 基本的な設定方法については、{server5_guide}の
 {server5_url}/ArchitectureInDetail/DataAccessDetail/DataAccessMyBatis3.html#dataaccessmybatis3howtousesettingsmybatis-spring[MyBatis-Springの設定]を参照。
@@ -437,6 +437,26 @@ MyBatis-Springが提供するItemReaderおよびItemWriterを使用する場合�
 
 以下に設定例を示す。
 
+// ============ Java/XML Config Tab start. ============
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup050204" class="JavaConfigTab" id="tabgroup050204_1" checked><label for="tabgroup050204_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup050204" class="XMLConfigTab" id="tabgroup050204_2"><label for="tabgroup050204_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+
+[source,java]
+.org.terasoluna.batch.jobs.common.JobSalesPlan01Config.java
+----
+@MapperScan(value = "org.terasoluna.batch.functionaltest.app.repository.plan", sqlSessionFactoryRef = "jobSqlSessionFactory")
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
 [source, xml]
 .jobSalesPlan01.xml
 ----
@@ -445,6 +465,12 @@ MyBatis-Springが提供するItemReaderおよびItemWriterを使用する場合�
     base-package="jp.co.ntt.fw.macchinetta.batch.functionaltest.app.repository.plan"
     factory-ref="jobSqlSessionFactory"/>
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============
 
 [cols="10,90", options="header"]
 .説明
@@ -453,9 +479,9 @@ MyBatis-Springが提供するItemReaderおよびItemWriterを使用する場合�
 |説明
 
 |(1)
-|``<mybatis:scan>``の``base-package``属性にMapper XMLをスキャンするパッケージを設定する。
+|``@MapperScanのvalue属性/<mybatis:scan>要素のbase-package属性``にMapper XMLをスキャンするパッケージを設定する。
 指定するのはこのジョブが必要とするMapper XMLが直下に格納されているパッケージである。 +
-``factory-ref``属性には``jobSqlSessionFactory``を設定する。
+``sqlSessionFactoryRef属性/factory-ref属性``には``jobSqlSessionFactory``を設定する。
 |===
 
 
@@ -517,8 +543,71 @@ MyBatis-Springが提供するItemReaderとして下記の2つが存在する。
 チャンクモデルで``MyBatisCursorItemReader``を利用してデータベースを参照する実装例を以下に示す。 +
 ここでは、``MyBatisCursorItemReader``の実装例と、実装した``MyBatisCursorItemReader``を利用してデータベースから取得したデータを処理する``ItemProcessor``の実装例を説明する。
 
-[source,xml]
 .Bean定義
+// ============ Java/XML Config Tab start. ============
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup050205" class="JavaConfigTab" id="tabgroup050205_1" checked><label for="tabgroup050205_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup050205" class="XMLConfigTab" id="tabgroup050205_2"><label for="tabgroup050205_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+[source,java]
+----
+@Configuration
+@Import(JobBaseContextConfig.class)
+@ComponentScan(value = {"org.terasoluna.batch.functionaltest.app.common",
+    "org.terasoluna.batch.functionaltest.ch05.transaction.component",
+    "org.terasoluna.batch.functionaltest.ch05.transaction.listener"}, scopedProxy = ScopedProxyMode.TARGET_CLASS)
+@MapperScan(basePackages = "org.terasoluna.batch.functionaltest.ch05.transaction.repository.admin", sqlSessionFactoryRef = "adminSqlSessionFactory")
+@MapperScan(basePackages = "org.terasoluna.batch.functionaltest.app.repository.mst", sqlSessionFactoryRef = "jobSqlSessionFactory") // (1)
+public class OutputAllCustomerList01Config {
+
+    // (2)
+    @Bean
+    @StepScope
+    public MyBatisCursorItemReader<Customer> reader(
+            @Qualifier("jobSqlSessionFactory") SqlSessionFactory jobSqlSessionFactory) {
+        return new MyBatisCursorItemReaderBuilder<Customer>()
+                .sqlSessionFactory(jobSqlSessionFactory) // (4)
+                .queryId(
+                        "org.terasoluna.batch.functionaltest.app.repository.mst.CustomerRepository.findAll") // (3)
+                .build();
+    }
+    // omitted
+    @Bean
+    public Step step01(JobRepository jobRepository,
+                       @Qualifier("jobTransactionManager") PlatformTransactionManager transactionManager,
+                       ItemReader<Customer> reader,
+                       ItemWriter<Customer> writer,
+                       RetrieveBranchFromContextItemProcessor processor,
+                       BranchMasterReadStepListener listener) {
+        return new StepBuilder("outputAllCustomerList01.step01",
+                jobRepository)
+                .<Customer, Customer> chunk(10, transactionManager)
+                .reader(reader) // (5)
+                .processor(processor)
+                .listener(listener)
+                .writer(writer)
+                .build();
+    }
+
+    @Bean
+    public Job outputAllCustomerList01(JobRepository jobRepository,
+                                            Step step01) {
+        return new JobBuilder("outputAllCustomerList01",jobRepository)
+                .start(step01)
+                .build();
+    }
+}
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
+[source, xml]
 ----
 <!-- (1) -->
 <mybatis:scan
@@ -542,6 +631,12 @@ MyBatis-Springが提供するItemReaderとして下記の2つが存在する。
     </batch:step>
 </batch:job>
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============
 
 [source,xml]
 .Mapper XML
@@ -615,13 +710,13 @@ public class RetrieveBranchFromContextItemProcessor implements ItemProcessor<Cus
 |``MyBatisCursorItemReader``を定義する。
 
 |(3)
-|``queryId``属性に、(7)で定義しているSQLのIDを(6)の``namespace`` + ``<メソッド名>``で指定する。
+|``MyBatisCursorItemReaderBuilderのqueryIdメソッド/<bean>要素のqueryId属性``に、(7)で定義しているSQLのIDを(6)の``namespace`` + ``<メソッド名>``で指定する。
 
 |(4)
-|``sqlSessionFactory-ref``属性に、アクセスするデータベースの``SqlSessionFactory``を指定する。
+|``MyBatisCursorItemReaderBuilderのsqlSessionFactoryメソッド/<bean>要素のsqlSessionFactory-ref属性``に、アクセスするデータベースの``SqlSessionFactory``を指定する。
 
 |(5)
-|(2)で定義した``MyBatisCursorItemReader``を``reader``属性に指定する。
+|(2)で定義した``MyBatisCursorItemReader``を``StepBuilderのreaderメソッド/<batch:chunk>要素のreader属性``に指定する。
 
 |(6)
 |Mapper XMLを定義する。namespaceの値とインタフェースのFQCNを一致させること。
@@ -652,8 +747,65 @@ public class RetrieveBranchFromContextItemProcessor implements ItemProcessor<Cus
 タスクレットモデルではチャンクモデルと異なり、``Tasklet``実装においてリソースを明示的にオープン/クローズする必要がある。
 また、入力データの読み込みも明示的に行う。
 
-[source,xml]
 .Bean定義
+// ============ Java/XML Config Tab start. ============
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup050206" class="JavaConfigTab" id="tabgroup050206_1" checked><label for="tabgroup050206_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup050206" class="XMLConfigTab" id="tabgroup050206_2"><label for="tabgroup050206_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+[source,java]
+----
+@Configuration
+@Import(JobBaseContextConfig.class)
+@ComponentScan(value = {"org.terasoluna.batch.functionaltest.app.common",
+    "org.terasoluna.batch.functionaltest.ch07.jobmanagement"}, scopedProxy = ScopedProxyMode.TARGET_CLASS)
+@MapperScan(basePackages = "org.terasoluna.batch.functionaltest.app.repository.plan", sqlSessionFactoryRef = "jobSqlSessionFactory") // (1)
+public class CustomizedJobExitCodeTaskletJobConfig {
+
+    // (2)
+    @Bean
+    public MyBatisCursorItemReader<SalesPlanSummary> summarizeDetails(
+            @Qualifier("jobSqlSessionFactory") SqlSessionFactory jobSqlSessionFactory) {
+        return new MyBatisCursorItemReaderBuilder<SalesPlanSummary>()
+                .sqlSessionFactory(jobSqlSessionFactory) // (4)
+                .queryId(
+                        "org.terasoluna.batch.functionaltest.app.repository.plan.SalesPlanDetailRepository.summarizeDetails") // (3)
+                .build();
+    }
+    // omitted
+    @Bean
+    public Step step01(JobRepository jobRepository,
+                       @Qualifier("jobTransactionManager") PlatformTransactionManager transactionManager,
+                       CheckAmountTasklet tasklet) {
+        return new StepBuilder("customizedJobExitCodeTaskletJob.step01",
+                jobRepository)
+                .tasklet(tasklet, transactionManager)
+                .build();
+    }
+
+    @Bean
+    public Job customizedJobExitCodeTaskletJob(JobRepository jobRepository,
+                                                 Step step01,
+                                                 JobExitCodeChangeListener jobExitCodeChangeListener) {
+        return new JobBuilder("customizedJobExitCodeTaskletJob",
+                jobRepository)
+                .start(step01)
+                .listener(jobExitCodeChangeListener)
+                .build();
+    }
+    // omitted
+}
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
+[source, xml]
 ----
 <!-- (1) -->
 <mybatis:scan
@@ -672,6 +824,12 @@ public class RetrieveBranchFromContextItemProcessor implements ItemProcessor<Cus
     <!-- omitted -->
 </batch:job>
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============
 
 [source,xml]
 .Mapper XML
@@ -764,10 +922,10 @@ public class CheckAmountTasklet implements Tasklet {
 |``MyBatisCursorItemReader``を定義する。
 
 |(3)
-|``queryId``属性に、(6)で定義しているSQLのIDを(5)の``namespace`` + ``<メソッド名>``で指定する。
+|``MyBatisCursorItemReaderBuilderのqueryIdメソッド/<bean>要素のqueryId属性``に、(7)で定義しているSQLのIDを(6)の``namespace`` + ``<メソッド名>``で指定する。
 
 |(4)
-|``sqlSessionFactory-ref``属性に、アクセスするデータベースの``SqlSessionFactory``を指定する。
+|``MyBatisCursorItemReaderBuilderのsqlSessionFactoryメソッド/<bean>要素のsqlSessionFactory-ref属性``に、アクセスするデータベースの``SqlSessionFactory``を指定する。
 
 |(5)
 |Mapper XMLを定義する。namespaceの値とインタフェースのFQCNを一致させること。
@@ -830,8 +988,47 @@ $ java -cp ${CLASSPATH} org.springframework.batch.core.launch.support.CommandLin
 
 ----
 
-[source,xml]
 .Bean定義
+// ============ Java/XML Config Tab start. ============
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup050207" class="JavaConfigTab" id="tabgroup050207_1" checked><label for="tabgroup050207_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup050207" class="XMLConfigTab" id="tabgroup050207_2"><label for="tabgroup050207_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+[source,java]
+----
+// omitted
+// (2)
+@Bean
+@StepScope
+public MyBatisCursorItemReader<SalesPerformanceSummary> reader(
+        @Qualifier("jobSqlSessionFactory") SqlSessionFactory jobSqlSessionFactory,
+        @Value("#{jobParameters['year']}") Integer year,
+        @Value("#{jobParameters['month']}") Integer month,
+        @Value("#{stepExecutionContext['dataSize']}") Integer dataSize,
+        @Value("#{stepExecutionContext['offset']}") Integer offset) {
+    Map<String, Object> parameterValues = new HashMap<>();
+    parameterValues.put("year", year); // (4)
+    parameterValues.put("month", month); // (4)
+    // omitted
+    return new MyBatisCursorItemReaderBuilder<SalesPerformanceSummary>()
+            .sqlSessionFactory(jobSqlSessionFactory)
+            .queryId(
+                    "org.terasoluna.batch.functionaltest.ch08.parallelandmultiple.repository.SalesSummaryRepository.findByYearAndMonth")
+            .parameterValues(parameterValues) // (3)
+            .build();
+}
+// omited
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
+[source, xml]
 ----
 
 <!-- omitted -->
@@ -855,6 +1052,12 @@ $ java -cp ${CLASSPATH} org.springframework.batch.core.launch.support.CommandLin
 <!-- omitted -->
 
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============
 
 [cols="10,90",options="header"]
 .説明
@@ -869,11 +1072,11 @@ $ java -cp ${CLASSPATH} org.springframework.batch.core.launch.support.CommandLin
 |データベースからデータを取得するための``ItemReader``を定義する。
 
 |(3)
-|``<property>``要素の``name``属性に``parameterValues``を設定する。
+|``MyBatisCursorItemReaderBuilderのparameterValuesメソッド/<property>要素のname属性にparameterValues``を設定する。
 
 |(4)
 |検索条件にする値をジョブパラメータから取得し、キーに設定することで検索条件を指定する。
-SQLの引数が数値型で定義されているため、``value-type``で``Integer``に変換して渡している。
+SQLの引数が数値型で定義されているため、``Integer``に変換して渡している。
 
 |===
 
@@ -944,21 +1147,64 @@ public class UpdateItemFromDBProcessor implements
 }
 ----
 
-[source,xml]
 .Bean定義
+// ============ Java/XML Config Tab start. ============
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup050208" class="JavaConfigTab" id="tabgroup050208_1" checked><label for="tabgroup050208_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup050208" class="XMLConfigTab" id="tabgroup050208_2"><label for="tabgroup050208_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+[source,java]
+----
+@Configuration
+@Import(JobBaseContextConfig.class)
+@ComponentScan({ "org.terasoluna.batch.functionaltest.app.common",
+        "org.terasoluna.batch.functionaltest.ch05.dbaccess" })
+@MapperScan(basePackages = {
+        "org.terasoluna.batch.functionaltest.app.repository",
+        "org.terasoluna.batch.functionaltest.ch05.dbaccess.repository" }, sqlSessionTemplateRef = "batchModeSqlSessionTemplate") // (3)
+public class DBAccessByItemProcessorConfig {
+
+    // (4)
+    @Bean
+    public MyBatisCursorItemReader<SalesPerformanceDetail> reader(
+            @Qualifier("jobSqlSessionFactory") SqlSessionFactory jobSqlSessionFactory) {
+        return new MyBatisCursorItemReaderBuilder<SalesPerformanceDetail>()
+                .sqlSessionFactory(jobSqlSessionFactory)
+                .queryId(
+                        "org.terasoluna.batch.functionaltest.app.repository.performance.SalesPerformanceDetailRepository.findAll")
+                .build();
+    }
+    // omitted
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
+[source, xml]
 ----
 <!-- (3) -->
 <mybatis:scan
-        base-package="jp.co.ntt.fw.macchinetta.batch.functionaltest.app.repository"
-        template-ref="batchModeSqlSessionTemplate"/>
+base-package="org.terasoluna.batch.functionaltest.app.repository"
+template-ref="batchModeSqlSessionTemplate"/>
 
 <!-- (4) -->
 <bean id="reader" class="org.mybatis.spring.batch.MyBatisCursorItemReader"
-      p:queryId="jp.co.ntt.fw.macchinetta.batch.functionaltest.app.repository.performance.SalesPerformanceDetailRepository.findAll"
-      p:sqlSessionFactory-ref="jobSqlSessionFactory"/>
+p:queryId="org.terasoluna.batch.functionaltest.app.repository.performance.SalesPerformanceDetailRepository.findAll"
+p:sqlSessionFactory-ref="jobSqlSessionFactory"/>
 
 <!-- omitted job definition -->
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============
 
 MapperインタフェースとMapper XMLについては<<Ch05_DBAccess_HowToUse_Input_MyBatisItemReader>>
 で説明している内容以外に特筆すべきことがないため省略する。
@@ -977,12 +1223,12 @@ MapperインタフェースとMapper XMLについては<<Ch05_DBAccess_HowToUse_
 
 |(3)
 |Mapper XMLの登録を行う。 +
-``template-ref``属性に``BATCH``設定されている``batchModeSqlSessionTemplate``を指定することで、
+``@MapperScanのsqlSessionTemplateRef属性/<mybatis:scan>要素のtemplate-ref属性``に``BATCH``設定されている``batchModeSqlSessionTemplate``を指定することで、
 ItemProcessorでのデータベースアクセスは``BATCH``となる。
 
 |(4)
 |``MyBatisCursorItemReader``を定義する。 +
-``sqlSessionFactory-ref``属性に、アクセスするデータベースの``SqlSessionFactory``を指定する。
+``MyBatisCursorItemReaderBuilderのsqlSessionFactoryメソッド/<bean>要素のsqlSessionFactory-ref属性``に、アクセスするデータベースの``SqlSessionFactory``を指定する。
 
 |===
 
@@ -991,6 +1237,40 @@ ItemProcessorでのデータベースアクセスは``BATCH``となる。
 ====
 以下に示す定義例のように、MyBatisCursorItemReaderとMyBatisBatchItemWriterで異なる``ExecutorType``を使用しても問題ない。
 これは、MyBatisCursorItemReaderによるトランザクションはItemWriterのトランザクションとは別であるからである。
+// ============ Java/XML Config Tab start. ============
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup050209" class="JavaConfigTab" id="tabgroup050209_1" checked><label for="tabgroup050209_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup050209" class="XMLConfigTab" id="tabgroup050209_2"><label for="tabgroup050209_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+[source,java]
+----
+@Bean
+public MyBatisCursorItemReader reader(
+        @Qualifier("jobSqlSessionFactory") SqlSessionFactory jobSqlSessionFactory) {
+    return new MyBatisCursorItemReaderBuilder()
+            .sqlSessionFactory(jobSqlSessionFactory)
+            .queryId("xxx")
+            .build();
+}
+
+@Bean
+public MyBatisBatchItemWriter writer(
+        SqlSessionTemplate batchModeSqlSessionTemplate) {
+    return new MyBatisBatchItemWriterBuilder()
+            .statementId("yyy")
+            .sqlSessionTemplate(batchModeSqlSessionTemplate)
+            .build();
+}
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
 [source,xml]
 ----
 <bean id="reader" class="org.mybatis.spring.batch.MyBatisCursorItemReader"
@@ -1001,6 +1281,13 @@ ItemProcessorでのデータベースアクセスは``BATCH``となる。
       p:statementId="yyy"
       p:sqlSessionTemplate-ref="batchModeSqlSessionTemplate"/>
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============
+
 ====
 
 [[Ch05_DBAccess_HowToUse_Input_MapperInterface_Tasklet]]
@@ -1013,8 +1300,52 @@ Cursor同様に大量データを処理するうえで、ResultHandlerを利用�
 ResultHandlerについては、{server5_guide}の
 {server5_url}/ArchitectureInDetail/DataAccessDetail/DataAccessMyBatis3.html#resulthandler[ResultHandlerの実装]を参照。
 
-[source,xml]
 .Bean定義
+// ============ Java/XML Config Tab start. ============
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup050210" class="JavaConfigTab" id="tabgroup050210_1" checked><label for="tabgroup050210_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup050210" class="XMLConfigTab" id="tabgroup050210_2"><label for="tabgroup050210_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+[source,java]
+----
+@Configuration
+@Import(JobBaseContextConfig.class)
+@ComponentScan({ "org.terasoluna.batch.functionaltest.app.common",
+        "org.terasoluna.batch.functionaltest.ch05.dbaccess" })
+@MapperScan(basePackages = {
+        "org.terasoluna.batch.functionaltest.ch05.dbaccess.repository",
+        "org.terasoluna.batch.functionaltest.app.repository" }, sqlSessionFactoryRef = "jobSqlSessionFactory") // (1)
+public class JobSalesPlanCursorTaskletConfig {
+
+    @Bean
+    public Step step01(JobRepository jobRepository,
+                       SalesPlanCursorTasklet tasklet,
+                       @Qualifier("jobTransactionManager") PlatformTransactionManager transactionManager) {
+        return new StepBuilder("jobSalesPlanCursorTasklet.step01",
+                jobRepository)
+                .tasklet(tasklet, transactionManager)
+                .build();
+    }
+
+    @Bean
+    public Job jobSalesPlanCursorTasklet(JobRepository jobRepository,
+                                         Step step01) {
+        return new JobBuilder("jobSalesPlanCursorTasklet", jobRepository)
+                .start(step01)
+                .build();
+    }
+}
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
+[source,xml]
 ----
 <!-- (1) -->
 <mybatis:scan
@@ -1027,6 +1358,12 @@ ResultHandlerについては、{server5_guide}の
         </batch:step>
     </batch:job>
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============
 
 [source,xml]
 .Mapper XML
@@ -1173,8 +1510,66 @@ MyBatis-Springが提供するItemWriterは以下の1つのみである。
 
 チャンクモデルで``MyBatisBatchItemWriter``を利用してデータベースに登録する実装例を以下に示す。
 
-[source,xml]
 .Bean定義
+// ============ Java/XML Config Tab start. ============
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup050211" class="JavaConfigTab" id="tabgroup050211_1" checked><label for="tabgroup050211_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup050211" class="XMLConfigTab" id="tabgroup050211_2"><label for="tabgroup050211_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+[source,java]
+----
+@Configuration
+@Import(JobBaseContextConfig.class)
+@ComponentScan("org.terasoluna.batch.functionaltest.app.common")
+@MapperScan(basePackages = "org.terasoluna.batch.functionaltest.app.repository.performance",
+                            sqlSessionFactoryRef = "jobSqlSessionFactory") // (1)
+public class DBAccessByMaybatisScanConfig {
+    // omitted
+    // (2)
+    @Bean
+    public MyBatisBatchItemWriter<SalesPerformanceSummary> writer(
+            @Qualifier("jobSqlSessionFactory") SqlSessionFactory jobSqlSessionFactory,
+            SqlSessionTemplate batchModeSqlSessionTemplate) {
+        return new MyBatisBatchItemWriterBuilder<SalesPerformanceSummary>()
+                .sqlSessionFactory(jobSqlSessionFactory) // (4)
+                .statementId(
+                        "org.terasoluna.batch.functionaltest.app.repository.performance.SalesPerformanceSummaryRepository.create") // (3)
+                .sqlSessionTemplate(batchModeSqlSessionTemplate)
+                .build();
+    }
+
+    @Bean
+    public Step step01(JobRepository jobRepository,
+                       @Qualifier("jobTransactionManager") PlatformTransactionManager transactionManager,
+                       ItemReader<SalesPerformanceSummary> reader,
+                       ItemWriter<SalesPerformanceSummary> writer) {
+        return new StepBuilder("DBAccessByMaybatisScan.step01",
+                jobRepository)
+                .<SalesPerformanceSummary, SalesPerformanceSummary> chunk(10, transactionManager)
+                .reader(reader)
+                .writer(writer) // (5)
+                .build();
+    }
+
+    @Bean
+    public Job DBAccessByMaybatisScan(JobRepository jobRepository,
+                                            Step step01,
+                                            JobExecutionLoggingListener listener) {
+        return new JobBuilder("DBAccessByMaybatisScan",
+                jobRepository).start(step01).listener(listener).build();
+    }
+}
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
+[source,xml]
 ----
 <!-- (1) -->
 <mybatis:scan base-package="jp.co.ntt.fw.macchinetta.batch.functionaltest.app.repository.performance"
@@ -1197,6 +1592,12 @@ MyBatis-Springが提供するItemWriterは以下の1つのみである。
     <!-- omitted -->
 </batch:job>
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============
 
 [source,xml]
 .Mapper XML
@@ -1244,14 +1645,14 @@ public interface SalesPerformanceSummaryRepository {
 |``MyBatisBatchItemWriter``を定義する。
 
 |(3)
-|``statementId``属性に、(7)で定義しているSQLのIDを(6)の``namespace`` + ``<メソッド名>``で指定する。
+|``MyBatisBatchItemWriterBuilderのstatementIdメソッド/<bean>要素のstatementId属性``に、(7)で定義しているSQLのIDを(6)の``namespace`` + ``<メソッド名>``で指定する。
 
 |(4)
-|``sqlSessionTemplate-ref``属性に、アクセスするデータベースの``SessionTemplate``を指定する。 +
+|``MyBatisBatchItemWriterBuilderのsqlSessionFactoryメソッド/<bean>要素のsqlSessionTemplate-ref属性``に、アクセスするデータベースの``SessionTemplate``を指定する。 +
 指定する``SessionTemplate``は、``executorType``が``BATCH``に設定されていることが必須である。
 
 |(5)
-|(2)で定義した``MyBatisBatchItemWriter``を``writer``属性に指定する。
+|(2)で定義した``MyBatisBatchItemWriter``を``StepBuilderのwriterメソッド/<batch:chunk>要素のwriter属性``に指定する。
 
 |(6)
 |Mapper XMLを定義する。namespaceの値とインタフェースのFQCNを一致させること。
@@ -1271,8 +1672,69 @@ public interface SalesPerformanceSummaryRepository {
 ここでは、``MyBatisBatchItemWriter``の実装例と実装した``MyBatisBatchItemWriter``を利用する``Tasklet``の実装例を説明する。
 タスクレットモデルでチャンクモデルのコンポーネントを利用する際の留意点については<<Ch03_CreateTaskletJob#Ch03_CreateTaskletJob_HowToUse_InOutImpl,チャンクモデルのコンポーネントを利用するTasklet実装>>を参照。
 
-[source,xml]
 .Bean定義
+// ============ Java/XML Config Tab start. ============
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup050212" class="JavaConfigTab" id="tabgroup050212_1" checked><label for="tabgroup050212_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup050212" class="XMLConfigTab" id="tabgroup050212_2"><label for="tabgroup050212_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+[source,java]
+----
+@Configuration
+@Import(JobBaseContextConfig.class)
+@ComponentScan(value = {"org.terasoluna.batch.functionaltest.app.plan",
+    "org.terasoluna.batch.functionaltest.ch04.listener"}, scopedProxy = ScopedProxyMode.TARGET_CLASS)
+@MapperScan(basePackages = "org.terasoluna.batch.functionaltest.app.repository.plan", sqlSessionFactoryRef = "jobSqlSessionFactory") // (1)
+public class TaskletJobWithListenerConfig {
+    // omitted
+
+    // (2)
+    @Bean
+    public MyBatisBatchItemWriter<SalesPlanDetail> writer(
+            @Qualifier("jobSqlSessionFactory") SqlSessionFactory jobSqlSessionFactory,
+            SqlSessionTemplate batchModeSqlSessionTemplate) {
+        return new MyBatisBatchItemWriterBuilder<SalesPlanDetail>()
+                .sqlSessionFactory(jobSqlSessionFactory) // (4)
+                .statementId(
+                        "org.terasoluna.batch.functionaltest.app.repository.plan.SalesPlanDetailRepository.create") // (3)
+                .sqlSessionTemplate(batchModeSqlSessionTemplate)
+                .build();
+    }
+
+    @Bean
+    public Step jobScopeStep01(JobRepository jobRepository,
+                       @Qualifier("jobTransactionManager") PlatformTransactionManager transactionManager,
+                       SalesPlanDetailRegisterTasklet salesPlanDetailRegisterTasklet) {
+        return new StepBuilder("taskletJobWithListenerWithinJobScope.step01",
+                jobRepository)
+                .tasklet(salesPlanDetailRegisterTasklet, transactionManager)
+                .build();
+    }
+
+    @Bean
+    public Job taskletJobWithListenerWithinJobScope(JobRepository jobRepository,
+                                            Step jobScopeStep01,
+                                            @Qualifier("allProcessListener") JobExecutionListener listener) {
+        return new JobBuilder("taskletJobWithListenerWithinJobScope",
+                jobRepository)
+                .start(jobScopeStep01)
+                .listener(listener)
+                .build();
+    }
+
+    // omitted
+}
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
+[source,xml]
 ----
 <!-- (1) -->
 <mybatis:scan base-package="jp.co.ntt.fw.macchinetta.batch.functionaltest.app.repository.plan"
@@ -1290,6 +1752,12 @@ public interface SalesPerformanceSummaryRepository {
     <!-- omitted. -->
 </batch:job>
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============
 
 [source,xml]
 .Mapper XML
@@ -1378,10 +1846,10 @@ MapperインタフェースとMapper XMLについては<<Ch05_DBAccess_HowToUse_
 |``MyBatisBatchItemWriter``を定義する。
 
 |(3)
-|``statementId``属性に、(6)で定義しているSQLのIDを(5)の``namespace`` + ``<メソッド名>``で指定する。
+|``MyBatisBatchItemWriterBuilderのstatementIdメソッド/<bean>要素のstatementId属性``に、(7)で定義しているSQLのIDを(6)の``namespace`` + ``<メソッド名>``で指定する。
 
 |(4)
-|``sqlSessionTemplate-ref``属性に、アクセスするデータベースの``SessionTemplate``を指定する。 +
+|``MyBatisBatchItemWriterBuilderのsqlSessionFactoryメソッド/<bean>要素のsqlSessionTemplate-ref属性``に、アクセスするデータベースの``SessionTemplate``を指定する。 +
 指定する``SessionTemplate``は、``executorType``が``BATCH``に設定されていることが必須である。
 
 |(5)
@@ -1483,8 +1951,52 @@ public class OptimisticLockTasklet implements Tasklet {
 }
 ----
 
-[source,xml]
 .Bean定義
+// ============ Java/XML Config Tab start. ============
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup050213" class="JavaConfigTab" id="tabgroup050213_1" checked><label for="tabgroup050213_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup050213" class="XMLConfigTab" id="tabgroup050213_2"><label for="tabgroup050213_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+[source,java]
+----
+@Configuration
+@Import(JobBaseContextConfig.class)
+@ComponentScan(value = { "org.terasoluna.batch.functionaltest.app.common",
+        "org.terasoluna.batch.functionaltest.ch05.exclusivecontrol"}, scopedProxy = ScopedProxyMode.TARGET_CLASS)
+@MapperScan(basePackages = "org.terasoluna.batch.functionaltest.ch05.exclusivecontrol.repository", sqlSessionFactoryRef = "jobSqlSessionFactory") // (4)
+public class TaskletOptimisticLockCheckJobConfig {
+
+    @Bean
+    public Step step01(JobRepository jobRepository,
+                       @Qualifier("jobTransactionManager") PlatformTransactionManager transactionManager,
+                       OptimisticLockTasklet optimisticLockTasklet) {
+        return new StepBuilder("taskletOptimisticLockCheckJob.step01",
+                jobRepository)
+                .tasklet(optimisticLockTasklet, transactionManager) // (5)
+                .build();
+    }
+
+    @Bean
+    public Job taskletOptimisticLockCheckJob(JobRepository jobRepository,
+                                            Step step01,
+                                            JobExecutionLoggingListener listener) {
+        return new JobBuilder("taskletOptimisticLockCheckJob",jobRepository)
+                .start(step01)
+                .listener(listener)
+                .build();
+    }
+}
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
+[source,xml]
 ----
 <!-- (4) -->
 <mybatis:scan
@@ -1499,6 +2011,12 @@ public class OptimisticLockTasklet implements Tasklet {
     </batch:step>
 </batch:job>
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============
 
 MapperインタフェースとMapper XMLは省略する。
 
@@ -1519,7 +2037,7 @@ MapperインタフェースとMapper XMLは省略する。
 
 |(4)
 |Mapper XMLの登録を行う。 +
-``factory-ref``属性に``REUSE``設定されている``jobSqlSessionFactory``を指定する。
+``@MapperScanのsqlSessionFactoryRef属性/<mybatis:scan>要素のfactory-ref属性``に``REUSE``設定されている``jobSqlSessionFactory``を指定する。
 
 |(5)
 |MapperインタフェースをInjectしTaskletを設定する。
@@ -1617,8 +2135,66 @@ public class CustomerCache {
 }
 ----
 
-[source,xml]
 .Bean定義
+// ============ Java/XML Config Tab start. ============
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup050214" class="JavaConfigTab" id="tabgroup050214_1" checked><label for="tabgroup050214_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup050214" class="XMLConfigTab" id="tabgroup050214_2"><label for="tabgroup050214_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+[source,java]
+----
+@Configuration
+@Import(JobBaseContextConfig.class)
+@ComponentScan({ "org.terasoluna.batch.functionaltest.app.common",
+        "org.terasoluna.batch.functionaltest.ch05.dbaccess" })
+@MapperScan(basePackages = {
+        "org.terasoluna.batch.functionaltest.app.repository",
+        "org.terasoluna.batch.functionaltest.ch05.dbaccess.repository" }, sqlSessionTemplateRef = "batchModeSqlSessionTemplate") // (8)
+public class DBAccessByItemListenerConfig {
+
+    // omitted
+
+    // (9)
+    @Bean
+    public CacheSetListener cacheSetListener() {
+        return new CacheSetListener();
+    }
+
+    @Bean
+    public Step step01(JobRepository jobRepository,
+                       @Qualifier("jobTransactionManager") PlatformTransactionManager transactionManager,
+                       ItemReader<SalesPerformanceDetail> reader,
+                       @Qualifier("updateItemFromDBProcessor") ItemProcessor<SalesPerformanceDetail, SalesPlanDetail> processor,
+                       ItemWriter<SalesPlanDetail> writer,
+                       CacheSetListener cacheSetListener) {
+        return new StepBuilder("DBAccessByItemListener.step01",
+                jobRepository)
+                .<SalesPerformanceDetail, SalesPlanDetail> chunk(10, transactionManager)
+                .listener(cacheSetListener) // (11)
+                .reader(reader).processor(processor) // (10)
+                .writer(writer)
+                .build();
+    }
+
+    @Bean
+    public Job DBAccessByItemListener(JobRepository jobRepository,
+                                            Step step01,
+                                            JobExecutionLoggingListener listener) {
+        return new JobBuilder("DBAccessByItemListener",
+                jobRepository).start(step01).listener(listener).build();
+    }
+}
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
+[source,xml]
 ----
 <!-- omitted -->
 
@@ -1647,6 +2223,13 @@ public class CustomerCache {
 </batch:job>
 
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============
+
 [cols="10,90"]
 .説明
 |===
@@ -1679,7 +2262,7 @@ public class CustomerCache {
 
 |(8)
 |Mapper XMLの登録を行う。 +
-``template-ref``属性に``BATCH``が設定されている``batchModeSqlSessionTemplate``を指定する。
+``@MapperScanのsqlSessionTemplateRef属性/<mybatis:scan>要素のtemplate-ref属性``に``BATCH``が設定されている``batchModeSqlSessionTemplate``を指定する。
 
 |(9)
 |Mapperインタフェースを利用するリスナーを定義する。
@@ -1810,8 +2393,101 @@ public class SalesDTO implements Serializable {
 </mapper>
 ----
 
-[source,xml]
 .``CompositeItemWriter``の適用例
+// ============ Java/XML Config Tab start. ============
+++++
+<div class="tabbox">
+  <input type="radio" name="tabgroup050215" class="JavaConfigTab" id="tabgroup050215_1" checked><label for="tabgroup050215_1" class="tab">JavaConfig</label>
+  <input type="radio" name="tabgroup050215" class="XMLConfigTab" id="tabgroup050215_2"><label for="tabgroup050215_2" class="tab">XMLConfig</label>
+  <div class="tabcontent" name="JavaConfigContent">
+++++
+// Java Config start.
+[source,java]
+----
+@Configuration
+@Import(JobBaseContextConfig.class)
+@ComponentScan(value = { "org.terasoluna.batch.functionaltest.app.common",
+        "org.terasoluna.batch.functionaltest.ch05.dbaccess" }, scopedProxy = ScopedProxyMode.TARGET_CLASS)
+@MapperScan(basePackages = {
+        "org.terasoluna.batch.functionaltest.app.repository",
+        "org.terasoluna.batch.functionaltest.ch05.dbaccess.repository" }, sqlSessionTemplateRef = "batchModeSqlSessionTemplate")
+public class UseCompositeItemWriterConfig {
+
+    @Bean
+    public MyBatisCursorItemReader<SalesPlanDetail> reader(
+            @Qualifier("jobSqlSessionFactory") SqlSessionFactory jobSqlSessionFactory) {
+        return new MyBatisCursorItemReaderBuilder<SalesPlanDetail>()
+                .sqlSessionFactory(jobSqlSessionFactory)
+                .queryId(
+                        "org.terasoluna.batch.functionaltest.ch05.dbaccess.repository.SalesRepository.findAll")
+                .build();
+    }
+
+    // (8)
+    @Bean
+    public MyBatisBatchItemWriter<SalesDTO> planWriter(
+            @Qualifier("jobSqlSessionFactory") SqlSessionFactory jobSqlSessionFactory,
+            @Qualifier("batchModeSqlSessionTemplate") SqlSessionTemplate batchModeSqlSessionTemplate) {
+        return new MyBatisBatchItemWriterBuilder<SalesDTO>()
+                .sqlSessionFactory(jobSqlSessionFactory)
+                .statementId(
+                        "org.terasoluna.batch.functionaltest.ch05.dbaccess.repository.SalesRepository.update")
+                .sqlSessionTemplate(batchModeSqlSessionTemplate)
+                .build();
+    }
+
+    // (9)
+    @Bean
+    public MyBatisBatchItemWriter<SalesDTO> performanceWriter(
+            @Qualifier("jobSqlSessionFactory") SqlSessionFactory jobSqlSessionFactory,
+            @Qualifier("batchModeSqlSessionTemplate") SqlSessionTemplate batchModeSqlSessionTemplate) {
+        return new MyBatisBatchItemWriterBuilder<SalesDTO>()
+                .sqlSessionFactory(jobSqlSessionFactory)
+                .statementId(
+                        "org.terasoluna.batch.functionaltest.ch05.dbaccess.repository.SalesRepository.create")
+                .sqlSessionTemplate(batchModeSqlSessionTemplate)
+                .build();
+    }
+
+    // (10)
+    @Bean
+    public CompositeItemWriter<SalesDTO> writer(
+            @Qualifier("performanceWriter") MyBatisBatchItemWriter<SalesDTO> performanceWriter,
+            @Qualifier("planWriter") MyBatisBatchItemWriter<SalesDTO> planWriter) {
+        return new CompositeItemWriter<SalesDTO>(performanceWriter, planWriter); // (11)
+    }
+
+    @Bean
+    public Step step01(JobRepository jobRepository,
+                       @Qualifier("jobTransactionManager") PlatformTransactionManager transactionManager,
+                       @Qualifier("reader") ItemReader<SalesPlanDetail> reader,
+                       @Qualifier("salesItemProcessor") ItemProcessor<SalesPlanDetail, SalesDTO> processor,
+                       @Qualifier("writer") ItemWriter<SalesDTO> writer) {
+        return new StepBuilder("useCompositeItemWriter.step01",
+                jobRepository)
+                .<SalesPlanDetail, SalesDTO> chunk(3, transactionManager)
+                .reader(reader).processor(processor)
+                .writer(writer) // (12)
+                .build();
+    }
+
+    @Bean
+    public Job useCompositeItemWriter(JobRepository jobRepository,
+                                            Step step01,
+                                            JobExecutionLoggingListener listener) {
+        return new JobBuilder("useCompositeItemWriter",
+                jobRepository).start(step01).listener(listener).build();
+    }
+
+}
+----
+// Java Config end.
+++++
+  </div>
+  <div class="tabcontent" name="XMLConfigContent">
+++++
+// XML Config start.
+[source,xml]
 ----
 <!-- reader using MyBatisCursorItemReader -->
 <bean id="reader" class="org.mybatis.spring.batch.MyBatisCursorItemReader"
@@ -1852,6 +2528,13 @@ public class SalesDTO implements Serializable {
 </batch:job>
 
 ----
+// XML Config end.
+++++
+  </div>
+</div>
+++++
+// ============ Java/XML Config Tab end. ============
+
 [cols="10,90"]
 .説明
 |===
@@ -1890,10 +2573,10 @@ public class SalesDTO implements Serializable {
 |(8),(9)を順番に実行するために``CompositeItemWriter``を定義する。
 
 |(11)
-|``<list>``要素内に(8),(9)を設定する。指定した順番にItemWriterが実行される。
+|``CompositeItemWriterのコンストラクタの引数/<list>要素内``に(8),(9)を設定する。指定した順番にItemWriterが実行される。
 
 |(12)
-|チャンクの``writer``属性に(10)で定義したBeanを指定する。``processor``属性には(1)のItemProcessorを指定する。
+|``StepBuilderのwriterメソッド/<batch:chunk>要素のwriter属性``に(10)で定義したBeanを指定する。``processor``属性には(1)のItemProcessorを指定する。
 
 |===
 

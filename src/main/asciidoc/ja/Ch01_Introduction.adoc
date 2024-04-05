@@ -31,7 +31,7 @@ Spring Frameworkに関して、本ドキュメントを読むための基礎知�
 
 * https://www.shoeisha.co.jp/book/detail/9784798142470[Spring徹底入門 (翔泳社) [日本語\] ]
 * https://gihyo.jp/book/2016/978-4-7741-8217-9[［改訂新版］Spring入門――Javaフレームワーク・より良い設計とアーキテクチャ [日本語\]]
-* https://link.springer.com/book/10.1007/978-1-4842-2808-1[Pro Spring 5th Edition (Apress)]
+* https://link.springer.com/book/10.1007/978-1-4842-8640-1[Pro Spring 6th Edition (Apress)]
 
 [[Ch01_Intro_Structure]]
 == ガイドラインの構成
