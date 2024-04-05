@@ -518,7 +518,12 @@ async-batch-daemon.polling-stop-file-path=/tmp/stop-async-batch-daemon
         <bean class="org.springframework.batch.core.configuration.support.ClasspathXmlApplicationContextsFactoryBean">
             <property name="resources">
                 <list>
-                    <value>classpath:/META-INF/jobs/**/*.xml</value>  <!-- (1) -->
+                    <!-- For all -->
+                    <value>classpath:/META-INF/jobs/**/*.xml</value> <!-- (1) -->
+                    <!-- For the async directory and below -->
+                    <value>classpath:/META-INF/jobs/async/**/*.xml</value> <!-- (2) -->
+                    <!-- For a specific job -->
+                    <value>classpath:/META-INF/jobs/CASE100/SpecialJob.xml</value> <!-- (3) -->
                 </list>
             </property>
         </bean>
@@ -538,40 +543,13 @@ async-batch-daemon.polling-stop-file-path=/tmp/stop-async-batch-daemon
 |説明
 
 |(1)
-|非同期実行するジョブBean定義のパス。
+|jarの中に存在するジョブ定義がすべて非同期実行することを前提に設計・実装される場合は、このように指定できる。
+|(2)
+|jarの中に非同期で実行することを想定していないジョブが存在する場合は、非同期実行を想定しているジョブのみが読み込まれるように指定すること。
+|(3)
+|特定のジョブのみが非同期実行対象の場合はジョブ定義単体で指定すること。
 
 |===
-
-[WARNING]
-.登録ジョブの絞込みについて
-====
-登録するジョブは、非同期実行することを前提に設計・実装されたジョブを指定すること。
-非同期で実行することを想定していないジョブを含めて指定すると、ジョブ登録時に意図しない参照により例外が発生することもあるので注意すること。
-
-[source,xml]
-.絞込の例
-----
-<bean id="automaticJobRegistrar"
-      class="org.springframework.batch.core.configuration.support.AutomaticJobRegistrar">
-    <property name="applicationContextFactories">
-        <bean class="org.springframework.batch.core.configuration.support.ClasspathXmlApplicationContextsFactoryBean">
-            <property name="resources">
-                <list>
-                    <!-- For the async directory and below -->
-                    <value>classpath:/META-INF/jobs/aysnc/**/*.xml</value>
-                    <!-- For a specific job -->
-                    <value>classpath:/META-INF/jobs/CASE100/SpecialJob.xml</value>
-                </list>
-            </property>
-        </bean>
-    </property>
-    <property name="jobLoader">
-        <bean class="org.springframework.batch.core.configuration.support.DefaultJobLoader"
-            p:jobRegistry-ref="jobRegistry" />
-    </property>
-</bean>
-----
-====
 
 [TIP]
 .ジョブパラメータの入力値検証

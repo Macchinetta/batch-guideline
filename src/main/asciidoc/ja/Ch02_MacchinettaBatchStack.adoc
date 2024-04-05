@@ -26,7 +26,7 @@ image::Ch02_MacchinettaBatchStack_Stack.png[{batch5_fullname} Stack]
 ====
 {batch5_fullname}で使用するOSSのバージョンは、原則として、Spring Boot Dependenciesの定義に準じている。
 なお、バージョン{batch5_version}におけるSpring Boot Dependenciesのバージョンは、
-https://docs.spring.io/spring-boot/docs/2.7.7/reference/htmlsingle/[2.7.7]である。
+https://docs.spring.io/spring-boot/docs/2.7.18/reference/htmlsingle/[2.7.18]である。
 ====
 
 [cols="25,25,25,15,5,5", options="header"]
@@ -119,14 +119,14 @@ https://docs.spring.io/spring-boot/docs/2.7.7/reference/htmlsingle/[2.7.7]であ
 |MyBatis3
 |org.mybatis
 |mybatis
-|3.5.7
+|3.5.15
 |
 |*1
 
 |MyBatis3
 |org.mybatis
 |mybatis-spring
-|2.0.6
+|2.1.2
 |
 |*1
 
@@ -139,10 +139,17 @@ https://docs.spring.io/spring-boot/docs/2.7.7/reference/htmlsingle/[2.7.7]であ
 
 |ログ出力
 |ch.qos.logback
+|logback-core
+|1.3.14
+^|
+|*2
+
+|ログ出力
+|ch.qos.logback
 |logback-classic
-|1.2.11
-^|*
-|
+|1.3.14
+^|
+|*2
 
 |ログ出力
 |org.slf4j
@@ -154,9 +161,9 @@ https://docs.spring.io/spring-boot/docs/2.7.7/reference/htmlsingle/[2.7.7]であ
 |ログ出力
 |org.slf4j
 |slf4j-api
-|1.7.36
-^|*
-|
+|2.0.12
+^|
+|*2
 
 |入力チェック
 |jakarta.validation
@@ -196,14 +203,14 @@ https://docs.spring.io/spring-boot/docs/2.7.7/reference/htmlsingle/[2.7.7]であ
 |JDBCドライバ
 |org.postgresql
 |postgresql
-|42.5.1
+|42.7.1
 ^|
 |*2
 
 |JSON
 |com.fasterxml.jackson.core
 |jackson-databind
-|2.13.4.2
+|2.13.5
 ^|*
 ^|
 
@@ -224,14 +231,14 @@ https://docs.spring.io/spring-boot/docs/2.7.7/reference/htmlsingle/[2.7.7]であ
 |XML
 |com.sun.xml.bind
 |jaxb-impl
-|2.3.7
+|2.3.9
 ^|
 |*1
 
 |TERASOLUNA Batch
 |org.terasoluna.batch
 |terasoluna-batch
-|5.4.2.RELEASE
+|5.4.3-SNAPSHOT
 |
 |*1
 
