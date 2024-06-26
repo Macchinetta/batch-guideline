@@ -173,13 +173,15 @@ launch-context.xml
 // Java Config start.
 ``archetypeArtifactId``に``macchinetta-batch-archetype``を指定
 
+CAUTION: 下記のバージョン識別子は ``2.5.0.RELEASE`` に一部ファイルの誤配置があったため、修正した ``2.5.0.1.RELEASE`` を指定している。
+
 .コマンドプロンプト(Windows)
 [source,console,subs="normal,attributes"]
 ----
 C:\xxx>mvn archetype:generate ^
   -DarchetypeGroupId=com.github.macchinetta.blank ^
   -DarchetypeArtifactId=macchinetta-batch-archetype ^
-  -DarchetypeVersion={batch5_version}
+  -DarchetypeVersion=2.5.0.1.RELEASE
 ----
 
 .Bash(Unix, Linux, ...)
@@ -188,7 +190,7 @@ C:\xxx>mvn archetype:generate ^
 $ mvn archetype:generate \
   -DarchetypeGroupId=com.github.macchinetta.blank \
   -DarchetypeArtifactId=macchinetta-batch-archetype \
-  -DarchetypeVersion={batch5_version}
+  -DarchetypeVersion=2.5.0.1.RELEASE
 ----
 // Java Config end.
 ++++
@@ -198,13 +200,15 @@ $ mvn archetype:generate \
 // XML Config start.
 ``archetypeArtifactId``に``macchinetta-batch**-xmlconfig**-archetype``を指定
 
+CAUTION: 下記のバージョン識別子は、JavaConfig版の変更に併せて 2.5.0.1.RELEASE を指定しているが、XMLConfig版は2.5.0.RELEASE と内容は同一である。
+
 .コマンドプロンプト(Windows)
 [source,console,subs="normal,attributes"]
 ----
 C:\xxx>mvn archetype:generate ^
   -DarchetypeGroupId=com.github.macchinetta.blank ^
   -DarchetypeArtifactId=macchinetta-batch-xmlconfig-archetype ^
-  -DarchetypeVersion={batch5_version}
+  -DarchetypeVersion=2.5.0.1.RELEASE
 ----
 
 .Bash(Unix, Linux, ...)
@@ -213,7 +217,7 @@ C:\xxx>mvn archetype:generate ^
 $ mvn archetype:generate \
   -DarchetypeGroupId=com.github.macchinetta.blank \
   -DarchetypeArtifactId=macchinetta-batch-xmlconfig-archetype \
-  -DarchetypeVersion={batch5_version}
+  -DarchetypeVersion=2.5.0.1.RELEASE
 ----
 // XML Config end.
 ++++
@@ -257,7 +261,7 @@ $ mvn archetype:generate \
 C:\xxx>mvn archetype:generate ^
 More? -DarchetypeGroupId=com.github.macchinetta.blank ^
 More? -DarchetypeArtifactId=macchinetta-batch-archetype ^
-More? -DarchetypeVersion={batch5_version}
+More? -DarchetypeVersion=2.5.0.1.RELEASE
 [INFO] Scanning for projects...
 [INFO]
 [INFO] ------------------------------------------------------------------------
@@ -277,7 +281,7 @@ version: 1.0.0-SNAPSHOT
 package: com.example.batch
  Y: : y
 [INFO] ------------------------------------------------------------------------
-[INFO] Using following parameters for creating project from Archetype: macchinetta-batch-archetype:{batch5_version}
+[INFO] Using following parameters for creating project from Archetype: macchinetta-batch-archetype:2.5.0.1.RELEASE
 [INFO] ------------------------------------------------------------------------
 [INFO] Parameter: groupId, Value: com.example.batch
 [INFO] Parameter: artifactId, Value: batch
@@ -304,7 +308,7 @@ package: com.example.batch
 $ mvn archetype:generate \
 > -DarchetypeGroupId=com.github.macchinetta.blank \
 > -DarchetypeArtifactId=macchinetta-batch-archetype \
-> -DarchetypeVersion={batch5_version}
+> -DarchetypeVersion=2.5.0.1.RELEASE
 [INFO] Scanning for projects...
 [INFO]
 [INFO] ------------------------------------------------------------------------
@@ -324,7 +328,7 @@ version: 1.0.0-SNAPSHOT
 package: com.example.batch
  Y: : y
 [INFO] ----------------------------------------------------------------------------
-[INFO] Using following parameters for creating project from Archetype: macchinetta-batch-archetype:{batch5_version}
+[INFO] Using following parameters for creating project from Archetype: macchinetta-batch-archetype:2.5.0.1.RELEASE
 [INFO] ----------------------------------------------------------------------------
 [INFO] Parameter: groupId, Value: com.example.batch
 [INFO] Parameter: artifactId, Value: batch
