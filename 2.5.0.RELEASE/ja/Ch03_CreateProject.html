@@ -381,13 +381,25 @@ launch-context.xml</p></td>
 <div class="paragraph">
 <p><code>archetypeArtifactId</code>に<code>macchinetta-batch-archetype</code>を指定</p>
 </div>
+<div class="admonitionblock caution">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-caution" title="Caution"></i>
+</td>
+<td class="content">
+下記のバージョン識別子は <code>2.5.0.RELEASE</code> に一部ファイルの誤配置があったため、修正した <code>2.5.0.1.RELEASE</code> を指定している。
+</td>
+</tr>
+</table>
+</div>
 <div class="listingblock">
 <div class="title">コマンドプロンプト(Windows)</div>
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="console">C:\xxx&gt;mvn archetype:generate ^
   -DarchetypeGroupId=com.github.macchinetta.blank ^
   -DarchetypeArtifactId=macchinetta-batch-archetype ^
-  -DarchetypeVersion=2.5.0.RELEASE</code></pre>
+  -DarchetypeVersion=2.5.0.1.RELEASE</code></pre>
 </div>
 </div>
 <div class="listingblock">
@@ -396,7 +408,7 @@ launch-context.xml</p></td>
 <pre class="CodeRay highlight"><code data-lang="console">$ mvn archetype:generate \
   -DarchetypeGroupId=com.github.macchinetta.blank \
   -DarchetypeArtifactId=macchinetta-batch-archetype \
-  -DarchetypeVersion=2.5.0.RELEASE</code></pre>
+  -DarchetypeVersion=2.5.0.1.RELEASE</code></pre>
 </div>
 </div>
   </div>
@@ -404,13 +416,25 @@ launch-context.xml</p></td>
 <div class="paragraph">
 <p><code>archetypeArtifactId</code>に<code>macchinetta-batch<strong>-xmlconfig</strong>-archetype</code>を指定</p>
 </div>
+<div class="admonitionblock caution">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-caution" title="Caution"></i>
+</td>
+<td class="content">
+下記のバージョン識別子は、JavaConfig版の変更に併せて 2.5.0.1.RELEASE を指定しているが、XMLConfig版は2.5.0.RELEASE と内容は同一である。
+</td>
+</tr>
+</table>
+</div>
 <div class="listingblock">
 <div class="title">コマンドプロンプト(Windows)</div>
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="console">C:\xxx&gt;mvn archetype:generate ^
   -DarchetypeGroupId=com.github.macchinetta.blank ^
   -DarchetypeArtifactId=macchinetta-batch-xmlconfig-archetype ^
-  -DarchetypeVersion=2.5.0.RELEASE</code></pre>
+  -DarchetypeVersion=2.5.0.1.RELEASE</code></pre>
 </div>
 </div>
 <div class="listingblock">
@@ -419,7 +443,7 @@ launch-context.xml</p></td>
 <pre class="CodeRay highlight"><code data-lang="console">$ mvn archetype:generate \
   -DarchetypeGroupId=com.github.macchinetta.blank \
   -DarchetypeArtifactId=macchinetta-batch-xmlconfig-archetype \
-  -DarchetypeVersion=2.5.0.RELEASE</code></pre>
+  -DarchetypeVersion=2.5.0.1.RELEASE</code></pre>
 </div>
 </div>
   </div>
@@ -483,7 +507,7 @@ launch-context.xml</p></td>
 <pre class="CodeRay highlight"><code data-lang="console">C:\xxx&gt;mvn archetype:generate ^
 More? -DarchetypeGroupId=com.github.macchinetta.blank ^
 More? -DarchetypeArtifactId=macchinetta-batch-archetype ^
-More? -DarchetypeVersion=2.5.0.RELEASE
+More? -DarchetypeVersion=2.5.0.1.RELEASE
 [INFO] Scanning for projects&#8230;&#8203;
 [INFO]
 [INFO] ------------------------------------------------------------------------
@@ -503,7 +527,7 @@ version: 1.0.0-SNAPSHOT
 package: com.example.batch
  Y: : y
 [INFO] ------------------------------------------------------------------------
-[INFO] Using following parameters for creating project from Archetype: macchinetta-batch-archetype:2.5.0.RELEASE
+[INFO] Using following parameters for creating project from Archetype: macchinetta-batch-archetype:2.5.0.1.RELEASE
 [INFO] ------------------------------------------------------------------------
 [INFO] Parameter: groupId, Value: com.example.batch
 [INFO] Parameter: artifactId, Value: batch
@@ -530,7 +554,7 @@ package: com.example.batch
 <pre class="CodeRay highlight"><code data-lang="console">$ mvn archetype:generate \
 &gt; -DarchetypeGroupId=com.github.macchinetta.blank \
 &gt; -DarchetypeArtifactId=macchinetta-batch-archetype \
-&gt; -DarchetypeVersion=2.5.0.RELEASE
+&gt; -DarchetypeVersion=2.5.0.1.RELEASE
 [INFO] Scanning for projects&#8230;&#8203;
 [INFO]
 [INFO] ------------------------------------------------------------------------
@@ -550,7 +574,7 @@ version: 1.0.0-SNAPSHOT
 package: com.example.batch
  Y: : y
 [INFO] ----------------------------------------------------------------------------
-[INFO] Using following parameters for creating project from Archetype: macchinetta-batch-archetype:2.5.0.RELEASE
+[INFO] Using following parameters for creating project from Archetype: macchinetta-batch-archetype:2.5.0.1.RELEASE
 [INFO] ----------------------------------------------------------------------------
 [INFO] Parameter: groupId, Value: com.example.batch
 [INFO] Parameter: artifactId, Value: batch
