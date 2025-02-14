@@ -329,7 +329,7 @@ MyBatisを利用してデータベースアクセスするための実装・設�
 チャンクモデル/タスクレットモデルで共通して利用するため、既に作成している場合は読み飛ばしてよい。
 
 [[Ch09_Impl_DBAccessJob_Chunk_MyBatis_Repository]]
-==== Repositoryインタフェースの実装
+==== ``Repository``インタフェースの実装
 MapperXMLファイルに定義したSQLを呼び出すためのインタフェースを実装する。 +
 このインタフェースに対する実装クラスは、MyBatisが自動で生成するため、開発者はインタフェースのみ作成すればよい。
 
@@ -366,10 +366,10 @@ public interface MemberInfoRepository {
 [[Ch09_Impl_DBAccessJob_Chunk_MyBatis_MapperXML]]
 ==== MapperXMLファイルの作成
 SQLとO/Rマッピングの設定を記載するMapperXMLファイルを作成する。 +
-MapperXMLファイルは、Repositoryインタフェースごとに作成する。
+MapperXMLファイルは、``Repository``インタフェースごとに作成する。
 
 MyBatisが定めたルールに則ったディレクトリに格納することで、自動的にMapperXMLファイルを読み込むことができる。
-MapperXMLファイルを自動的に読み込ませるために、Repositoryインタフェースのパッケージ階層と同じ階層のディレクトリにMapperXMLファイルを格納する。
+MapperXMLファイルを自動的に読み込ませるために、``Repository``インタフェースのパッケージ階層と同じ階層のディレクトリにMapperXMLファイルを格納する。
 
 [source, xml]
 .src/main/resources/com/example/batch/tutorial/common/repository/MemberInfoRepository.xml
@@ -414,7 +414,7 @@ MapperXMLファイルを自動的に読み込ませるために、Repositoryイ�
 |説明
 
 |(1)
-|``<mapper>``要素の``namespace``属性に、Repositoryインタフェースの完全修飾クラス名(FQCN)を指定する。
+|``<mapper>``要素の``namespace``属性に、``Repository``インタフェースの完全修飾クラス名(FQCN)を指定する。
 
 |(2)
 |参照系のSQLの設定を行う。 +
@@ -474,8 +474,8 @@ MyBatisによるデータベースアクセスするための設定として、�
 |説明
 
 |(1)
-|Repositoryインタフェースをスキャンするための設定を行う。 +
-``base-package``属性に、Repositoryインタフェースが格納されている基底パッケージを指定する。
+|``Repository``インタフェースをスキャンするための設定を行う。 +
+``base-package``属性に、``Repository``インタフェースが格納されている基底パッケージを指定する。
 
 |(2)
 |ItemReaderの設定を行う。 +
@@ -494,9 +494,9 @@ MyBatisによるデータベースアクセスするための設定として、�
 [NOTE]
 .ItemReader・ItemWriter以外のデータベースアクセス
 ====
-ItemReader・ItemWriter以外でデータベースアクセスする方法として、Mapperインタフェースを利用する方法がある。
-Mapperインタフェースを利用するにあたっては、{batch5_shortname}として制約を設けているため、
-<<Ch05_DBAccess.adoc#Ch05_DBAccess_HowToUse_Input_MapperInterface,Mapperインタフェース(入力)>>、<<Ch05_DBAccess.adoc#Ch05_DBAccess_HowToUse_Output_MapperInterface,Mapperインタフェース(出力)>>を参照してほしい。
+``ItemReader``・``ItemWriter``以外でデータベースアクセスする方法として、``Mapper``インタフェースを利用する方法がある。
+``Mapper``インタフェースを利用するにあたっては、{batch5_shortname}として制約を設けているため、
+<<Ch05_DBAccess.adoc#Ch05_DBAccess_HowToUse_Input_MapperInterface,``Mapper``インタフェース(入力)>>、<<Ch05_DBAccess.adoc#Ch05_DBAccess_HowToUse_Output_MapperInterface,``Mapper``インタフェース(出力)>>を参照してほしい。
 ItemProcessorの実装例は、<<Ch05_DBAccess.adoc#Ch05_DBAccess_HowToUse_Input_MapperInterface_Chunk,チャンクモデルにおける利用方法>>(入力)を参照。
 ====
 
@@ -511,7 +511,7 @@ ItemProcessorの実装例は、<<Ch05_DBAccess.adoc#Ch05_DBAccess_HowToUse_Input
 
 [[Ch09_Impl_DBAccessJob_Chunk_Logic_ItemProcessor]]
 ==== PointAddItemProcessorクラスの実装
-ItemProcessorインタフェースを実装したPointAddItemProcessorクラスを実装する。
+``ItemProcessor``インタフェースを実装したPointAddItemProcessorクラスを実装する。
 
 [source, java]
 .com.example.batch.tutorial.dbaccess.chunk.PointAddItemProcessor
@@ -886,7 +886,7 @@ MyBatisを利用してデータベースアクセスするための実装・設�
 チャンクモデル/タスクレットモデルで共通して利用するため、既に作成している場合は読み飛ばしてよい。
 
 [[Ch09_Impl_DBAccessJob_Tasklet_MyBatis_Repository]]
-==== Repositoryインタフェースの実装
+==== ``Repository``インタフェースの実装
 MapperXMLファイルに定義したSQLを呼び出すためのインタフェースを作成する。 +
 このインタフェースに対する実装クラスは、MyBatisが自動で生成するため、開発者はインタフェースのみ作成すればよい。
 
@@ -923,10 +923,10 @@ public interface MemberInfoRepository {
 [[Ch09_Impl_DBAccessJob_Tasklet_MyBatis_MapperXML]]
 ==== MapperXMLファイルの作成
 SQLとO/Rマッピングの設定を記載するMapperXMLファイルを作成する。 +
-MapperXMLファイルは、Repositoryインタフェースごとに作成する。
+MapperXMLファイルは、``Repository``インタフェースごとに作成する。
 
 MyBatisが定めたルールに則ったディレクトリに格納することで、自動的にMapperXMLファイルを読み込むことができる。
-MapperXMLファイルを自動的に読み込ませるために、Repositoryインタフェースのパッケージ階層と同じ階層のディレクトリにMapperXMLファイルを格納する。
+MapperXMLファイルを自動的に読み込ませるために、``Repository``インタフェースのパッケージ階層と同じ階層のディレクトリにMapperXMLファイルを格納する。
 
 [source, xml]
 .src/main/resources/com/example/batch/tutorial/common/repository/MemberInfoRepository.xml
@@ -971,7 +971,7 @@ MapperXMLファイルを自動的に読み込ませるために、Repositoryイ�
 |説明
 
 |(1)
-|``<mapper>``要素の``namespace``属性に、Repositoryインタフェースの完全修飾クラス名(FQCN)を指定する。
+|``<mapper>``要素の``namespace``属性に、``Repository``インタフェースの完全修飾クラス名(FQCN)を指定する。
 
 |(2)
 |参照系のSQLの定義を行う。 +
@@ -1031,8 +1031,8 @@ MyBatisによるデータベースアクセスするための設定として、�
 |説明
 
 |(1)
-|Repositoryインタフェースをスキャンするための設定を行う。 +
-``base-package``属性に、Repositoryインタフェースが格納されている基底パッケージを指定する。
+|``Repository``インタフェースをスキャンするための設定を行う。 +
+``base-package``属性に、``Repository``インタフェースが格納されている基底パッケージを指定する。
 
 |(2)
 |ItemReaderの設定を行う。 +
@@ -1059,9 +1059,9 @@ Tasklet実装の中でチャンクモデルの各種コンポーネントを利�
 [NOTE]
 .ItemReader・ItemWriter以外のデータベースアクセス
 ====
-ItemReader・ItemWriter以外でデータベースアクセスする方法として、Mapperインタフェースを利用する方法がある。
-Mapperインタフェースを利用するにあたっては、{batch5_shortname}として制約を設けているため、
-<<Ch05_DBAccess.adoc#Ch05_DBAccess_HowToUse_Input_MapperInterface,Mapperインタフェース(入力)>>、<<Ch05_DBAccess.adoc#Ch05_DBAccess_HowToUse_Output_MapperInterface,Mapperインタフェース(出力)>>を参照してほしい。
+``ItemReader``・``ItemWriter``以外でデータベースアクセスする方法として、``Mapper``インタフェースを利用する方法がある。
+``Mapper``インタフェースを利用するにあたっては、{batch5_shortname}として制約を設けているため、
+<<Ch05_DBAccess.adoc#Ch05_DBAccess_HowToUse_Input_MapperInterface,``Mapper``インタフェース(入力)>>、<<Ch05_DBAccess.adoc#Ch05_DBAccess_HowToUse_Output_MapperInterface,``Mapper``インタフェース(出力)>>を参照してほしい。
 Taskletの実装例は、<<Ch05_DBAccess.adoc#Ch05_DBAccess_HowToUse_Input_MapperInterface_Tasklet,タスクレットモデルにおける利用方法>>(入力)、
 <<Ch05_DBAccess.adoc#Ch05_DBAccess_HowToUse_Output_MapperInterface_Tasklet,タスクレットモデルにおける利用方法>>(出力)を参照。
 ====
@@ -1077,7 +1077,7 @@ Taskletの実装例は、<<Ch05_DBAccess.adoc#Ch05_DBAccess_HowToUse_Input_Mappe
 
 [[Ch09_Impl_DBAccessJob_Tasklet_Logic_Tasklet]]
 ==== PointAddTaskletクラスの実装
-Taskletインタフェースを実装したPointAddTaskletクラスを実装する。
+``Tasklet``インタフェースを実装したPointAddTaskletクラスを実装する。
 
 [source, java]
 .com.example.batch.tutorial.dbaccess.tasklet.PointAddTasklet

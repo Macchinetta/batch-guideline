@@ -14,19 +14,6 @@ MyBatisによるデータベースアクセスの基本的な利用方法は、{
 
 本節では、{batch5_shortname}特有の使い方を中心に説明する。
 
-[WARNING]
-.Linux環境でのOracle JDBC利用時の留意事項について
-====
-Linux環境でのOracle JDBCを利用時は、Oracle JDBCが使用するOSの乱数生成器によるロックが発生する。
-そのため、ジョブを並列実行しようとしても逐次実行になる事象や片方のコネクションがタイムアウトする事象が発生する。 +
-本事象に対する2パターンの回避策を以下に示す。
-
-* Javaコマンド実行時に、システムプロパティで以下を設定する。
-** ``-Djava.security.egd=file:///dev/urandom``
-* ``${JAVA_HOME}/jre/lib/security/java.security``内の``securerandom.source=/dev/random``を``securerandom.source=/dev/urandom``に変更する。
-
-====
-
 [[Ch05_DBAccess_HowToUse]]
 == How to use
 {batch5_shortname}でのデータベースアクセス方法を説明する。
@@ -40,7 +27,7 @@ Linux環境でのOracle JDBCを利用時は、Oracle JDBCが使用するOSの乱
 ** チャンクモデルでのデータベースアクセスによる入出力で使用する。
 *** org.mybatis.spring.batch.MyBatisCursorItemReader
 *** org.mybatis.spring.batch.MyBatisBatchItemWriter
-. Mapperインタフェースを利用する
+. ``Mapper``インタフェースを利用する
 ** チャンクモデルでのビジネスロジック処理で使用する。
 *** ItemProcessor実装で利用する。
 ** タスクレットモデルでのデータベースアクセス全般で使用する。
@@ -170,18 +157,24 @@ jdbc.password=postgres
    この値は出来る限り大きい値を設定することが望ましいが、大きすぎるとメモリを圧迫するため、注意が必要である。
    ユーザにてチューニングする必要がある箇所と言える。
 ** MyBatisでは、全クエリ共通の設定として``defaultFetchSize``を設定することができ、さらにクエリごとの``fetchSize``設定で上書きできる。
-* ``executorType``
-** 一般的なバッチ処理では、同一トランザクション内で同じSQLを``全データ件数/fetchSize``の回数分実行することになる。
-   この際、都度ステートメントを作成するのではなく再利用することで効率よく処理できる。
-** MyBatisの設定における、``defaultExecutorType``に``REUSE``を設定することでステートメントの再利用ができ、
-   処理スループット向上に寄与する。
-** 大量のデータを一度に更新する場合、JDBCのバッチ更新を利用することで性能向上が期待できる。 +
-   そのため、``MyBatisBatchItemWriter``で利用する``SqlSessionTemplate``には、 +
-   ``executorType``に(``REUSE``ではなく)``BATCH``が設定されている。
-
+* ``executorType`` +
 {batch5_shortname}では、同時に2つの異なる``ExecutorType``が存在する。
 一方の``ExecutorType``で実装する場合が多いと想定するが、併用時は特に注意が必要である。
-この点は、<<Ch05_DBAccess_HowToUse_Input_MapperInterface>>にて詳しく説明する。
+この点は、<<Ch05_DBAccess_HowToUse_Input_MapperInterface>>にて詳しく説明する。 +
+以下は``defaultExecutorType``に設定できる``executorType``の説明である。
+** ``REUSE``
+*** データベースからデータを取得するときに設定する。
+*** 一般的なバッチ処理では、同一トランザクション内で同じSQLを複数回実行することになる。 +
+``REUSE``によって``PreparedStatement``が再利用され、処理スループット向上に寄与する。
+*** ``MyBatisCursorItemReader``で利用する``SqlSessionFactory``には、``executorType``に``REUSE``が設定されている。
+** ``BATCH``
+*** データベースへデータを更新するときに設定する。
+*** ``BATCH``によって``PreparedStatement``が再利用され、複数のSQLが一括で実行されるため、(特に大量のデータを一度に更新する会いに)性能向上が期待できる。
+*** ``MyBatisBatchItemWriter``で利用する``SqlSessionTemplate``には、``executorType``に``BATCH``が設定されている。
+
+``ExecutorType``については
+https://macchinetta.github.io/server-guideline/current/ja/ArchitectureInDetail/DataAccessDetail/DataAccessMyBatis3.html#sql[MACCHINETTA Server ガイドライン]
+にて詳しく説明されている。
 
 [NOTE]
 .MyBatisのその他のパラメータ
@@ -230,31 +223,6 @@ https://mybatis.org/mybatis-3/configuration.html
 |``MyBatisBatchItemWriter``のために、``executorType``が``BATCH``の``SqlSessionTemplate``を定義している。
 
 |===
-
-[NOTE]
-.adminDataSourceを利用したSqlSessionFactoryの定義箇所について
-====
-同期実行をする場合は、adminDataSourceを利用した``SqlSessionFactory``は不要であるため、定義がされていない。
-<<Ch04_AsyncJobWithDB.adoc#Ch04_AsyncJobWithDB,非同期実行(DBポーリング)>>を利用する場合、ジョブ要求テーブルへアクセスするために
-``META-INF/spring/async-batch-daemon.xml``内に定義されている。
-
-[source,xml]
-.META-INF/spring/async-batch-daemon.xml
-----
-<bean id="adminSqlSessionFactory"
-      class="org.mybatis.spring.SqlSessionFactoryBean"
-      p:dataSource-ref="adminDataSource" >
-    <property name="configuration">
-        <bean class="org.apache.ibatis.session.Configuration"
-              p:localCacheScope="STATEMENT"
-              p:lazyLoadingEnabled="true"
-              p:aggressiveLazyLoading="false"
-              p:defaultFetchSize="1000"
-              p:defaultExecutorType="REUSE"/>
-    </property>
-</bean>
-----
-====
 
 [[Ch05_DBAccess_HowToUse_Config_MapperXML]]
 ==== Mapper XMLの定義
@@ -490,7 +458,7 @@ public class RetrieveBranchFromContextItemProcessor implements ItemProcessor<Cus
 
 |(9)
 |引数として受け取るitemの型は、
-このクラスで実装しているItemProcessorインタフェースの型引数で指定した入力オブジェクトの型である``Customer``とする。
+このクラスで実装している``ItemProcessor``インタフェースの型引数で指定した入力オブジェクトの型である``Customer``とする。
 
 |(10)
 |引数に渡されたitemを利用して各カラムの値を取得する。
@@ -637,7 +605,7 @@ public class CheckAmountTasklet implements Tasklet {
 |(8)
 |``@Inject``アノテーションを付与して、``ItemStreamReader``の実装をインジェクションする。 +
 対象となるリソースへのオープン・クローズを実施する必要があるため、
-``ItemReader``にリソースのopen/closeメソッドを追加した``ItemStreamReader``インタフェースで実装をインジェクションする。
+``ItemReader``にリソースの``open/close``メソッドを追加した``ItemStreamReader``インタフェースで実装をインジェクションする。
 
 |(9)
 |入力リソースをオープンする。
@@ -742,13 +710,13 @@ SQLの引数が数値型で定義されているため、``value-type``で``Inte
 [[Ch05_DBAccess_HowToUse_Input_MapperInterface]]
 ==== Mapperインタフェース(入力)
 
-ItemReader以外でデータベースの参照を行うにはMapperインタフェースを利用する。 +
-ここではMapperインタフェースを利用したデータベースの参照について説明する。
+ItemReader以外でデータベースの参照を行うには``Mapper``インタフェースを利用する。 +
+ここでは``Mapper``インタフェースを利用したデータベースの参照について説明する。
 
 [[Ch05_DBAccess_HowToUse_Input_MapperInterface_Overview]]
 機能概要::
 
-Mapperインタフェースを利用するにあたって、{batch5_shortname}では以下の制約を設けている。
+``Mapper``インタフェースを利用するにあたって、{batch5_shortname}では以下の制約を設けている。
 
 .Mapperインタフェースの利用可能な箇所
 [cols="10,30,30,30", options="header"]
@@ -774,7 +742,7 @@ Mapperインタフェースを利用するにあたって、{batch5_shortname}�
 [[Ch05_DBAccess_HowToUse_Input_MapperInterface_Chunk]]
 チャンクモデルにおける利用方法::
 
-チャンクモデルでMapperインタフェースを利用してデータベースを参照する実装例を以下に示す。
+チャンクモデルで``Mapper``インタフェースを利用してデータベースを参照する実装例を以下に示す。
 
 [source,java]
 .ItemProcessorでの実装例
@@ -816,7 +784,7 @@ public class UpdateItemFromDBProcessor implements
 <!-- omitted job definition -->
 ----
 
-MapperインタフェースとMapper XMLについては<<Ch05_DBAccess_HowToUse_Input_MyBatisItemReader>>
+``Mapper``インタフェースとMapper XMLについては<<Ch05_DBAccess_HowToUse_Input_MyBatisItemReader>>
 で説明している内容以外に特筆すべきことがないため省略する。
 
 [cols="10,90"]
@@ -826,10 +794,10 @@ MapperインタフェースとMapper XMLについては<<Ch05_DBAccess_HowToUse_
 |説明
 
 |(1)
-|MapperインタフェースをInjectする。
+|``Mapper``インタフェースをInjectする。
 
 |(2)
-|Mapperインタフェースで検索処理を実行する。
+|``Mapper``インタフェースで検索処理を実行する。
 
 |(3)
 |Mapper XMLの登録を行う。 +
@@ -842,29 +810,12 @@ ItemProcessorでのデータベースアクセスは``BATCH``となる。
 
 |===
 
-[IMPORTANT]
-.MyBatisCursorItemReader設定の補足
-====
-以下に示す定義例のように、MyBatisCursorItemReaderとMyBatisBatchItemWriterで異なる``ExecutorType``を使用しても問題ない。
-これは、MyBatisCursorItemReaderによるトランザクションはItemWriterのトランザクションとは別であるからである。
-[source,xml]
-----
-<bean id="reader" class="org.mybatis.spring.batch.MyBatisCursorItemReader"
-      p:queryId="xxx"
-      p:sqlSessionFactory-ref="jobSqlSessionFactory"/>
-
-<bean id="writer" class="org.mybatis.spring.batch.MyBatisBatchItemWriter"
-      p:statementId="yyy"
-      p:sqlSessionTemplate-ref="batchModeSqlSessionTemplate"/>
-----
-====
-
 [[Ch05_DBAccess_HowToUse_Input_MapperInterface_Tasklet]]
 タスクレットモデルにおける利用方法::
 
-タスクレットモデルでMapperインタフェースを利用してデータベースを参照する実装例を以下に示す。 +
+タスクレットモデルで``apper``インタフェースを利用してデータベースを参照する実装例を以下に示す。 +
 大量データを処理する場合、Cursorを利用して取得データを1件ずつ処理することでメモリ容量をひっ迫せずに効率良く処理することができる。
-{batch5_shortname}では、タスクレットモデルでMapperインタフェースを利用してデータベースアクセスする場合はCursorを利用することを基本とする。 +
+{batch5_shortname}では、タスクレットモデルで``Mapper``インタフェースを利用してデータベースアクセスする場合はCursorを利用することを基本とする。 +
 Cursor同様に大量データを処理するうえで、ResultHandlerを利用することも有効である。
 ResultHandlerについては、{server5_guide}の
 {server5_url}/ArchitectureInDetail/DataAccessDetail/DataAccessMyBatis3.html#resulthandler[ResultHandlerの実装]を参照。
@@ -963,7 +914,7 @@ public class SalesPlanCursorTasklet implements Tasklet {
 メソッドの戻り値の型は``org.apache.ibatis.cursor.Cursor``とする。
 
 |(5)
-|MapperインタフェースをInjectする。
+|``Mapper``インタフェースをInjectする。
 
 |(6)
 |Cursorから1件ずつデータを取得する。 +
@@ -988,10 +939,10 @@ Cursorで読み取り中のテーブルを他の処理で更新をかけると�
 [[Ch05_DBAccess_HowToUse_Output]]
 === 出力
 
-データベースへの出力は、``MyBatisBatchItemWriter``もしくはMapperインタフェースを利用することで実現できる。 +
-``MyBatisBatchItemWriter``とMapperインタフェースによる出力を併用した場合、``MyBatisBatchItemWriter``でエラーが発生する。
-よって、Mapperインタフェースを用いた出力はチャンクモデルでの利用に適さないため、利用方法を記載していない。 +
-詳細は<<Ch05_DBAccess_HowToUse_Output_MapperInterface_Overview,Mapperインタフェース(出力)の機能概要>>で後述するため、そちらを参照されたい。
+データベースへの出力は、``MyBatisBatchItemWriter``もしくは``Mapper``インタフェースを利用することで実現できる。 +
+``MyBatisBatchItemWriter``と``Mapper``インタフェースによる出力を併用した場合、``MyBatisBatchItemWriter``でエラーが発生する。
+よって、``Mapper``インタフェースを用いた出力はチャンクモデルでの利用に適さないため、利用方法を記載していない。 +
+詳細は<<Ch05_DBAccess_HowToUse_Output_MapperInterface_Overview,``Mapper``インタフェース(出力)の機能概要>>で後述するため、そちらを参照されたい。
 
 上記の内容について以下のとおり説明する。
 
@@ -1218,7 +1169,7 @@ public class SalesPlanDetailRegisterTasklet implements Tasklet {
 }
 ----
 
-MapperインタフェースとMapper XMLについては<<Ch05_DBAccess_HowToUse_Output_MyBatisItemWriter>>
+``Mapper``インタフェースとMapper XMLについては<<Ch05_DBAccess_HowToUse_Output_MyBatisItemWriter>>
 で説明している内容以外に特筆すべきことがないため省略する。
 
 [cols="10,90", options="header"]
@@ -1268,20 +1219,20 @@ MapperインタフェースとMapper XMLについては<<Ch05_DBAccess_HowToUse_
 [[Ch05_DBAccess_HowToUse_Output_MapperInterface]]
 ==== Mapperインタフェース(出力)
 
-ItemWriter以外でデータベースの更新を行うにはMapperインタフェースを利用する。 +
-ここではMapperインタフェースを利用したデータベースの更新について説明する。
+ItemWriter以外でデータベースの更新を行うには``Mapper``インタフェースを利用する。 +
+ここでは``Mapper``インタフェースを利用したデータベースの更新について説明する。
 
 [[Ch05_DBAccess_HowToUse_Output_MapperInterface_Overview]]
 機能概要::
 
-Mapperインタフェースを利用してデータベースアクセスするうえでの{batch5_shortname}としての制約は<<Ch05_DBAccess_HowToUse_Input_MapperInterface>>を参照。 +
-さらにItemProcessor、TaskletでMapperインタフェースを利用したデータベースの更新を行う際には以下の制約がある。
+``Mapper``インタフェースを利用してデータベースアクセスするうえでの{batch5_shortname}としての制約は<<Ch05_DBAccess_HowToUse_Input_MapperInterface>>を参照。 +
+さらにItemProcessor、Taskletで``Mapper``インタフェースを利用したデータベースの更新を行う際には以下の制約がある。
 
 ItemProcessorでの制約::
-  ItemWriterに``MyBatisBatchItemWriter``を利用する場合、ItemProcessorではMapperインタフェースを利用してデータベースの更新処理を行うことができないという制約がある。 +
+  ItemWriterに``MyBatisBatchItemWriter``を利用する場合、ItemProcessorでは``Mapper``インタフェースを利用してデータベースの更新処理を行うことができないという制約がある。 +
   これは、``MyBatisBatchItemWriter``がSQL実行後に自身が発行したSQLによる更新処理が行われたかをチェックしており、
   その際に同一トランザクション内での他の更新処理を検知するとエラーを発生させることによるものである。 +
-  よって、ItemProcessorでMapperインタフェースを利用したデータベースの更新はできず、参照のみが可能となる。 +
+  よって、ItemProcessorで``Mapper``インタフェースを利用したデータベースの更新はできず、参照のみが可能となる。 +
   ItemProcessor内で更新処理を行いたいケースとして、「特定の条件に当てはまる入力データについて、
   ItemWriterとは異なる更新処理をするためにItemProcessorで個別に更新処理を行う」などが考えられるが、上記の制約によりこのような利用はできない。 +
   代替手段として、後述のタスクレットモデルによる実装、もしくはItemProcessor、ItemWriterでの更新をステップやジョブで分離したバッチ処理の設計を検討されたい。
@@ -1292,14 +1243,14 @@ ItemProcessorでの制約::
 ====
 
 Taskletでの制約::
-  Taskletでは、Mapperインタフェースを利用することが基本であるため、ItemProcessorのような影響はない。 +
-  ``MyBatisBatchItemWriter``をInjectして利用することも考えられるが、その場合はMapperインタフェース自体を
+  Taskletでは、``Mapper``インタフェースを利用することが基本であるため、ItemProcessorのような影響はない。 +
+  ``MyBatisBatchItemWriter``をInjectして利用することも考えられるが、その場合は``Mapper``インタフェース自体を
   ``BATCH``設定で処理すればよい。つまり、Taskletでは、``MyBatisBatchItemWriter``をInjectして使う必要は基本的にない。
 
 [[Ch05_DBAccess_HowToUse_Output_MapperInterface_Tasklet]]
 タスクレットモデルにおける利用方法::
 
-タスクレットモデルでMapperインタフェースを利用してデータベースを更新(登録)する実装例を以下に示す。
+タスクレットモデルで``Mapper``インタフェースを利用してデータベースを更新(登録)する実装例を以下に示す。
 
 [source,java]
 .Taskletでの実装例
@@ -1356,7 +1307,7 @@ public class OptimisticLockTasklet implements Tasklet {
 </batch:job>
 ----
 
-MapperインタフェースとMapper XMLは省略する。
+``Mapper``インタフェースとMapper XMLは省略する。
 
 [cols="10,90", options="header"]
 .説明
@@ -1365,30 +1316,30 @@ MapperインタフェースとMapper XMLは省略する。
 |説明
 
 |(1)
-|MapperインタフェースをInjectする。
+|``Mapper``インタフェースをInjectする。
 
 |(2)
 |DTOオブジェクトを生成して、更新データを設定する。
 
 |(3)
-|更新データを設定したDTOオブジェクトを引数に指定して、Mapperインタフェースで更新処理を実行する。
+|更新データを設定したDTOオブジェクトを引数に指定して、``Mapper``インタフェースで更新処理を実行する。
 
 |(4)
 |Mapper XMLの登録を行う。 +
 ``factory-ref``属性に``REUSE``設定されている``jobSqlSessionFactory``を指定する。
 
 |(5)
-|MapperインタフェースをInjectしTaskletを設定する。
+|``Mapper``インタフェースをInjectしTaskletを設定する。
 
 |===
 
 [[Ch05_DBAccess_HowToUse_MapperInterface_Listener]]
 === リスナーでのデータベースアクセス
 リスナーでのデータベースアクセスは他のコンポーネントと連携することが多い。
-使用するリスナー及び実装方法によっては、Mapperインタフェースで取得したデータを、
+使用するリスナー及び実装方法によっては、``Mapper``インタフェースで取得したデータを、
 他のコンポーネントへ引き渡す仕組みを追加で用意する必要がある。
 
-リスナーでMapperインタフェースを利用してデータベースアクセスを実装するにあたり、以下の制約がある。
+リスナーで``Mapper``インタフェースを利用してデータベースアクセスを実装するにあたり、以下の制約がある。
 
 リスナーでの制約::
   リスナーでもItemProcessorでの制約と同じ制約が成立する。
@@ -1510,13 +1461,13 @@ public class CustomerCache {
 |説明
 
 |(1)
-|MapperインタフェースをInjectする。
+|``Mapper``インタフェースをInjectする。
 
 |(2)
-|Mapperインタフェースから取得したデータをキャッシュするためのBeanをInjectする。
+|``Mapper``インタフェースから取得したデータをキャッシュするためのBeanをInjectする。
 
 |(3)
-|リスナーにて、Mapperインタフェースからデータを取得してキャッシュする。 +
+|リスナーにて、``Mapper``インタフェースからデータを取得してキャッシュする。 +
 ここでは、``StepExecutionListener#beforeStep``にてステップ実行前にキャッシュを作成し、
 以降の処理ではキャッシュを参照することで、入出力を低減し処理効率を高めている。
 
@@ -1538,7 +1489,7 @@ public class CustomerCache {
 ``template-ref``属性に``BATCH``が設定されている``batchModeSqlSessionTemplate``を指定する。
 
 |(9)
-|Mapperインタフェースを利用するリスナーを定義する。
+|``Mapper``インタフェースを利用するリスナーを定義する。
 
 |(10)
 |キャッシュを利用するItemProcessorを指定する。

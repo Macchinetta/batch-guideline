@@ -637,9 +637,8 @@ ItemWriterを利用することで実装がシンプルになる効果があり�
 上記の説明にあるとおりコミットのタイミングでリソースへ書き出すため、それまではメモリ内に全出力分のデータを保持することになる。
 そのため、データ量が多い場合にはメモリ不足になりエラーとなる可能性が高くなる。
 
-[NOTE]
-.ファイルしか扱わないジョブにおけるTransactionManagerの設定について
-====
+[[Ch05_Transaction_HowToUse_SingleDataSource_Tx_File]]
+==== ファイルしか扱わないジョブにおけるTransactionManagerの設定について
 以下に示すジョブ定義のように、``batch:tasklet``の``transaction-manager``属性はxsdスキーマにおいて必須のため省略できない。
 
 [source, xml]
@@ -670,8 +669,6 @@ ItemWriterを利用することで実装がシンプルになる効果があり�
     <batch:chunk reader="reader" writer="writer" commit-interval="100" />
 </batch:tasklet>
 ----
-====
-
 
 [[Ch05_Transaction_HowToUse_MultiDataSource]]
 === 複数データソースの場合
@@ -803,7 +800,7 @@ public class RetrieveBranchFromContextItemProcessor implements
 |@BeforeStepアノテーションが付与されたメソッド内で、ステップのコンテキストから(5)で設定されたマスタデータを取得する。
 
 |(9)
-|ItemProcessorのprocessメソッド内で、マスタデータからデータ取得を行う。
+|ItemProcessorの``process``メソッド内で、マスタデータからデータ取得を行う。
 
 |===
 
@@ -888,7 +885,7 @@ public class RetrieveBranchFromRepositoryItemProcessor implements
 
 * 1ステップ目で加工したデータをテーブルに格納し、2ステップ目でファイルに出力する、といった要領となる。
 * 各ステップがシンプルになりリカバリしやすい反面、2度手間になる可能性がある。
-** この結果、以下のような弊害を生む場合は、1ステップで複数データソースを処理することを検討する。
+** この結果、以下のような弊害を許容できない場合は、1ステップで複数データソースを処理することを検討する。
 *** 処理時間が伸びてしまう
 *** ビジネスロジックが冗長となる
 
@@ -902,7 +899,7 @@ public class RetrieveBranchFromRepositoryItemProcessor implements
 * 障害時のリカバリが難しい
 
 {SB}でも分散トランザクションを活用することは可能だが、JTAによるグローバルトランザクションを使用する方法では、プロトコルの特性上、性能面のオーバーヘッドがかかる。
-より簡易に複数データソースをまとめて処理する方法として、**Best Efforts 1PCパターン**による実現手段を推奨する。
+より簡易に複数データソースをまとめて処理する方法として、**Best Efforts 1PCパターン**による実現手段がある。
 
 Best Efforts 1PCパターンとは::
   端的に言うと、複数データソースをローカルトランザクションで扱い、同じタイミングで逐次コミットを発行するという手法を指す。

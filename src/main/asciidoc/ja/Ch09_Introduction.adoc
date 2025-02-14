@@ -31,18 +31,16 @@ include::_include_all.adoc[]
 |Microsoft Windows 10 Enterprise (64bit)
 
 |JDK
-|RedHat OpenJDK 1.8.0.352 Windows 64-bit/ +
-RedHat OpenJDK 11.0.17.0.8 Windows 64-bit/ +
-RedHat OpenJDK 17.0.5 Windows 64-bit
+|RedHat OpenJDK 1.8.0.432
 
 |IDE
-|Spring Tool Suite 4.17.1 released
+|Spring Tool Suite 4.27.0 released
 
 |Build Tool
-|Apache Maven 3.8.6
+|Apache Maven 3.9.9
 
 |RDBMS
-|H2 Database 2.1.214
+|H2 Database 2.2.224
 
 |===
 
@@ -76,7 +74,7 @@ RedHat OpenJDK 17.0.5 Windows 64-bit
 
 |構成要素
 |ItemReader、ItemProcessor、ItemWriter、ChunkOrientedTaskletで構成される。
-|Taksletのみで構成される。
+|Taskletのみで構成される。
 
 |<<Ch05_Transaction.adoc#Ch05_Transaction,トランザクション制御>>
 |チャンク単位にトランザクションが発生する。トランザクション制御は一定件数ごとにトランザクションを確定する中間コミット方式のみ。
@@ -88,8 +86,8 @@ RedHat OpenJDK 17.0.5 Windows 64-bit
 |リランのみ利用することを原則とする。処理状態を判断したリスタートが利用できる。
 
 |<<Ch06_ExceptionHandling.adoc#Ch06_ExceptionHandling,例外ハンドリング>>
-|{SB}提供の各種Listenerインタフェースを使うことでハンドリング処理が容易になっている。try-catchによる独自実装も可能。
-|タスクレット実装内にて独自にtry-catchを実装することが基本。ChunkListenerインタフェースの利用も可能。
+|{SB}提供の各種``Listener``インタフェースを使うことでハンドリング処理が容易になっている。try-catchによる独自実装も可能。
+|タスクレット実装内にて独自にtry-catchを実装することが基本。``ChunkListener``インタフェースの利用も可能。
 
 |===
 

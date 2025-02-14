@@ -239,9 +239,9 @@ ItemWriterの詳細は、<<Ch05_DBAccess.adoc#Ch05_DBAccess,データベース�
 
 ItemProcessorの実装方法を説明する。
 
-ItemProcessorは、以下のインタフェースが示すとおり、入力リソースから取得したデータ**1件**をもとに、
+``ItemProcessor``は、以下のインタフェースが示すとおり、入力リソースから取得したデータ**1件**をもとに、
 出力リソースに向けたデータ**1件**を作成する役目を担う。
-つまり、ItemProcessorはデータ**1件**に対するビジネスロジックを実装する箇所、と言える。
+つまり、``ItemProcessor``はデータ**1件**に対するビジネスロジックを実装する箇所、と言える。
 
 [source,java]
 .ItemProcessorインタフェース
@@ -330,11 +330,27 @@ ifeval::["{docname}" == "single_index"]
 endif::[]
 ====
 
-[NOTE]
-.複数のItemProcessorを同時に利用する
-====
-汎用的なItemProcessorを用意し、個々のジョブに適用したい場合は、
-{SB}が提供する``CompositeItemProcessor``を利用し連結することで実現できる。
+[[Ch03_CreateChunkJob_HowToExtend]]
+== How to extend
+
+[[Ch03_CreateChunkJob_ItemProcessor]]
+ItemProcessorの省略::
+入力データを加工せず、そのまま出力する場合は、``ItemProcessor``を省略するか、``PassThroughItemProcessor``を利用する。
+以下には``ItemProcessor``を省略する設定例となる。
+[source,xml]
+----
+<batch:job id="exampleJob">
+    <batch:step id="exampleStep">
+        <batch:tasklet>
+            <batch:chunk reader="reader" writer="writer" commit-interval="10" />
+        </batch:tasklet>
+    </batch:step>
+</batch:job>
+----
+
+複数のItemProcessorを同時に利用する::
+  複数のItemProcessorを同時に利用したい場合は、
+  {SB}が提供する``CompositeItemProcessor``を利用し連結することで実現できる。
 
 [source,xml]
 .CompositeItemProcessorによる複数ItemProcessorの連結
@@ -349,6 +365,4 @@ endif::[]
     </property>
 </bean>
 ----
-
 ``delegates``属性に指定した順番に処理されることに留意すること。
-====

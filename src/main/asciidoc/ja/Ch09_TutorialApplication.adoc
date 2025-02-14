@@ -201,7 +201,7 @@ include::_include_all.adoc[]
 
 |12
 |異常系への対応 > 例外ハンドリング > ステップ単位の例外ハンドリング  +
-> <<Ch06_ExceptionHandling#Ch06_ExceptionHandling_HowToUse_StepExceptionHandling_ChunkListener,ChunkListenerインタフェースによる例外ハンドリング>>
+> <<Ch06_ExceptionHandling#Ch06_ExceptionHandling_HowToUse_StepExceptionHandling_ChunkListener,``ChunkListener``インタフェースによる例外ハンドリング>>
 |-
 |-
 |-

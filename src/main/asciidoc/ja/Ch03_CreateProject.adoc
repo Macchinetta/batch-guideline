@@ -302,7 +302,7 @@ image::Ch03_CreateProject_BlankProjectDir.png[BlankProject Structure]
 
 |(2)
 |1ジョブに関する各種クラスを格納するパッケージ。 +
-ここには、DTO、TaskletやProcessorの実装、MyBatis3のMapperインタフェースを格納する。 +
+ここには、DTO、TaskletやProcessorの実装、MyBatis3の``Mapper``インタフェースを格納する。 +
 初期状態を参考にユーザにて自由にカスタムしてよいが、各ジョブで利用する資材をジョブごとにまとめて格納することで、
 ``<context:component-scan>``や``<mybatis:scan>``によるスキャン範囲を最小限にする構成が望ましい。 +
 スキャン範囲の影響や設定方法ついては<<Ch05_DBAccess.adoc#Ch05_DBAccess_HowToUse_Config_Scan,MyBatis-Springの設定>>を参考にすること。
@@ -323,7 +323,7 @@ image::Ch03_CreateProject_BlankProjectDir.png[BlankProject Structure]
 アンコメントし任意のメッセージに修正すること。
 
 |(6)
-|MyBatis3のMapperインタフェースの対となるMapper XMLファイル。
+|MyBatis3の``Mapper``インタフェースの対となるMapper XMLファイル。
 
 |(7)
 |主にログ出力時に用いるメッセージを定義するプロパティファイル。
@@ -644,10 +644,10 @@ $ mvn clean dependency:copy-dependencies -DoutputDirectory=lib package
     </profile>
     <!-- omitted -->
     <profile>
-        <id>oracle19c-local</id>
+        <id>example-db-local</id>
         <properties>
-            <jdbc.driver.groupId>com.oracle.database.jdbc</jdbc.driver.groupId>
-            <jdbc.driver.artifactId>ojdbc8</jdbc.driver.artifactId>
+            <jdbc.driver.groupId>com.example.database.jdbc</jdbc.driver.groupId>
+            <jdbc.driver.artifactId>jdbc-driver</jdbc.driver.artifactId>
             <!-- omitted -->
         </properties>
     </profile>

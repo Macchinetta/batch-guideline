@@ -457,7 +457,7 @@ Beanのプロパティとレコード内の各項目とのマッピングは``Fi
 
 [[Ch09_Impl_FileAccessJob_Chunk_Logic_ItemProcessor]]
 ==== PointAddItemProcessorクラスの実装
-ItemProcessorインタフェースを実装したPointAddItemProcessorクラスを実装する。
+``ItemProcessor``インタフェースを実装したPointAddItemProcessorクラスを実装する。
 
 [source, java]
 .com.example.batch.tutorial.fileaccess.chunk.PointAddItemProcessor
@@ -1011,7 +1011,7 @@ Tasklet実装の中でチャンクモデルの各種コンポーネントを利�
 
 [[Ch09_Impl_FileAccessJob_Tasklet_Logic_Tasklet]]
 ==== PointAddTaskletクラスの実装
-Taskletインタフェースを実装したPointAddTaskletクラスを作成する。
+``Tasklet``インタフェースを実装したPointAddTaskletクラスを作成する。
 
 [source, java]
 .com.example.batch.tutorial.fileaccess.tasklet.PointAddTasklet

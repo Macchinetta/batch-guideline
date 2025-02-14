@@ -77,16 +77,15 @@ ItemProcessor +
 ItemWriter
 |チャンクモデルを実装する際に、データの入力/加工/出力の3つに分割するためのインタフェース。 +
 バッチアプリケーションは、この3パターンの処理で構成されることが多いことに由来し、
-{SB}では主にチャンクモデルで +
-これらインタフェースの実装を活用する。
+{SB}では主にチャンクモデルでこれらインタフェースの実装を活用する。
 ユーザはビジネスロジックをそれぞれの役割に応じて分割して記述する。 +
-データの入出力を担うItemReaderとItemWriterは、データベースやファイルからJavaオブジェクトへの変換、もしくはその逆の処理であることが多い。
+データの入出力を担う``ItemReader``と``ItemWriter``は、データベースやファイルからJavaオブジェクトへの変換、もしくはその逆の処理であることが多い。
 そのため、{SB}から標準的な実装が提供されている。
 ファイルやデータベースからデータの入出力を行う一般的なバッチアプリケーションの場合は、 +
 {SB}の標準実装をそのまま使用するだけで要件を満たせるケースもある。 +
-データの加工を担うItemProcessorは、入力チェックやビジネスロジックを実装する。
+データの加工を担う``ItemProcessor``は、入力チェックやビジネスロジックを実装する。
 
-タスクレットモデルでは、ItemReader/ItemProcessor/ItemWriterが、1つのTaskletインタフェース実装に置き換わる。Tasklet内に入出力、入力チェック、ビジネスロジックのすべてを実装する必要がある。
+タスクレットモデルでは、``ItemReader``/``ItemProcessor``/``ItemWriter``が、1つの``Tasklet``インタフェース実装に置き換わる。Tasklet内に入出力、入力チェック、ビジネスロジックのすべてを実装する必要がある。
 |JobRepository
 |JobやStepの状況を管理する機構。これらの管理情報は、{SB}が規定するテーブルスキーマをもとにデータベース上に永続化される。
 |===
@@ -240,25 +239,25 @@ Taskletの実装方法には「チャンクモデル」と「タスクレット�
 前述したようにチャンクモデルとは、処理対象となるデータを1件ずつ処理するのではなく、一定数の塊(チャンク)を単位として処理を行う方式である。
 ChunkOrientedTaskletがチャンク処理をサポートしたTaskletの具象クラスとなる。
 このクラスがもつcommit-intervalという設定値により、チャンクに含めるデータの最大件数(以降、「チャンク数」と呼ぶ)を調整することができる。
-ItemReader、ItemProcessor、ItemWriterは、いずれもチャンク処理を前提としたインタフェースとなっている。
+``ItemReader``、``ItemProcessor``、``ItemWriter``は、いずれもチャンク処理を前提としたインタフェースとなっている。
 
-次に、ChunkOrientedTasklet がどのようにItemReader、ItemProcessor、ItemWriterを呼び出しているかを説明する。
+次に、ChunkOrientedTasklet がどのように``ItemReader``、``ItemProcessor``、``ItemWriter``を呼び出しているかを説明する。
 
 ChunkOrientedTaskletが1つのチャンクを処理するシーケンス図を以下に示す。
 
 .ChunkOrientedTaskletによるチャンク処理
 image::Ch02_SpringBatchArchitecture_Architecture_Sequence_ChunkOrientedTasklet.png[Sequence of Chunk processing with ChunkOrientedTasklet]
 
-ChunkOrientedTaskletは、チャンク数分だけItemReaderおよびItemProcessor、すなわちデータの読み込みと加工を繰り返し実行する。
+ChunkOrientedTaskletは、チャンク数分だけ``ItemReader``および``ItemProcessor``、すなわちデータの読み込みと加工を繰り返し実行する。
 チャンク数分のデータすべての読み込みが完了してから、ItemWriterのデータ書き込み処理が1回だけ呼び出され、チャンクに含まれるすべての加工済みデータが渡される。
 データの更新処理がチャンクに対して1回呼び出されるように設計されているのは、JDBCのaddBatch、executeBatchのように入出力をまとめやすくするためである。
 
-次に、チャンク処理において実際の処理を担うItemReader、ItemProcessor、ItemWriterについて紹介する。
+次に、チャンク処理において実際の処理を担う``ItemReader``、``ItemProcessor``、``ItemWriter``について紹介する。
 各インタフェースともユーザが独自に実装を行うことが想定されているが、{SB}が提供する汎用的な具象クラスでまかなうことができる場合がある。
 
-特にItemProcessorはビジネスロジックそのものが記述されることが多いため、{SB}からは具象クラスがあまり提供されていない。
-ビジネスロジックを記述する場合はItemProcessorインタフェースを実装する。
-ItemProcessorはタイプセーフなプログラミングが可能になるよう、入出力で使用するオブジェクトの型をそれぞれ型引数に指定できるようになっている。
+特に``ItemProcessor``はビジネスロジックそのものが記述されることが多いため、{SB}からは具象クラスがあまり提供されていない。
+ビジネスロジックを記述する場合は``ItemProcessor``インタフェースを実装する。
+``ItemProcessor``はタイプセーフなプログラミングが可能になるよう、入出力で使用するオブジェクトの型をそれぞれ型引数に指定できるようになっている。
 
 以下に簡単なItemProcessorの実装例を示す。
 
@@ -285,7 +284,7 @@ public class MyItemProcessor implements
 |説明
 
 |(1)
-|入出力で使用するオブジェクトの型をそれぞれ型引数に指定したItemProcessorインタフェースを実装する。
+|入出力で使用するオブジェクトの型をそれぞれ型引数に指定した``ItemProcessor``インタフェースを実装する。
 
 |(2)
 |``process``メソッドを実装する。引数のitemが入力データである。
@@ -354,7 +353,8 @@ HibernatePagingItemReader
 
 .3+|ItemProcessor
 |PassThroughItemProcessor
-|何も行なわない。入力データの加工や修正が不要な場合に使用する。
+|何も行なわない。入力データの加工や修正が不要な場合に使用する。 +
+詳細は、<<Ch03_CreateChunkJob.adoc#Ch03_CreateChunkJob_ItemProcessor,ItemProcessorの省略>>を参照。
 
 |ValidatingItemProcessor
 |入力チェックを行う。入力チェックルールの実装には、{SB}独自の +
@@ -394,25 +394,6 @@ icon:warning[] {batch5_shortname}では、HibernateItemWriterは利用しない�
 
 |===
 
-[NOTE]
-.PassThroughItemProcessorの省略
-====
-XMLでジョブを定義する場合は、ItemProcessorの設定を省略することができる。
-省略した場合、PassThroughItemProcessorと同様に何もせずに入力データをItemWriterへ受け渡すことになる。
-
-[source,xml]
-.ItemProcessorの省略
-----
-<batch:job id="exampleJob">
-    <batch:step id="exampleStep">
-        <batch:tasklet>
-            <batch:chunk reader="reader" writer="writer" commit-interval="10" />
-        </batch:tasklet>
-    </batch:step>
-</batch:job>
-----
-====
-
 [[Ch02_SpringBatchArch_Arch_BusinessLogic_Tasklet]]
 ==== タスクレットモデル
 チャンクモデルは、複数の入力データを1件ずつ読み込み、一連の処理を行うバッチアプリケーションに適した枠組みとなっている。
@@ -422,7 +403,7 @@ XMLでジョブを定義する場合は、ItemProcessorの設定を省略する�
 そのような場合には、チャンク処理によって得られる性能面のメリットが少なく、
 設計や実装を困難にするデメリットの方が大きいため、タスクレットモデルを使用するほうが合理的である。
 
-タスクレットモデルを使用する場合は、{SB}から提供されているTaskletインタフェースをユーザが実装する必要がある。
+タスクレットモデルを使用する場合は、{SB}から提供されている``Tasklet``インタフェースをユーザが実装する必要がある。
 また、{SB}では以下の具象クラスが提供されているが、{batch5_shortname}では以降説明しない。
 
 [cols=".^30,70", options="header"]
@@ -437,7 +418,7 @@ XMLでジョブを定義する場合は、ItemProcessorの設定を省略する�
 
 |MethodInvokingTaskletAdapter
 |POJOクラスに定義された特定のメソッドを実行するためのTasklet。targetObjectプロパティに対象クラスのBeanを、targetMethodプロパティに実行させたいメソッド名を指定する。 +
-POJOクラスはバッチ処理の終了した状態をメソッドの返り値として返却することができるが、その場合は後述するExitStatusをメソッドの返り値とする必要がある。
+POJOクラスはバッチ処理の終了した状態をメソッドの返り値として返却することができるが、その場合は後述する``ExitStatus``をメソッドの返り値とする必要がある。
 他の型で返り値を返却した場合は、返り値の内容にかかわらず正常終了した(ExitStatus.COMPLETED)とみなされる。
 |===
 
@@ -492,10 +473,6 @@ JobRepositoryは、各Javaオブジェクトに保存された内容を、テー
 メタデータテーブルへ格納する文字列には文字数の制限があり、制限を超えた分の文字列を切り捨てる。 +
 また{SB}ではマルチバイト文字を考慮しておらず、{SB}が提供するメタデータテーブルのDDLでは格納する文字列が制限に収まる文字数でもエラーになる可能性がある。
 マルチバイト文字を格納するためには、メタデータテーブルのカラムを使用するエンコーディングによってサイズ拡張したり、文字データ型を文字数定義に設定する必要がある。
-
-{SB}が提供する``Oracle Schema``は、データベースの文字データ型はバイト数定義がデフォルト設定となるため、
-{batch5_shortname}では、明示的に文字データ型を文字数定義に設定するOracle用のDDLを提供する。 +
-提供するDDLは、{terasoluna_batch5_shortname}のjarに同梱されているorg.terasoluna.batchパッケージに含まれている。
 ====
 
 6つの全テーブルと相互関係のERDモデルを以下に示す。
@@ -777,7 +754,7 @@ BATCH_STEP_EXECUTION_CONTEXTテーブルは、StepのExecutionContext に関連�
 
 ファイル読み込みの効率化::
   BeanWrapperFieldSetMapperを使用すると、Beanのクラスとプロパティ名を順番に指定するだけでレコードをBeanにマッピングしてくれる。
-  しかし、内部で複雑な処理を行うため時間がかかる。マッピングを行う専用のFieldSetMapperインタフェース実装を用いることで処理時間を短縮できる可能性がある。 +
+  しかし、内部で複雑な処理を行うため時間がかかる。マッピングを行う専用の``FieldSetMapper``インタフェース実装を用いることで処理時間を短縮できる可能性がある。 +
   ファイル入出力の詳細は、<<Ch05_FileAccess.adoc#Ch05_FileAccess,"ファイルアクセス">>を参照。
 
 並列処理・多重処理::

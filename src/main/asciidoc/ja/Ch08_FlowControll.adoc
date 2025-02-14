@@ -158,44 +158,9 @@ Macchinetta Batch 2.xでのフロー制御方法を説明する。
 これにより、 以下の順でステップが直列に起動する。 +
 ``jobSequentialFlow.step1`` -> ``jobSequentialFlow.step2`` -> ``jobSequentialFlow.step3`` +
 
-[NOTE]
-.<batch:flow>を使った定義方法
-====
-前述の例では``<batch:job>``内に直接フローを定義した。
-``<batch:flow>``を利用して、フロー定義を外部に切り出すこともできる。
-以下に``<batch:flow>``を利用した場合の例を示す。
-
-[source,xml]
-----
-<batch:job id="jobSequentialOuterFlow" job-repository="jobRepository">
-    <batch:flow id="innerFlow" parent="outerFlow"/> <!-- (1) -->
-</batch:job>
-
-<!-- (2) -->
-<batch:flow id="outerFlow">
-    <batch:step id="jobSequentialOuterFlow.step1"
-                next="jobSequentialOuterFlow.step2"
-                parent="parentStep"/>
-    <batch:step id="jobSequentialOuterFlow.step2"
-                next="jobSequentialOuterFlow.step3"
-                parent="parentStep"/>
-    <batch:step id="jobSequentialOuterFlow.step3"
-                parent="parentStep"/>
-</batch:flow>
-----
-[cols="10,90",options="header"]
-|===
-|項番
-|説明
-
-|(1)
-|``parent``属性に(2)で定義したフローのidを設定する。
-
-|(2)
-|シーケンシャルフローを定義する。
-|===
-
-====
+上述の例では``jobSequentialFlowメソッド/<batch:job>``内に直接フローを定義した。
+いっぽうで、フロー定義を``jobSequentialFlowメソッド/<batch:job>``の外で記述する方法もある。
+詳しくは、<<Ch08_FlowControll_Appendix_FlowDefinition,外部でのフロー定義方法>>を参照のこと。
 
 [[Ch08_FlowControll_HowToUse_PassingDataToFutureSteps]]
 === ステップ間のデータの受け渡し
@@ -604,3 +569,45 @@ public class PromotionTargetItemProcessor implements ItemProcessor<String, Strin
 https://github.com/spring-projects/spring-batch/issues/1287[{SB}/BATCH-2315]
 を参照。
 ====
+
+[[Ch08_FlowControll_Appendix]]
+== Appendix
+
+[[Ch08_FlowControll_Appendix_FlowDefinition]]
+==== 外部でのフロー定義方法
+``Bean定義したFlow/<batch:flow>``を利用して、フロー定義を外部に切り出すことができる。 +
+以下に``Bean定義したFlow/<batch:flow>``を利用して、3つのステップからなるジョブのシーケンシャルフローを設定する例を示す。
+
+.Bean定義
+[source,xml]
+----
+<batch:job id="jobSequentialOuterFlow" job-repository="jobRepository">
+    <batch:flow id="innerFlow" parent="outerFlow"/> <!-- (1) -->
+</batch:job>
+<!-- (2) -->
+<batch:flow id="outerFlow">
+    <batch:step id="jobSequentialOuterFlow.step1"
+                next="jobSequentialOuterFlow.step2"
+                parent="parentStep"/>
+    <batch:step id="jobSequentialOuterFlow.step2"
+                next="jobSequentialOuterFlow.step3"
+                parent="parentStep"/>
+    <batch:step id="jobSequentialOuterFlow.step3"
+                parent="parentStep"/>
+</batch:flow>
+----
+
+[cols="10,90",options="header"]
+|===
+|項番
+|説明
+
+|(1)
+|``parent``属性に(2)で定義したフローのidを設定する。
+
+|(2)
+|シーケンシャルフローを定義する。
+|===
+
+これにより、 以下の順でステップが直列に起動する。 +
+``jobSequentialFlow.step1`` -> ``jobSequentialFlow.step2`` -> ``jobSequentialFlow.step3``

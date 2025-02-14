@@ -27,7 +27,7 @@ About the Asciidoctor format, refer to the https://asciidoctor.org/docs/[Asciido
 
 == How to build
 
-We build to Diagram, HTML, and PDF files using the https://github.com/asciidoctor/asciidoctor-maven-plugin[Asciidoctor Maven Plugin].
+We build to Diagram, HTML files using the https://github.com/asciidoctor/asciidoctor-maven-plugin[Asciidoctor Maven Plugin].
 
 Diagram build requires https://graphviz.gitlab.io/[Graphviz]'s dot command tool. (We use Graphviz 9.0.0 to build diagrams. Graphviz before 9.0.0 may have a problem that leads to generate corrupted diagrams.)
 Please download https://graphviz.gitlab.io/download/[here] and set system path.
@@ -48,23 +48,9 @@ or
 $ git clone https://github.com/{your account}/batch-guideline.git
 ----
 
-=== Build HTML and PDF files for the Japanese
-
-Please execute the two ``mvn`` command.
-If build is successful, HTML and PDF files generate to the directory below.
-
-* HTML : ``{your repository}/target/generated-docs/html``
-* PDF  : ``{your repository}/target/generated-docs/pdf``
-
-[source, text]
-----
-$ mvn -f image_pom.xml
-$ mvn
-----
-
 === Build HTML files for the Japanese
 
-Please execute the two ``mvn`` command with profile specification.
+Please execute the two ``mvn`` command.
 If build is successful, HTML files generate to the directory below.
 
 * HTML : ``{your repository}/target/generated-docs/html``
@@ -72,7 +58,7 @@ If build is successful, HTML files generate to the directory below.
 [source, text]
 ----
 $ mvn -f image_pom.xml
-$ mvn -P ja-html-only
+$ mvn
 ----
 
 == Terms of use

@@ -201,32 +201,6 @@ image::Ch09_ValidationJob_ProcessSequence_TaskletModel.png[ProcessSequence of Va
 . ステップはフレームワークトランザクションをロールバックする。
 . ステップはジョブに終了コード(ここでは異常終了:255)を返却する。
 
-[NOTE]
-.入力チェック処理を実装するための設定
-====
-入力チェックにはHibernate Validatorを使用する。ブランクプロジェクトには既に設定済みであるが、
-ライブラリの依存関係にHibernate Validatorの定義、およびBean定義が必要となる。
-
-[source, xml]
-.依存ライブラリの設定例(pom.xml)
-----
-<dependency>
-    <groupId>org.hibernate</groupId>
-    <artifactId>hibernate-validator</artifactId>
-</dependency>
-----
-
-[source, xml]
-.src/main/resources/META-INF/spring/launch-context.xml
-----
-<bean id="validator" class="org.springframework.batch.item.validator.SpringValidator"
-      p:validator-ref="beanValidator"/>
-
-<bean id="beanValidator"
-      class="org.springframework.validation.beanvalidation.LocalValidatorFactoryBean" />
-----
-====
-
 以降で、チャンクモデル、タスクレットモデルそれぞれの実装方法を説明する。
 
 * <<Ch09_Impl_ValidationJob_Chunk>>

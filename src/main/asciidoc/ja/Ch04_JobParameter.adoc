@@ -504,8 +504,8 @@ $ java org.springframework.batch.core.launch.support.CommandLineJobRunner \
 
 ``JobParametersValidator``クラスは以下の要領で実装する。
 
-* ``JobParametersValidator``クラスを実装し、validateメソッドをオーバーライドする
-* validateメソッドは以下の要領で実装する
+* ``JobParametersValidator``クラスを実装し、``validate``メソッドをオーバーライドする
+* ``validate``メソッドは以下の要領で実装する
 ** ``JobParameters``から各パラメータを取得し検証する
 *** 検証の結果がOKである場合には、何もする必要はない
 *** 検証の結果がNGである場合には、``JobParametersInvalidException``をスローする
@@ -540,7 +540,7 @@ public class ComplexJobParametersValidator implements JobParametersValidator {  
 |説明
 
 |(1)
-|``JobParametersValidator``クラスを実装しvalidateメソッドをオーバーライドする。
+|``JobParametersValidator``クラスを実装し``validate``メソッドをオーバーライドする。
 
 |(2)
 |パラメータは``JobParameters``型で引数として受ける。 +

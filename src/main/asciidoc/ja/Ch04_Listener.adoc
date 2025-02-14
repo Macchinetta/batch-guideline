@@ -104,7 +104,7 @@ public void afterChunkError(ChunkContext context) {
 ----
 ====
 
-例外ハンドリングについては、<<Ch06_ExceptionHandling.adoc#Ch06_ExceptionHandling_HowToUse_StepExceptionHandling_ChunkListener,ChunkListenerインタフェースによる例外ハンドリング>>を参照。
+例外ハンドリングについては、<<Ch06_ExceptionHandling.adoc#Ch06_ExceptionHandling_HowToUse_StepExceptionHandling_ChunkListener,``ChunkListener``インタフェースによる例外ハンドリング>>を参照。
 
 [[Ch04_Listener_Overview_Types_ItemReadListener]]
 ItemReadListener::
@@ -404,22 +404,9 @@ JobExecutionListenerは、他のリスナーとスコープが異なるため、
 ====
 
 [WARNING]
-.Tasklet実装へのアノテーションによるリスナー実装
+.タスクレットモデルではアノテーションによるリスナー実装が利用できない
 ====
-Tasklet実装へのアノテーションによるリスナー実装した場合、以下の設定では一切リスナーが起動しないため注意する。
-
-[source,xml]
-.Taskletの場合
-----
-<batch:job id="taskletJobWithListenerAnnotation" job-repository="jobRepository">
-    <batch:step id="taskletJobWithListenerAnnotation.step01">
-        <batch:tasklet transaction-manager="jobTransactionManager"
-                       ref="annotationSalesPlanDetailRegisterTasklet"/>
-    </batch:step>
-</batch:job>
-----
-
-タスクレットモデルの場合は、<<Ch04_Listener_HowToUse_SelectionCriteria>>に従ってリスナーインタフェースを利用するのがよい。
+タスクレットモデルの場合は、<<Ch04_Listener_HowToUse_Impl_WithoutAnnotation>>を参考に、リスナーインタフェースを利用すること。アノテーションによるリスナー実装をタスクレットモデルに設定しても、リスナーを起動することができない。
 ====
 
 [[Ch04_Listener_HowToUse_Configuration]]

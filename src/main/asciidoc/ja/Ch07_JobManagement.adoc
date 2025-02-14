@@ -95,18 +95,6 @@ https://docs.spring.io/spring-batch/docs/{spring_batch_version}/reference/html/s
 ``JobRepository``の永続化を行う場合は、Indexを作成することを検討されたい。
 ====
 
-[[Ch07_JobManagement_Overview_JobExecutionManagement_FixPerformanceProblem]]
-[TIP]
-.Spring BatchのバージョンアップによるJobRepositoryの性能問題の修正
-====
-Macchinetta Batch 2.2.0では、{SB} 4.2.xから加わった変更により、ジョブの起動時に{SB}が発行する
-link:https://github.com/spring-projects/spring-batch/issues/3634[``JobRepository``へのSQLによる性能劣化]が発生する事がある。
-この問題は{SB}側で対処され、{SB} 4.2.4および4.3.0で変更が取り込まれた。Macchinetta Batchでは2.2.1および2.3.0でこの変更が取り込まれている。
-
-本件の対策として、Macchinetta Batch 2.2.0では「{SB}で対処されたlink:https://github.com/spring-projects/spring-batch/pull/3635/files[変更]を実装する」ことを推奨しているが、
-Macchinetta Batch {revnumber-index}ではこの問題は発生しないため、対策は不要となる。
-====
-
 ジョブスケジューラを使用したジョブの実行管理については各製品のマニュアルを参照。 +
 本ガイドラインでは{batch5_shortname}内部で``JobRepository``を用いたジョブの状態を管理するうえで関連する、
 以下の項目について説明する。
@@ -424,7 +412,7 @@ javaプロセスの終了コードをカスタマイズするのに必要な作�
 
 チャンクモデルにおけるステップの終了コードの変更::
 
-  ステップ終了時の処理として、StepExecutionListenerのafterStepメソッドもしくは@AfterStepアノテーションを付与したメソッドを実装し、
+  ステップ終了時の処理として、StepExecutionListenerの``afterStep``メソッドもしくは@AfterStepアノテーションを付与したメソッドを実装し、
   任意のステップの終了コードを返却する。
 
 [source,java]
@@ -478,7 +466,7 @@ public class CheckAmountItemProcessor implements ItemProcessor<SalesPlanSummary,
 
 タスクレットモデルにおけるステップの終了コードの変更::
 
-  Taskletのexecuteメソッドの引数であるStepContributionに任意のステップの終了コードを設定する。
+  Taskletの``execute``メソッドの引数であるStepContributionに任意のステップの終了コードを設定する。
 
 [source,java]
 .Tasklet実装例
@@ -507,7 +495,7 @@ public RepeatStatus execute(StepContribution contribution, ChunkContext chunkCon
 
 [[Ch07_JobManagement_HowToUse_ExitCode_JobExitCode]]
 ==== ジョブの終了コードの変更
-ジョブ終了時の処理としてJobExecutionListenerのafterJobメソッドを実装し、最終的なジョブの終了コードを各ステップの終了コードによって設定する。
+ジョブ終了時の処理としてJobExecutionListenerの``afterJob``メソッドを実装し、最終的なジョブの終了コードを各ステップの終了コードによって設定する。
 
 [source,java]
 .JobExecutionListener実装例
@@ -734,18 +722,16 @@ public class JobExecutionLoggingListener implements JobExecutionListener {
 コード体系のばらつき防止や、監視対象のキーワードとしての抽出を設計しやすくするため、
 一定のルールに従ってメッセージを付与することが望ましい。
 
-なお、ログと同様、メッセージ管理についても基本的には{server5_shortname}と同様である。
+なお、ログと同様、メッセージ管理についても基本的には{server5_shortname}と同様であり、
+プロパティファイルからメッセージを使用するために``MessageSource``を使用することができる。
+具体的な設定・実装例については{server5_shortname}ガイドラインにあるlink:{server5_url}/ArchitectureInDetail/GeneralFuncDetail/Logging.html#id8[ログメッセージの一元管理]を参照。
 
-[IMPORTANT]
-.MessageSourceの活用について
-====
-プロパティファイルからメッセージを使用するには``MessageSource``を使用することができる。
+==== {server5_shortname}との相違点
+以下は{server5_shortname}との相違点となる。
 
-* 具体的な設定・実装例についてはlink:{server5_url}/ArchitectureInDetail/GeneralFuncDetail/Logging.html#id8[ログメッセージの一元管理]を参照。
-
-** ここではログ出力のサンプルとして Spring MVC のコントローラー のケースにそって例示されているが、
-   {SB}の任意のコンポーネントに読み換えてほしい。
-** ここでは``MessageSource``のインスタンスを独自に生成しているが、{batch5_shortname}ではその必要はない。
+* {server5_shortname}ではログ出力のサンプルとして Spring MVC のコントローラーのケースにそって例示されているが、
+   {server5_shortname}では{SB}の任意のコンポーネントに読み換えてほしい。
+* {server5_shortname}では``MessageSource``のインスタンスを独自に生成しているが、{batch5_shortname}ではその必要はない。
    ``ApplicationContext``が生成された後でのみ、各コンポーネントにアクセスされるためである。
    なお、ブランクプロジェクトには以下のとおり設定済みである。
 
@@ -756,4 +742,3 @@ public class JobExecutionLoggingListener implements JobExecutionListener {
       class="org.springframework.context.support.ResourceBundleMessageSource"
       p:basenames="i18n/application-messages" />
 ----
-====
