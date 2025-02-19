@@ -295,12 +295,9 @@ public long restart(long JobExecutionId) throws Execption {
 
 .restartOnConditionBasisJob.xml
 // ============ Java/XML Config Tab start. ============
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup060301" class="JavaConfigTab" id="tabgroup060301_1" checked><label for="tabgroup060301_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup060301" class="XMLConfigTab" id="tabgroup060301_2"><label for="tabgroup060301_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 [source, java]
 ----
@@ -389,10 +386,10 @@ public Job restartOnConditionBasisJob(JobRepository jobRepository,
 }
 ----
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 [source, xml]
 ----
@@ -442,10 +439,7 @@ public Job restartOnConditionBasisJob(JobRepository jobRepository,
 </batch:job>
 ----
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============
 
 [source,console]

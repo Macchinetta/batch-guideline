@@ -122,7 +122,7 @@ image::Ch05_ExclusiveControl_File_Senario.png[ExclusiveControl_File_Senario]
 |Tasklet
 |-
 |データ取得時にはItemReader、データ更新時はItemWriterで説明した処理を実施する。 +
-Mapperインタフェースを直接利用する場合も考え方は同じである。
+``Mapper``インタフェースを直接利用する場合も考え方は同じである。
 
 |===
 
@@ -151,7 +151,7 @@ SELECTで取得するデータは、ItemProcessorでデータを取得する条�
 
 |ItemProcessor
 |-
-|Mapperインタフェースを利用して、ItemReaderで取得したデータ(キー情報)を条件とするSQL文でSELECT FOR UPDATEを発行する。
+|``Mapper``インタフェースを利用して、ItemReaderで取得したデータ(キー情報)を条件とするSQL文でSELECT FOR UPDATEを発行する。
 
 |ItemWriter
 |-
@@ -161,8 +161,8 @@ SELECTで取得するデータは、ItemProcessorでデータを取得する条�
 |Tasklet
 |ItemStreamReaderでファイルをオープンする直前にファイルロックを取得する。 +
 ItemStreamWriterをクローズした直後にファイルロックを開放する。
-|データ取得時にはSELECT FOR UPDATE文を発行するItemReaderかMapperインタフェースを直接利用する。 +
-データ更新時はItemWriterで説明した処理を実施する。Mapperインタフェースを直接利用する場合も考え方は同じである。
+|データ取得時にはSELECT FOR UPDATE文を発行するItemReaderか``Mapper``インタフェースを直接利用する。 +
+データ更新時はItemWriterで説明した処理を実施する。``Mapper``インタフェースを直接利用する場合も考え方は同じである。
 
 |===
 
@@ -244,12 +244,9 @@ ItemStreamWriterの``transactional``プロパティは``false``を設定する�
 
 .ItemStreamWriterの設定例
 // ============ Java/XML Config Tab start. ============
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup050401" class="JavaConfigTab" id="tabgroup050401_1" checked><label for="tabgroup050401_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup050401" class="XMLConfigTab" id="tabgroup050401_2"><label for="tabgroup050401_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 [source,java]
 ----
@@ -270,10 +267,10 @@ public FlatFileItemWriter<SalesPlanDetailWithProcessName> writer(
 }
 ----
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 [source,xml]
 ----
@@ -291,10 +288,7 @@ public FlatFileItemWriter<SalesPlanDetailWithProcessName> writer(
 </bean>
 ----
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============
 
 [cols="10,90", options="header"]
@@ -476,10 +470,10 @@ public class FileExclusiveTasklet implements Tasklet {
 
 |===
 
-タスクレットモデルでMapperインタフェースを使用する場合は、
+タスクレットモデルで``Mapper``インタフェースを使用する場合は、
 {server5_url}/ArchitectureInDetail/DataAccessDetail/ExclusionControl.html#exclusioncontrolhowtousemybatis3[MyBatis3使用時の実装方法]のとおりであるため、説明を割愛する。
 
-タスクレットモデルでItemReader/ItemWriterを使用する場合は、Mapperインタフェースでの呼び出し部分がItemReader/ItemWriterに代わるだけなので、これも説明を割愛する。
+タスクレットモデルでItemReader/ItemWriterを使用する場合は、``Mapper``インタフェースでの呼び出し部分がItemReader/ItemWriterに代わるだけなので、これも説明を割愛する。
 
 よって、ここではチャンクモデルの排他制御について説明する。
 
@@ -493,12 +487,9 @@ MyBatisBatchItemWriterがもつ``assertUpdates``プロパティの設定によ�
 
 .ジョブ定義
 // ============ Java/XML Config Tab start. ============
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup050402" class="JavaConfigTab" id="tabgroup050402_1" checked><label for="tabgroup050402_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup050402" class="XMLConfigTab" id="tabgroup050402_2"><label for="tabgroup050402_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 [source,java]
 ----
@@ -566,10 +557,10 @@ public class ChunkOptimisticLockCheckJobConfig {
 }
 ----
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 [source,xml]
 ----
@@ -602,10 +593,7 @@ public class ChunkOptimisticLockCheckJobConfig {
 </batch:job>
 ----
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============
 
 [cols="10,90", options="header"]
@@ -634,12 +622,9 @@ public class ChunkOptimisticLockCheckJobConfig {
 
 .ジョブ定義
 // ============ Java/XML Config Tab start. ============
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup050403" class="JavaConfigTab" id="tabgroup050403_1" checked><label for="tabgroup050403_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup050403" class="XMLConfigTab" id="tabgroup050403_2"><label for="tabgroup050403_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 [source,java]
 ----
@@ -707,10 +692,10 @@ public class ChunkPessimisticLockCheckJobConfig {
 }
 ----
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 [source,xml]
 ----
@@ -747,10 +732,7 @@ public class ChunkPessimisticLockCheckJobConfig {
 </batch:job>
 ----
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============
 
 [source,java]
@@ -804,7 +786,7 @@ public class BranchEditWithkPessimisticLockItemProcessor implements ItemProcesso
 |説明
 
 |(1)
-|MapperインタフェースがItemWriterと同じ更新モードになるように、``batchModeSqlSessionTemplate``を設定する。
+|``Mapper``インタフェースがItemWriterと同じ更新モードになるように、``batchModeSqlSessionTemplate``を設定する。
 
 |(2)
 |悲観ロックを用いないデータ取得のSQLIDを設定する。 +
@@ -818,7 +800,7 @@ public class BranchEditWithkPessimisticLockItemProcessor implements ItemProcesso
 |悲観ロックによるデータ取得を行うItemProcessorを設定する。
 
 |(5)
-|悲観ロックによるデータ取得を行うMapperインタフェースをインジェクションする。
+|悲観ロックによるデータ取得を行う``Mapper``インタフェースをインジェクションする。
 
 |(6)
 |悲観ロックの抽出条件とするため、ジョブ起動パラメータから、``branchName``を設定する。
@@ -838,5 +820,5 @@ NO WAITやタイムアウトを設定して悲観ロックを行い、他のト�
 [NOTE]
 .タスクレットモデルでの悲観ロックを行うコンポーネントについて
 ====
-タスクレットモデルで悲観ロックを行う場合は、悲観ロックを行うSQL発行するItemReaderを用いる。Mapperインタフェースを直接利用する場合も同様である。
+タスクレットモデルで悲観ロックを行う場合は、悲観ロックを行うSQL発行するItemReaderを用いる。``Mapper``インタフェースを直接利用する場合も同様である。
 ====

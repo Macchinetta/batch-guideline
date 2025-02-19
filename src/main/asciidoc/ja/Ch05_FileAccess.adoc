@@ -332,12 +332,9 @@ public class SalesPlanDetail {
 上記のファイルを読む込むための設定は以下のとおり。
 
 // ============ Java/XML Config Tab start. ============ 
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup050301" class="JavaConfigTab" id="tabgroup050301_1" checked><label for="tabgroup050301_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup050301" class="XMLConfigTab" id="tabgroup050301_2"><label for="tabgroup050301_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 [source, java]
 .Bean定義例
@@ -365,9 +362,8 @@ public FlatFileItemReader<SalesPlanDetail> reader(
 }
 ----
 
-[NOTE]
-.FlatFileItemReaderBuilderクラスでのnameメソッドの使用
-====
+.``FlatFileItemReaderBuilder``クラスでの``name``メソッドの使用
+
 ``FlatFileItemReaderBuilder``は、``FlatFileItemReader``を生成するBuilderクラスである。
 
 本章で登場する以下のBuilderクラスでは、デフォルトで``name``メソッドの使用が必須となっている。
@@ -378,7 +374,7 @@ public FlatFileItemReader<SalesPlanDetail> reader(
 
 ``name``メソッドでは、``ExecutionContext``に実行状態を保存する際のキー名を引数に設定する。キー名は、特段の理由がないかぎり、``ItemStreamSupport``のサブクラス名を指定する。``ItemStreamSupport``のサブクラスとは、Builderクラスで生成するクラスのことである。
 
-**nameメソッドでItemStreamSupportのサブクラス名を指定する理由**
+**``name``メソッドで``ItemStreamSupport``のサブクラス名を指定する理由**
 
 ``ExecutionContext``やログに出力される名前を、その出力元のクラス名と一致させておくことで、トレーサビリティを担保する。これは障害解析時等に、原因箇所特定の手がかりとするためである。
 
@@ -403,23 +399,21 @@ public FlatFileItemReader() {
 ----
 
 
-
 ``name``メソッドについては以下の公式リファレンスを参照のこと。
 
-- https://docs.spring.io/spring-batch/docs/{spring_batch_version}/org/springframework/batch/item/file/builder/FlatFileItemReaderBuilder.html[クラス FlatFileItemReaderBuilder<T>]
-- https://docs.spring.io/spring-batch/docs/{spring_batch_version}/org/springframework/batch/item/file/builder/FlatFileItemWriterBuilder.html[クラス FlatFileItemWriterBuilder<T>]
-- https://docs.spring.io/spring-batch/docs/{spring_batch_version}/org/springframework/batch/item/file/builder/MultiResourceItemReaderBuilder.html[クラス MultiResourceItemReaderBuilder<T>]
-- https://docs.spring.io/spring-batch/docs/{spring_batch_version}/org/springframework/batch/item/file/builder/MultiResourceItemWriterBuilder.html[クラス MultiResourceItemWriterBuilder<T>]
-- https://docs.spring.io/spring-batch/docs/{spring_batch_version}/org/springframework/batch/item/xml/builder/StaxEventItemReaderBuilder.html[クラス StaxEventItemReaderBuilder<T>]
-- https://docs.spring.io/spring-batch/docs/{spring_batch_version}/org/springframework/batch/item/xml/builder/StaxEventItemWriterBuilder.html[クラス StaxEventItemWriterBuilder<T>]
+- https://docs.spring.io/spring-batch/docs/{spring_batch_version}/api/org/springframework/batch/item/file/builder/FlatFileItemReaderBuilder.html[クラス FlatFileItemReaderBuilder<T>]
+- https://docs.spring.io/spring-batch/docs/{spring_batch_version}/api/org/springframework/batch/item/file/builder/FlatFileItemWriterBuilder.html[クラス FlatFileItemWriterBuilder<T>]
+- https://docs.spring.io/spring-batch/docs/{spring_batch_version}/api/org/springframework/batch/item/file/builder/MultiResourceItemReaderBuilder.html[クラス MultiResourceItemReaderBuilder<T>]
+- https://docs.spring.io/spring-batch/docs/{spring_batch_version}/api/org/springframework/batch/item/file/builder/MultiResourceItemWriterBuilder.html[クラス MultiResourceItemWriterBuilder<T>]
+- https://docs.spring.io/spring-batch/docs/{spring_batch_version}/api/org/springframework/batch/item/xml/builder/StaxEventItemReaderBuilder.html[クラス StaxEventItemReaderBuilder<T>]
+- https://docs.spring.io/spring-batch/docs/{spring_batch_version}/api/org/springframework/batch/item/xml/builder/StaxEventItemWriterBuilder.html[クラス StaxEventItemWriterBuilder<T>]
 
 
-====
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 [source, xml]
 .Bean定義例
@@ -448,10 +442,7 @@ public FlatFileItemReader() {
 </bean>
 ----
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============
 
 [cols="5,20,45,10,20", options="header"]
@@ -508,7 +499,8 @@ CSV形式の一般的書式とされるRFC-4180の仕様に定義されている
 
 |(7)
 |delimiter
-|区切り文字を設定する
+|区切り文字を設定する。 +
+TSVファイルの読み込みを行う場合には、<<Ch05_FileAccess_TSV_Input>>を参照。
 |
 |カンマ
 
@@ -528,24 +520,13 @@ CSV形式の一般的書式とされるRFC-4180の仕様に定義されている
 |なし
 |===
 
-[NOTE]
-.FieldSetMapperの独自実装について
-====
-FieldSetMapperを独自に実装する場合については、<<Ch05_FileAccess_HowToExtend>>を参照。
-====
-
-[NOTE]
+[[Ch05_FileAccess_TSV_Input]]
 .TSV形式ファイルの入力方法
-====
 TSVファイルの読み込みを行う場合には、区切り文字にタブを設定することで実現可能である。
-
-// ============ Java/XML Config Tab start. ============ 
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup050302" class="JavaConfigTab" id="tabgroup050302_1" checked><label for="tabgroup050302_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup050302" class="XMLConfigTab" id="tabgroup050302_2"><label for="tabgroup050302_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+// ============ Java/XML Config Tab start. ============
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 [source, java]
 .TSVファイル読み込み時:区切り文字設定例(定数による設定)
@@ -553,10 +534,10 @@ TSVファイルの読み込みを行う場合には、区切り文字にタブ�
 tokenizer.setDelimiter(DelimitedLineTokenizer.DELIMITER_TAB);
 ----
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 [source, xml]
 .TSVファイル読み込み時:区切り文字設定例(定数による設定)
@@ -566,21 +547,14 @@ tokenizer.setDelimiter(DelimitedLineTokenizer.DELIMITER_TAB);
             static-field="org.springframework.batch.item.file.transform.DelimitedLineTokenizer.DELIMITER_TAB"/>
 </property>
 ----
-
-または、以下のようにしてもよい。
-
-[source, xml]
-.TSVファイル読み込み時:区切り文字設定例(文字参照による設定)
-----
-<property name="delimiter" value="&#09;"/>
-----
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============
 
+[NOTE]
+.FieldSetMapperの独自実装について
+====
+FieldSetMapperを独自に実装する場合については、<<Ch05_FileAccess_HowToExtend>>を参照。
 ====
 
 [WARNING]
@@ -589,7 +563,6 @@ tokenizer.setDelimiter(DelimitedLineTokenizer.DELIMITER_TAB);
 ``BeanWrapperFieldSetMapper``は、文字列を``trim``するため、先頭・末尾の空白と制御文字が削除されることに留意すること。
 
 ====
-
 
 [[Ch05_FileAccess_HowToUse_VariableLength_Output]]
 ==== 出力
@@ -624,12 +597,9 @@ public class Customer {
 上記のファイルを書き出すための設定は以下のとおり。
 
 // ============ Java/XML Config Tab start. ============ 
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup050303" class="JavaConfigTab" id="tabgroup050303_1" checked><label for="tabgroup050303_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup050303" class="XMLConfigTab" id="tabgroup050303_2"><label for="tabgroup050303_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 [source, java]
 .Bean定義例
@@ -660,10 +630,10 @@ public FlatFileItemWriter<Customer> writer(
 }
 ----
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 [source, xml]
 .Bean定義例
@@ -692,10 +662,7 @@ public FlatFileItemWriter<Customer> writer(
 </bean>
 ----
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============
 
 [cols="5,20,45,10,20", options="header"]
@@ -736,15 +703,17 @@ icon:warning[] trueの場合、shouldDeleteIfExistsの設定値は無効化さ�
 |(5)
 |shouldDeleteIfExists
 |icon:warning[] appendAllowedがtrueの場合は、この設定は無効化されるため、値を指定しないことを推奨する。 +
-trueの場合、既にファイルが存在すれば削除する。 +
-falseの場合、既にファイルが存在すれば例外をスローする。
+ファイル出力前に出力ファイルが存在していた場合の動作を設定する。 +
+trueの場合、ファイル出力前に既にファイルが存在すれば削除する。 +
+falseの場合、ファイル出力前に既にファイルが存在すれば例外をスローする。
 |
 |true
 
 |(6)
 |shouldDeleteIfEmpty
-|trueの場合、出力件数が0件であれば出力対象ファイルを削除する。 +
-icon:warning[] 他の設定との組み合わせによって意図しない動作をする場合があるため、trueは設定しないことを推奨する。詳細は<<Ch05_FileAccess_HowToUse_VariableLength_Output_AboutShouldDeleteIfEmpty,後述>>する。
+|出力件数が0件であった場合にファイルを削除するかを設定する。 +
+trueの場合、ファイル出力後に出力件数が0件であれば出力対象ファイルを削除する。 +
+icon:warning[] 他の設定との組み合わせによって意図しない動作をする場合がある。詳細は<<Ch05_FileAccess_HowToUse_VariableLength_Output_Property,FlatFileItemWriterのshouldDeleteIfExistsとshouldDeleteIfEmptyの動作の違い>>を参照。
 |
 |false
 
@@ -783,61 +752,22 @@ icon:warning[] 他の設定との組み合わせによって意図しない動�
 |なし
 |===
 
-[IMPORTANT]
-[[Ch05_FileAccess_HowToUse_VariableLength_Output_AboutShouldDeleteIfEmpty]]
-.FlatFileItemWriterのshouldDeleteIfEmptyプロパティにはtrueは設定しないことを推奨する
-====
-FlatFileItemWriterは、以下のような組み合わせでプロパティ設定を行った場合に意図しないファイル削除が行われてしまう。
-
-// ============ Java/XML Config Tab start. ============
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup050304" class="JavaConfigTab" id="tabgroup050304_1" checked><label for="tabgroup050304_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup050304" class="XMLConfigTab" id="tabgroup050304_2"><label for="tabgroup050304_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
-// Java Config start.
-* ``.shouldDeleteIfExists(true)``
-* ``.shouldDeleteIfEmpty(false)``
-// Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
-// XML Config start.
-* ``p:shouldDeleteIfEmpty="true"``
-* ``p:shouldDeleteIfExists="false"``
-// XML Config end.
-++++
-  </div>
-</div>
-++++
-// ============ Java/XML Config Tab end. ============
-
-理由は以下の通りである。 +
-shouldDeleteIfEmptyにtrueを設定すると、出力件数が0件の場合に出力対象ファイルの削除が行われる。 +
-この「出力件数が0件の場合」には、shouldDeleteIfExistsにfalseを設定した状態で出力対象ファイルが既に存在していた場合も含まれる。
-
-よって、上記の組み合わせでプロパティを指定すると既に出力対象ファイルが存在する場合に出力対象ファイルの削除が行われてしまう。 +
-これは、出力対象ファイルが既に存在する場合は例外をスローさせて処理を終了したい場合には意図しない動作である。
-
-このような意図しない動作が行われるため、shouldDeleteIfEmptyにはtrueは設定しないことを推奨する。
-
-また、出力件数が0件であった場合にファイル削除等の後処理を行う場合は、shouldDeleteIfEmptyではなくOSコマンドやListener等で実装すること。
-====
-
-.EnclosableDelimitedLineAggregatorの使用方法
+[[Ch05_FileAccess_EnclosableDelimitedLineAggregator]]
+.EnclosableDelimitedLineAggregatorについて
 
 フィールドを囲み文字で囲む場合は、{terasoluna_batch5_shortname}が提供する``org.terasoluna.batch.item.file.transform.EnclosableDelimitedLineAggregator``を使用する。 +
+この拡張クラスでは、{SB}により提供されている``org.springframework.batch.item.file.transform.DelimitedLineAggregator``に、フィールドを囲み文字で囲む処理に対応することができ、RFC-4180 で求められている要件を満たすための拡張が行われている。
+本機能の実装の経緯については、 https://github.com/spring-projects/spring-batch/issues/1139[{SB}/BATCH-2463] を参照。 +
 ``EnclosableDelimitedLineAggregator``の仕様は以下のとおり。
 
 * 囲み文字、区切り文字を任意に指定可能
 ** デフォルトはCSV形式で一般的に使用される以下の値である
 *** 囲み文字：``"``(ダブルクォート)
 *** 区切り文字：``,``(カンマ)
-* フィールドに行頭復帰、改行、囲み文字、区切り文字が含まれている場合、囲み文字でフィールドを囲む
-** 囲み文字が含まれている場合、直前に囲み文字を付与しエスケープする
-** 設定によってすべてのフィールドを囲み文字で囲むことが可能
+* CSV形式のフォーマットについて、CSV形式の一般的書式とされるRFC-4180では下記のように定義されている。
+** フィールドに改行、囲み文字、区切り文字が含まれていない場合、各フィールドはダブルクォート(囲み文字)で囲んでも囲わなくてもよい
+** 改行(CRLF)、ダブルクォート(囲み文字)、カンマ(区切り文字)を含むフィールドは、ダブルクォートで囲むべきである
+** フィールドがダブルクォート(囲み文字)で囲まれている場合、フィールドの値に含まれるダブルクォートは、その直前に1つダブルクォートを付加して、エスケープしなければならない
 
 ``EnclosableDelimitedLineAggregator``の使用方法を以下に示す。
 
@@ -856,12 +786,9 @@ shouldDeleteIfEmptyにtrueを設定すると、出力件数が0件の場合に�
 ----
 
 // ============ Java/XML Config Tab start. ============
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup050305" class="JavaConfigTab" id="tabgroup050305_1" checked><label for="tabgroup050305_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup050305" class="XMLConfigTab" id="tabgroup050305_2"><label for="tabgroup050305_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 [source, java]
 .Bean定義例(lineAggregatorの設定のみ)
@@ -873,10 +800,10 @@ lineAggregator.setAllEnclosing(true); // (4)
 lineAggregator.setFieldExtractor(fieldExtractor);
 ----
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 [source, xml]
 .Bean定義例(lineAggregatorの設定のみ)
@@ -894,10 +821,7 @@ lineAggregator.setFieldExtractor(fieldExtractor);
 </property>
 ----
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============
 
 
@@ -912,13 +836,15 @@ lineAggregator.setFieldExtractor(fieldExtractor);
 
 |(1)
 |lineAggregator
-|``org.terasoluna.batch.item.file.transform.EnclosableDelimitedLineAggregator``を設定する。
+|``org.terasoluna.batch.item.file.transform.EnclosableDelimitedLineAggregator``を設定する。 +
+``EnclosableDelimitedLineAggregator``の使用方法は<<Ch05_FileAccess_EnclosableDelimitedLineAggregator>>を参照。
 |icon:check[]
 |なし
 
 |(2)
 |delimiter
-|区切り文字を設定する。
+|区切り文字を設定する。 +
+TSVファイルの出力を行う場合には、<<Ch05_FileAccess_TSV_Output>>を参照。
 |
 |カンマ
 
@@ -937,33 +863,13 @@ falseの場合フィールド内に行頭復帰(CR)、改行(LF)、区切り文�
 |false
 |===
 
-[NOTE]
-.EnclosableDelimitedLineAggregatorの提供について
-====
-{terasoluna_batch5_shortname}では、RFC-4180の仕様を満たすことを目的として拡張クラス``org.terasoluna.batch.item.file.transform.EnclosableDelimitedLineAggregator``を提供している。
-
-{SB}が提供している``org.springframework.batch.item.file.transform.DelimitedLineAggregator``はフィールドを囲み文字で囲む処理に対応しておらず、RFC-4180の仕様を満たすことができないためである。
-https://github.com/spring-projects/spring-batch/issues/1139[{SB}/BATCH-2463] を参照。
-
-CSV形式のフォーマットについて、CSV形式の一般的書式とされるRFC-4180では下記のように定義されている。
-
-* フィールドに改行、囲み文字、区切り文字が含まれていない場合、各フィールドはダブルクォート(囲み文字)で囲んでも囲わなくてもよい
-* 改行(CRLF)、ダブルクォート(囲み文字)、カンマ(区切り文字)を含むフィールドは、ダブルクォートで囲むべきである
-* フィールドがダブルクォート(囲み文字)で囲まれている場合、フィールドの値に含まれるダブルクォートは、その直前に1つダブルクォートを付加して、エスケープしなければならない
-====
-
-[NOTE]
+[[Ch05_FileAccess_TSV_Output]]
 .TSV形式ファイルの出力方法
-====
 TSVファイルの出力を行う場合には、区切り文字にタブを設定することで実現可能である。
-
 // ============ Java/XML Config Tab start. ============
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup050306" class="JavaConfigTab" id="tabgroup050306_1" checked><label for="tabgroup050306_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup050306" class="XMLConfigTab" id="tabgroup050306_2"><label for="tabgroup050306_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 [source, java]
 .TSVファイル出力時の区切り文字設定例(定数による設定)
@@ -971,10 +877,10 @@ TSVファイルの出力を行う場合には、区切り文字にタブを設�
 tokenizer.setDelimiter(DelimitedLineTokenizer.DELIMITER_TAB);
 ----
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 [source, xml]
 .TSVファイル出力時の区切り文字設定例(定数による設定)
@@ -984,21 +890,71 @@ tokenizer.setDelimiter(DelimitedLineTokenizer.DELIMITER_TAB);
             static-field="org.springframework.batch.item.file.transform.DelimitedLineTokenizer.DELIMITER_TAB"/>
 </property>
 ----
-
-または、以下のようにしてもよい。
-
-[source, xml]
-.TSVファイル出力時の区切り文字設定例(文字参照による設定)
-----
-<property name="delimiter" value="&#09;"/>
-----
 // XML Config end.
-++++
-  </div>
-</div>
-++++
-// ============ Java/XML Config Tab end. ============
 ====
+// ============ Java/XML Config Tab end. ============
+
+[[Ch05_FileAccess_HowToUse_VariableLength_Output_Property]]
+==== FlatFileItemWriterのshouldDeleteIfExistsとshouldDeleteIfEmptyの動作の違い
+
+``FlatFileItemWriter``のプロパティである、``shouldDeleteIfExists``と``shouldDeleteIfEmpty``は実行タイミングや判定対象が異なる。
+
+image::ch05/FileAccess/Ch05_FlatFileItemWriter_Property.png["FlatFileItemWriter Property",align="center"]
+
+[cols="10,30,15,15,30", options="header"]
+.shouldDeleteIfExistsとshouldDeleteIfEmptyの違い
+|===
+|
+|機能
+|判定タイミング
+|判定対象
+|設定値(true/false)の挙動
+
+|shouldDeleteIfExists
+|同一名称の出力ファイルが既に存在する場合の挙動を制御する
+|ファイル出力前
+|同一名称の出力ファイルの有無
+|true:既存の出力ファイルを削除し、新たに出力ファイルを作成する +
+false:例外をスローする
+
+|shouldDeleteIfEmpty
+|ジョブの出力件数が0件の場合の挙動を制御する
+|ファイル出力後
+|ジョブの出力件数が0件かどうか (*1)
+|true:出力ファイルを削除する +
+false:何もしない
+|===
+====
+*1. 特定条件下では出力件数が0件ではない場合でもファイルが削除される場合がある、詳細は後述の「<<Ch05_FileAccess_HowToUse_VariableLength_Output_Property_shouldDeleteIfEmpty_true,``shouldDeleteIfEmpty``がtrueの場合の注意すべき動作>>」を参照。
+====
+
+``shouldDeleteIfExists``はファイル出力前の出力ファイルを対象とし、``shouldDeleteIfEmpty``はファイル出力後の出力件数を対象をしている。
+
+[[Ch05_FileAccess_HowToUse_VariableLength_Output_Property_shouldDeleteIfEmpty_true]]
+``shouldDeleteIfEmpty``がtrueの場合の注意すべき動作について説明する。 +
+以下の条件を満たした場合、出力件数が0件でなくとも出力ファイルが削除されるため注意が必要である。
+
+* ``shouldDeleteIfExists``にfalseを設定
+* ``shouldDeleteIfEmpty``にtrueを設定
+* Jobによるファイル出力前に既に出力ファイルが存在する
+
+条件を満たした場合、以下の様に処理が進む。
+
+. ``shouldDeleteIfExists``はジョブ開始時に既存ファイルがあるかチェックされる。
+. この時点ではまだ``ItemWriter``によるファイル出力前だが、同名のファイルが既に存在したときはファイル出力を行われずに例外がスローされる。
+. しかし例外スロー前に後処理としてファイルクローズが行われ、ジョブ終了時の``shouldDeleteIfEmpty``が評価される。
+. ここで``shouldDeleteIfEmpty``がtrueの場合、前処理で例外がスローされているためジョブの出力件数が0件となりファイルが削除される。 +
+これは既存ファイルのレコードがたとえ10000行あっても出力件数が0件として評価されファイルが削除される。
+
+このように、``shouldDeleteIfExists``と``souldDeleteIfEmpty``の設定値の組み合わせによっては、出力ファイルが意図せず削除される恐れがあり注意が必要である。 +
+意図せぬ出力ファイルの削除を避けるため、以下を検討するとよい。
+
+* 不要な出力ファイルは、別の方法で削除する
+** ジョブスケジューラ等で、不要な出力ファイルを定期的にクリーンアップする
+* ``shouldDeleteIfExists``、``shouldDeleteIfEmpty``による出力ファイル削除を禁止する
+** ``shouldDeleteIfExists``、``shouldDeleteIfEmpty``はともにfalseとする
+
+以上のことから、``shouldDeleteIfExists``と``shouldDeleteIfEmpty``は実行タイミングや判定対象が異なることと、特定条件下で出力ファイルが意図せず削除される恐れがあるため注意が必要である。
 
 [[Ch05_FileAccess_HowToUse_FixedLength]]
 === 固定長レコード
@@ -1079,12 +1035,9 @@ public class SalesPlanDetail {
 上記のファイルを読む込むための設定は以下のとおり。
 
 // ============ Java/XML Config Tab start. ============
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup050307" class="JavaConfigTab" id="tabgroup050307_1" checked><label for="tabgroup050307_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup050307" class="XMLConfigTab" id="tabgroup050307_2"><label for="tabgroup050307_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 [source, java]
 .Bean定義例
@@ -1114,10 +1067,10 @@ public FlatFileItemReader<SalesPlanDetail> reader(
 }
 ----
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 [source, xml]
 .Bean定義例
@@ -1151,10 +1104,7 @@ public FlatFileItemReader<SalesPlanDetail> reader(
 </bean>
 ----
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============
 
 [cols="5,20,45,10,20", options="header"]
@@ -1272,22 +1222,19 @@ FieldSetMapperを独自に実装する場合については、<<Ch05_FileAccess_
 ``FixedByteLengthBufferedReaderFactory``の定義方法を以下に示す。
 
 // ============ Java/XML Config Tab start. ============
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup050308" class="JavaConfigTab" id="tabgroup050308_1" checked><label for="tabgroup050308_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup050308" class="XMLConfigTab" id="tabgroup050308_2"><label for="tabgroup050308_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 [source, java]
 ----
 FixedByteLengthBufferedReaderFactory bufferedReaderFactory = new FixedByteLengthBufferedReaderFactory(32); // (1)
 ----
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 [source, xml]
 ----
@@ -1297,10 +1244,7 @@ FixedByteLengthBufferedReaderFactory bufferedReaderFactory = new FixedByteLength
 </property>
 ----
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============
 
 
@@ -1424,12 +1368,9 @@ public class SalesPlanDetail {
 上記のファイルを書き出すための設定は以下のとおり。
 
 // ============ Java/XML Config Tab start. ============
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup050309" class="JavaConfigTab" id="tabgroup050309_1" checked><label for="tabgroup050309_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup050309" class="XMLConfigTab" id="tabgroup050309_2"><label for="tabgroup050309_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 [source, java]
 .Bean定義
@@ -1458,10 +1399,10 @@ public FlatFileItemWriter<SalesPlanDetail> writer(
 }
 ----
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 [source, xml]
 .Bean定義
@@ -1489,10 +1430,7 @@ public FlatFileItemWriter<SalesPlanDetail> writer(
 </bean>
 ----
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============
 
 [cols="5,20,45,10,20", options="header"]
@@ -1534,15 +1472,17 @@ icon:warning[] trueの場合、shouldDeleteIfExistsの設定値は無効化さ�
 |(5)
 |shouldDeleteIfExists
 |icon:warning[] appendAllowedがtrueの場合は、この設定は無効化されるため、値を指定しないことを推奨する。 +
-trueの場合、既にファイルが存在すれば削除する。 +
-falseの場合、既にファイルが存在すれば例外をスローする。
+ファイル出力前に出力ファイルが存在していた場合の動作を設定する。 +
+trueの場合、ファイル出力前に既にファイルが存在すれば削除する。 +
+falseの場合、ファイル出力前に既にファイルが存在すれば例外をスローする。
 |
 |true
 
 |(6)
 |shouldDeleteIfEmpty
-|trueの場合、出力件数が0件であれば出力対象ファイルを削除する。 +
-icon:warning[] 他の設定との組み合わせによって意図しない動作をする場合があるため、trueは設定しないことを推奨する。詳細は<<Ch05_FileAccess_HowToUse_VariableLength_Output_AboutShouldDeleteIfEmpty,可変長レコードの出力の注意書き>>を参照。
+|出力件数が0件であった場合にファイルを削除するかを設定する。 +
+trueの場合、ファイル出力後に出力件数が0件であれば出力対象ファイルを削除する。 +
+icon:warning[] 他の設定との組み合わせによって意図しない動作をする場合がある。詳細は<<Ch05_FileAccess_HowToUse_VariableLength_Output_Property,FlatFileItemWriterのshouldDeleteIfExistsとshouldDeleteIfEmptyの動作の違い>>を参照。
 |
 |false
 
@@ -1619,12 +1559,9 @@ icon:warning[] 他の設定との組み合わせによって意図しない動�
 出力ファイルの使用は上記の例と同様。
 
 // ============ Java/XML Config Tab start. ============
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup050310" class="JavaConfigTab" id="tabgroup050310_1" checked><label for="tabgroup050310_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup050310" class="XMLConfigTab" id="tabgroup050310_2"><label for="tabgroup050310_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 [source, java]
 .Bean定義(lineAggregatorの設定のみ)
@@ -1635,10 +1572,10 @@ final SalesPlanFixedLengthFieldExtractor fieldExtractor = new SalesPlanFixedLeng
 lineAggregator.setFieldExtractor(fieldExtractor);
 ----
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 [source, xml]
 .Bean定義(lineAggregatorの設定のみ)
@@ -1653,10 +1590,7 @@ lineAggregator.setFieldExtractor(fieldExtractor);
 </property>
 ----
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============
 
 [cols="5,20,45,10,20", options="header"]
@@ -1810,12 +1744,9 @@ Summary3:6,000,000,000
 上記のファイルを読む込むための設定は以下のとおり。
 
 // ============ Java/XML Config Tab start. ============
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup050311" class="JavaConfigTab" id="tabgroup050311_1" checked><label for="tabgroup050311_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup050311" class="XMLConfigTab" id="tabgroup050311_2"><label for="tabgroup050311_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 [source, java]
 .Bean定義
@@ -1834,10 +1765,10 @@ public FlatFileItemReader<String> reader(
 }
 ----
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 [source, xml]
 .Bean定義
@@ -1854,10 +1785,7 @@ public FlatFileItemReader<String> reader(
 </bean>
 ----
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============
 
 [cols="5,20,45,10,20", options="header"]
@@ -1909,12 +1837,9 @@ Summary3:6,000,000,000
 ----
 
 // ============ Java/XML Config Tab start. ============
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup050312" class="JavaConfigTab" id="tabgroup050312_1" checked><label for="tabgroup050312_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup050312" class="XMLConfigTab" id="tabgroup050312_2"><label for="tabgroup050312_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 [source, java]
 .Bean定義
@@ -1939,10 +1864,10 @@ public FlatFileItemWriter<SalesPlanDetail> writer(
 }
 ----
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 [source, xml]
 .Bean定義
@@ -1964,10 +1889,7 @@ public FlatFileItemWriter<SalesPlanDetail> writer(
 </bean>
 ----
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============
 
 [cols="5,20,45,10,20", options="header"]
@@ -2008,15 +1930,17 @@ icon:warning[] trueの場合、shouldDeleteIfExistsの設定値は無効化さ�
 |(5)
 |shouldDeleteIfExists
 |icon:warning[] appendAllowedがtrueの場合は、この設定は無効化されるため、値を指定しないことを推奨する。 +
-trueの場合、既にファイルが存在すれば削除する。 +
-falseの場合、既にファイルが存在すれば例外をスローする。
+ファイル出力前に出力ファイルが存在していた場合の動作を設定する。 +
+trueの場合、ファイル出力前に既にファイルが存在すれば削除する。 +
+falseの場合、ファイル出力前に既にファイルが存在すれば例外をスローする。
 |
 |true
 
 |(6)
 |shouldDeleteIfEmpty
-|trueの場合、出力件数が0件であれば出力対象ファイルを削除する。 +
-icon:warning[] 他の設定との組み合わせによって意図しない動作をする場合があるため、trueは設定しないことを推奨する。詳細は<<Ch05_FileAccess_HowToUse_VariableLength_Output_AboutShouldDeleteIfEmpty,可変長レコードの出力の注意書き>>を参照。
+|出力件数が0件であった場合にファイルを削除するかを設定する。 +
+trueの場合、ファイル出力後に出力件数が0件であれば出力対象ファイルを削除する。 +
+icon:warning[] 他の設定との組み合わせによって意図しない動作をする場合がある。詳細は<<Ch05_FileAccess_HowToUse_VariableLength_Output_Property,FlatFileItemWriterのshouldDeleteIfExistsとshouldDeleteIfEmptyの動作の違い>>を参照。
 |
 |false
 
@@ -2068,12 +1992,9 @@ branchId,year,month,customerId,amount
 上記のファイルを読む込むための設定は以下のとおり。
 
 // ============ Java/XML Config Tab start. ============
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup050313" class="JavaConfigTab" id="tabgroup050313_1" checked><label for="tabgroup050313_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup050313" class="XMLConfigTab" id="tabgroup050313_2"><label for="tabgroup050313_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 [source, java]
 .linesToSkipによる読み飛ばし
@@ -2091,10 +2012,10 @@ public FlatFileItemReader<SalesPlanDetail> reader(
 }
 ----
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 [source, xml]
 .linesToSkipによる読み飛ばし
@@ -2109,10 +2030,7 @@ public FlatFileItemReader<SalesPlanDetail> reader(
 </bean>
 ----
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============
 
 [cols="5,20,45,10,20", options="header"]
@@ -2226,12 +2144,9 @@ tail -n +`expr ${header} + 1` ${input} | head -n -${footer} > ${output}
 ヘッダレコードの情報を取り出す際の実装例を示す。
 
 // ============ Java/XML Config Tab start. ============
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup050314" class="JavaConfigTab" id="tabgroup050314_1" checked><label for="tabgroup050314_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup050314" class="XMLConfigTab" id="tabgroup050314_2"><label for="tabgroup050314_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 [source, java]
 .Bean定義
@@ -2285,10 +2200,10 @@ public Job jobReadCsvSkipAndReferHeader(JobRepository jobRepository,
 }
 ----
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 [source, xml]
 .Bean定義
@@ -2321,10 +2236,7 @@ public Job jobReadCsvSkipAndReferHeader(JobRepository jobRepository,
 </batch:job>
 ----
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============
 
 [cols="5,20,45,10,20", options="header"]
@@ -2358,9 +2270,9 @@ public Job jobReadCsvSkipAndReferHeader(JobRepository jobRepository,
 |なし
 |===
 
-[IMPORTANT]
-.リスナー設定について
-====
+[[Ch05_FileAccess_HowToUse_HeaderFooter_batchListeners]]
+===== リスナー設定について
+
 下記の2つの場合は自動で``Listener``として登録されないため、ジョブ定義時に``listenerメソッド/<batch:listeners>``にも定義を追加する必要がある。 +
 (リスナの定義を追加しないと、``StepExecutionListener#beforeStep()``が実行されない)
 
@@ -2368,12 +2280,9 @@ public Job jobReadCsvSkipAndReferHeader(JobRepository jobRepository,
 * ``Tasklet``の実装クラスに実装する``StepExecutionListener``
 
 // ============ Java/XML Config Tab start. ============
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup050315" class="JavaConfigTab" id="tabgroup050315_1" checked><label for="tabgroup050315_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup050315" class="XMLConfigTab" id="tabgroup050315_2"><label for="tabgroup050315_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 [source, java]
 ----
@@ -2408,10 +2317,10 @@ public Job jobReadCsvSkipAndReferHeader(JobRepository jobRepository,
 }
 ----
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 [source, xml]
 ----
@@ -2431,13 +2340,8 @@ public Job jobReadCsvSkipAndReferHeader(JobRepository jobRepository,
 </batch:job>
 ----
 // XML Config end.
-++++
-  </div>
-</div>
-++++
-// ============ Java/XML Config Tab end. ============
-
 ====
+// ============ Java/XML Config Tab end. ============
 
 ``LineCallbackHandler``は以下の要領で実装する。
 
@@ -2713,12 +2617,9 @@ public class SalesPlanDetailFooter implements Serializable {
 ** フッタ情報を取得する前処理ステップとデータレコードを読み込み主処理を行うステップを定義する
 
 // ============ Java/XML Config Tab start. ============
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup050316" class="JavaConfigTab" id="tabgroup050316_1" checked><label for="tabgroup050316_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup050316" class="XMLConfigTab" id="tabgroup050316_2"><label for="tabgroup050316_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 [source, java]
 .Bean定義
@@ -2804,10 +2705,10 @@ public Job jobReadAndWriteCsvWithFooter(JobRepository jobRepository,
 }
 ----
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 [source, xml]
 .Bean定義
@@ -2861,10 +2762,7 @@ public Job jobReadAndWriteCsvWithFooter(JobRepository jobRepository,
 </batch:job>
 ----
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============
 
 [cols="5,20,45,10,20", options="header"]
@@ -3028,12 +2926,9 @@ public class WriteHeaderFlatFileFooterCallback implements FlatFileHeaderCallback
 |===
 
 // ============ Java/XML Config Tab start. ============
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup050317" class="JavaConfigTab" id="tabgroup050317_1" checked><label for="tabgroup050317_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup050317" class="XMLConfigTab" id="tabgroup050317_2"><label for="tabgroup050317_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 [source, java]
 .Bean定義
@@ -3055,10 +2950,10 @@ public FlatFileItemWriter<Customer> writer(
 }
 ----
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 [source, xml]
 .Bean定義
@@ -3075,10 +2970,7 @@ public FlatFileItemWriter<Customer> writer(
 </bean>
 ----
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============
 
 [cols="5,20,45,10,20", options="header"]
@@ -3190,12 +3082,9 @@ public class WriteFooterFlatFileFooterCallback implements FlatFileFooterCallback
 |===
 
 // ============ Java/XML Config Tab start. ============
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup050318" class="JavaConfigTab" id="tabgroup050318_1" checked><label for="tabgroup050318_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup050318" class="XMLConfigTab" id="tabgroup050318_2"><label for="tabgroup050318_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 [source, java]
 .Bean定義
@@ -3216,10 +3105,10 @@ public FlatFileItemWriter<SalesPlanDetail> writer(
 }
 ----
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 [source, xml]
 .Bean定義
@@ -3234,10 +3123,7 @@ public FlatFileItemWriter<SalesPlanDetail> writer(
 </bean>
 ----
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============
 
 [cols="5,20,45,10,20", options="header"]
@@ -3285,12 +3171,9 @@ sales_plan_detail_03.csv
 ----
 
 // ============ Java/XML Config Tab start. ============
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup050319" class="JavaConfigTab" id="tabgroup050319_1" checked><label for="tabgroup050319_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup050319" class="XMLConfigTab" id="tabgroup050319_2"><label for="tabgroup050319_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 [source, java]
 .Bean定義
@@ -3317,10 +3200,10 @@ public FlatFileItemReader<SalesPlanDetail> reader() {
 }
 ----
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 [source, xml]
 .Bean定義
@@ -3341,10 +3224,7 @@ public FlatFileItemReader<SalesPlanDetail> reader() {
 </bean>
 ----
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============
 
 [cols="5,20,45,10,20", options="header"]
@@ -3410,12 +3290,9 @@ public FlatFileItemReader<SalesPlanDetail> reader() {
 ** ``itemCountLimitPerResource``プロパティに1ファイルあたりの出力件数を指定する
 
 // ============ Java/XML Config Tab start. ============
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup050320" class="JavaConfigTab" id="tabgroup050320_1" checked><label for="tabgroup050320_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup050320" class="XMLConfigTab" id="tabgroup050320_2"><label for="tabgroup050320_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 [source, java]
 .Bean定義
@@ -3455,10 +3332,10 @@ public CustomerListResourceSuffixCreator customerListResourceSuffixCreator() {
 }
 ----
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 [source, xml]
 .Bean定義
@@ -3484,10 +3361,7 @@ public CustomerListResourceSuffixCreator customerListResourceSuffixCreator() {
       class="jp.co.ntt.fw.macchinetta.batch.functionaltest.ch05.fileaccess.module.CustomerListResourceSuffixCreator"/>  <!-- (6) -->
 ----
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============
 
 [cols="5,20,45,10,20", options="header"]
@@ -3792,12 +3666,9 @@ public class ControlBreakTasklet implements Tasklet {
 |===
 
 // ============ Java/XML Config Tab start. ============
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup050321" class="JavaConfigTab" id="tabgroup050321_1" checked><label for="tabgroup050321_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup050321" class="XMLConfigTab" id="tabgroup050321_2"><label for="tabgroup050321_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 [source,java]
 .Bean定義
@@ -3830,10 +3701,10 @@ public FlatFileItemReader<SalesPerformanceDetail> delegateReader(
 }
 ----
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 [source,xml]
 .Bean定義
@@ -3862,10 +3733,7 @@ public FlatFileItemReader<SalesPerformanceDetail> delegateReader(
 </bean>
 ----
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============
 
 
@@ -3908,14 +3776,14 @@ public FlatFileItemReader<SalesPerformanceDetail> delegateReader(
 ** ``FieldSet``クラスは``LineTokenizer``によって分割されたレコードの各フィールドの値を保持する
 ** インデックスまたは名前を指定して値を格納および取得することができる
 
-下記のような和暦フォーマットのDate型やカンマを含むBigDecimal型の変換を行うファイルを読み込む場合の実装例を示す。
+下記のような西暦フォーマットのDate型やカンマを含むBigDecimal型の変換を行うファイルを読み込む場合の実装例を示す。
 
 [source, csv]
 .入力ファイル例
 ----
-"000001","平成28年1月1日","000000001","1,000,000,000"
-"000002","平成29年2月2日","000000002","2,000,000,000"
-"000003","平成30年3月3日","000000003","3,000,000,000"
+"000001","2016年1月1日","000000001","1,000,000,000"
+"000002","2017年2月2日","000000002","2,000,000,000"
+"000003","2018年3月3日","000000003","3,000,000,000"
 ----
 
 [cols="10,35,35,20", options="header"]
@@ -3934,7 +3802,7 @@ public FlatFileItemReader<SalesPerformanceDetail> delegateReader(
 |(2)
 |日付
 |Date
-|和暦フォーマット
+|西暦フォーマット
 
 |(3)
 |customerId
@@ -3980,7 +3848,7 @@ public class UseDateSalesPlanDetailFieldSetMapper implements FieldSetMapper<UseD
         item.setBranchId(fieldSet.readString("branchId"));  // (3)
 
         // (4)
-        DateFormat japaneseFormat = new SimpleDateFormat("GGGGy年M月d日", new Locale("ja", "JP", "JP"));
+        DateFormat japaneseFormat = new SimpleDateFormat("yyyy年M月d日");
         try {
             item.setDate(japaneseFormat.parse(fieldSet.readString("date")));
         } catch (ParseException e) {
@@ -4023,7 +3891,7 @@ public class UseDateSalesPlanDetailFieldSetMapper implements FieldSetMapper<UseD
 
 |(4)
 |引数で受けた``FieldSet``から``date``を取得し、変換対象クラスの変数へ格納する。 +
-和暦フォーマットの日付をDate型へ変換するため、``SimpleDateFormat``でフォーマットを指定している。
+西暦フォーマットの日付をDate型へ変換するため、``SimpleDateFormat``でフォーマットを指定している。
 
 |(5)
 |引数で受けた``FieldSet``から``customerId``を取得し、変換対象クラスの変数へ格納する。 +
@@ -4106,17 +3974,6 @@ XMLの入出力には{SB}が提供する``org.springframework.batch.item.xml.Sta
 |UTF-8
 |===
 
-[WARNING]
-.{SB}のバージョンアップに伴うエンコーディングの仕様変更
-====
-Macchinetta Batch 2.2.1以前が利用する{SB} 4.2.x以前の``StaxEventItemReader``のエンコーディングは入力するXMLファイルのencoding属性に従う。
-encoding属性が宣言されていない場合はUTF-8で読み込みが行われるため、Bean定義で指定することはできなかった。 +
-{SB} 4.3.0以降では``StaxEventItemReader``にencodingプロパティが追加され、デフォルト値を含め上記の表の仕様に変更された。
-
-Macchinetta Batch 2.3.0は{SB} {spring_batch_version}を利用しているため、Macchinetta Batch 2.2.1以前からのバージョンアップを行った場合は、
-エンコーディングを明示的に指定しないと読み込みに利用されるエンコーディングが変化してしまう可能性があるため注意すること。
-====
-
 [[Ch05_FileAccess_HowToExtend_Xml_Input]]
 ==== 入力
 
@@ -4141,44 +3998,27 @@ XMLファイルの入力には{SB}が提供する``org.springframework.batch.ite
 
 下記の入力ファイルを読み込むための設定例を示す。
 
-[IMPORTANT]
+[[add_library]]
 .依存ライブラリの追加
-====
-JavaクラスとXML間のマッピングに``@XmlRootElement``などを使用するため、pom.xmlに下記の依存関係を追加する。
-[source, xml]
-----
-<dependency>
-    <groupId>jakarta.xml.bind</groupId>
-    <artifactId>jakarta.xml.bind-api</artifactId>
-</dependency>
-----
 
-``org.springframework.oxm.jaxb.Jaxb2Marshaller``など、
-Spring Frameworkが提供するライブラリであるSpring Object/XML Marshallingを使用する場合は、pom.xmlに下記の依存関係を追加する。
-
+本ガイドラインの前提においてJAXBを利用する場合は、以下の依存関係が必須である。 +
+アプリケーションの依存ライブラリやバッチから提供されるライブラリにjaxb-implがない場合は、jaxb-implも追加する。
 [source, xml]
 ----
 <dependency>
     <groupId>org.springframework</groupId>
     <artifactId>spring-oxm</artifactId>
 </dependency>
-----
 
-JAXBを利用する場合、jaxb-core及びjaxb-implが必要となる。
-アプリケーションの依存ライブラリやバッチから提供されるライブラリにjaxb-core及びjaxb-implがない場合は、pom.xmlに下記の依存関係を追加する。
-[source, xml]
-----
 <dependency>
-    <groupId>com.sun.xml.bind</groupId>
-    <artifactId>jaxb-core</artifactId>
-    <version>${jaxb-core.version}</version> <!-- (1) -->
-    <scope>runtime</scope> <!-- (2) -->
+    <groupId>jakarta.xml.bind</groupId>
+    <artifactId>jakarta.xml.bind-api</artifactId>
 </dependency>
+
 <dependency>
     <groupId>com.sun.xml.bind</groupId>
     <artifactId>jaxb-impl</artifactId>
-    <version>${jaxb-impl.version}</version> <!-- (3) -->
-    <scope>runtime</scope> <!-- (4) -->
+    <scope>runtime</scope> <!-- (1) -->
 </dependency>
 ----
 
@@ -4189,19 +4029,9 @@ JAXBを利用する場合、jaxb-core及びjaxb-implが必要となる。
 |説明
 
 |(1)
-|<<Ch02_MacchinettaBatchStack#Ch02_MacchinettaBatchStack_Stack_OSS,「表 1. OSSバージョン一覧」>>のjaxb-coreのバージョンを指定する。
-
-|(2)
-|jaxb-coreはアプリケーションの実行時にのみ利用されるため、スコープはruntimeとする。
-
-|(3)
-|<<Ch02_MacchinettaBatchStack#Ch02_MacchinettaBatchStack_Stack_OSS,「表 1. OSSバージョン一覧」>>のjaxb-implのバージョンを指定する。
-
-|(4)
 |jaxb-implはアプリケーションの実行時にのみ利用されるため、スコープはruntimeとする。
-|===
 
-====
+|===
 
 
 [source, xml]
@@ -4313,13 +4143,28 @@ XML要素とJavaBeanプロパティが同じの場合、``name``属性での要�
 
 上記のファイルを読む込むための設定は以下のとおり。
 
+.batch-application.properties
+[source,txt]
+----
+(1)
+#TERASOLUNA FileAccess settings.
+p:schema="file:/usr/local/terasoluna/functionaltest/files/test/input/ch05/fileaccess/customer.xsd"
+----
+
+[cols="10,90", options="header"]
+.設定内容の項目一覧
+|===
+|項番
+|説明
+
+|(1)
+|XMLファイルの入力に使用するスキーマファイルのパスを指定する。
+|===
+
 // ============ Java/XML Config Tab start. ============
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup050322" class="JavaConfigTab" id="tabgroup050322_1" checked><label for="tabgroup050322_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup050322" class="XMLConfigTab" id="tabgroup050322_2"><label for="tabgroup050322_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 [source, java]
 .Bean定義
@@ -4328,10 +4173,10 @@ XML要素とJavaBeanプロパティが同じの場合、``name``属性での要�
 @StepScope
 public StaxEventItemReader<Customer> reader(
         @Value("#{jobParameters['inputFile']}") File inputFile, // (1)
-        @Value("file:/usr/local/macchinetta/functionaltest/files/test/input/ch05/fileaccess/customer.xsd") Resource schemaResoure, // (6)
+        @Value("${fileaccess.schema-file-path}") String schemaFile, // (6)
         CustomerValidationEventHandler customerValidationEventHandler) throws Exception {
     Jaxb2Marshaller unmarshaller = new Jaxb2Marshaller(); // (5)
-    unmarshaller.setSchema(schemaREsource)); // (6)
+    unmarshaller.setSchema(new FileSystemResource(schemaFile)); // (6)
     unmarshaller.setValidationEventHandler(customerValidationEventHandler); // (7)
     unmarshaller.setClassesToBeBound(Customer.class); // (8)
     unmarshaller.afterPropertiesSet();
@@ -4346,10 +4191,10 @@ public StaxEventItemReader<Customer> reader(
 }
 ----
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 [source, xml]
 .Bean定義
@@ -4363,7 +4208,7 @@ public StaxEventItemReader<Customer> reader(
     <property name="unmarshaller">  <!-- (5) -->
         <!-- (6) (7) -->
         <bean class="org.springframework.oxm.jaxb.Jaxb2Marshaller"
-              p:schema="file:/usr/local/macchinetta/test/input/ch05/fileaccess/customer.xsd"
+              p:schema="file:${fileaccess.schema-file-path}"
               p:validationEventHandler-ref="customerValidationEventHandler">
             <property name="classesToBeBound">  <!-- (8) -->
                 <list>
@@ -4375,10 +4220,7 @@ public StaxEventItemReader<Customer> reader(
 </bean>
 ----
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============
 
 [cols="5,20,45,10,20", options="header"]
@@ -4427,7 +4269,7 @@ JAXBを利用する場合は、``org.springframework.oxm.jaxb.Jaxb2Marshaller``�
 |(6)
 |schema
 |バリデーションにて使用するスキーマファイルを設定する。 +
-この例では、スキーマファイルの場所は``@Value``にファイルパス（絶対パス）で指定し、インジェクションする方式とする。 +
+この例では、スキーマファイルの場所を``batch-application.properties``に定義し、``@Value``を使用してプロパティとしてインジェクションする方式とする。 +
 これ以外にもファイルの場所の指定方法はいくつかのバリエーションが考えられるが、詳細説明は割愛する（ファイルパスではなくクラスパスで指定する、パス情報をプロパティファイルに定義する、等）。 +
 開発案件のルールやアプリケーション実行環境を考慮して最適な方式を検討すること。 +
 スキーマファイルの記述例は後述する。
@@ -4586,116 +4428,22 @@ XMLファイルの出力には{SB}が提供する``org.springframework.batch.ite
 * ``Jaxb2Marshaller``には以下のプロパティを設定する
 ** ``classesToBeBound``プロパティに変換対象のクラスをリスト形式で設定する
 
-下記の出力ファイルを書き出すための設定例を示す。
+後述で示される<<output_example,出力ファイル例>>を書き出すための設定例を示す。
 
-[IMPORTANT]
 .依存ライブラリの追加
-====
-JavaクラスとXML間のマッピングに``@XmlRootElement``などを使用するため、pom.xmlに下記の依存関係を追加する。
-[source, xml]
-----
-<dependency>
-    <groupId>jakarta.xml.bind</groupId>
-    <artifactId>jakarta.xml.bind-api</artifactId>
-</dependency>
-----
-
-``org.springframework.oxm.jaxb.Jaxb2Marshaller``など、
-Spring Frameworkが提供するライブラリであるSpring Object/XML Marshallingを使用する場合は、pom.xmlに下記の依存関係を追加する。
-
-[source, xml]
-----
-<dependency>
-    <groupId>org.springframework</groupId>
-    <artifactId>spring-oxm</artifactId>
-</dependency>
-----
-
-JAXBを利用する場合、jaxb-core及びjaxb-implが必要となる。
-アプリケーションの依存ライブラリやバッチから提供されるライブラリにjaxb-core及びjaxb-implがない場合は、pom.xmlに下記の依存関係を追加する。
-[source, xml]
-----
-<dependency>
-    <groupId>com.sun.xml.bind</groupId>
-    <artifactId>jaxb-core</artifactId>
-    <version>${jaxb-core.version}</version> <!-- (1) -->
-    <scope>runtime</scope> <!-- (2) -->
-</dependency>
-<dependency>
-    <groupId>com.sun.xml.bind</groupId>
-    <artifactId>jaxb-impl</artifactId>
-    <version>${jaxb-impl.version}</version> <!-- (3) -->
-    <scope>runtime</scope> <!-- (4) -->
-</dependency>
-----
-
-[cols="10,90", options="header"]
-.設定内容の項目一覧
-|===
-|項番
-|説明
-
-|(1)
-|<<Ch02_MacchinettaBatchStack#Ch02_MacchinettaBatchStack_Stack_OSS,「表 1. OSSバージョン一覧」>>のjaxb-coreのバージョンを指定する。
-
-|(2)
-|jaxb-coreはアプリケーションの実行時にのみ利用されるため、スコープはruntimeとする。
-
-|(3)
-|<<Ch02_MacchinettaBatchStack#Ch02_MacchinettaBatchStack_Stack_OSS,「表 1. OSSバージョン一覧」>>のjaxb-implのバージョンを指定する。
-
-|(4)
-|jaxb-implはアプリケーションの実行時にのみ利用されるため、スコープはruntimeとする。
-|===
-
-====
-
-
-[source, xml]
-.出力ファイル例
-----
-<?xml version="1.0" encoding="UTF-8"?>
-<records>
-  <Customer>
-    <customerId>001</customerId>
-    <customerName>CustomerName001</customerName>
-    <customerAddress>CustomerAddress001</customerAddress>
-    <customerTel>11111111111</customerTel>
-    <chargeBranchId>001</chargeBranchId></Customer>
-  <Customer>
-    <customerId>002</customerId>
-    <customerName>CustomerName002</customerName>
-    <customerAddress>CustomerAddress002</customerAddress>
-    <customerTel>11111111111</customerTel>
-    <chargeBranchId>002</chargeBranchId></Customer>
-  <Customer>
-    <customerId>003</customerId>
-    <customerName>CustomerName003</customerName>
-    <customerAddress>CustomerAddress003</customerAddress>
-    <customerTel>11111111111</customerTel>
-    <chargeBranchId>003</chargeBranchId>
-  </Customer>
-</records>
-----
+依存ライブラリを追加する際の設定方法は<<Ch05_FileAccess_HowToExtend_Xml_Input>>で説明されている<<add_library,依存ライブラリの追加>>を参照する。
 
 [[Ch05_FileAccess_HowToExtend_Xml_Output_format]]
-[WARNING]
+
 .XMLファイル出力時のフォーマット処理(改行およびインデント)について
-====
-上記の出力ファイル例ではフォーマット処理(改行およびインデント)済みのXMLを例示しているが、実際にはフォーマットされていないファイルが出力される。
 
-``Jaxb2Marshaller``にはXML出力時にフォーマットを行う機能があるが期待どおり動作しない。 +
-この件に関してはSpring Forumにて議論されているため、今後期待どおり動作するようになる可能性がある。
-
-これを回避し、フォーマット済みの出力を行うためには、以下のように``marshallerProperties``に設定すればよい。
+``Jaxb2Marshaller`` のデフォルト設定では、XMLファイルはフォーマット処理(改行およびインデント)が行われないまま出力される。 +
+後述の<<output_example,出力ファイル例>>で示されているように、XMLのフォーマット処理を行うためには、以下のように ``Jaxb2Marshaller`` に対して ``marshallerProperties`` を設定する必要がある。
 
 // ============ Java/XML Config Tab start. ============
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup050323" class="JavaConfigTab" id="tabgroup050323_1" checked><label for="tabgroup050323_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup050323" class="XMLConfigTab" id="tabgroup050323_2"><label for="tabgroup050323_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 [source, java]
 ----
@@ -4705,10 +4453,10 @@ marshaller.setMarshallerProperties(Map.of("javax.xml.bind.Marshaller.JAXB_FORMAT
 marshaller.afterPropertiesSet();
 ----
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 [source, xml]
 ----
@@ -4732,12 +4480,8 @@ marshaller.afterPropertiesSet();
 </property>
 ----
 // XML Config end.
-++++
-  </div>
-</div>
-++++
-// ============ Java/XML Config Tab end. ============
 ====
+// ============ Java/XML Config Tab end. ============
 
 [source, java]
 .変換対象クラス
@@ -4782,15 +4526,12 @@ public class CustomerToJaxb {
 |XMLへの変換対象外とするフィールドのgetterに``@XmlTransient``アノテーションを付与する。
 |===
 
-上記のファイルを書き出すための設定は以下のとおり。
+後述の<<output_example,出力ファイル例>>を書き出すための設定は以下のとおり。
 
 // ============ Java/XML Config Tab start. ============
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup050324" class="JavaConfigTab" id="tabgroup050324_1" checked><label for="tabgroup050324_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup050324" class="XMLConfigTab" id="tabgroup050324_2"><label for="tabgroup050324_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 [source, java]
 .Bean定義
@@ -4801,6 +4542,7 @@ public StaxEventItemWriter<Customer> writer(
         @Value("#{jobParameters['outputFile']}") File outputFile) throws Exception {
     Jaxb2Marshaller marshaller = new Jaxb2Marshaller(); // (8)
     marshaller.setClassesToBeBound(CustomerToJaxb.class); // (9)
+    marshaller.setMarshallerProperties(Map.of("javax.xml.bind.Marshaller.JAXB_FORMATTED_OUTPUT", true)); // (10)
     marshaller.afterPropertiesSet();
     return new StaxEventItemWriterBuilder<Customer>()
             .name(ClassUtils.getShortName(StaxEventItemWriter.class))
@@ -4816,10 +4558,10 @@ public StaxEventItemWriter<Customer> writer(
 }
 ----
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 [source, xml]
 .Bean定義
@@ -4841,15 +4583,23 @@ public StaxEventItemWriter<Customer> writer(
                     <value>jp.co.ntt.fw.macchinetta.batch.functionaltest.ch05.fileaccess.model.mst.CustomerToJaxb</value>
                 </list>
             </property>
+            <property name="marshallerProperties">
+                <map>
+                    <entry>
+                        <key>
+                            <util:constant
+                                static-field="javax.xml.bind.Marshaller.JAXB_FORMATTED_OUTPUT"/> <!-- (10) -->
+                        </key>
+                        <value type="java.lang.Boolean">true</value>
+                    </entry>
+                </map>
+            </property>
         </bean>
     </property>
 </bean>
 ----
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============
 
 [cols="5,20,45,10,20", options="header"]
@@ -4889,8 +4639,9 @@ falseの場合、既にファイルが存在すれば例外をスローする。
 
 |(5)
 |shouldDeleteIfEmpty
-|trueの場合、出力件数が0件であれば出力対象ファイルを削除する。 +
-icon:warning[] 他の設定との組み合わせによって意図しない動作をする場合があるため、trueは設定しないことを推奨する。詳細は<<Ch05_FileAccess_HowToUse_VariableLength_Output_AboutShouldDeleteIfEmpty,可変長レコードの出力の注意書き>>を参照。
+|出力件数が0件であった場合にファイルを削除するかを設定する。 +
+trueの場合、ファイル出力後に出力件数が0件であれば出力対象ファイルを削除する。 +
+icon:warning[] 他の設定との組み合わせによって意図しない動作をする場合がある。詳細は<<Ch05_FileAccess_HowToUse_VariableLength_Output_Property,FlatFileItemWriterのshouldDeleteIfExistsとshouldDeleteIfEmptyの動作の違い>>を参照。
 |
 |false
 
@@ -4918,8 +4669,14 @@ JAXBを利用する場合は、``org.springframework.oxm.jaxb.Jaxb2Marshaller``�
 |変換対象のクラスをリスト形式で設定する。
 |icon:check[]
 |なし
-|===
 
+|(10)
+|marshallerProperties
+|JAXB Marshaller プロパティを設定する。 +
+ここでは、フォーマット済みの出力を行うために``javax.xml.bind.Marshaller.JAXB_FORMATTED_OUTPUT``をtrueに設定している。
+|
+|なし
+|===
 
 [[Ch05_FileAccess_HowToExtend_Xml_HeaderFooter]]
 ===== ヘッダ・フッタの出力
@@ -4928,55 +4685,14 @@ JAXBを利用する場合は、``org.springframework.oxm.jaxb.Jaxb2Marshaller``�
 
 ヘッダの出力は、``headerCallback``、フッタの出力は、``footerCallback``に``StaxWriterCallback``の実装を設定する。
 
-以下に出力されるファイルの例を示す。 +
 ヘッダはルート要素の開始タグ直後、フッタはルート要素の終了タグ直前に出力される。
 
-[source, xml]
-.出力ファイル例
-----
-<?xml version="1.0" encoding="UTF-8"?>
-<records>
-<!-- Customer list header -->
-  <Customer>
-    <customerId>001</customerId>
-    <customerName>CustomerName001</customerName>
-    <customerAddress>CustomerAddress001</customerAddress>
-    <customerTel>11111111111</customerTel>
-    <chargeBranchId>001</chargeBranchId></Customer>
-  <Customer>
-    <customerId>002</customerId>
-    <customerName>CustomerName002</customerName>
-    <customerAddress>CustomerAddress002</customerAddress>
-    <customerTel>11111111111</customerTel>
-    <chargeBranchId>002</chargeBranchId></Customer>
-  <Customer>
-    <customerId>003</customerId>
-    <customerName>CustomerName003</customerName>
-    <customerAddress>CustomerAddress003</customerAddress>
-    <customerTel>11111111111</customerTel>
-    <chargeBranchId>003</chargeBranchId>
-  </Customer>
-<!-- Customer list footer -->
-</records>
-----
-
-[WARNING]
-.XMLファイル出力時のフォーマット処理(改行およびインデント)について
-====
-上記の出力ファイル例ではフォーマット処理(改行およびインデント)済みのXMLを例示しているが、実際にはフォーマットされていないファイルが出力される。
-
-詳細は、<<Ch05_FileAccess_HowToExtend_Xml_Output>>を参照。
-====
-
-上記のようなファイルを出力する設定を以下に示す。
+``StaxEventItemWriter`` のBean定義を以下に示す。
 
 // ============ Java/XML Config Tab start. ============
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup050325" class="JavaConfigTab" id="tabgroup050325_1" checked><label for="tabgroup050325_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup050325" class="XMLConfigTab" id="tabgroup050325_2"><label for="tabgroup050325_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 [source, java]
 .Bean定義
@@ -4996,10 +4712,10 @@ public StaxEventItemWriter<Customer> writer(
 }
 ----
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 [source, xml]
 .Bean定義
@@ -5016,10 +4732,7 @@ public StaxEventItemWriter<Customer> writer(
 </bean>
 ----
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============
 
 [cols="5,20,45,10,20", options="header"]
@@ -5089,6 +4802,37 @@ public class WriteHeaderStaxWriterCallback implements StaxWriterCallback { // (1
 ``XMLEvent``オブジェクトを都度生成するのは非常に手間が掛かるため、``XMLEvent``を容易に生成することができる``XMLEventFactory``クラスを使用する。 +
 ``XMLEventFactory``クラスには ``createStartDocument``メソッドや``createStartElement``メソッドなど、作成するイベントに対応したメソッドが定義してある。
 ====
+
+下記は<<Ch05_FileAccess_HowToExtend_Xml_Output, XMLファイルの出力>>でStaxEventItemWriterを使用したXMLファイルの出力例である。
+[[output_example]]
+[source, xml]
+.出力ファイル例
+----
+<?xml version="1.0" encoding="UTF-8"?>
+<records>
+<!-- Customer list header -->
+  <Customer>
+    <customerId>001</customerId>
+    <customerName>CustomerName001</customerName>
+    <customerAddress>CustomerAddress001</customerAddress>
+    <customerTel>11111111111</customerTel>
+    <chargeBranchId>001</chargeBranchId></Customer>
+  <Customer>
+    <customerId>002</customerId>
+    <customerName>CustomerName002</customerName>
+    <customerAddress>CustomerAddress002</customerAddress>
+    <customerTel>11111111111</customerTel>
+    <chargeBranchId>002</chargeBranchId></Customer>
+  <Customer>
+    <customerId>003</customerId>
+    <customerName>CustomerName003</customerName>
+    <customerAddress>CustomerAddress003</customerAddress>
+    <customerTel>11111111111</customerTel>
+    <chargeBranchId>003</chargeBranchId>
+  </Customer>
+<!-- Customer list footer -->
+</records>
+----
 
 [[Ch05_FileAccess_HowToExtend_MultiFormat]]
 === マルチフォーマット
@@ -5282,12 +5026,9 @@ public class SalesPlanDetailEnd extends SalesPlanDetailMultiFormatRecord {
 上記のファイルを読む込むための設定は以下のとおり。
 
 // ============ Java/XML Config Tab start. ============
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup050326" class="JavaConfigTab" id="tabgroup050326_1" checked><label for="tabgroup050326_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup050326" class="XMLConfigTab" id="tabgroup050326_2"><label for="tabgroup050326_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 [source, java]
 .Bean定義例
@@ -5386,10 +5127,10 @@ public FlatFileItemReader reader(
 }
 ----
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 [source, xml]
 .Bean定義例
@@ -5454,10 +5195,7 @@ public FlatFileItemReader reader(
 </bean>
 ----
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============
 
 [cols="5,20,45,10,20", options="header"]
@@ -5549,12 +5287,9 @@ E,3,9,4500000000
 ``ItemProcessor``の定義例をBean定義例の後に示す。
 
 // ============ Java/XML Config Tab start. ============
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup050327" class="JavaConfigTab" id="tabgroup050327_1" checked><label for="tabgroup050327_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup050327" class="XMLConfigTab" id="tabgroup050327_2"><label for="tabgroup050327_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 [source, java]
 .Bean定義例
@@ -5609,10 +5344,10 @@ public FlatFileItemWriter writer(
 }
 ----
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 [source, xml]
 .Bean定義例
@@ -5659,10 +5394,7 @@ public FlatFileItemWriter writer(
 </bean>
 ----
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============
 
 [cols="5,20,45,10,20", options="header"]

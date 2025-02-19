@@ -78,18 +78,6 @@ https://docs.spring.io/spring-batch/reference/{spring_batch_version}/schema-appe
 ``JobRepository``の永続化を行う場合は、Indexを作成することを検討されたい。
 ====
 
-[[Ch07_JobManagement_Overview_JobExecutionManagement_FixPerformanceProblem]]
-[TIP]
-.Spring BatchのバージョンアップによるJobRepositoryの性能問題の修正
-====
-Macchinetta Batch 2.2.0では、{SB} 4.2.xから加わった変更により、ジョブの起動時に{SB}が発行する
-link:https://github.com/spring-projects/spring-batch/issues/3634[``JobRepository``へのSQLによる性能劣化]が発生する事がある。
-この問題は{SB}側で対処され、{SB} 4.2.4および4.3.0で変更が取り込まれた。Macchinetta Batchでは2.2.1および2.3.0でこの変更が取り込まれている。
-
-本件の対策として、Macchinetta Batch 2.2.0では「{SB}で対処されたlink:https://github.com/spring-projects/spring-batch/pull/3635/files[変更]を実装する」ことを推奨しているが、
-Macchinetta Batch {revnumber-index}ではこの問題は発生しないため、対策は不要となる。
-====
-
 ジョブスケジューラを使用したジョブの実行管理については各製品のマニュアルを参照。 +
 
 本ガイドラインでは{batch5_shortname}内部で``JobRepository``を用いたジョブの状態を管理するうえで関連する、
@@ -360,12 +348,9 @@ private void monitor(long jobExecutionId) {
 
 .起動時のジョブ名を指定する方法
 // ============ Java/XML Config Tab start. ============
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup070101" class="JavaConfigTab" id="tabgroup070101_1" checked><label for="tabgroup070101_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup070101" class="XMLConfigTab" id="tabgroup070101_2"><label for="tabgroup070101_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 [source,terminal]
 ----
@@ -373,10 +358,10 @@ $ java org.springframework.batch.core.launch.support.CommandLineJobRunner \
     com.example.batch.jobs.Job01Config job01 -stop
 ----
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 [source,terminal]
 ----
@@ -384,22 +369,16 @@ $ java org.springframework.batch.core.launch.support.CommandLineJobRunner \
     classpath:/META-INF/jobs/job01.xml job01 -stop
 ----
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============
 
 * ジョブ名指定によるジョブ停止は同名のジョブが並列で起動することが少ない同期バッチ実行時に適している。
 
 .ジョブ実行ID(jobExecutionId)を指定する方法
 // ============ Java/XML Config Tab start. ============
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup070102" class="JavaConfigTab" id="tabgroup070102_1" checked><label for="tabgroup070102_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup070102" class="XMLConfigTab" id="tabgroup070102_2"><label for="tabgroup070102_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 [source,terminal]
 ----
@@ -407,10 +386,10 @@ $ java org.springframework.batch.core.launch.support.CommandLineJobRunner \
     com.example.batch.jobs.Job01Config 3 -stop
 ----
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 [source,terminal]
 ----
@@ -418,10 +397,7 @@ $ java org.springframework.batch.core.launch.support.CommandLineJobRunner \
     classpath:/META-INF/jobs/job01.xml 3 -stop
 ----
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============
 
 * ジョブ実行ID指定によるジョブ停止は同名のジョブが並列で起動することの多い非同期バッチ実行時に適している。
@@ -458,7 +434,7 @@ javaプロセスの終了コードをカスタマイズするのに必要な作�
 
 チャンクモデルにおけるステップの終了コードの変更::
 
-  ステップ終了時の処理として、StepExecutionListenerのafterStepメソッドもしくは@AfterStepアノテーションを付与したメソッドを実装し、
+  ステップ終了時の処理として、``StepExecutionListener``の``afterStep``メソッドもしくは``@AfterStep``アノテーションを付与したメソッドを実装し、
   任意のステップの終了コードを返却する。
 
 [source,java]
@@ -512,7 +488,7 @@ public class CheckAmountItemProcessor implements ItemProcessor<SalesPlanSummary,
 
 タスクレットモデルにおけるステップの終了コードの変更::
 
-  Taskletのexecuteメソッドの引数であるStepContributionに任意のステップの終了コードを設定する。
+  Taskletの``execute``メソッドの引数である``StepContribution``に任意のステップの終了コードを設定する。
 
 [source,java]
 .Tasklet実装例
@@ -541,7 +517,7 @@ public RepeatStatus execute(StepContribution contribution, ChunkContext chunkCon
 
 [[Ch07_JobManagement_HowToUse_ExitCode_JobExitCode]]
 ==== ジョブの終了コードの変更
-ジョブ終了時の処理としてJobExecutionListenerのafterJobメソッドを実装し、最終的なジョブの終了コードを各ステップの終了コードによって設定する。
+ジョブ終了時の処理として``JobExecutionListener``の``afterJob``メソッドを実装し、最終的なジョブの終了コードを各ステップの終了コードによって設定する。
 
 [source,java]
 .JobExecutionListener実装例
@@ -565,12 +541,9 @@ public class JobExitCodeChangeListener implements JobExecutionListener {
 
 .ジョブ定義
 // ============ Java/XML Config Tab start. ============
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup070103" class="JavaConfigTab" id="tabgroup070103_1" checked><label for="tabgroup070103_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup070103" class="XMLConfigTab" id="tabgroup070103_2"><label for="tabgroup070103_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 [source,java]
 ----
@@ -585,10 +558,10 @@ public Job exitstatusjob(JobRepository jobRepository,
 }
 ----
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 [source,xml]
 ----
@@ -602,10 +575,7 @@ public Job exitstatusjob(JobRepository jobRepository,
 </batch:job>
 ----
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============
 
 [cols="20,80", options="header"]
@@ -626,12 +596,9 @@ public Job exitstatusjob(JobRepository jobRepository,
 ジョブの終了コードとプロセスの終了コードをマッピング定義を行う。
 
 // ============ Java/XML Config Tab start. ============ 
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup070104" class="JavaConfigTab" id="tabgroup070104_1" checked><label for="tabgroup070104_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup070104" class="XMLConfigTab" id="tabgroup070104_2"><label for="tabgroup070104_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 [source,java]
 .jp.co.ntt.fw.macchinetta.batch.functionaltest.config.LaunchContextConfig.java
@@ -653,10 +620,10 @@ public ExitCodeMapper exitCodeMapper() {
 }
 ----
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 [source,xml]
 .META-INF/spring/launch-context.xml
@@ -679,10 +646,7 @@ public ExitCodeMapper exitCodeMapper() {
 </bean>
 ----
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============ 
 
 [WARNING]
@@ -774,12 +738,9 @@ public class JobExecutionLoggingListener implements JobExecutionListener {
 
 .ジョブBean定義ファイル
 // ============ Java/XML Config Tab start. ============
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup070105" class="JavaConfigTab" id="tabgroup070105_1" checked><label for="tabgroup070105_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup070105" class="XMLConfigTab" id="tabgroup070105_2"><label for="tabgroup070105_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 [source,java]
 ----
@@ -804,10 +765,10 @@ public Job loggingJob(JobRepository jobRepository,
 }
 ----
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 [source,xml]
 ----
@@ -826,10 +787,7 @@ public Job loggingJob(JobRepository jobRepository,
 <!-- omitted. -->
 ----
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============
 
 [cols="40,60", options="header"]
@@ -881,28 +839,23 @@ public Job loggingJob(JobRepository jobRepository,
 コード体系のばらつき防止や、監視対象のキーワードとしての抽出を設計しやすくするため、
 一定のルールに従ってメッセージを付与することが望ましい。
 
-なお、ログと同様、メッセージ管理についても基本的には{server5_shortname}と同様である。
+なお、ログと同様、メッセージ管理についても基本的には{server5_shortname}と同様であり、
+プロパティファイルからメッセージを使用するために``MessageSource``を使用することができる。
+具体的な設定・実装例については{server5_shortname}ガイドラインにあるlink:{server5_url}/ArchitectureInDetail/GeneralFuncDetail/Logging.html#id8[ログメッセージの一元管理]を参照。
 
-[IMPORTANT]
-.MessageSourceの活用について
-====
-プロパティファイルからメッセージを使用するには``MessageSource``を使用することができる。
+==== {server5_shortname}との相違点
+以下は{server5_shortname}との相違点となる。
 
-* 具体的な設定・実装例についてはlink:{server5_url}/ArchitectureInDetail/GeneralFuncDetail/Logging.html#id8[ログメッセージの一元管理]を参照。
-
-** ここではログ出力のサンプルとして Spring MVC のコントローラー のケースにそって例示されているが、
-   {SB}の任意のコンポーネントに読み換えてほしい。
-** ここでは``MessageSource``のインスタンスを独自に生成しているが、{batch5_shortname}ではその必要はない。
+* {server5_shortname}ではログ出力のサンプルとして Spring MVC のコントローラーのケースにそって例示されているが、
+   {server5_shortname}では{SB}の任意のコンポーネントに読み換えてほしい。
+* {server5_shortname}では``MessageSource``のインスタンスを独自に生成しているが、{batch5_shortname}ではその必要はない。
    ``ApplicationContext``が生成された後でのみ、各コンポーネントにアクセスされるためである。
    なお、ブランクプロジェクトには以下のとおり設定済みである。
 
 // ============ Java/XML Config Tab start. ============ 
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup070106" class="JavaConfigTab" id="tabgroup070106_1" checked><label for="tabgroup070106_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup070106" class="XMLConfigTab" id="tabgroup070106_2"><label for="tabgroup070106_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 [source,java]
 .jp.co.ntt.fw.macchinetta.batch.functionaltest.config.LaunchContextConfig.java
@@ -915,10 +868,10 @@ public MessageSource messageSource() {
 }
 ----
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 [source,xml]
 .META-INF/spring/launch-context.xml
@@ -928,9 +881,5 @@ public MessageSource messageSource() {
       p:basenames="i18n/application-messages" />
 ----
 // XML Config end.
-++++
-  </div>
-</div>
-++++
-// ============ Java/XML Config Tab end. ============ 
 ====
+// ============ Java/XML Config Tab end. ============ 

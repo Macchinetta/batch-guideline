@@ -31,12 +31,9 @@ Bean定義ファイルにて、タスクレットモデルジョブを定義す�
 以下に例を示す。
 
 // ============ Java/XML Config Tab start. ============ 
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup030301" class="JavaConfigTab" id="tabgroup030301_1" checked><label for="tabgroup030301_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup030301" class="XMLConfigTab" id="tabgroup030301_2"><label for="tabgroup030301_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 [source,java]
 .Bean定義ファイルの例(タスクレットモデル)
@@ -69,10 +66,10 @@ public class JobSimpleJobConfig {
 }
 ----
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 [source,xml]
 .Bean定義ファイルの例(タスクレットモデル)
@@ -108,10 +105,7 @@ public class JobSimpleJobConfig {
 </beans>
 ----
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============ 
 
 [source,java]
@@ -312,12 +306,9 @@ public class SalesPlanChunkTranTask implements Tasklet {
 ----
 
 // ============ Java/XML Config Tab start. ============ 
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup030302" class="JavaConfigTab" id="tabgroup030302_1" checked><label for="tabgroup030302_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup030302" class="XMLConfigTab" id="tabgroup030302_2"><label for="tabgroup030302_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 [source,java]
 .Bean定義例1
@@ -368,10 +359,10 @@ public class CreateSalesPlanChunkTranTaskConfig {
 }
 ----
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 [source,xml]
 .Bean定義例1
@@ -416,10 +407,7 @@ public class CreateSalesPlanChunkTranTaskConfig {
 </batch:job>
 ----
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============ 
 
 [cols="10,90", options="header"]
@@ -569,12 +557,9 @@ public class SalesPerformanceTasklet implements Tasklet {
 ----
 
 // ============ Java/XML Config Tab start. ============ 
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup030303" class="JavaConfigTab" id="tabgroup030303_1" checked><label for="tabgroup030303_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup030303" class="XMLConfigTab" id="tabgroup030303_2"><label for="tabgroup030303_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 [source,java]
 .Bean定義例2
@@ -638,10 +623,10 @@ public class JobSalesPerfTaskletConfig {
 }
 ----
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 [source,xml]
 .Bean定義例2
@@ -688,10 +673,7 @@ public class JobSalesPerfTaskletConfig {
 </batch:job>
 ----
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============ 
 
 [cols="10,90", options="header"]

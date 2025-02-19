@@ -398,12 +398,9 @@ image::Ch05_transaction_AsyncWithWeb_Transaction_Difference.png[With Web Applica
 以下に{batch5_shortname}での設定例を示す。
 
 // ============ Java/XML Config Tab start. ============ 
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup050101" class="JavaConfigTab" id="tabgroup050101_1" checked><label for="tabgroup050101_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup050101" class="XMLConfigTab" id="tabgroup050101_2"><label for="tabgroup050101_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 [source,java]
 .データソースの設定(com.example.batch.config.LaunchContextConfig.java)
@@ -420,7 +417,7 @@ public BasicDataSource jobDataSource(@Value("${jdbc.driver}") String driverClass
     basicDataSource.setPassword(password);
     basicDataSource.setMaxTotal(10);
     basicDataSource.setMinIdle(1);
-    basicDataSource.setMaxWaitMillis(5000);
+    basicDataSource.setMaxWait(Duration.ofMillis(5000L));
     basicDataSource.setDefaultAutoCommit(false);
     return basicDataSource;
 }
@@ -440,10 +437,10 @@ public PlatformTransactionManager jobTransactionManager(@Qualifier("jobDataSourc
 }
 ----
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 [source,xml]
 .データソースの設定(META-INF/spring/launch-context.xml)
@@ -457,8 +454,13 @@ public PlatformTransactionManager jobTransactionManager(@Qualifier("jobDataSourc
       p:password="${jdbc.password}"
       p:maxTotal="10"
       p:minIdle="1"
-      p:maxWaitMillis="5000"
-      p:defaultAutoCommit="false" />
+      p:defaultAutoCommit="false">
+    <property name="maxWait">
+        <bean class="java.time.Duration" factory-method="ofMillis">
+            <constructor-arg name="millis" type="long" value="5000" />
+        </bean>
+    </property>
+</bean>
 
 ----
 
@@ -471,10 +473,7 @@ public PlatformTransactionManager jobTransactionManager(@Qualifier("jobDataSourc
       p:rollbackOnCommitFailure="true" />
 ----
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============ 
 
 [cols="10,90", options="header"]
@@ -500,12 +499,9 @@ public PlatformTransactionManager jobTransactionManager(@Qualifier("jobDataSourc
 
 .設定例(ジョブ定義)
 // ============ Java/XML Config Tab start. ============
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup050102" class="JavaConfigTab" id="tabgroup050102_1" checked><label for="tabgroup050102_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup050102" class="XMLConfigTab" id="tabgroup050102_2"><label for="tabgroup050102_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 [source,java]
 ----
@@ -534,10 +530,10 @@ public Job jobSalesPlan01(JobRepository jobRepository, Step step01,
 }
 ----
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 [source,xml]
 ----
@@ -552,10 +548,7 @@ public Job jobSalesPlan01(JobRepository jobRepository, Step step01,
 </batch:job>
 ----
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============
 
 [cols="10,90", options="header"]
@@ -580,12 +573,9 @@ public Job jobSalesPlan01(JobRepository jobRepository, Step step01,
 
 .設定例(ジョブ定義)
 // ============ Java/XML Config Tab start. ============
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup050103" class="JavaConfigTab" id="tabgroup050103_1" checked><label for="tabgroup050103_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup050103" class="XMLConfigTab" id="tabgroup050103_2"><label for="tabgroup050103_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 [source,java]
 ----
@@ -608,10 +598,10 @@ public Job jobSalesPlan01(JobRepository jobRepository, Step step01,
 }
 ----
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 [source,xml]
 ----
@@ -624,10 +614,7 @@ public Job jobSalesPlan01(JobRepository jobRepository, Step step01,
 </batch:job>
 ----
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============
 
 [cols="10,90", options="header"]
@@ -646,12 +633,9 @@ public Job jobSalesPlan01(JobRepository jobRepository, Step step01,
 
 .設定例(ジョブ定義)
 // ============ Java/XML Config Tab start. ============
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup050104" class="JavaConfigTab" id="tabgroup050104_1" checked><label for="tabgroup050104_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup050104" class="XMLConfigTab" id="tabgroup050104_2"><label for="tabgroup050104_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 [source,java]
 ----
@@ -674,10 +658,10 @@ public Job jobSalesPlan01(JobRepository jobRepository, Step step01,
 }
 ----
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 [source,xml]
 ----
@@ -690,10 +674,7 @@ public Job jobSalesPlan01(JobRepository jobRepository, Step step01,
 </batch:job>
 ----
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============
 
 [source,java]
@@ -817,21 +798,17 @@ ItemWriterを利用することで実装がシンプルになる効果があり�
 上記の説明にあるとおりコミットのタイミングでリソースへ書き出すため、それまではメモリ内に全出力分のデータを保持することになる。
 そのため、データ量が多い場合にはメモリ不足になりエラーとなる可能性が高くなる。
 
-[NOTE]
-.ファイルしか扱わないジョブにおけるTransactionManagerの設定について
-====
+[[Ch05_Transaction_HowToUse_SingleDataSource_Tx_File]]
+==== ファイルしか扱わないジョブにおけるTransactionManagerの設定について
 以下に示すジョブ定義のように、``StepBuilderのchunkメソッドの引数transactionManager/batch:taskletのtransaction-manager属性``は必須のため省略できない。
 
-.TransactionManager設定箇所の抜粋
 // ============ Java/XML Config Tab start. ============
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup050105" class="JavaConfigTab" id="tabgroup050105_1" checked><label for="tabgroup050105_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup050105" class="XMLConfigTab" id="tabgroup050105_2"><label for="tabgroup050105_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
-[source, java]
+[source,java]
+.TransactionManager設定箇所の抜粋
 ----
 @Bean
 public Step step01(JobRepository jobRepository,
@@ -847,22 +824,20 @@ public Step step01(JobRepository jobRepository,
 }
 ----
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
-[source, xml]
+[source,xml]
+.TransactionManager設定箇所の抜粋
 ----
 <batch:tasklet transaction-manager="jobTransactionManager">
 <batch:chunk reader="reader" writer="writer" commit-interval="100" />
 </batch:tasklet>
 ----
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============
 
 そのため、``jobTransactionManager``を常に指定すること。この時、以下の挙動となる。
@@ -878,16 +853,13 @@ public Step step01(JobRepository jobRepository,
 また、実害がある場合や空振りでも参照するトランザクションを発行したくない場合は、リソースを必要としない``ResourcelessTransactionManager``を使用することができる。
 ``ResourcelessTransactionManager``は``LaunchContextConfig.java/launch-context.xml``に``jobResourcelessTransactionManager``として定義済みである。
 
-.ResourcelessTransactionManagerの使用例
 // ============ Java/XML Config Tab start. ============
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup050106" class="JavaConfigTab" id="tabgroup050106_1" checked><label for="tabgroup050106_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup050106" class="XMLConfigTab" id="tabgroup050106_2"><label for="tabgroup050106_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
-[source, java]
+[source,java]
+.ResourcelessTransactionManagerの使用例
 ----
 @Bean
 public Step step01(JobRepository jobRepository,
@@ -903,24 +875,21 @@ public Step step01(JobRepository jobRepository,
 }
 ----
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
-[source, xml]
+[source,xml]
+.ResourcelessTransactionManagerの使用例
 ----
 <batch:tasklet transaction-manager="jobResourcelessTransactionManager">
     <batch:chunk reader="reader" writer="writer" commit-interval="100" />
 </batch:tasklet>
 ----
 // XML Config end.
-++++
-  </div>
-</div>
-++++
-// ============ Java/XML Config Tab end. ============
 ====
+// ============ Java/XML Config Tab end. ============
 
 [[Ch05_Transaction_HowToUse_MultiDataSource]]
 === 複数データソースの場合
@@ -981,12 +950,9 @@ public class BranchMasterReadStepListener implements StepExecutionListener {
 
 .一括取得するListenerの定義
 // ============ Java/XML Config Tab start. ============
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup050107" class="JavaConfigTab" id="tabgroup050107_1" checked><label for="tabgroup050107_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup050107" class="XMLConfigTab" id="tabgroup050107_2"><label for="tabgroup050107_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 [source, java]
 ----
@@ -1016,10 +982,10 @@ public Job outputAllCustomerList01(JobRepository jobRepository,
 }
 ----
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 [source, xml]
 ----
@@ -1037,10 +1003,7 @@ public Job outputAllCustomerList01(JobRepository jobRepository,
 </batch:job>
 ----
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============
 
 [source,java]
@@ -1089,16 +1052,16 @@ public class RetrieveBranchFromContextItemProcessor implements
 |ステップのコンテキストに取得したマスタデータを``branches``という名前で設定する。
 
 |(6)
-|対象となるジョブへ作成したListenerを登録する。
+|対象となるジョブへ作成した``Listener``を登録する。
 
 |(7)
-|ItemProcessorのステップ実行前にマスタデータを取得するため、@BeforeStepアノテーションでListener設定を行う。
+|``ItemProcessor``のステップ実行前にマスタデータを取得するため、``@BeforeStep``アノテーションで``Listener``設定を行う。
 
 |(8)
-|@BeforeStepアノテーションが付与されたメソッド内で、ステップのコンテキストから(5)で設定されたマスタデータを取得する。
+|``@BeforeStep``アノテーションが付与されたメソッド内で、ステップのコンテキストから(5)で設定されたマスタデータを取得する。
 
 |(9)
-|ItemProcessorのprocessメソッド内で、マスタデータからデータ取得を行う。
+|``ItemProcessor``の``process``メソッド内で、マスタデータからデータ取得を行う。
 
 |===
 
@@ -1141,12 +1104,9 @@ public class RetrieveBranchFromRepositoryItemProcessor implements
 
 .都度取得用と業務処理用のItemProcessorの定義例
 // ============ Java/XML Config Tab start. ============
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup050108" class="JavaConfigTab" id="tabgroup050108_1" checked><label for="tabgroup050108_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup050108" class="XMLConfigTab" id="tabgroup050108_2"><label for="tabgroup050108_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 [source, java]
 ----
@@ -1160,10 +1120,10 @@ public CompositeItemProcessor<Customer, CustomerWithBranch> compositeItemProcess
 }
 ----
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 [source, xml]
 ----
@@ -1178,10 +1138,7 @@ public CompositeItemProcessor<Customer, CustomerWithBranch> compositeItemProcess
 </bean>
 ----
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============
 
 [cols="10,90", options="header"]
@@ -1214,7 +1171,7 @@ public CompositeItemProcessor<Customer, CustomerWithBranch> compositeItemProcess
 
 * 1ステップ目で加工したデータをテーブルに格納し、2ステップ目でファイルに出力する、といった要領となる。
 * 各ステップがシンプルになりリカバリしやすい反面、2度手間になる可能性がある。
-** この結果、以下のような弊害を生む場合は、1ステップで複数データソースを処理することを検討する。
+** この結果、以下のような弊害を許容できない場合は、1ステップで複数データソースを処理することを検討する。
 *** 処理時間が伸びてしまう
 *** ビジネスロジックが冗長となる
 
@@ -1228,7 +1185,7 @@ public CompositeItemProcessor<Customer, CustomerWithBranch> compositeItemProcess
 * 障害時のリカバリが難しい
 
 {SB}でも分散トランザクションを活用することは可能だが、JTAによるグローバルトランザクションを使用する方法では、プロトコルの特性上、性能面のオーバーヘッドがかかる。
-より簡易に複数データソースをまとめて処理する方法として、**Best Efforts 1PCパターン**による実現手段を推奨する。
+より簡易に複数データソースをまとめて処理する方法として、**Best Efforts 1PCパターン**による実現手段がある。
 
 Best Efforts 1PCパターンとは::
   端的に言うと、複数データソースをローカルトランザクションで扱い、同じタイミングで逐次コミットを発行するという手法を指す。
@@ -1271,12 +1228,9 @@ image::Ch05_transaction_Best_Efforts_1PC.png[Best Efforts 1PC Overview]
 
 .chainedTransactionManagerの使用例
 // ============ Java/XML Config Tab start. ============
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup050109" class="JavaConfigTab" id="tabgroup050109_1" checked><label for="tabgroup050109_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup050109" class="XMLConfigTab" id="tabgroup050109_2"><label for="tabgroup050109_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 [source, java]
 ----
@@ -1310,10 +1264,10 @@ public Job jobSalesPlan01(JobRepository jobRepository,
 }
 ----
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 [source, xml]
 ----
@@ -1340,10 +1294,7 @@ public Job jobSalesPlan01(JobRepository jobRepository,
 </batch:job>
 ----
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============
 
 [cols="10,90", options="header"]

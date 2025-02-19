@@ -104,7 +104,7 @@ public void afterChunkError(ChunkContext context) {
 ----
 ====
 
-例外ハンドリングについては、<<Ch06_ExceptionHandling.adoc#Ch06_ExceptionHandling_HowToUse_StepExceptionHandling_ChunkListener,ChunkListenerインタフェースによる例外ハンドリング>>を参照。
+例外ハンドリングについては、<<Ch06_ExceptionHandling.adoc#Ch06_ExceptionHandling_HowToUse_StepExceptionHandling_ChunkListener,``ChunkListener``インタフェースによる例外ハンドリング>>を参照。
 
 [[Ch04_Listener_Overview_Types_ItemReadListener]]
 ItemReadListener::
@@ -212,12 +212,9 @@ public class JobExecutionLoggingListener implements JobExecutionListener { // (1
 ----
 
 // ============ Java/XML Config Tab start. ============ 
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup040501" class="JavaConfigTab" id="tabgroup040501_1" checked><label for="tabgroup040501_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup040501" class="XMLConfigTab" id="tabgroup040501_2"><label for="tabgroup040501_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 [source,java]
 .リスナーの設定例
@@ -251,10 +248,10 @@ public Job chunkJobWithListener(JobRepository jobRepository,
 }
 ----
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 [source,xml]
 .リスナーの設定例
@@ -276,10 +273,7 @@ public Job chunkJobWithListener(JobRepository jobRepository,
 ----
 
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============
 
 [cols="10,90", options="header"]
@@ -401,12 +395,9 @@ public class AnnotationAmountCheckProcessor implements
 ----
 
 // ============ Java/XML Config Tab start. ============ 
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup040502" class="JavaConfigTab" id="tabgroup040502_1" checked><label for="tabgroup040502_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup040502" class="XMLConfigTab" id="tabgroup040502_2"><label for="tabgroup040502_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 [source,java]
 .リスナーの設定例
@@ -436,10 +427,10 @@ public Job chunkJobWithListenerAnnotation(JobRepository jobRepository,
 }
 ----
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 [source,xml]
 .リスナーの設定例
@@ -456,10 +447,7 @@ public Job chunkJobWithListenerAnnotation(JobRepository jobRepository,
 ----
 
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============
 
 [cols="10,90", options="header"]
@@ -503,64 +491,9 @@ JobExecutionListenerは、他のリスナーとスコープが異なるため、
 ====
 
 [WARNING]
-.Tasklet実装へのアノテーションによるリスナー実装
+.タスクレットモデルではアノテーションによるリスナー実装が利用できない
 ====
-Tasklet実装へのアノテーションによるリスナー実装した場合、以下の設定では一切リスナーが起動しないため注意する。
-
-// ============ Java/XML Config Tab start. ============ 
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup040503" class="JavaConfigTab" id="tabgroup040503_1" checked><label for="tabgroup040503_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup040503" class="XMLConfigTab" id="tabgroup040503_2"><label for="tabgroup040503_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
-// Java Config start.
-[source,java]
-.Taskletの場合
-----
-@Bean
-public Step step01(JobRepository jobRepository,
-                   @Qualifier("jobTransactionManager") PlatformTransactionManager transactionManager,
-                   AnnotationSalesPlanDetailRegisterTasklet tasklet) {
-    return new StepBuilder("taskletJobWithListenerAnnotation.step01",
-            jobRepository)
-            .tasklet(tasklet, transactionManager)
-            .build();
-}
- @Bean
-public Job taskletJobWithListenerAnnotation(JobRepository jobRepository,
-                                        Step step01) {
-    return new JobBuilder("taskletJobWithListenerAnnotation",
-            jobRepository)
-            .start(step01)
-            .build();
-}
-----
-// Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
-// XML Config start.
-[source,xml]
-.Taskletの場合
-----
-<batch:job id="taskletJobWithListenerAnnotation" job-repository="jobRepository">
-    <batch:step id="taskletJobWithListenerAnnotation.step01">
-        <batch:tasklet transaction-manager="jobTransactionManager"
-                       ref="annotationSalesPlanDetailRegisterTasklet"/>
-    </batch:step>
-</batch:job>
-----
-
-// XML Config end.
-++++
-  </div>
-</div>
-++++
-// ============ Java/XML Config Tab end. ============
-
-タスクレットモデルの場合は、<<Ch04_Listener_HowToUse_SelectionCriteria>>に従ってリスナーインタフェースを利用するのがよい。
+タスクレットモデルの場合は、<<Ch04_Listener_HowToUse_Impl_WithoutAnnotation>>を参考に、リスナーインタフェースを利用すること。アノテーションによるリスナー実装をタスクレットモデルに設定しても、リスナーを起動することができない。
 ====
 
 [[Ch04_Listener_HowToUse_Configuration]]
@@ -576,12 +509,9 @@ public Job taskletJobWithListenerAnnotation(JobRepository jobRepository,
 リスナーの設定位置は以下を参照のこと。
 
 // ============ Java/XML Config Tab start. ============ 
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup040504" class="JavaConfigTab" id="tabgroup040504_1" checked><label for="tabgroup040504_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup040504" class="XMLConfigTab" id="tabgroup040504_2"><label for="tabgroup040504_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 [source,java]
 .リスナーを設定する位置
@@ -664,10 +594,10 @@ public Job taskletJob(JobRepository jobRepository,
 
 |===
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 [source,xml]
 .リスナーを設定する位置
@@ -724,10 +654,7 @@ public Job taskletJob(JobRepository jobRepository,
 
 |===
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============
 
 [[Ch04_Listener_HowToUse_MultipleConfiguration]]
@@ -742,12 +669,9 @@ public Job taskletJob(JobRepository jobRepository,
 ** listenerC, listenerD
 
 // ============ Java/XML Config Tab start. ============ 
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup040505" class="JavaConfigTab" id="tabgroup040505_1" checked><label for="tabgroup040505_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup040505" class="XMLConfigTab" id="tabgroup040505_2"><label for="tabgroup040505_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 [source,java]
 .複数リスナーの設定例
@@ -783,10 +707,10 @@ public Job taskletJob(JobRepository jobRepository,
 }
 ----
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 [source,xml]
 .複数リスナーの設定例
@@ -810,10 +734,7 @@ public Job taskletJob(JobRepository jobRepository,
 </batch:job>
 ----
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============
 
 .リスナーの起動順序
@@ -891,12 +812,9 @@ public class CheckingJobParameterErrorStepExecutionListener implements StepExecu
 ----
 
 // ============ Java/XML Config Tab start. ============ 
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup040506" class="JavaConfigTab" id="tabgroup040506_1" checked><label for="tabgroup040506_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup040506" class="XMLConfigTab" id="tabgroup040506_2"><label for="tabgroup040506_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 [source,java]
 .リスナーの設定例
@@ -944,10 +862,10 @@ public Job chunkJobWithAbortListener(JobRepository jobRepository,
 }
 ----
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 [source,xml]
 .リスナーの設定例
@@ -969,10 +887,7 @@ public Job chunkJobWithAbortListener(JobRepository jobRepository,
 </batch:job>
 ----
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============
 
 [cols="10,90", options="header"]

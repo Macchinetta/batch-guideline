@@ -101,12 +101,9 @@ async-batch-daemon.polling-stop-file-path=/tmp/stop-async-batch-daemon
 === ジョブの設定
 
 // ============ Java/XML Config Tab start. ============ 
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup09040601" class="JavaConfigTab" id="tabgroup09040601_1" checked><label for="tabgroup09040601_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup09040601" class="XMLConfigTab" id="tabgroup09040601_2"><label for="tabgroup09040601_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 非同期実行する対象のジョブは、``AsyncBatchDaemonConfig.java``の``automaticJobRegistrar``に設定する。
 
@@ -147,10 +144,10 @@ public ApplicationContextFactory[] applicationContextFactories(final Application
 ``ApplicationContextFactoryHelper`` は JavaConfigで ``ApplicationContextFactory`` の生成を補助するヘルパクラスである。コンストラクタには各ジョブで親となる共通定義の ``ApplicationContext`` を指定する。
 |===
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 非同期実行する対象のジョブは、``async-batch-daemon.xml``の``automaticJobRegistrar``に設定する。
 
@@ -202,10 +199,7 @@ public ApplicationContextFactory[] applicationContextFactories(final Application
 ジョブの指定に際しては<<Ch04_AsyncJobWithDB.adoc#Ch04_AsyncJobWithDB_HowToUse_Config_Job,ジョブの設定>>に記載してある注意事項を参照。
 |===
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============ 
 
 [WARNING]
@@ -264,22 +258,62 @@ tutorial.insert-data.script=file:sqls/insert-member-info-data.sql
 実行構成を以下のとおり作成し、非同期バッチデーモンを起動する。 +
 作成手順は<<Ch09_EnvironmentConstruction.adoc#Ch09_EnvironmentConstruction_OperationCheck_ExecJob_RunConf,Run Configuration(実行構成)の作成>>を参照。
 
+
+// ============ Java/XML Config Tab start. ============
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
+// Java Config start.
 [cols="30,70", options="header"]
-.Run ConfigurationsのMainタブで設定する値
-|===
-|項目名
+.Run Configurationsで設定する値
+|====
+|項目名(タブ名)
 |値
 
 |Name
-|Run Job With AsyncBatchDaemon +
-(任意の値を設定する)
+|任意の名称(例: Run Job With AsyncBatchDaemon)
 
-|Project
-|macchinetta-batch-tutorial
+|Project(Main)
+|terasoluna-batch-tutorial
 
-|Main class
+|Main class(Main)
 |org.terasoluna.batch.async.db.AsyncBatchDaemon
-|===
+
+|Program arguments(Arguments)
+|com.example.batch.tutorial.config.AsyncBatchDaemonConfig
+// Java Config end.
+|====
+
+====
+
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
+// XML Config start.
+[cols="30,70", options="header"]
+.Run Configurationsで設定する値
+|====
+|項目名(タブ名)
+|値
+
+|Name 
+|任意の名称(例: Run Job With AsyncBatchDaemon)
+ 
+|Project(Main)
+|terasoluna-batch-tutorial
+
+|Main class(Main)
+|org.terasoluna.batch.async.db.AsyncBatchDaemon
+
+|Program arguments(Arguments)
+|META-INF/spring/async-batch-daemon.xml
+// XML Config end.
+|====
+
+// ============ Java/XML Config Tab end. ============
+
+====
+
 
 非同期バッチデーモンを起動すると、ポーリングプロセスが10秒間隔(``batch-application.properties``の``async-batch-daemon.polling-interval``に指定したミリ秒)で実行される。 +
 ログの出力例を以下に示す。 +

@@ -204,12 +204,9 @@ Bean定義ファイルにて、チャンクモデルでデータベースアク�
 ここでは、Bean定義ファイルの枠および共通的な設定のみ記述し、以降の項で各構成要素の設定を行う。
 
 // ============ Java/XML Config Tab start. ============ 
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup09040101" class="JavaConfigTab" id="tabgroup09040101_1" checked><label for="tabgroup09040101_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup09040101" class="XMLConfigTab" id="tabgroup09040101_2"><label for="tabgroup09040101_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 [source, java]
 .com.example.batch.tutorial.config.dbaccess.JobPointAddChunkConfig.java
@@ -222,10 +219,10 @@ public class JobPointAddChunkConfig {
 }
 ----
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 [source, xml]
 .src/main/resources/META-INF/jobs/dbaccess/jobPointAddChunk.xml
@@ -251,10 +248,7 @@ public class JobPointAddChunkConfig {
 </beans>
 ----
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============
 
 [cols="10,90", options="header"]
@@ -359,7 +353,7 @@ MyBatisを利用してデータベースアクセスするための実装・設�
 チャンクモデル/タスクレットモデルで共通して利用するため、既に作成している場合は読み飛ばしてよい。
 
 [[Ch09_Impl_DBAccessJob_Chunk_MyBatis_Repository]]
-==== Repositoryインタフェースの実装
+==== ``Repository``インタフェースの実装
 MapperXMLファイルに定義したSQLを呼び出すためのインタフェースを実装する。 +
 このインタフェースに対する実装クラスは、MyBatisが自動で生成するため、開発者はインタフェースのみ作成すればよい。
 
@@ -396,10 +390,10 @@ public interface MemberInfoRepository {
 [[Ch09_Impl_DBAccessJob_Chunk_MyBatis_MapperXML]]
 ==== MapperXMLファイルの作成
 SQLとO/Rマッピングの設定を記載するMapperXMLファイルを作成する。 +
-MapperXMLファイルは、Repositoryインタフェースごとに作成する。
+MapperXMLファイルは、``Repository``インタフェースごとに作成する。
 
 MyBatisが定めたルールに則ったディレクトリに格納することで、自動的にMapperXMLファイルを読み込むことができる。
-MapperXMLファイルを自動的に読み込ませるために、Repositoryインタフェースのパッケージ階層と同じ階層のディレクトリにMapperXMLファイルを格納する。
+MapperXMLファイルを自動的に読み込ませるために、``Repository``インタフェースのパッケージ階層と同じ階層のディレクトリにMapperXMLファイルを格納する。
 
 [source, xml]
 .src/main/resources/com/example/batch/tutorial/common/repository/MemberInfoRepository.xml
@@ -444,7 +438,7 @@ MapperXMLファイルを自動的に読み込ませるために、Repositoryイ�
 |説明
 
 |(1)
-|``<mapper>``要素の``namespace``属性に、Repositoryインタフェースの完全修飾クラス名(FQCN)を指定する。
+|``<mapper>``要素の``namespace``属性に、``Repository``インタフェースの完全修飾クラス名(FQCN)を指定する。
 
 |(2)
 |参照系のSQLの設定を行う。 +
@@ -462,19 +456,15 @@ MapperXMLファイルを自動的に読み込ませるために、Repositoryイ�
 MyBatisによるデータベースアクセスするための設定として、ジョブBean定義ファイルに以下の(1)～(3)を追記する。
 
 // ============ Java/XML Config Tab start. ============ 
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup09040102" class="JavaConfigTab" id="tabgroup09040102_1" checked><label for="tabgroup09040102_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup09040102" class="XMLConfigTab" id="tabgroup09040102_2"><label for="tabgroup09040102_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 [source, java]
 .com.example.batch.tutorial.config.dbaccess.JobPointAddChunkConfig.java
 ----
 @Configuration
 @Import(JobBaseContextConfig.class)
-@PropertySource(value = "classpath:batch-application.properties")
 @ComponentScan("com.example.batch.tutorial.dbaccess.chunk")
 @MapperScan(basePackages = "com.example.batch.tutorial.common.repository", sqlSessionFactoryRef = "jobSqlSessionFactory") // (1)
 public class JobPointAddChunkConfig {
@@ -506,10 +496,10 @@ public class JobPointAddChunkConfig {
 }
 ----
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 [source, xml]
 .src/main/resources/META-INF/jobs/dbaccess/jobPointAddChunk.xml
@@ -547,10 +537,7 @@ public class JobPointAddChunkConfig {
 </beans>
 ----
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============ 
 
 [cols="10,90", options="header"]
@@ -560,8 +547,8 @@ public class JobPointAddChunkConfig {
 |説明
 
 |(1)
-|Repositoryインタフェースをスキャンするための設定を行う。 +
-``basePackages属性/base-package属性``に、Repositoryインタフェースが格納されている基底パッケージを指定する。
+|``Repository``インタフェースをスキャンするための設定を行う。 +
+``basePackages属性/base-package属性``に、``Repository``インタフェースが格納されている基底パッケージを指定する。
 
 |(2)
 |ItemReaderの設定を行う。 +
@@ -580,9 +567,9 @@ public class JobPointAddChunkConfig {
 [NOTE]
 .ItemReader・ItemWriter以外のデータベースアクセス
 ====
-ItemReader・ItemWriter以外でデータベースアクセスする方法として、Mapperインタフェースを利用する方法がある。
-Mapperインタフェースを利用するにあたっては、{batch5_shortname}として制約を設けているため、
-<<Ch05_DBAccess.adoc#Ch05_DBAccess_HowToUse_Input_MapperInterface,Mapperインタフェース(入力)>>、<<Ch05_DBAccess.adoc#Ch05_DBAccess_HowToUse_Output_MapperInterface,Mapperインタフェース(出力)>>を参照してほしい。
+``ItemReader``・``ItemWriter``以外でデータベースアクセスする方法として、``Mapper``インタフェースを利用する方法がある。
+``Mapper``インタフェースを利用するにあたっては、{batch5_shortname}として制約を設けているため、
+<<Ch05_DBAccess.adoc#Ch05_DBAccess_HowToUse_Input_MapperInterface,``Mapper``インタフェース(入力)>>、<<Ch05_DBAccess.adoc#Ch05_DBAccess_HowToUse_Output_MapperInterface,``Mapper``インタフェース(出力)>>を参照してほしい。
 ItemProcessorの実装例は、<<Ch05_DBAccess.adoc#Ch05_DBAccess_HowToUse_Input_MapperInterface_Chunk,チャンクモデルにおける利用方法>>(入力)を参照。
 ====
 
@@ -597,7 +584,7 @@ ItemProcessorの実装例は、<<Ch05_DBAccess.adoc#Ch05_DBAccess_HowToUse_Input
 
 [[Ch09_Impl_DBAccessJob_Chunk_Logic_ItemProcessor]]
 ==== PointAddItemProcessorクラスの実装
-ItemProcessorインタフェースを実装したPointAddItemProcessorクラスを実装する。
+``ItemProcessor``インタフェースを実装したPointAddItemProcessorクラスを実装する。
 
 [source, java]
 .com.example.batch.tutorial.dbaccess.chunk.PointAddItemProcessor
@@ -690,19 +677,15 @@ public class PointAddItemProcessor implements ItemProcessor<MemberInfoDto, Membe
 作成したビジネスロジックをジョブとして設定するため、ジョブBean定義ファイルに以下の(1)以降を追記する。
 
 // ============ Java/XML Config Tab start. ============ 
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup09040103" class="JavaConfigTab" id="tabgroup09040103_1" checked><label for="tabgroup09040103_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup09040103" class="XMLConfigTab" id="tabgroup09040103_2"><label for="tabgroup09040103_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 [source, java]
 .com.example.batch.tutorial.config.dbaccess.JobPointAddChunkConfig.java
 ----
 @Configuration
 @Import(JobBaseContextConfig.class)
-@PropertySource(value = "classpath:batch-application.properties")
 @ComponentScan("com.example.batch.tutorial.dbaccess.chunk")
 @MapperScan(basePackages = "com.example.batch.tutorial.common.repository", sqlSessionFactoryRef = "jobSqlSessionFactory")
 public class JobPointAddChunkConfig {
@@ -756,10 +739,10 @@ public class JobPointAddChunkConfig {
 }
 ----
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 [source, xml]
 .src/main/resources/META-INF/jobs/dbaccess/jobPointAddChunk.xml
@@ -804,10 +787,7 @@ public class JobPointAddChunkConfig {
 </beans>
 ----
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============ 
 
 [cols="10,90", options="header"]
@@ -858,12 +838,9 @@ commit-intervalはチャンクモデルジョブにおける、性能上のチ�
 
 実行構成の設定値::
 // ============ Java/XML Config Tab start. ============
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup09040107" class="JavaConfigTab" id="tabgroup09040107_1" checked><label for="tabgroup09040107_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup09040107" class="XMLConfigTab" id="tabgroup09040107_2"><label for="tabgroup09040107_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 * Name: 任意の名称(例: Run DBAccessJob for ChunkModel)
 * Mainタブ
@@ -872,10 +849,10 @@ commit-intervalはチャンクモデルジョブにおける、性能上のチ�
 * Argumentsタブ
 ** Program arguments: ``com.example.batch.tutorial.config.dbaccess.JobPointAddChunkConfig jobPointAddChunk``
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 * Name: 任意の名称(例: Run DBAccessJob for ChunkModel)
 * Mainタブ
@@ -884,10 +861,7 @@ commit-intervalはチャンクモデルジョブにおける、性能上のチ�
 * Argumentsタブ
 ** Program arguments: ``META-INF/jobs/dbaccess/jobPointAddChunk.xml jobPointAddChunk``
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============
 
 [[Ch09_Impl_DBAccessJob_Chunk_Execution_Console]]
@@ -951,12 +925,9 @@ Bean定義ファイルにて、タスクレットモデルでデータベース�
 ここでは、Bean定義ファイルの枠および共通的な設定のみ記述し、以降の項で各構成要素の設定を行う。
 
 // ============ Java/XML Config Tab start. ============ 
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup09040104" class="JavaConfigTab" id="tabgroup09040104_1" checked><label for="tabgroup09040104_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup09040104" class="XMLConfigTab" id="tabgroup09040104_2"><label for="tabgroup09040104_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 [source, java]
 .com.example.batch.tutorial.config.dbaccess.JobPointAddTaskletConfig.java
@@ -969,10 +940,10 @@ public class JobPointAddTaskletConfig {
 }
 ----
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 [source, xml]
 .src/main/resources/META-INF/jobs/dbaccess/jobPointAddTasklet.xml
@@ -998,10 +969,7 @@ public class JobPointAddTaskletConfig {
 </beans>
 ----
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============ 
 
 [cols="10,90", options="header"]
@@ -1106,7 +1074,7 @@ MyBatisを利用してデータベースアクセスするための実装・設�
 チャンクモデル/タスクレットモデルで共通して利用するため、既に作成している場合は読み飛ばしてよい。
 
 [[Ch09_Impl_DBAccessJob_Tasklet_MyBatis_Repository]]
-==== Repositoryインタフェースの実装
+==== ``Repository``インタフェースの実装
 MapperXMLファイルに定義したSQLを呼び出すためのインタフェースを作成する。 +
 このインタフェースに対する実装クラスは、MyBatisが自動で生成するため、開発者はインタフェースのみ作成すればよい。
 
@@ -1143,10 +1111,10 @@ public interface MemberInfoRepository {
 [[Ch09_Impl_DBAccessJob_Tasklet_MyBatis_MapperXML]]
 ==== MapperXMLファイルの作成
 SQLとO/Rマッピングの設定を記載するMapperXMLファイルを作成する。 +
-MapperXMLファイルは、Repositoryインタフェースごとに作成する。
+MapperXMLファイルは、``Repository``インタフェースごとに作成する。
 
 MyBatisが定めたルールに則ったディレクトリに格納することで、自動的にMapperXMLファイルを読み込むことができる。
-MapperXMLファイルを自動的に読み込ませるために、Repositoryインタフェースのパッケージ階層と同じ階層のディレクトリにMapperXMLファイルを格納する。
+MapperXMLファイルを自動的に読み込ませるために、``Repository``インタフェースのパッケージ階層と同じ階層のディレクトリにMapperXMLファイルを格納する。
 
 [source, xml]
 .src/main/resources/com/example/batch/tutorial/common/repository/MemberInfoRepository.xml
@@ -1191,7 +1159,7 @@ MapperXMLファイルを自動的に読み込ませるために、Repositoryイ�
 |説明
 
 |(1)
-|``<mapper>``要素の``namespace``属性に、Repositoryインタフェースの完全修飾クラス名(FQCN)を指定する。
+|``<mapper>``要素の``namespace``属性に、``Repository``インタフェースの完全修飾クラス名(FQCN)を指定する。
 
 |(2)
 |参照系のSQLの定義を行う。 +
@@ -1209,19 +1177,15 @@ statusとpointを更新するSQLを設定する。
 MyBatisによるデータベースアクセスするための設定として、ジョブBean定義ファイルに以下の(1)～(3)を追記する。
 
 // ============ Java/XML Config Tab start. ============ 
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup09040105" class="JavaConfigTab" id="tabgroup09040105_1" checked><label for="tabgroup09040105_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup09040105" class="XMLConfigTab" id="tabgroup09040105_2"><label for="tabgroup09040105_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 [source, java]
 .com.example.batch.tutorial.config.dbaccess.JobPointAddTaskletConfig.java
 ----
 @Configuration
 @Import(JobBaseContextConfig.class)
-@PropertySource(value = "classpath:batch-application.properties")
 @ComponentScan("com.example.batch.tutorial.dbaccess.tasklet")
 @MapperScan(basePackages = "com.example.batch.tutorial.common.repository", sqlSessionFactoryRef = "jobSqlSessionFactory") // (1)
 public class JobPointAddTaskletConfig {
@@ -1252,10 +1216,10 @@ public class JobPointAddTaskletConfig {
 }
 ----
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 [source, xml]
 .src/main/resources/META-INF/jobs/dbaccess/jobPointAddTasklet.xml
@@ -1293,10 +1257,7 @@ public class JobPointAddTaskletConfig {
 </beans>
 ----
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============ 
 
 [cols="10,90", options="header"]
@@ -1306,8 +1267,8 @@ public class JobPointAddTaskletConfig {
 |説明
 
 |(1)
-|Repositoryインタフェースをスキャンするための設定を行う。 +
-``basePackages属性/base-package属性``に、Repositoryインタフェースが格納されている基底パッケージを指定する。
+|``Repository``インタフェースをスキャンするための設定を行う。 +
+``basePackages属性/base-package属性``に、``Repository``インタフェースが格納されている基底パッケージを指定する。
 
 |(2)
 |ItemReaderの設定を行う。 +
@@ -1325,7 +1286,7 @@ public class JobPointAddTaskletConfig {
 .チャンクモデルのコンポーネントを利用するTasklet実装
 ====
 このチュートリアルでは、タスクレットモデルでデータベースアクセスするジョブの作成を容易に実現するために、
-チャンクモデルのコンポーネントであるItemReader・ItemWriterを利用している。
+チャンクモデルのコンポーネントである``ItemReader``・``ItemWriter``を利用している。
 
 Tasklet実装の中でチャンクモデルの各種コンポーネントを利用するかどうかは、
 <<Ch03_CreateTaskletJob#Ch03_CreateTaskletJob_HowToUse_InOutImpl,チャンクモデルのコンポーネントを利用するTasklet実装>>を参照して適宜判断してほしい。
@@ -1334,9 +1295,9 @@ Tasklet実装の中でチャンクモデルの各種コンポーネントを利�
 [NOTE]
 .ItemReader・ItemWriter以外のデータベースアクセス
 ====
-ItemReader・ItemWriter以外でデータベースアクセスする方法として、Mapperインタフェースを利用する方法がある。
-Mapperインタフェースを利用するにあたっては、{batch5_shortname}として制約を設けているため、
-<<Ch05_DBAccess.adoc#Ch05_DBAccess_HowToUse_Input_MapperInterface,Mapperインタフェース(入力)>>、<<Ch05_DBAccess.adoc#Ch05_DBAccess_HowToUse_Output_MapperInterface,Mapperインタフェース(出力)>>を参照してほしい。
+``ItemReader``・``ItemWriter``以外でデータベースアクセスする方法として、``Mapper``インタフェースを利用する方法がある。
+``Mapper``インタフェースを利用するにあたっては、{batch5_shortname}として制約を設けているため、
+<<Ch05_DBAccess.adoc#Ch05_DBAccess_HowToUse_Input_MapperInterface,``Mapper``インタフェース(入力)>>、<<Ch05_DBAccess.adoc#Ch05_DBAccess_HowToUse_Output_MapperInterface,``Mapper``インタフェース(出力)>>を参照してほしい。
 Taskletの実装例は、<<Ch05_DBAccess.adoc#Ch05_DBAccess_HowToUse_Input_MapperInterface_Tasklet,タスクレットモデルにおける利用方法>>(入力)、
 <<Ch05_DBAccess.adoc#Ch05_DBAccess_HowToUse_Output_MapperInterface_Tasklet,タスクレットモデルにおける利用方法>>(出力)を参照。
 ====
@@ -1352,7 +1313,7 @@ Taskletの実装例は、<<Ch05_DBAccess.adoc#Ch05_DBAccess_HowToUse_Input_Mappe
 
 [[Ch09_Impl_DBAccessJob_Tasklet_Logic_Tasklet]]
 ==== PointAddTaskletクラスの実装
-Taskletインタフェースを実装したPointAddTaskletクラスを実装する。
+``Tasklet``インタフェースを実装したPointAddTaskletクラスを実装する。
 
 [source, java]
 .com.example.batch.tutorial.dbaccess.tasklet.PointAddTasklet
@@ -1518,19 +1479,15 @@ public class PointAddTasklet implements Tasklet {
 作成したビジネスロジックをジョブとして設定するため、ジョブBean定義ファイルに以下の(1)以降を追記する。
 
 // ============ Java/XML Config Tab start. ============ 
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup09040106" class="JavaConfigTab" id="tabgroup09040106_1" checked><label for="tabgroup09040106_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup09040106" class="XMLConfigTab" id="tabgroup09040106_2"><label for="tabgroup09040106_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 [source, java]
 .com.example.batch.tutorial.config.dbaccess.JobPointAddTaskletConfig.java
 ----
 @Configuration
 @Import(JobBaseContextConfig.class)
-@PropertySource(value = "classpath:batch-application.properties")
 @ComponentScan("com.example.batch.tutorial.dbaccess.tasklet")
 @MapperScan(basePackages = "com.example.batch.tutorial.common.repository", sqlSessionFactoryRef = "jobSqlSessionFactory")
 public class JobPointAddTaskletConfig {
@@ -1579,10 +1536,10 @@ public class JobPointAddTaskletConfig {
 }
 ----
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 [source, xml]
 .src/main/resources/META-INF/jobs/dbaccess/jobPointAddTasklet.xml
@@ -1624,10 +1581,7 @@ public class JobPointAddTaskletConfig {
 </beans>
 ----
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============ 
 
 [cols="10,90", options="header"]
@@ -1664,12 +1618,9 @@ public class JobPointAddTaskletConfig {
 
 実行構成の設定値::
 // ============ Java/XML Config Tab start. ============
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup09040108" class="JavaConfigTab" id="tabgroup09040108_1" checked><label for="tabgroup09040108_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup09040108" class="XMLConfigTab" id="tabgroup09040108_2"><label for="tabgroup09040108_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 * Name: 任意の名称(例: Run DBAccessJob for TaskletModel)
 * Mainタブ
@@ -1678,10 +1629,10 @@ public class JobPointAddTaskletConfig {
 * Argumentsタブ
 ** Program arguments: ``com.example.batch.tutorial.config.dbaccess.JobPointAddTaskletConfig jobPointAddTasklet``
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 * Name: 任意の名称(例: Run DBAccessJob for TaskletModel)
 * Mainタブ
@@ -1690,10 +1641,7 @@ public class JobPointAddTaskletConfig {
 * Argumentsタブ
 ** Program arguments: ``META-INF/jobs/dbaccess/jobPointAddTasklet.xml jobPointAddTasklet``
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============
 
 [[Ch09_Impl_DBAccessJob_Tasklet_Execution_Console]]

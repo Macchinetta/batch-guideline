@@ -17,7 +17,7 @@ include::_include_all.adoc[]
 == 概要
 ChunkListenerで例外ハンドリングを行うジョブを作成する。
 
-なお、詳細については{batch5_guide}の<<Ch06_ExceptionHandling.adoc#Ch06_ExceptionHandling_HowToUse_StepExceptionHandling_ChunkListener,ChunkListenerインタフェースによる例外ハンドリング>>を参照。
+なお、詳細については{batch5_guide}の<<Ch06_ExceptionHandling.adoc#Ch06_ExceptionHandling_HowToUse_StepExceptionHandling_ChunkListener,``ChunkListener``インタフェースによる例外ハンドリング>>を参照。
 
 [NOTE]
 .リスナーの用途について
@@ -239,12 +239,9 @@ errors.maxInteger=The {0} exceeds {1}.
 ----
 
 // ============ Java/XML Config Tab start. ============ 
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup09040401" class="JavaConfigTab" id="tabgroup09040401_1" checked><label for="tabgroup09040401_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup09040401" class="XMLConfigTab" id="tabgroup09040401_2"><label for="tabgroup09040401_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 [source, java]
 .com.example.batch.tutorial.config.LaunchContextConfig.java
@@ -259,10 +256,10 @@ public MessageSource messageSource() {
 // omitted
 ----
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 [source, xml]
 .META-INF/spring/launch-context.xml
@@ -275,10 +272,7 @@ public MessageSource messageSource() {
 <!-- omitted -->
 ----
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============ 
 
 [cols="10,90", options="header"]
@@ -307,8 +301,8 @@ public MessageSource messageSource() {
 
 [[Ch09_Impl_ExceptionHandlingWithListenerJob_Chunk_Coding_Listener]]
 ==== ChunkErrorLoggingListenerクラスの実装
-ChunkListenerインタフェースを利用して例外ハンドリングする。 +
-ここでは、ChunkListenerインタフェースの実装クラスとして、例外発生時にERRORログを出力する処理を実装する。
+``ChunkListener``インタフェースを利用して例外ハンドリングする。 +
+ここでは、``ChunkListener``インタフェースの実装クラスとして、例外発生時にERRORログを出力する処理を実装する。
 
 [source, java]
 .com.example.batch.tutorial.common.listener.ChunkErrorLoggingListener
@@ -376,19 +370,15 @@ public class ChunkErrorLoggingListener implements ChunkListener {
 例外ハンドリングをChunkListenerで行うためのジョブBean定義ファイルの設定を以下に示す。
 
 // ============ Java/XML Config Tab start. ============
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup09040403" class="JavaConfigTab" id="tabgroup09040403_1" checked><label for="tabgroup09040403_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup09040403" class="XMLConfigTab" id="tabgroup09040403_2"><label for="tabgroup09040403_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 [source, java]
 .com.example.batch.tutorial.config.dbaccess.JobPointAddChunkConfig.java
 ----
 @Configuration
 @Import(JobBaseContextConfig.class)
-@PropertySource(value = "classpath:batch-application.properties")
 @ComponentScan({"com.example.batch.tutorial.dbaccess.chunk",
     "com.example.batch.tutorial.common.listener"}) // (1)
 @MapperScan(basePackages = "com.example.batch.tutorial.common.repository", sqlSessionFactoryRef = "jobSqlSessionFactory")
@@ -424,10 +414,10 @@ public class JobPointAddChunkConfig {
 }
 ----
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 [source, xml]
 .src/main/resources/META-INF/jobs/dbaccess/jobPointAddChunk.xml
@@ -467,10 +457,7 @@ public class JobPointAddChunkConfig {
 </beans>
 ----
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============
 
 [cols="10,90", options="header"]
@@ -643,12 +630,9 @@ errors.maxInteger=The {0} exceeds {1}.
 ----
 
 // ============ Java/XML Config Tab start. ============ 
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup09040402" class="JavaConfigTab" id="tabgroup09040402_1" checked><label for="tabgroup09040402_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup09040402" class="XMLConfigTab" id="tabgroup09040402_2"><label for="tabgroup09040402_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 [source, java]
 .com.example.batch.tutorial.config.LaunchContextConfig.java
@@ -663,10 +647,10 @@ public MessageSource messageSource() {
 // omitted
 ----
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 [source, xml]
 .META-INF/spring/launch-context.xml
@@ -679,10 +663,7 @@ public MessageSource messageSource() {
 <!-- omitted -->
 ----
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============ 
 
 [cols="10,90", options="header"]
@@ -711,8 +692,8 @@ public MessageSource messageSource() {
 
 [[Ch09_Impl_ExceptionHandlingWithListenerJob_Tasklet_Coding_Listener]]
 ==== ChunkErrorLoggingListenerクラスの実装
-ChunkListenerインタフェースを利用して例外ハンドリングする。 +
-ここでは、ChunkListenerインタフェースの実装クラスとして、例外発生時にERRORログを出力する処理を実装する。
+``ChunkListener``インタフェースを利用して例外ハンドリングする。 +
+ここでは、``ChunkListener``インタフェースの実装クラスとして、例外発生時にERRORログを出力する処理を実装する。
 
 [source, java]
 .com.example.batch.tutorial.common.listener.ChunkErrorLoggingListener
@@ -780,19 +761,15 @@ public class ChunkErrorLoggingListener implements ChunkListener {
 例外ハンドリングをChunkListenerで行うためのジョブBean定義ファイルの設定を以下に示す。
 
 // ============ Java/XML Config Tab start. ============
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup09040404" class="JavaConfigTab" id="tabgroup09040404_1" checked><label for="tabgroup09040404_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup09040404" class="XMLConfigTab" id="tabgroup09040404_2"><label for="tabgroup09040404_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 [source, java]
 .com.example.batch.tutorial.config.dbaccess.JobPointAddTaskletConfig.java
 ----
 @Configuration
 @Import(JobBaseContextConfig.class)
-@PropertySource(value = "classpath:batch-application.properties")
 @ComponentScan({"com.example.batch.tutorial.dbaccess.tasklet",
     "com.example.batch.tutorial.common.listener"}) // (1)
 @MapperScan(basePackages = "com.example.batch.tutorial.common.repository", sqlSessionFactoryRef = "jobSqlSessionFactory")
@@ -822,10 +799,10 @@ public class JobPointAddTaskletConfig {
 }
 ----
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 [source, xml]
 .src/main/resources/META-INF/jobs/dbaccess/jobPointAddTasklet.xml
@@ -863,10 +840,7 @@ public class JobPointAddTaskletConfig {
 </beans>
 ----
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============
 
 [cols="10,90", options="header"]

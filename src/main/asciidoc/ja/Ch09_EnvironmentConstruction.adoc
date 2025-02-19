@@ -20,46 +20,34 @@ include::_include_all.adoc[]
 プロジェクトを作成するディレクトリにて、以下のコマンドを実行する。
 
 // ============ Java/XML Config Tab start. ============ 
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup090301" class="JavaConfigTab" id="tabgroup090301_1" checked><label for="tabgroup090301_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup090301" class="XMLConfigTab" id="tabgroup090301_2"><label for="tabgroup090301_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 .コマンドプロンプト(Windows)
-CAUTION: 下記のバージョン識別子は ``2.5.0.RELEASE`` に一部ファイルの誤配置があったため、修正した ``2.5.0.1.RELEASE`` を指定している。
-
 [source, console,subs="normal,attributes"]
-
 ----
 C:\xxx>mvn archetype:generate ^
   -DarchetypeGroupId=com.github.macchinetta.blank ^
   -DarchetypeArtifactId=macchinetta-batch-archetype ^
-  -DarchetypeVersion=2.5.0.1.RELEASE
+  -DarchetypeVersion={batch5_version}
 ----
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 .コマンドプロンプト(Windows)
-CAUTION: 下記のバージョン識別子は、JavaConfig版の変更に併せて 2.5.0.1.RELEASE を指定しているが、XMLConfig版は2.5.0.RELEASE と内容は同一である。
-
 [source, console,subs="normal,attributes"]
-
 ----
 C:\xxx>mvn archetype:generate ^
   -DarchetypeGroupId=com.github.macchinetta.blank ^
   -DarchetypeArtifactId=macchinetta-batch-xmlconfig-archetype ^
-  -DarchetypeVersion=2.5.0.1.RELEASE
+  -DarchetypeVersion={batch5_version}
 ----
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============
 
 その後、以下を対話式に設定する。
@@ -86,12 +74,9 @@ C:\xxx>mvn archetype:generate ^
 以下のとおり、mvnコマンドに対して「BUILD SUCCESS」が表示されることを確認する。
 
 // ============ Java/XML Config Tab start. ============ 
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup090302" class="JavaConfigTab" id="tabgroup090302_1" checked><label for="tabgroup090302_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup090302" class="XMLConfigTab" id="tabgroup090302_2"><label for="tabgroup090302_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 .実行例
 [source, console,subs="normal,attributes"]
@@ -99,7 +84,7 @@ C:\xxx>mvn archetype:generate ^
 C:\xxx>mvn archetype:generate ^
 More?   -DarchetypeGroupId=com.github.macchinetta.blank ^
 More?   -DarchetypeArtifactId=macchinetta-batch-archetype ^
-More?   -DarchetypeVersion=2.5.0.1.RELEASE
+More?   -DarchetypeVersion={batch5_version}
 [INFO] Scanning for projects...
 [INFO]
 [INFO] ------------------------------------------------------------------------
@@ -116,10 +101,10 @@ Confirm properties configuration:
 groupId: com.example.batch
 artifactId: macchinetta-batch-tutorial
 version: 1.0.0-SNAPSHOT
-package: org.macchinetta.batch.tutorial
+package: com.example.batch.tutorial
  Y: : y
 [INFO] ----------------------------------------------------------------------------
-[INFO] Using following parameters for creating project from Archetype: macchinetta-batch-archetype:2.5.0.1.RELEASE
+[INFO] Using following parameters for creating project from Archetype: macchinetta-batch-archetype:{batch5_version}
 [INFO] ----------------------------------------------------------------------------
 [INFO] Parameter: groupId, Value: com.example.batch
 [INFO] Parameter: artifactId, Value: macchinetta-batch-tutorial
@@ -140,10 +125,10 @@ package: org.macchinetta.batch.tutorial
 [INFO] ------------------------------------------------------------------------
 ----
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 .実行例
 [source, console,subs="normal,attributes"]
@@ -151,7 +136,7 @@ package: org.macchinetta.batch.tutorial
 C:\xxx>mvn archetype:generate ^
 More?   -DarchetypeGroupId=com.github.macchinetta.blank ^
 More?   -DarchetypeArtifactId=macchinetta-batch-xmlconfig-archetype ^
-More?   -DarchetypeVersion=2.5.0.1.RELEASE
+More?   -DarchetypeVersion={batch5_version}
 [INFO] Scanning for projects...
 [INFO]
 [INFO] ------------------------------------------------------------------------
@@ -171,7 +156,7 @@ version: 1.0.0-SNAPSHOT
 package: com.example.batch.tutorial
  Y: : y
 [INFO] ----------------------------------------------------------------------------
-[INFO] Using following parameters for creating project from Archetype: macchinetta-batch-archetype:2.5.0.1.RELEASE
+[INFO] Using following parameters for creating project from Archetype: macchinetta-batch-archetype:{batch5_version}
 [INFO] ----------------------------------------------------------------------------
 [INFO] Parameter: groupId, Value: com.example.batch
 [INFO] Parameter: artifactId, Value: macchinetta-batch-tutorial
@@ -192,10 +177,7 @@ package: com.example.batch.tutorial
 [INFO] ------------------------------------------------------------------------
 ----
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============ 
 
 サンプルジョブを実行し、プロジェクトが正しく作成できたことを確認する。
@@ -203,12 +185,9 @@ package: com.example.batch.tutorial
 .サンプルジョブの実行(正しく作成できたことの確認)
 [[Ch09_EnvironmentConstruction_BlankProject_ExecSample]]
 // ============ Java/XML Config Tab start. ============
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup090303" class="JavaConfigTab" id="tabgroup090303_1" checked><label for="tabgroup090303_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup090303" class="XMLConfigTab" id="tabgroup090303_2"><label for="tabgroup090303_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 [source, console]
 ----
@@ -248,20 +227,17 @@ APSHOT
 C:\xxx\macchinetta-batch-tutorial>java -cp "lib/*;target/*" ^
 More? org.springframework.batch.core.launch.support.CommandLineJobRunner ^
 More? com.example.batch.tutorial.jobs.Job01Config job01
-[2020/03/26 16:42:29] [main] [o.s.c.s.PostProcessorRegistrationDelegate$BeanPostProcessorChecker] [INFO ] Bean 'jobRegistry' of type [org.springframework.batch.core.configuration.support.MapJobRegistry] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
-
-(.. ommited)
-
-[2020/03/04 16:58:50] [main] [o.s.b.c.l.s.TaskExecutorJobLauncher] [INFO ] Job: [FlowJob: [name=job01]] launched with the following parameters: [{jsr_batch_run_id=1}]
+[2020/03/26 16:42:29] [main] [o.h.v.i.util.Version  ] [INFO ] HV000001: Hibernate Validator 8.0.1.Final
+[2020/03/04 16:58:50] [main] [o.s.b.c.l.s.TaskExecutorJobLauncher] [INFO ] Job: [SimpleJob: [name=job01]] launched with the following parameters: [{'jsr_batch_run_id':'{value=1, type=class java.lang.Long, identifying=true}'}]
 [2020/03/04 16:58:50] [main] [o.s.b.c.j.SimpleStepHandler] [INFO ] Executing step: [job01.step01]
-[2020/03/04 16:58:50] [main] [o.s.b.c.s.AbstractStep] [INFO ] Step: [job01.step01] executed in 53ms
-[2020/03/04 16:58:50] [main] [o.s.b.c.l.s.TaskExecutorJobLauncher] [INFO ] Job: [FlowJob: [name=job01]] completed with the following parameters: [{jsr_batch_run_id=1}] and the following status: [COMPLETED] in 115ms
+[2020/03/04 16:58:50] [main] [o.s.b.c.s.AbstractStep] [INFO ] Step: [job01.step01] executed in 30ms
+[2020/03/04 16:58:50] [main] [o.s.b.c.l.s.TaskExecutorJobLauncher] [INFO ] Job: [SimpleJob: [name=job01]] completed with the following parameters: [{'jsr_batch_run_id':'{value=1, type=class java.lang.Long, identifying=true}'}] and the following status: [COMPLETED] in 55ms
 ----
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 [source, console]
 ----
@@ -301,20 +277,14 @@ APSHOT
 C:\xxx\macchinetta-batch-tutorial>java -cp "lib/*;target/*" ^
 More? org.springframework.batch.core.launch.support.CommandLineJobRunner ^
 More? META-INF/jobs/job01.xml job01
-[2020/03/04 16:58:46] [main] [o.s.c.s.PostProcessorRegistrationDelegate$BeanPostProcessorChecker] [INFO ] Bean 'jobRegistry' of type [org.springframework.batch.core.configuration.support.MapJobRegistry] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
-
-(.. ommited)
-
-[2020/03/04 16:58:50] [main] [o.s.b.c.l.s.TaskExecutorJobLauncher] [INFO ] Job: [FlowJob: [name=job01]] launched with the following parameters: [{jsr_batch_run_id=1}]
+[2020/03/04 16:58:46] [main] [o.h.v.i.util.Version  ] [INFO ] HV000001: Hibernate Validator 8.0.1.Final
+[2020/03/04 16:58:50] [main] [o.s.b.c.l.s.TaskExecutorJobLauncher] [INFO ] Job: [SimpleJob: [name=job01]] launched with the following parameters: [{'jsr_batch_run_id':'{value=1, type=class java.lang.Long, identifying=true}'}]
 [2020/03/04 16:58:50] [main] [o.s.b.c.j.SimpleStepHandler] [INFO ] Executing step: [job01.step01]
-[2020/03/04 16:58:50] [main] [o.s.b.c.s.AbstractStep] [INFO ] Step: [job01.step01] executed in 100ms
-[2020/03/04 16:58:50] [main] [o.s.b.c.l.s.TaskExecutorJobLauncher] [INFO ] Job: [FlowJob: [name=job01]] completed with the following parameters: [{jsr_batch_run_id=1}] and the following status: [COMPLETED] in 228ms
+[2020/03/04 16:58:50] [main] [o.s.b.c.s.AbstractStep] [INFO ] Step: [job01.step01] executed in 30ms
+[2020/03/04 16:58:50] [main] [o.s.b.c.l.s.TaskExecutorJobLauncher] [INFO ] Job: [SimpleJob: [name=job01]] completed with the following parameters: [{'jsr_batch_run_id':'{value=1, type=class java.lang.Long, identifying=true}'}] and the following status: [COMPLETED] in 55ms
 ----
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============
 
 [[Ch09_EnvironmentConstruction_Import]]
@@ -334,28 +304,22 @@ image::ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_Import_Import.p
 インポートが完了すると、Package Explorerに次のようなプロジェクトが表示される。
 
 // ============ Java/XML Config Tab start. ============ 
-++++
-<div class="tabbox">
-    <input type="radio" name="tabgroup090304" class="JavaConfigTab" id="tabgroup090304_1" checked><label for="tabgroup090304_1" class="tab">JavaConfig</label>
-    <input type="radio" name="tabgroup090304" class="XMLConfigTab" id="tabgroup090304_2"><label for="tabgroup090304_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 .Package Explorer
 image::ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_Import_PackageExplorer.png[Package Explorer]
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 .Package Explorer
 image::ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_Import_PackageExplorer_XMLConfig.png[Package Explorer]
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============ 
 
 [NOTE]
@@ -563,12 +527,9 @@ tutorial.insert-data.script=file:sqls/insert-member-info-data.sql
 ``LaunchContextConfig.java/launch-context.xml``を開き、Bean定義で``DataSourceInitializer/<jdbc:initialize-database>``を追加する。
 
 // ============ Java/XML Config Tab start. ============ 
-++++
-<div class="tabbox">
-   <input type="radio" name="tabgroup090305" class="JavaConfigTab" id="tabgroup090305_1" checked><label for="tabgroup090305_1" class="tab">JavaConfig</label>
-   <input type="radio" name="tabgroup090305" class="XMLConfigTab" id="tabgroup090305_2"><label for="tabgroup090305_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 [source, java]
 .com.example.batch.tutorial.config.LaunchContextConfig.java
@@ -589,10 +550,10 @@ public DataSourceInitializer jobDataSourceInitializer(@Qualifier("jobDataSource"
 }
 ----
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 [source, xml]
 .META-INF/spring/launch-context.xml
@@ -604,10 +565,7 @@ public DataSourceInitializer jobDataSourceInitializer(@Qualifier("jobDataSource"
 </jdbc:initialize-database>
 ----
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============ 
 
 [[Ch09_EnvironmentConstruction_InputDataPreparation_File]]
@@ -811,12 +769,9 @@ image::ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_OperationCheck_
 
 .Run ConfigurationsのArgumentsタブで入力する値
 // ============ Java/XML Config Tab start. ============
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup090306" class="JavaConfigTab" id="tabgroup090306_1" checked><label for="tabgroup090306_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup090306" class="XMLConfigTab" id="tabgroup090306_2"><label for="tabgroup090306_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 [cols="30,70", options="header"]
 |===
@@ -830,10 +785,10 @@ image::ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_OperationCheck_
 .Run Configurations Arguments tab
 image::ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_OperationCheck_ExecJob_RunConf_Arg_JavaConfig.png[Run Configurations Arguments tab]
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 [cols="30,70", options="header"]
 |===
@@ -847,10 +802,7 @@ image::ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_OperationCheck_
 .Run Configurations Arguments tab
 image::ch09/EnvironmentConstruction/Ch09_EnvironmentConstruction_OperationCheck_ExecJob_RunConf_Arg.png[Run Configurations Arguments tab]
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============
 
 [start=4]

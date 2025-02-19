@@ -125,12 +125,9 @@ Macchinetta Batch 2.xでのフロー制御方法を説明する。
 
 .Bean定義
 // ============ Java/XML Config Tab start. ============
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup080101" class="JavaConfigTab" id="tabgroup080101_1" checked><label for="tabgroup080101_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup080101" class="XMLConfigTab" id="tabgroup080101_2"><label for="tabgroup080101_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 [source,java]
 ----
@@ -187,10 +184,10 @@ public Job jobSequentialFlow(JobRepository jobRepository,
 }
 ----
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 [source,xml]
 ----
@@ -210,10 +207,7 @@ public Job jobSequentialFlow(JobRepository jobRepository,
 </batch:job>
 ----
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============
 
 [cols="10,90",options="header"]
@@ -232,114 +226,9 @@ public Job jobSequentialFlow(JobRepository jobRepository,
 これにより、 以下の順でステップが直列に起動する。 +
 ``jobSequentialFlow.step1`` -> ``jobSequentialFlow.step2`` -> ``jobSequentialFlow.step3`` +
 
-[NOTE]
-.Flow/<batch:flow>を使った定義方法
-====
-前述の例では``jobSequentialFlowメソッド/<batch:job>``内に直接フローを定義した。
-``Bean定義したFlow/<batch:flow>``を利用して、フロー定義を外部に切り出すこともできる。
-以下に``Bean定義したFlow/<batch:flow>``を利用した場合の例を示す。
-
-// ============ Java/XML Config Tab start. ============
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup080102" class="JavaConfigTab" id="tabgroup080102_1" checked><label for="tabgroup080102_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup080102" class="XMLConfigTab" id="tabgroup080102_2"><label for="tabgroup080102_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
-// Java Config start.
-[source,java]
-----
-@Bean
-public Step step01outer(JobRepository jobRepository,
-                        SequentialFlowTasklet tasklet,
-                        @Qualifier("jobTransactionManager") PlatformTransactionManager transactionManager) {
-    return parentStepBuilder("jobSequentialOuterFlow.step1", jobRepository,
-            tasklet, transactionManager)
-            .build();
-}
-
-@Bean
-public Step step02outer(JobRepository jobRepository,
-                        SequentialFlowTasklet tasklet,
-                        @Qualifier("jobTransactionManager") PlatformTransactionManager transactionManager) {
-    return parentStepBuilder("jobSequentialOuterFlow.step2", jobRepository,
-            tasklet, transactionManager)
-            .build();
-}
-
-@Bean
-public Step step03outer(JobRepository jobRepository,
-                        SequentialFlowTasklet tasklet,
-                        @Qualifier("jobTransactionManager") PlatformTransactionManager transactionManager) {
-    return parentStepBuilder("jobSequentialOuterFlow.step3", jobRepository,
-            tasklet, transactionManager)
-            .build();
-}
-
-// (2)
-@Bean
-public Flow outerFlow(Step step01outer, Step step02outer,
-                      Step step03outer) {
-    return new FlowBuilder<Flow>("outerFlow")
-            .from(step01outer)
-            .next(step02outer)
-            .next(step03outer)
-            .build();
-}
-
-@Bean
-public Job jobSequentialOuterFlow(JobRepository jobRepository,
-                                  Flow outerFlow) {
-    return new JobBuilder("jobSequentialOuterFlow", jobRepository)
-            .start(outerFlow) // (1)
-            .end()
-            .build();
-}
-----
-// Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
-// XML Config start.
-[source,xml]
-----
-<batch:job id="jobSequentialOuterFlow" job-repository="jobRepository">
-    <batch:flow id="innerFlow" parent="outerFlow"/> <!-- (1) -->
-</batch:job>
-
-<!-- (2) -->
-<batch:flow id="outerFlow">
-    <batch:step id="jobSequentialOuterFlow.step1"
-                next="jobSequentialOuterFlow.step2"
-                parent="parentStep"/>
-    <batch:step id="jobSequentialOuterFlow.step2"
-                next="jobSequentialOuterFlow.step3"
-                parent="parentStep"/>
-    <batch:step id="jobSequentialOuterFlow.step3"
-                parent="parentStep"/>
-</batch:flow>
-----
-// XML Config end.
-++++
-  </div>
-</div>
-++++
-// ============ Java/XML Config Tab end. ============
-
-[cols="10,90",options="header"]
-|===
-|項番
-|説明
-
-|(1)
-|``JobBuilderのstartメソッド/parent属性``に(2)で定義したフローのidを設定する。
-
-|(2)
-|シーケンシャルフローを定義する。
-|===
-
-====
+上述の例では``jobSequentialFlowメソッド/<batch:job>``内に直接フローを定義した。
+いっぽうで、フロー定義を``jobSequentialFlowメソッド/<batch:job>``の外で記述する方法もある。
+詳しくは、<<Ch08_FlowControll_Appendix_FlowDefinition,外部でのフロー定義方法>>を参照のこと。
 
 [[Ch08_FlowControll_HowToUse_PassingDataToFutureSteps]]
 === ステップ間のデータの受け渡し
@@ -430,12 +319,9 @@ public class ConfirmPromotionalTasklet implements Tasklet {
 
 .ジョブBean定義の記述例
 // ============ Java/XML Config Tab start. ============
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup080103" class="JavaConfigTab" id="tabgroup080103_1" checked><label for="tabgroup080103_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup080103" class="XMLConfigTab" id="tabgroup080103_2"><label for="tabgroup080103_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 [source,java]
 ----
@@ -480,10 +366,10 @@ public Job jobPromotionalFlow(JobRepository jobRepository,
 }
 ----
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 [source,xml]
 ----
@@ -510,10 +396,7 @@ public Job jobPromotionalFlow(JobRepository jobRepository,
 <!-- omitted -->
 ----
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============
 
 [cols="10,90",options="header"]
@@ -604,12 +487,9 @@ public class PromotionTargetItemProcessor implements ItemProcessor<String, Strin
 
 .ジョブBean定義の記述例
 // ============ Java/XML Config Tab start. ============
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup080104" class="JavaConfigTab" id="tabgroup080104_1" checked><label for="tabgroup080104_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup080104" class="XMLConfigTab" id="tabgroup080104_2"><label for="tabgroup080104_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 [source,java]
 ----
@@ -671,10 +551,10 @@ SimpleStepBuilder<String, String> parentStepBuilder(String stepName,
 }
 ----
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 [source,xml]
 ----
@@ -697,10 +577,7 @@ SimpleStepBuilder<String, String> parentStepBuilder(String stepName,
 <!-- step definitions are omitted. -->
 ----
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============
 
 [cols="10,90",options="header"]
@@ -746,12 +623,9 @@ SimpleStepBuilder<String, String> parentStepBuilder(String stepName,
 
 .ジョブBean定義記述例
 // ============ Java/XML Config Tab start. ============
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup080105" class="JavaConfigTab" id="tabgroup080105_1" checked><label for="tabgroup080105_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup080105" class="XMLConfigTab" id="tabgroup080105_2"><label for="tabgroup080105_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 [source,java]
 ----
@@ -798,10 +672,10 @@ public Job jobConditionalFlow(JobRepository jobRepository, Step stepA,
 }
 ----
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 [source,xml]
 ----
@@ -818,10 +692,7 @@ public Job jobConditionalFlow(JobRepository jobRepository, Step stepA,
 </batch:job>
 ----
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============
 
 [cols="10,90",options="header"]
@@ -869,12 +740,9 @@ public Job jobConditionalFlow(JobRepository jobRepository, Step stepA,
 
 .ジョブBean定義記述例
 // ============ Java/XML Config Tab start. ============
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup080106" class="JavaConfigTab" id="tabgroup080106_1" checked><label for="tabgroup080106_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup080106" class="XMLConfigTab" id="tabgroup080106_2"><label for="tabgroup080106_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 [source,java]
 ----
@@ -950,10 +818,10 @@ public Job jobStopFlow(JobRepository jobRepository,
 }
 ----
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 [source,xml]
 ----
@@ -974,7 +842,7 @@ public Job jobStopFlow(JobRepository jobRepository,
     </batch:step>
     <batch:step id="jobStopFlow.step3" parent="stopFlow.parentStep">
         <!-- (4) -->
-        <batch:stop on="FORCE_STOP" restart="jobStopFlow.step4" exit-code=""/>
+        <batch:stop on="FORCE_STOP" restart="jobStopFlow.step4"/>
         <!-- (2) -->
         <batch:next on="*" to="jobStopFlow.step4"/>
     </batch:step>
@@ -982,10 +850,7 @@ public Job jobStopFlow(JobRepository jobRepository,
 </batch:job>
 ----
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============
 
 [cols="10,90",options="header"]
@@ -1011,8 +876,7 @@ public Job jobStopFlow(JobRepository jobRepository,
 
 |(4)
 |``stopAndRestartメソッド/<batch:stop>要素``を使用した場合、ステップの正常終了時にジョブは中断(ステータス：``STOPPED``)として``JobRepository``に記録される。 +
-``stopAndRestartメソッドの引数restart/restart属性``はリスタート時に中断状態からジョブが再開されるステップを指定する。 +
-XMLConfigでは``<batch:end>``と同様、``exit-code``属性を付与することができるが、空白文字列を指定すること。(後述のコラムを参照)
+``stopAndRestartメソッドの引数restart/restart属性``はリスタート時に中断状態からジョブが再開されるステップを指定する。
 
 |===
 
@@ -1023,26 +887,108 @@ XMLConfigでは``<batch:end>``と同様、``exit-code``属性を付与するこ�
 詳細は<<Ch07_JobManagement.adoc#Ch07_JobManagement_HowToUse_ExitCode,"終了コードのカスタマイズ">>を参照。
 ====
 
-[WARNING]
-.XMLConfigを使用する場合は、<batch:stop>でexit-codeに空文字列を指定すること。
-====
+[[Ch08_FlowControll_Appendix]]
+== Appendix
 
+[[Ch08_FlowControll_Appendix_FlowDefinition]]
+==== 外部でのフロー定義方法
+``Bean定義したFlow/<batch:flow>``を利用して、フロー定義を外部に切り出すことができる。 +
+以下に``Bean定義したFlow/<batch:flow>``を利用して、3つのステップからなるジョブのシーケンシャルフローを設定する例を示す。
+
+.Bean定義
+// ============ Java/XML Config Tab start. ============
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
+// Java Config start.
+[source,java]
+----
+@Bean
+public Step step01outer(JobRepository jobRepository,
+                        SequentialFlowTasklet tasklet,
+                        @Qualifier("jobTransactionManager") PlatformTransactionManager transactionManager) {
+    return parentStepBuilder("jobSequentialOuterFlow.step1", jobRepository,
+            tasklet, transactionManager)
+            .build();
+}
+
+@Bean
+public Step step02outer(JobRepository jobRepository,
+                        SequentialFlowTasklet tasklet,
+                        @Qualifier("jobTransactionManager") PlatformTransactionManager transactionManager) {
+    return parentStepBuilder("jobSequentialOuterFlow.step2", jobRepository,
+            tasklet, transactionManager)
+            .build();
+}
+
+@Bean
+public Step step03outer(JobRepository jobRepository,
+                        SequentialFlowTasklet tasklet,
+                        @Qualifier("jobTransactionManager") PlatformTransactionManager transactionManager) {
+    return parentStepBuilder("jobSequentialOuterFlow.step3", jobRepository,
+            tasklet, transactionManager)
+            .build();
+}
+
+// (2)
+@Bean
+public Flow outerFlow(Step step01outer, Step step02outer,
+                      Step step03outer) {
+    return new FlowBuilder<Flow>("outerFlow")
+            .from(step01outer)
+            .next(step02outer)
+            .next(step03outer)
+            .build();
+}
+
+@Bean
+public Job jobSequentialOuterFlow(JobRepository jobRepository,
+                                  Flow outerFlow) {
+    return new JobBuilder("jobSequentialOuterFlow", jobRepository)
+            .start(outerFlow) // (1)
+            .end()
+            .build();
+}
+----
+// Java Config end.
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
+// XML Config start.
 [source,xml]
 ----
-<step id="step1" parent="s1">
-    <stop on="COMPLETED" restart="step2"/>
-</step>
+<batch:job id="jobSequentialOuterFlow" job-repository="jobRepository">
+    <batch:flow id="innerFlow" parent="outerFlow"/> <!-- (1) -->
+</batch:job>
 
-<step id="step2" parent="s2"/>
+<!-- (2) -->
+<batch:flow id="outerFlow">
+    <batch:step id="jobSequentialOuterFlow.step1"
+                next="jobSequentialOuterFlow.step2"
+                parent="parentStep"/>
+    <batch:step id="jobSequentialOuterFlow.step2"
+                next="jobSequentialOuterFlow.step3"
+                parent="parentStep"/>
+    <batch:step id="jobSequentialOuterFlow.step3"
+                parent="parentStep"/>
+</batch:flow>
 ----
-
-上記はstep1が正常終了した際ジョブは停止状態となり、再度リスタート実行時にstep2を実行させることを意図したフロー制御になっている。 +
-しかし、XMLConfigを使用する場合は、{SB}の不具合により、現在意図したとおりに動作しない。 +
-リスタート後にstep2が実行されることがなく、ジョブの終了コードは``NOOP``となり、ステータスが``COMPLETED``となる。
-
-これを回避するためには上述で示したように``exit-code``で""(空文字)を付与すること。
-
-不具合の詳細は
-https://github.com/spring-projects/spring-batch/issues/1287[{SB}/BATCH-2315]
-を参照。
+// XML Config end.
 ====
+// ============ Java/XML Config Tab end. ============
+
+[cols="10,90",options="header"]
+|===
+|項番
+|説明
+
+|(1)
+|``JobBuilderのstartメソッド/parent属性``に(2)で定義したフローのidを設定する。
+
+|(2)
+|シーケンシャルフローを定義する。
+|===
+
+これにより、 以下の順でステップが直列に起動する。 +
+``jobSequentialFlow.step1`` -> ``jobSequentialFlow.step2`` -> ``jobSequentialFlow.step3``

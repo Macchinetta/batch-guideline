@@ -73,12 +73,9 @@ $ java org.springframework.batch.core.launch.support.CommandLineJobRunner <jobPa
 
 以下に、必須項目のみを指定した場合の実行例を示す。
 // ============ Java/XML Config Tab start. ============
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup040101" class="JavaConfigTab" id="tabgroup040101_1" checked><label for="tabgroup040101_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup040101" class="XMLConfigTab" id="tabgroup040101_2"><label for="tabgroup040101_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 [source,console]
 .コマンドプロンプトでのCommandLineJobRunnerの実行例
@@ -123,10 +120,10 @@ public Job job01(JobRepository jobRepository,
 }
 ----
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 [source,console]
 .コマンドプロンプトでのCommandLineJobRunnerの実行例
@@ -158,10 +155,7 @@ $ java -cp 'target/[artifactId]-[version].jar:lib/*' \ # (1)
 </batch:job>
 ----
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============
 
 [cols="10,90", options="header"]
@@ -186,12 +180,9 @@ $ java -cp 'target/[artifactId]-[version].jar:lib/*' \ # (1)
 次に、任意項目として起動パラメータを指定した場合の実行例を示す。
 
 // ============ Java/XML Config Tab start. ============
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup040102" class="JavaConfigTab" id="tabgroup040102_1" checked><label for="tabgroup040102_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup040102" class="XMLConfigTab" id="tabgroup040102_2"><label for="tabgroup040102_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 [source,console]
 .コマンドプロンプトでのCommandLineJobRunnerの実行例
@@ -209,10 +200,10 @@ $ java -cp 'target/[artifactId]-[version].jar:lib/*' \
     xxxxxx.yyyyyy.zzzzzz.projectName.jobs.SetupJobConfig setupJob target=server1 outputFile=/tmp/result.csv # (1)
 ----
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 [source,console]
 .コマンドプロンプトでのCommandLineJobRunnerの実行例
@@ -230,10 +221,7 @@ $ java -cp 'target/[artifactId]-[version].jar:lib/*' \
     META-INF/jobs/setupJob.xml setupJob target=server1 outputFile=/tmp/result.csv # (1)
 ----
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============
 
 [cols="10,90", options="header"]

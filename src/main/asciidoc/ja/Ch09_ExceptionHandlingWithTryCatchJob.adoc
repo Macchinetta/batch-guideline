@@ -249,12 +249,9 @@ errors.maxInteger=The {0} exceeds {1}.
 ----
 
 // ============ Java/XML Config Tab start. ============ 
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup09040501" class="JavaConfigTab" id="tabgroup09040501_1" checked><label for="tabgroup09040501_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup09040501" class="XMLConfigTab" id="tabgroup09040501_2"><label for="tabgroup09040501_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 [source, java]
 .com.example.batch.tutorial.config.LaunchContextConfig.java
@@ -269,10 +266,10 @@ public MessageSource messageSource() {
 // omitted
 ----
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 [source, xml]
 .META-INF/spring/launch-context.xml
@@ -285,10 +282,7 @@ public MessageSource messageSource() {
 <!-- omitted -->
 ----
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============ 
 
 [cols="10,90", options="header"]
@@ -435,19 +429,15 @@ public class JobExitCodeChangeListener implements JobExecutionListener {
 作成したリスナーを利用するためのジョブBean定義ファイルの設定を以下に示す。
 
 // ============ Java/XML Config Tab start. ============
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup09040502" class="JavaConfigTab" id="tabgroup09040502_1" checked><label for="tabgroup09040502_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup09040502" class="XMLConfigTab" id="tabgroup09040502_2"><label for="tabgroup09040502_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 [source, java]
 .com.example.batch.tutorial.config.dbaccess.JobPointAddChunkConfig.java
 ----
 @Configuration
 @Import(JobBaseContextConfig.class)
-@PropertySource(value = "classpath:batch-application.properties")
 @ComponentScan({"com.example.batch.tutorial.dbaccess.chunk",
     "com.example.batch.tutorial.common.listener"}) // (1)
 @MapperScan(basePackages = "com.example.batch.tutorial.common.repository", sqlSessionFactoryRef = "jobSqlSessionFactory")
@@ -485,10 +475,10 @@ public class JobPointAddChunkConfig {
 }
 ----
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 [source, xml]
 .src/main/resources/META-INF/jobs/dbaccess/jobPointAddChunk.xml
@@ -531,10 +521,7 @@ public class JobPointAddChunkConfig {
 </beans>
 ----
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============
 
 [cols="10,90", options="header"]
@@ -572,12 +559,9 @@ public class JobPointAddChunkConfig {
 終了コードのマッピングを追加で設定する。
 
 // ============ Java/XML Config Tab start. ============ 
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup09040503" class="JavaConfigTab" id="tabgroup09040503_1" checked><label for="tabgroup09040503_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup09040503" class="XMLConfigTab" id="tabgroup09040503_2"><label for="tabgroup09040503_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 ``LaunchContextConfig.java``に以下のとおり、独自の終了コードを追加する。
 
@@ -604,10 +588,10 @@ public ExitCodeMapper exitCodeMapper() {
 // omitted
 ----
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 ``launch-context.xml``に以下のとおり、独自の終了コードを追加する。
 
@@ -634,10 +618,7 @@ public ExitCodeMapper exitCodeMapper() {
 <!-- omitted -->
 ----
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============ 
 
 [cols="10,90", options="header"]
@@ -867,12 +848,9 @@ errors.maxInteger=The {0} exceeds {1}.
 ----
 
 // ============ Java/XML Config Tab start. ============ 
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup09040504" class="JavaConfigTab" id="tabgroup09040504_1" checked><label for="tabgroup09040504_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup09040504" class="XMLConfigTab" id="tabgroup09040504_2"><label for="tabgroup09040504_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 [source, java]
 .com.example.batch.tutorial.config.LaunchContextConfig.java
@@ -887,10 +865,10 @@ public MessageSource messageSource() {
 // omitted
 ----
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 [source, xml]
 .META-INF/spring/launch-context.xml
@@ -903,10 +881,7 @@ public MessageSource messageSource() {
 <!-- omitted -->
 ----
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============ 
 
 [cols="10,90", options="header"]
@@ -993,19 +968,15 @@ public class JobExitCodeChangeListener implements JobExecutionListener {
 作成したリスナーを利用するためのジョブBean定義ファイルの設定を以下に示す。
 
 // ============ Java/XML Config Tab start. ============
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup09040505" class="JavaConfigTab" id="tabgroup09040505_1" checked><label for="tabgroup09040505_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup09040505" class="XMLConfigTab" id="tabgroup09040505_2"><label for="tabgroup09040505_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 [source, java]
 .com.example.batch.tutorial.config.dbaccess.JobPointAddTaskletConfig.java
 ----
 @Configuration
 @Import(JobBaseContextConfig.class)
-@PropertySource(value = "classpath:batch-application.properties")
 @ComponentScan({"com.example.batch.tutorial.dbaccess.tasklet",
     "com.example.batch.tutorial.common.listener"}) // (1)
 @MapperScan(basePackages = "com.example.batch.tutorial.common.repository", sqlSessionFactoryRef = "jobSqlSessionFactory")
@@ -1035,10 +1006,10 @@ public class JobPointAddTaskletConfig {
 }
 ----
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 [source, xml]
 .src/main/resources/META-INF/jobs/dbaccess/jobPointAddTasklet.xml
@@ -1075,10 +1046,7 @@ public class JobPointAddTaskletConfig {
 </beans>
 ----
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============
 
 [cols="10,90", options="header"]
@@ -1107,12 +1075,9 @@ public class JobPointAddTaskletConfig {
 
 
 // ============ Java/XML Config Tab start. ============ 
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup09040506" class="JavaConfigTab" id="tabgroup09040506_1" checked><label for="tabgroup09040506_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup09040506" class="XMLConfigTab" id="tabgroup09040506_2"><label for="tabgroup09040506_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 ``LaunchContextConfig.java``に以下のとおり、独自の終了コードを追加する。
 
@@ -1139,10 +1104,10 @@ public ExitCodeMapper exitCodeMapper() {
 // omitted
 ----
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 ``launch-context.xml``に以下のとおり、独自の終了コードを追加する。
 
@@ -1169,10 +1134,7 @@ public ExitCodeMapper exitCodeMapper() {
 <!-- omitted -->
 ----
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============ 
 
 [cols="10,90", options="header"]

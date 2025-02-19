@@ -9,6 +9,10 @@ include::_include_all.adoc[]
 |更新箇所
 |変更内容
 
+|2025-3-28
+|-
+|2.6.0.RELEASE 版公開
+
 |2024-3-28
 |-
 |2.5.0.RELEASE 版公開

@@ -164,16 +164,11 @@ launch-context.xml
 プロジェクトを作成するディレクトリにて、以下のコマンドを実行する。
 
 // ============ Java/XML Config Tab start. ============ 
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup030101" class="JavaConfigTab" id="tabgroup030101_1" checked><label for="tabgroup030101_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup030101" class="XMLConfigTab" id="tabgroup030101_2"><label for="tabgroup030101_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 ``archetypeArtifactId``に``macchinetta-batch-archetype``を指定
-
-CAUTION: 下記のバージョン識別子は ``2.5.0.RELEASE`` に一部ファイルの誤配置があったため、修正した ``2.5.0.1.RELEASE`` を指定している。
 
 .コマンドプロンプト(Windows)
 [source,console,subs="normal,attributes"]
@@ -181,7 +176,7 @@ CAUTION: 下記のバージョン識別子は ``2.5.0.RELEASE`` に一部ファ�
 C:\xxx>mvn archetype:generate ^
   -DarchetypeGroupId=com.github.macchinetta.blank ^
   -DarchetypeArtifactId=macchinetta-batch-archetype ^
-  -DarchetypeVersion=2.5.0.1.RELEASE
+  -DarchetypeVersion={batch5_version}
 ----
 
 .Bash(Unix, Linux, ...)
@@ -190,17 +185,15 @@ C:\xxx>mvn archetype:generate ^
 $ mvn archetype:generate \
   -DarchetypeGroupId=com.github.macchinetta.blank \
   -DarchetypeArtifactId=macchinetta-batch-archetype \
-  -DarchetypeVersion=2.5.0.1.RELEASE
+  -DarchetypeVersion={batch5_version}
 ----
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 ``archetypeArtifactId``に``macchinetta-batch**-xmlconfig**-archetype``を指定
-
-CAUTION: 下記のバージョン識別子は、JavaConfig版の変更に併せて 2.5.0.1.RELEASE を指定しているが、XMLConfig版は2.5.0.RELEASE と内容は同一である。
 
 .コマンドプロンプト(Windows)
 [source,console,subs="normal,attributes"]
@@ -208,7 +201,7 @@ CAUTION: 下記のバージョン識別子は、JavaConfig版の変更に併せ�
 C:\xxx>mvn archetype:generate ^
   -DarchetypeGroupId=com.github.macchinetta.blank ^
   -DarchetypeArtifactId=macchinetta-batch-xmlconfig-archetype ^
-  -DarchetypeVersion=2.5.0.1.RELEASE
+  -DarchetypeVersion={batch5_version}
 ----
 
 .Bash(Unix, Linux, ...)
@@ -217,13 +210,10 @@ C:\xxx>mvn archetype:generate ^
 $ mvn archetype:generate \
   -DarchetypeGroupId=com.github.macchinetta.blank \
   -DarchetypeArtifactId=macchinetta-batch-xmlconfig-archetype \
-  -DarchetypeVersion=2.5.0.1.RELEASE
+  -DarchetypeVersion={batch5_version}
 ----
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============ 
 
 
@@ -261,7 +251,7 @@ $ mvn archetype:generate \
 C:\xxx>mvn archetype:generate ^
 More? -DarchetypeGroupId=com.github.macchinetta.blank ^
 More? -DarchetypeArtifactId=macchinetta-batch-archetype ^
-More? -DarchetypeVersion=2.5.0.1.RELEASE
+More? -DarchetypeVersion={batch5_version}
 [INFO] Scanning for projects...
 [INFO]
 [INFO] ------------------------------------------------------------------------
@@ -281,7 +271,7 @@ version: 1.0.0-SNAPSHOT
 package: com.example.batch
  Y: : y
 [INFO] ------------------------------------------------------------------------
-[INFO] Using following parameters for creating project from Archetype: macchinetta-batch-archetype:2.5.0.1.RELEASE
+[INFO] Using following parameters for creating project from Archetype: macchinetta-batch-archetype:{batch5_version}
 [INFO] ------------------------------------------------------------------------
 [INFO] Parameter: groupId, Value: com.example.batch
 [INFO] Parameter: artifactId, Value: batch
@@ -308,7 +298,7 @@ package: com.example.batch
 $ mvn archetype:generate \
 > -DarchetypeGroupId=com.github.macchinetta.blank \
 > -DarchetypeArtifactId=macchinetta-batch-archetype \
-> -DarchetypeVersion=2.5.0.1.RELEASE
+> -DarchetypeVersion={batch5_version}
 [INFO] Scanning for projects...
 [INFO]
 [INFO] ------------------------------------------------------------------------
@@ -328,7 +318,7 @@ version: 1.0.0-SNAPSHOT
 package: com.example.batch
  Y: : y
 [INFO] ----------------------------------------------------------------------------
-[INFO] Using following parameters for creating project from Archetype: macchinetta-batch-archetype:2.5.0.1.RELEASE
+[INFO] Using following parameters for creating project from Archetype: macchinetta-batch-archetype:{batch5_version}
 [INFO] ----------------------------------------------------------------------------
 [INFO] Parameter: groupId, Value: com.example.batch
 [INFO] Parameter: artifactId, Value: batch
@@ -354,12 +344,9 @@ package: com.example.batch
 正しく作成出来たかどうかは、ブランクプロジェクトに同梱されているサンプルジョブ(`job01`)を以下の要領で実行することで確認できる。
 
 // ============ Java/XML Config Tab start. ============
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup030102" class="JavaConfigTab" id="tabgroup030102_1" checked><label for="tabgroup030102_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup030102" class="XMLConfigTab" id="tabgroup030102_2"><label for="tabgroup030102_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 .コマンドプロンプトでの実行(正しく作成できたことの確認)
 [source,console]
@@ -448,10 +435,10 @@ $ java -cp 'lib/*:target/*' \
 [2019/09/03 02:43:11] [main] [o.s.b.c.l.s.TaskExecutorJobLauncher] [INFO ] Job: [FlowJob: [name=job01]] completed with the following parameters: [{jsr_batch_run_id=1}] and the following status: [COMPLETED]
 ----
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 .コマンドプロンプトでの実行(正しく作成できたことの確認)
 [source,console]
@@ -537,10 +524,7 @@ $ java -cp 'lib/*:target/*' \
 [2019/09/03 02:43:11] [main] [o.s.b.c.l.s.TaskExecutorJobLauncher] [INFO ] Job: [FlowJob: [name=job01]] completed with the following parameters: [{jsr_batch_run_id=1}] and the following status: [COMPLETED]
 ----
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============
 
 [[Ch03_CreateProject_ProjectStructure]]
@@ -557,12 +541,9 @@ $ java -cp 'lib/*:target/*' \
 (わかりやすさのため、前述の``mvn archetype:generate``実行時の出力をもとに説明する。)
 
 // ============ Java/XML Config Tab start. ============ 
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup030103" class="JavaConfigTab" id="tabgroup030103_1" checked><label for="tabgroup030103_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup030103" class="XMLConfigTab" id="tabgroup030103_2"><label for="tabgroup030103_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 .プロジェクトのディレクトリ構造
 image::Ch03_CreateProject_BlankProjectDir.png[BlankProject Structure]
@@ -595,7 +576,7 @@ Ch04～Ch08以外（commonとか）の新規クラスについて、Copyrightと
 
 |(7)
 |ジョブ定義ファイルから参照される各種クラスを格納するパッケージ。 +
-ここには、DTO、TaskletやProcessorの実装、MyBatis3のMapperインタフェースを格納する。 +
+ここには、DTO、TaskletやProcessorの実装、MyBatis3の``Mapper``インタフェースを格納する。 +
 初期状態を参考にユーザにて自由にカスタムしてよいが、各ジョブで利用する資材をジョブごとにまとめて格納することで、
 ``@ComponentScan``や``@MapperScan``によるスキャン範囲を最小限にする構成が望ましい。 +
 スキャン範囲の影響や設定方法ついては<<Ch05_DBAccess.adoc#Ch05_DBAccess_HowToUse_Config_Scan,MyBatis-Springの設定>>を参考にすること。
@@ -622,7 +603,7 @@ Ch04～Ch08以外（commonとか）の新規クラスについて、Copyrightと
 詳細は、<<Ch06_InputValidation.adoc#Ch06_InputValidation,入力チェック>>の表「主な比較一覧」＞「エラーメッセージの設定」を参照のこと。
 
 |(12)
-|MyBatis3のMapperインタフェースの対となるMapper XMLファイル。
+|MyBatis3の``Mapper``インタフェースの対となるMapper XMLファイル。
 
 |(13)
 |主にログ出力時に用いるメッセージを定義するプロパティファイル。
@@ -632,10 +613,10 @@ Ch04～Ch08以外（commonとか）の新規クラスについて、Copyrightと
 
 image::Ch03_CreateProject_FilesRelation.png[Files Relation]
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 .プロジェクトのディレクトリ構造
 image::Ch03_CreateProject_BlankProjectDir_XMLConfig.png[BlankProject Structure]
@@ -665,7 +646,7 @@ image::Ch03_CreateProject_BlankProjectDir_XMLConfig.png[BlankProject Structure]
 
 |(6)
 |ジョブ定義ファイルから参照される各種クラスを格納するパッケージ。 +
-ここには、DTO、TaskletやProcessorの実装、MyBatis3のMapperインタフェースを格納する。 +
+ここには、DTO、TaskletやProcessorの実装、MyBatis3の``Mapper``インタフェースを格納する。 +
 初期状態を参考にユーザにて自由にカスタムしてよいが、各ジョブで利用する資材をジョブごとにまとめて格納することで、
 ``<context:component-scan>``や``<mybatis:scan>``によるスキャン範囲を最小限にする構成が望ましい。 +
 スキャン範囲の影響や設定方法ついては<<Ch05_DBAccess.adoc#Ch05_DBAccess_HowToUse_Config_Scan,MyBatis-Springの設定>>を参考にすること。
@@ -688,7 +669,7 @@ image::Ch03_CreateProject_BlankProjectDir_XMLConfig.png[BlankProject Structure]
 詳細は、<<Ch06_InputValidation.adoc#Ch06_InputValidation,入力チェック>>の表「主な比較一覧」＞「エラーメッセージの設定」を参照のこと。
 
 |(10)
-|MyBatis3のMapperインタフェースの対となるMapper XMLファイル。
+|MyBatis3の``Mapper``インタフェースの対となるMapper XMLファイル。
 
 |(11)
 |主にログ出力時に用いるメッセージを定義するプロパティファイル。
@@ -702,10 +683,7 @@ image::Ch03_CreateProject_BlankProjectDir_XMLConfig.png[BlankProject Structure]
 
 image::Ch03_CreateProject_FilesRelation_XMLConfig.png[Files Relation]
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============ 
 
 [[Ch03_CreateProject_Make]]
@@ -791,12 +769,9 @@ terasoluna-batch.commit.script=classpath:org/terasoluna/batch/async/db/schema-co
 ----
 
 // ============ Java/XML Config Tab start. ============ 
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup030104" class="JavaConfigTab" id="tabgroup030104_1" checked><label for="tabgroup030104_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup030104" class="XMLConfigTab" id="tabgroup030104_2"><label for="tabgroup030104_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 .com.example.batch.config.LaunchContextConfig.java
 [source,java]
@@ -829,7 +804,7 @@ public BasicDataSource adminDataSource(@Value("${admin.jdbc.driver}") String dri
     dataSource.setPassword(password);
     dataSource.setMaxTotal(10);
     dataSource.setMinIdle(1);
-    dataSource.setMaxWaitMillis(5000);
+    dataSource.setMaxWait(Duration.ofMillis(5000L));
     dataSource.setDefaultAutoCommit(false);
     return dataSource;
 }
@@ -847,7 +822,7 @@ public BasicDataSource jobDataSource(@Value("${jdbc.driver}") String driverClass
     basicDataSource.setPassword(password);
     basicDataSource.setMaxTotal(10);
     basicDataSource.setMinIdle(1);
-    basicDataSource.setMaxWaitMillis(5000);
+    basicDataSource.setMaxWait(Duration.ofMillis(5000L));
     basicDataSource.setDefaultAutoCommit(false);
     return basicDataSource;
 }
@@ -870,10 +845,10 @@ public SqlSessionFactory jobSqlSessionFactory(@Qualifier("jobDataSource") DataSo
 }
 ----
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 .META-INF/spring/launch-context.xml
 [source,xml]
@@ -895,8 +870,13 @@ public SqlSessionFactory jobSqlSessionFactory(@Qualifier("jobDataSource") DataSo
       p:password="${admin.jdbc.password}"
       p:maxTotal="10"
       p:minIdle="1"
-      p:maxWaitMillis="5000"
-      p:defaultAutoCommit="false"/>
+      p:defaultAutoCommit="false">
+    <property name="maxWait">
+        <bean class="java.time.Duration" factory-method="ofMillis">
+            <constructor-arg name="millis" type="long" value="5000" />
+        </bean>
+    </property>
+</bean>
 
 <!-- (4) -->
 <bean id="jobDataSource" class="org.apache.commons.dbcp2.BasicDataSource"
@@ -907,8 +887,13 @@ public SqlSessionFactory jobSqlSessionFactory(@Qualifier("jobDataSource") DataSo
       p:password="${jdbc.password}"
       p:maxTotal="10"
       p:minIdle="1"
-      p:maxWaitMillis="5000"
-      p:defaultAutoCommit="false" />
+      p:defaultAutoCommit="false">
+    <property name="maxWait">
+        <bean class="java.time.Duration" factory-method="ofMillis">
+            <constructor-arg name="millis" type="long" value="5000" />
+        </bean>
+    </property>
+</bean>
 
 <!-- (5) -->
 <bean id="jobSqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean"
@@ -924,19 +909,13 @@ public SqlSessionFactory jobSqlSessionFactory(@Qualifier("jobDataSource") DataSo
 </bean>
 ----
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============ 
 
 // ============ Java/XML Config Tab start. ============ 
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup030105" class="JavaConfigTab" id="tabgroup030105_1" checked><label for="tabgroup030105_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup030105" class="XMLConfigTab" id="tabgroup030105_2"><label for="tabgroup030105_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 .com.example.batch.config.AsyncBatchDaemonConfig.java
 [source,java]
@@ -959,10 +938,10 @@ public SqlSessionFactory adminSqlSessionFactory(@Qualifier("adminDataSource") Da
 }
 ----
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 .META-INF/spring/async-batch-daemon.xml
 [source,xml]
@@ -981,10 +960,7 @@ public SqlSessionFactory adminSqlSessionFactory(@Qualifier("adminDataSource") Da
 </bean>
 ----
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============ 
 
 [cols="10,90", options="header"]
@@ -1065,23 +1041,143 @@ public SqlSessionFactory adminSqlSessionFactory(@Qualifier("adminDataSource") Da
 |``<bean>``の``p``、``c``ネームスペースや、``<batch:job>``、``<batch:step>``等がもつそれぞれの属性にBean名を指定する。
 |===
 
+[CAUTION]
+.JavaConfigでメソッドインジェクションを使用する理由
+====
+JavaConfigでは同じBean定義クラス内に様々なスコープのBeanを定義することができる。一方でコンストラクタやフィールドインジェクションを使用した場合、JavaConfigクラスのインスタンス生成時に行われるただ一度のインジェクションで固定されてしまうため、``step`` スコープなどのように、シングルトンではないBeanのインジェクションには対応できなくなる。
+
+このため、JavaConfigでBeanのインジェクションを行う場合、``@Bean``アノテーションが付与されたメソッドの引数を使用し、コンストラクタやフィールドに対するインジェクションを使用しないこと。
+====
+
 ネームスペースについては、以下の公式ドキュメントを参照のこと。
 
 * https://docs.spring.io/spring-framework/reference/core/beans/dependencies/factory-properties-detailed.html#beans-p-namespace[p-namespaceを使用したXMLショートカット]
 * https://docs.spring.io/spring-framework/reference/core/beans/dependencies/factory-properties-detailed.html#beans-c-namespace[c-namespaceを使用したXMLショートカット]
 
-[CAUTION]
-.JavaConfigでのBeanのインジェクション時の注意事項
-====
-- Beanのインジェクションをフィールドインジェクションやコンストラクタインジェクションで行うと、シングルトンでないBean（``step``スコープなど）をインジェクションしたいときに対応できないので、使用しない。
-- 同じ型名のBeanが複数定義されている場合、引数に指定したBeanが見つからずエラーとなる。その場合は``@Qualifier``を付与する。
-====
-
-
 より詳細な作成方法の説明は、以下を参照。
 
 * <<Ch03_CreateChunkJob.adoc#Ch03_CreateChunkJob,チャンクモデルジョブの作成>>
 * <<Ch03_CreateTaskletJob.adoc#Ch03_CreateTaskletJob,タスクレットモデルジョブの作成>>
+
+=== 同じ型をもつBeanが複数ある場合は@Qualifierアノテーションを付与する（JavaConfigのみ）
+
+JavaConfigでは、デフォルトではBeanの特定は型名で行われる。そのため、同じ型をもつBeanが複数定義されていると、Beanが特定できずエラーとなる。エラーを回避するために、一意なBeanIDを明示する``@Qualifier``アノテーションを付与する。
+
+なお、{batch5_shortname}では、次に紹介するケースで``@Qualifier``アノテーションの付与が必須となる。
+
+==== データソース、トランザクションマネージャをインジェクションするとき
+
+{batch5_shortname}では、データソース、トランザクションマネージャは、同じ型をもつ複数のBean定義が存在する。そのため、これらのBeanをインジェクションするときは、``@Qualifier``アノテーションでBeanIDを指定しBeanを特定する必要がある。
+
+具体的には以下のBeanが対象となる。
+
+[cols="30,35,35", options="header"]
+|===
+|BeanID
+|用途
+|型
+
+|``adminDataSource``
+|{SB}や{batch5_shortname}が利用するデータソース
+.2+.^|``org.apache.commons.dbcp2.BasicDataSource``
+
+|``jobDataSource``
+|ジョブが利用するデータソース
+
+|``adminTransactionManager``
+|{SB}や{batch5_shortname}が利用するトランザクションマネージャ
+.2+.^|``org.springframework.transaction.PlatformTransactionManager``
+
+|``jobTransactionManager``
+|ジョブが利用するトランザクションマネージャ
+|===
+
+以下はジョブ定義で``jobTransactionManager``を``@Qualifier``アノテーション付きでインジェクションする例となる。
+
+[source,java]
+----
+@Bean
+public Step exampleStep(JobRepository jobRepository,
+                   @Qualifier("jobTransactionManager") PlatformTransactionManager transactionManager, // (1)
+                   ItemReader reader,
+                   ItemProcessor processor,
+                   ItemWriter writer) {
+    return new StepBuilder("exampleJob.exampleStep",
+            jobRepository)
+            .<ItemReader, ItemWriter> chunk(10, transactionManager)
+            .reader(reader)
+            .processor(processor)
+            .writer(writer)
+            .build();
+}
+----
+
+[cols="10,90", options="header"]
+.jobTransactionManagerのインジェクション
+|===
+|項番
+|説明
+
+|(1)
+|``Bean``メソッドの引数``transactionManager``に``@Qualifier``アノテーションを付与する。その際、BeanID（``jobTransactionManager``）を指定する。
+|===
+
+==== ジョブのフロー制御や並列処理で複数のステップを定義するとき
+
+フロー制御や並列処理では複数のステップを定義するため、型（``org.springframework.batch.core.Step``）が重複する。ジョブのBean定義にステップをインジェクションする際に、``@Qualifier``アノテーションを付与する。
+
+以下は複数のステップを``@Qualifier``アノテーション付きでインジェクションする例となる。
+
+[source,java]
+----
+@Bean
+public Step stepA(JobRepository jobRepository,
+                  SequentialFlowTasklet tasklet,
+                  ChangeExitCodeReturnListener listener,
+                  @Qualifier("jobTransactionManager") PlatformTransactionManager transactionManager) {
+  // omitted.
+}
+
+@Bean
+public Step stepB(JobRepository jobRepository,
+                  SequentialFlowTasklet tasklet,
+                  ChangeExitCodeReturnListener listener,
+                  @Qualifier("jobTransactionManager") PlatformTransactionManager transactionManager) {
+  // omitted.
+}
+
+@Bean
+public Step stepC(JobRepository jobRepository,
+                  SequentialFlowTasklet tasklet,
+                  ChangeExitCodeReturnListener listener,
+                  @Qualifier("jobTransactionManager") PlatformTransactionManager transactionManager) {
+  // omitted.
+}
+
+@Bean
+public Job jobConditionalFlow(JobRepository jobRepository,
+                              @Qualifier("stepA") Step stepA, // (1)
+                              @Qualifier("stepB") Step stepB, // (2)
+                              @Qualifier("stepC") Step stepC) { // (3)
+  // omitted.
+}
+----
+
+[cols="10,90", options="header"]
+.jobTransactionManagerのインジェクション
+|===
+|項番
+|説明
+
+|(1)
+|``Bean``メソッドの引数``stepA``に``@Qualifier``アノテーションを付与する。その際、BeanID（``stepA``）を指定する。
+
+|(2)
+|``Bean``メソッドの引数``stepB``に``@Qualifier``アノテーションを付与する。その際、BeanID（``stepB``）を指定する。
+
+|(3)
+|``Bean``メソッドの引数``stepC``に``@Qualifier``アノテーションを付与する。その際、BeanID（``stepC``）を指定する。
+|===
 
 [[Ch03_CreateProject_BuildAndExec]]
 == プロジェクトのビルドと実行
@@ -1187,10 +1283,10 @@ $ mvn clean dependency:copy-dependencies -DoutputDirectory=lib package
     </profile>
     <!-- omitted -->
     <profile>
-        <id>oracle19c-local</id>
+        <id>example-db-local</id>
         <properties>
-            <jdbc.driver.groupId>com.oracle.database.jdbc</jdbc.driver.groupId>
-            <jdbc.driver.artifactId>ojdbc8</jdbc.driver.artifactId>
+            <jdbc.driver.groupId>com.example.database.jdbc</jdbc.driver.groupId>
+            <jdbc.driver.artifactId>jdbc-driver</jdbc.driver.artifactId>
             <!-- omitted -->
         </properties>
     </profile>
@@ -1239,12 +1335,9 @@ $ mvn -P profile-1,profile-2
 ``[artifactId]``と``[version]``は<<Ch03_CreateProject_HowToCreate>>にて設定したものに、ユーザに応じて読み替えてほしい。
 
 // ============ Java/XML Config Tab start. ============
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup030106" class="JavaConfigTab" id="tabgroup030106_1" checked><label for="tabgroup030106_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup030106" class="XMLConfigTab" id="tabgroup030106_2"><label for="tabgroup030106_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start
 .コマンドプロンプト(Windows)
 [source,console]
@@ -1272,10 +1365,10 @@ com.example.batch.jobs.Job01Config job01
 [2019/09/03 02:43:11] [main] [o.s.b.c.l.s.TaskExecutorJobLauncher] [INFO ] Job: [FlowJob: [name=job01]] completed with the following parameters: [{jsr_batch_run_id=1}] and the following status: [COMPLETED]
 ----
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 .コマンドプロンプト(Windows)
 [source,console]
@@ -1303,10 +1396,7 @@ META-INF/jobs/job01.xml job01
 [2019/09/03 02:43:11] [main] [o.s.b.c.l.s.TaskExecutorJobLauncher] [INFO ] Job: [FlowJob: [name=job01]] completed with the following parameters: [{jsr_batch_run_id=1}] and the following status: [COMPLETED]
 ----
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============
 
 これにより、<ルートディレクトリ>/target/output.csvが生成される。
@@ -1358,7 +1448,7 @@ fi
 詳しくは、{SB}の公式リファレンス（以下）を参照のこと。
 
 * https://docs.spring.io/spring-batch/reference/job/java-config.html[Java構成]
-* https://docs.spring.io/spring-batch/docs/{spring_batch_version}/org/springframework/batch/core/configuration/support/DefaultBatchConfiguration.html[クラス DefaultBatchConfiguration]
+* https://docs.spring.io/spring-batch/docs/{spring_batch_version}/api/org/springframework/batch/core/configuration/support/DefaultBatchConfiguration.html[クラス DefaultBatchConfiguration]
 
 ``DefaultBatchConfiguration``は、Spring Batchの動作に必要ないくつかのBean定義（以下）を、あらかじめ設定済みにして提供する。
 
@@ -1373,7 +1463,7 @@ fi
 [[Ch03_CreateProject_Appendix_TerasolunaBatchConfiguration]]
 === TerasolunaBatchConfiguration
 
-``TerasolunaBatchConfiguration``は、``DefaultBatchConfiguration``のBean定義をカスタマイズするために用意されている。Bean定義のカスタマイズは、``DefaultBatchConfiguration``のBeanメソッドをオーバーライドすることで実現する。
+``TerasolunaBatchConfiguration``は、``DefaultBatchConfiguration``のBean定義をカスタマイズするために用意されている。Bean定義のカスタマイズは、``DefaultBatchConfiguration``の``Bean``メソッドをオーバーライドすることで実現する。
 
 ``TerasolunaBatchConfiguration``でカスタマイズするBeanと、カスタマイズ内容は以下となる。
 
@@ -1425,14 +1515,13 @@ public JobRepository jobRepository() throws BatchConfigurationException {
 // omitted.
 @Override
 @Bean
-public JobOperator jobOperator() throws BatchConfigurationException {
+public JobOperator jobOperator(JobRepository jobRepository, JobExplorer jobExplorer, JobRegistry jobRegistry, JobLauncher jobLauncher) throws BatchConfigurationException {
     JobOperatorFactoryBean jobOperatorFactoryBean = new JobOperatorFactoryBean();
-    jobOperatorFactoryBean.setTransactionManager(
-            getTransactionManager());
-    jobOperatorFactoryBean.setJobRepository(jobRepository());
-    jobOperatorFactoryBean.setJobExplorer(jobExplorer());
-    jobOperatorFactoryBean.setJobRegistry(jobRegistry());
-    jobOperatorFactoryBean.setJobLauncher(jobLauncher());
+    jobOperatorFactoryBean.setTransactionManager(this.getTransactionManager());
+    jobOperatorFactoryBean.setJobRepository(jobRepository);
+    jobOperatorFactoryBean.setJobExplorer(jobExplorer);
+    jobOperatorFactoryBean.setJobRegistry(jobRegistry);
+    jobOperatorFactoryBean.setJobLauncher(jobLauncher);
     JobParametersConverterImpl jobParametersConverter = new JobParametersConverterImpl(
             getDataSource()); // (2)
     jobOperatorFactoryBean.setJobParametersConverter(

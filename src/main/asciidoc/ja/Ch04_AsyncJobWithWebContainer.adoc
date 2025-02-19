@@ -144,12 +144,9 @@ Webクライアントからジョブの起動リクエストを送信後、ジ�
 それぞれのアプリケーションコンテキストとBean定義についての種類、および関係性を把握しておく必要がある。
 
 // ============ Java/XML Config Tab start. ============ 
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup040401" class="JavaConfigTab" id="tabgroup040401_1" checked><label for="tabgroup040401_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup040401" class="XMLConfigTab" id="tabgroup040401_2"><label for="tabgroup040401_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 .ApplicationContextの構成
 image::Ch04_AsyncJobWithWebContainer_Package.png[Package structure of async web]
@@ -157,10 +154,10 @@ image::Ch04_AsyncJobWithWebContainer_Package.png[Package structure of async web]
 .Bean定義ファイルの構成
 image::Ch04_AsyncJobWithWebContainer_BeanDefinitions.png[BeanDefinitions structure of async web]
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 .ApplicationContextの構成
 image::Ch04_AsyncJobWithWebContainer_Package_XMLConfig.png[Package structure of async web]
@@ -168,10 +165,7 @@ image::Ch04_AsyncJobWithWebContainer_Package_XMLConfig.png[Package structure of 
 .Bean定義ファイルの構成
 image::Ch04_AsyncJobWithWebContainer_BeanDefinitions_XMLConfig.png[BeanDefinitions structure of async web]
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============ 
 
 非同期実行(Webコンテナ)における``ApplicationContext``では、
@@ -455,28 +449,22 @@ image::Ch04_AsyncJobWithWebContainer_DirectoryStructure.png[directory structure]
 ====
 
 // ============ Java/XML Config Tab start. ============
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup040402" class="JavaConfigTab" id="tabgroup040402_1" checked><label for="tabgroup040402_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup040402" class="XMLConfigTab" id="tabgroup040402_2"><label for="tabgroup040402_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 .ブランクプロジェクトから追加・削除するBean定義ファイル
 image::Ch04_AsyncJobWithWebContainer_AppendBeanDefinitionsOnBlank.png[AppendBeanDefinitionsOnBlank]
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 .ブランクプロジェクトから追加・削除するBean定義ファイル
 image::Ch04_AsyncJobWithWebContainer_AppendBeanDefinitionsOnBlank_XMLConfig.png[AppendBeanDefinitionsOnBlankXMLConfig]
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============
 
 [cols="10,90", options="header"]
@@ -495,12 +483,9 @@ image::Ch04_AsyncJobWithWebContainer_AppendBeanDefinitionsOnBlank_XMLConfig.png[
 |===
 
 // ============ Java/XML Config Tab start. ============ 
-++++
-<div class="tabbox">
-    <input type="radio" name="tabgroup040403" class="JavaConfigTab" id="tabgroup040403_1" checked><label for="tabgroup040403_1" class="tab">JavaConfig</label>
-    <input type="radio" name="tabgroup040403" class="XMLConfigTab" id="tabgroup040403_2"><label for="tabgroup040403_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 [source,java]
 .asyncapp/asyncapp-web/src/main/java/jp/co/ntt/fw/macchinetta/batch/sample/config/web/SpringMvcRestConfig.java
@@ -511,14 +496,6 @@ image::Ch04_AsyncJobWithWebContainer_AppendBeanDefinitionsOnBlank_XMLConfig.png[
 @ComponentScan("jp.co.ntt.fw.macchinetta.batch.sample.app.api") // (2)
 @EnableWebMvc
 public class SpringMvcRestConfig implements WebMvcConfigurer {
-
-    @Bean
-    public static PropertySourcesPlaceholderConfigurer propertySourcesPlaceholderConfigurer(
-            @Value("classpath*:/META-INF/spring/*.properties") Resource... properties) {
-        PropertySourcesPlaceholderConfigurer bean = new PropertySourcesPlaceholderConfigurer();
-        bean.setLocations(properties);
-        return bean;
-    }
 
     @Bean("jsonMessageConverter")
     public MappingJackson2HttpMessageConverter jsonMessageConverter(
@@ -542,6 +519,12 @@ public class SpringMvcRestConfig implements WebMvcConfigurer {
     }
 
     // (3)
+    @Override
+    public void configureMessageConverters(List<HttpMessageConverter<?>> converters) {
+        converters.add(jsonMessageConverter(objectMapper()));
+    }
+
+    // (4)
     @Bean
     public AutomaticJobRegistrar automaticJobRegistrar(JobRegistry jobRegistry,
            ApplicationContextFactory[] applicationContextFactories) throws Exception {
@@ -561,7 +544,7 @@ public class SpringMvcRestConfig implements WebMvcConfigurer {
     	       "classpath:jp/co/ntt/fw/macchinetta/batch/sample/jobs/*.class");
     }
 
-    // (4)
+    // (5)
     @Bean
     public TaskExecutor taskExecutor() {
         ThreadPoolTaskExecutor taskExecutor = new ThreadPoolTaskExecutor();
@@ -571,7 +554,7 @@ public class SpringMvcRestConfig implements WebMvcConfigurer {
         return taskExecutor;
     }
 
-    // (5)
+    // (6)
     @Bean
     public JobLauncher jobLauncher(JobRepository jobRepository,
         TaskExecutor taskExecutor) {
@@ -583,10 +566,10 @@ public class SpringMvcRestConfig implements WebMvcConfigurer {
 }
 ----
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 [source,xml]
 .asyncapp/asyncapp-web/src/main/resources/META-INF/spring/spring-mvc-rest.xml の記述例
@@ -606,6 +589,7 @@ public class SpringMvcRestConfig implements WebMvcConfigurer {
   </property>
 </bean>
 
+<!-- (3) -->
 <mvc:annotation-driven>
   <mvc:message-converters register-defaults="false">
     <ref bean="jsonMessageConverter"/>
@@ -617,7 +601,7 @@ public class SpringMvcRestConfig implements WebMvcConfigurer {
 <!-- (2) -->
 <context:component-scan base-package="jp.co.ntt.fw.macchinetta.batch.sample.app.api"/>
 
-<!-- (3) -->
+<!-- (4) -->
 <bean class="org.springframework.batch.core.configuration.support.AutomaticJobRegistrar">
     <property name="applicationContextFactories">
         <bean class="org.springframework.batch.core.configuration.support.ClasspathXmlApplicationContextsFactoryBean">
@@ -634,29 +618,23 @@ public class SpringMvcRestConfig implements WebMvcConfigurer {
     </property>
 </bean>
 
-<!-- (4) -->
+<!-- (5) -->
 <task:executor id="taskExecutor" pool-size="3" queue-capacity="10"/>
 
-<!-- (5) -->
+<!-- (6) -->
 <bean id="jobLauncher" class="org.springframework.batch.core.launch.support.TaskExecutorJobLauncher"
       p:jobRepository-ref="jobRepository"
       p:taskExecutor-ref="taskExecutor"/>
 <!-- omitted -->
 ----
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============ 
 
 // ============ Java/XML Config Tab start. ============
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup040404" class="JavaConfigTab" id="tabgroup040404_1" checked><label for="tabgroup040404_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup040404" class="XMLConfigTab" id="tabgroup040404_2"><label for="tabgroup040404_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 [source,xml]
 .asyncapp/asyncapp-web/src/main/webapp/WEB-INF/web.xml の記述例
@@ -691,12 +669,12 @@ public class SpringMvcRestConfig implements WebMvcConfigurer {
     </init-param>
     <init-param>
         <param-name>contextConfigLocation</param-name>
-        <!-- (6) -->
+        <!-- (7) -->
         <param-value>
           jp.co.ntt.fw.macchinetta.batch.sample.config.web.SpringMvcRestConfig
         </param-value>
     </init-param>
-    <!-- (7) -->
+    <!-- (8) -->
     <init-param>
         <param-name>spring.profiles.active</param-name>
         <param-value>async</param-value>
@@ -711,10 +689,10 @@ public class SpringMvcRestConfig implements WebMvcConfigurer {
 <!-- omitted -->
 ----
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 [source,xml]
 .asyncapp/asyncapp-web/src/main/webapp/WEB-INF/web.xml の記述例
@@ -736,10 +714,10 @@ public class SpringMvcRestConfig implements WebMvcConfigurer {
     <servlet-class>org.springframework.web.servlet.DispatcherServlet</servlet-class>
     <init-param>
         <param-name>contextConfigLocation</param-name>
-        <!-- (6) -->
+        <!-- (7) -->
         <param-value>classpath*:META-INF/spring/spring-mvc-rest.xml</param-value>
     </init-param>
-    <!-- (7) -->
+    <!-- (8) -->
     <init-param>
         <param-name>spring.profiles.active</param-name>
         <param-value>async</param-value>
@@ -754,10 +732,7 @@ public class SpringMvcRestConfig implements WebMvcConfigurer {
 <!-- omitted -->
 ----
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============
 
 [cols="10,90", options="header"]
@@ -774,9 +749,16 @@ public class SpringMvcRestConfig implements WebMvcConfigurer {
 |コントローラを動的にスキャンするためのパッケージを記述する。
 
 |(3)
-|個々のジョブBean定義ファイルをモジュラー化することにより子コンテキストとして動的ロードを行う``AutomaticJobRegistrar``のBean定義を記述する。
+|``RESTful Web Service``を提供するために必要となる``Spring MVC``のフレームワークコンポーネントをbean登録する。
+本設定を行うことで、リソースのフォーマットとしてJSONを使用する事ができる。
+上記例では、``configureMessageConverters/<mvc:message-converters>タグ``を実装することでデフォルトの``MessageConverter``を登録させないようにしており、リソースの形式はJSONに限定される。ｓ
+
+リソースのフォーマットとしてXMLを使用する場合は、XXE 対策が行われているXML用の``MessageConverter``を指定すること。指定方法は、「link:{server5_url}/ArchitectureInDetail/WebServiceDetail/REST.html#restappendixenabledxxeprotection[XXE 対策の有効化]」を参照されたい。
 
 |(4)
+|個々のジョブBean定義ファイルをモジュラー化することにより子コンテキストとして動的ロードを行う``AutomaticJobRegistrar``のBean定義を記述する。
+
+|(5)
 |非同期で実行するジョブが用いる``TaskExecutor``を定義する。 +
 JobLauncherの``TaskExecutor``に``AsyncTaskExecutor``実装クラスを設定することで非同期実行が可能となる。
 ``AsyncTaskExecutor``実装クラスの1つである``ThreadPoolTaskExecutor``を利用する。
@@ -787,14 +769,14 @@ JobLauncherの``TaskExecutor``に``AsyncTaskExecutor``実装クラスを設定�
 さらにキューイングの上限を超えたジョブのリクエストは``org.springframework.core.task.TaskRejectedException``が発生し、
 ジョブの起動要求が拒否される。
 
-|(5)
-|(4)の``taskExecutor``を有効化するため、``LaunchContextConfig.java/launch-context.xml``で定義されている``jobLauncher``をオーバーライドする。
-
 |(6)
+|(5)の``taskExecutor``を有効化するため、``LaunchContextConfig.java/launch-context.xml``で定義されている``jobLauncher``をオーバーライドする。
+
+|(7)
 |``DispatcherServlet``が読み込むBean定義として、 +
 上述で記載した``SpringMvcRestConfig.java/spring-mvc-rest.xml``を指定する。
 
-|(7)
+|(8)
 |Spring Framework のプロファイルとして、非同期バッチを表す``async``を明示する。
 
 |===
@@ -1098,7 +1080,7 @@ JobControllerの実装も下記のように変更している。 +
 * パラメータを複数指定する場合の区切り文字を、カンマから空白文字に変更
 * パラメータのnullチェックを、別途実装するように変更
 詳細は、link:https://github.com/spring-projects/spring-batch/issues/2122[{SB}/BATCH-1461]を参照されたい。
-* パラメータをStringからPropertiesに変換処理を追加し、startメソッドに渡す。
+* パラメータをStringからPropertiesに変換処理を追加し、``start``メソッドに渡す。
 詳細は、link:https://github.com/spring-projects/spring-batch/issues/4304[{SB}/BATCH-4304]を参照されたい。
 ====
 
@@ -1122,7 +1104,7 @@ Web/バッチ間でLogback定義ファイルが複数定義されている場合
 .Webとバッチモジュールによるデータソース、MyBatis設定の相互参照
 ====
 Webとバッチモジュールによるコンテキストのスコープが異なるため、
-特にWebモジュールからバッチのデータソース、MyBatis設定、Mapperインタフェースは参照できない。 +
+特にWebモジュールからバッチのデータソース、MyBatis設定、``Mapper``インタフェースは参照できない。 +
 RDBMSスキーマ初期化もそれぞれ異なるモジュールの設定に応じて独立して行われるため、相互干渉により
 意図しない初期化が行われないよう配慮すること。
 ====

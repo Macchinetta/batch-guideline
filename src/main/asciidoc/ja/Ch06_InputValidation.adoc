@@ -71,7 +71,8 @@ include::_include_all.adoc[]
 |入力必須チェック +
 桁チェック +
 型チェック
-|Bean Validation(実装ライブラリとしてHibernate Validatorを使用)
+|Bean Validation(実装ライブラリとしてHibernate Validatorを使用) +
+Hibernate ValidatorはBean Validationで定義されたアノテーションに加え、独自の検証用アノテーションを提供
 
 |相関項目チェック
 |複数のフィールドを比較するチェック
@@ -106,8 +107,8 @@ Springは、Java標準であるBean Validationをサポートしている。
 image::Ch06_InputValidation_Architecture_classes.png[InputValidation architecture]
 
 * ``ItemProcessor``に、``org.springframework.batch.item.validator.Validator``の実装である
-  ``org.springframework.batch.item.validator.SpringValidator``をインジェクションしvalidateメソッドを実行する。
-** ``SpringValidator``は内部に``org.springframework.validation.Validator``を保持し、validateメソッドを実行する。 +
+  ``org.springframework.batch.item.validator.SpringValidator``をインジェクションし``validate``メソッドを実行する。
+** ``SpringValidator``は内部に``org.springframework.validation.Validator``を保持し、``validate``メソッドを実行する。 +
   いわば、``org.springframework.validation.Validator``のラッパーといえる。 +
   ``org.springframework.validation.Validator``の実装は、
   ``org.springframework.validation.beanvalidation.LocalValidatorFactoryBean``となる。
@@ -181,12 +182,9 @@ image::Ch06_InputValidation_Architecture_classes.png[InputValidation architectur
 ----
 
 // ============ Java/XML Config Tab start. ============ 
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup060101" class="JavaConfigTab" id="tabgroup060101_1" checked><label for="tabgroup060101_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup060101" class="XMLConfigTab" id="tabgroup060101_2"><label for="tabgroup060101_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 [source, java]
 .jp.co.ntt.fw.macchinetta.batch.functionaltest.config.LaunchContextConfig.java
@@ -207,10 +205,10 @@ public Validator beanValidator() {
 }
 ----
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 [source, xml]
 .META-INF/spring/launch-context.xml
@@ -222,10 +220,7 @@ public Validator beanValidator() {
       class="org.springframework.validation.beanvalidation.LocalValidatorFactoryBean" />
 ----
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============ 
 
 .エラーメッセージの設定
@@ -371,7 +366,7 @@ public class ValidateAndContinueItemProcessor implements ItemProcessor<Verificat
 例外発生時にログ出力等の処理を行う方法は以下の2とおりがある。
 
 . 例外をtry/catchで捕捉し、例外をスローする前に行う。
-. 例外をtry/catchで捕捉せず、``ItemProcessListener``を実装しonProcessErrorメソッドにて行う。
+. 例外をtry/catchで捕捉せず、``ItemProcessListener``を実装し``onProcessError``メソッドにて行う。
 ** ``ItemProcessListener#onProcessError()``は``@OnProcessError``アノテーションを使用して実装してもよい。
    詳細は、<<Ch04_Listener.adoc#Ch04_Listener,リスナー>>を参照。
 
@@ -485,11 +480,11 @@ public class ValidateAndAbortItemProcessor implements ItemProcessor<Verification
 [WARNING]
 .ItemProcessListener#onProcessError()使用時の注意点
 ====
-onProcessErrorメソッドの利用は業務処理と例外ハンドリングを切り離すことができるためソースコードの可読性、保守性の向上等に有用である。 +
+``onProcessError``メソッドの利用は業務処理と例外ハンドリングを切り離すことができるためソースコードの可読性、保守性の向上等に有用である。 +
 しかし、上記の例でハンドリング処理を行っている``ValidationException``以外の例外が発生した場合も同じメソッドが実行されるため注意が必要である。
 
 ``ItemProcessor#process()``におけるログ出力を例外によって出力し分ける場合は、
-onProcessErrorメソッドにて発生した例外の種類を判定して例外処理を行う必要がある。
+``onProcessError``メソッドにて発生した例外の種類を判定して例外処理を行う必要がある。
 これが煩雑である場合は、try/catchによるハンドリングにて入力チェックエラーのみを処理し、それ以外はリスナーに移譲するように責務を分担するとよい。
 ====
 

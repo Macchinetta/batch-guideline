@@ -312,7 +312,7 @@ CREATE SEQUENCE batch_job_request_seq MAXVALUE 9223372036854775807 NO CYCLE;
 そのため、``JobOperator``には``start``以外にも``restart``などの起動メソッドがあるが、
 ``start``メソッド以外は使用していない。
 
-.startメソッドの引数
+.``start``メソッドの引数
 jobName::
   ジョブ要求テーブルの``job_name``に登録した値を設定する。
 jobParametrers::
@@ -406,16 +406,6 @@ DBポーリング処理で異常が発生した場合について説明する。
 
 これは、{SB}を起動する際に必要な各種Beanは各ジョブごとにインスタンス化する必要はないことに起因する。
 {SB}の起動に必要な各種Beanは各ジョブの親となる共通定義(``AsyncBatchDaemonConfig.java/async-batch-daemon.xml``)にて1つだけ生成すればよい。
-====
-
-[IMPORTANT]
-====
-（JavaConfigを選択した場合） +
-ジョブのBean定義上でプロパティ値を参照する場合、``<context:property-placeholder>``タグの指定が必要である。
-
-これは、JavaConfigとXMLConfig間で、プロパティソースの共有ができないためである。
-
-JavaConfigでは、プロパティソースは``LaunchContextConfig.java``の中で``PropertySourcesPlaceholderConfigurer``として定義するが、ジョブのBean定義（XMLConfig）からは認識できない。
 ====
 
 [[Ch04_AsyncJobWithDB_HowToUse]]
@@ -520,12 +510,9 @@ async-batch-daemon.polling-stop-file-path=/tmp/stop-async-batch-daemon
 ==== ジョブの設定
 
 // ============ Java/XML Config Tab start. ============ 
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup040303" class="JavaConfigTab" id="tabgroup040303_1" checked><label for="tabgroup040303_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup040303" class="XMLConfigTab" id="tabgroup040303_2"><label for="tabgroup040303_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 非同期実行する対象のジョブは、``AsyncBatchDaemonConfig.java``の``automaticJobRegistrar``に設定する。 +
 ``ApplicationContextFactoryHelper`` は JavaConfigで ``ApplicationContextFactory`` の生成を補助するヘルパクラスである。コンストラクタには各ジョブで親となる共通定義の ``ApplicationContext`` を指定する。 +
@@ -572,10 +559,10 @@ public ApplicationContextFactory[] applicationContextFactories(
 |特定のジョブのみが非同期実行対象の場合はジョブ定義単体で指定すること。
 |===
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 非同期実行する対象のジョブは、``async-batch-daemon.xml``の``automaticJobRegistrar``に設定する。 +
 以下に初期設定を示す。
@@ -621,10 +608,7 @@ public ApplicationContextFactory[] applicationContextFactories(
 |特定のジョブのみが非同期実行対象の場合はジョブ定義単体で指定すること。
 |===
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============ 
 
 [TIP]
@@ -652,26 +636,23 @@ public ApplicationContextFactory[] applicationContextFactories(
 ==== 非同期バッチデーモンの起動
 {terasoluna_batch5_shortname}が提供する、``AsyncBatchDaemon``を起動する。
 
+非同期バッチデーモンは、org.terasoluna.batch.async.db.AsyncBatchDaemonの第一引数にBean定義ファイルのパス(``AsyncBatchDaemonConfig.java/async-batch-daemon.xml``)を指定して起動する。
+
 // ============ Java/XML Config Tab start. ============ 
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup040304" class="JavaConfigTab" id="tabgroup040304_1" checked><label for="tabgroup040304_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup040304" class="XMLConfigTab" id="tabgroup040304_2"><label for="tabgroup040304_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 [source,console]
 .AsyncBatchDaemonの起動
 ----
 $ # Start AsyncBatchDaemon
-$ java -cp dependency/* org.terasoluna.batch.async.db.AsyncBatchDaemon
+$ java -cp dependency/* org.terasoluna.batch.async.db.AsyncBatchDaemon com.example.batch.tutorial.config.AsyncBatchDaemonConfig
 ----
 
-この場合、``org.terasoluna.batch.config.AsyncBatchDaemonConfig.java``を読み込み各種Beanを生成する。
+この場合、``com.example.batch.tutorial.config.AsyncBatchDaemonConfig.java``を読み込み各種Beanを生成する。
 
-また、別途カスタマイズした``AsyncBatchDaemonConfig.java``を利用したい場合は第一引数に指定して``AsyncBatchDaemon``を起動することで実現できる。 +
-引数に指定するBean定義ファイルは、クラスパスからの相対パスで指定すること。 +
-なお、第二引数以降は無視される。
+また、別途カスタマイズした``AsyncBatchDaemonConfig.java``を利用したい場合は第一引数に指定して``AsyncBatchDaemon``を起動することで実現できる。
 
 [source,console]
 .カスタマイズしたcom.example.batch.tutorial.config.CustomizedAsyncBatchDaemonConfigを利用する場合
@@ -687,10 +668,10 @@ $ java -cp dependency/* org.terasoluna.batch.async.db.AsyncBatchDaemon com.examp
 
 
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 [source,console]
 .AsyncBatchDaemonの起動
@@ -699,7 +680,7 @@ $ # Start AsyncBatchDaemon
 $ java -cp dependency/* org.terasoluna.batch.async.db.AsyncBatchDaemon
 ----
 
-この場合、``META-INF/spring/async-batch-daemon.xml``を読み込み各種Beanを生成する。
+XMLConfigでは、第一引数は省略可能である。その場合、``META-INF/spring/async-batch-daemon.xml``を読み込み各種Beanを生成する。
 
 また、別途カスタマイズした``async-batch-daemon.xml``を利用したい場合は第一引数に指定して``AsyncBatchDaemon``を起動することで実現できる。 +
 引数に指定するBean定義ファイルは、クラスパスからの相対パスで指定すること。 +
@@ -717,15 +698,21 @@ $ java -cp dependency/* org.terasoluna.batch.async.db.AsyncBatchDaemon META-INF/
 別途ファイルを作成して管理するほうが扱いやすい。 +
 ユーザの状況に応じて選択すること。
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============ 
 
 [NOTE]
 ====
 dependency配下には、実行に必要なjar一式が格納されている前提とする。
+====
+
+[NOTE]
+.第一引数を省略した場合のBean定義ファイルパス
+====
+第一引数を省略した場合、Bean定義ファイルパスはXMLConfigのBean定義ファイルである``META-INF/spring/async-batch-daemon.xml``をデフォルトのパスとして起動する。
+
+JavaConfigの場合、Bean定義ファイルはjavaパッケージ階層の中(``src/main/java``)に配置されるため、プロジェクトによってパスは異なり、デフォルト値としてあらかじめ決定することができない。 +
+よって、JavaConfigにおいては第一引数のBean定義ファイルは省略せず必ず指定する必要がある。
 ====
 
 [[Ch04_AsyncJobWithDB_HowToUse_Daemon_Request]]
@@ -862,12 +849,6 @@ ocation
 .自動採番カラムのシーケンス
 ====
 自動採番のカラムに対して自動的にシーケンスが作成されている場合があるので、忘れずにそのシーケンスも退避対象に含める。
-====
-
-[IMPORTANT]
-.データベース固有の仕様について
-====
-Oracleではデータ型にCLOBを利用するなど、データベース固有のデータ型を使用している場合があるので注意をする。
 ====
 
 [[Ch04_AsyncJobWithDB_HowToExtend]]
@@ -1017,12 +998,9 @@ public interface CustomizedBatchJobRequestRepository extends BatchJobRequestRepo
 (2)で作成した拡張インタフェースを``batchJobRequestRepository``に設定する。
 
 // ============ Java/XML Config Tab start. ============ 
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup040305" class="JavaConfigTab" id="tabgroup040305_1" checked><label for="tabgroup040305_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup040305" class="XMLConfigTab" id="tabgroup040305_2"><label for="tabgroup040305_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 [source,java]
 .jp.co.ntt.fw.macchinetta.batch.config.AsyncBatchDaemonConfig.java
@@ -1049,10 +1027,10 @@ public MapperFactoryBean<CustomizedBatchJobRequestRepository> batchJobRequestRep
 
 |===
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 [source,xml]
 .META-INF/spring/async-batch-daemon.xml
@@ -1076,10 +1054,7 @@ public MapperFactoryBean<CustomizedBatchJobRequestRepository> batchJobRequestRep
 
 |===
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============
 
 [[Ch04_AsyncJobWithDB_HowToExtend_CustomTable_GroupID]]
@@ -1167,12 +1142,9 @@ CREATE TABLE IF NOT EXISTS batch_job_request (
 ``jobRequestPollTask``に環境変数で与えられたグループIDをクエリパラメータとして設定する。
 
 // ============ Java/XML Config Tab start. ============ 
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup040306" class="JavaConfigTab" id="tabgroup040306_1" checked><label for="tabgroup040306_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup040306" class="XMLConfigTab" id="tabgroup040306_2"><label for="tabgroup040306_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 [source,java]
 .jp.co.ntt.fw.macchinetta.batch.functionaltest.config.AsyncBatchDaemonConfig.java
@@ -1203,10 +1175,10 @@ public JobRequestPollTask jobRequestPollTask(@Qualifier("adminTransactionManager
 }
 ----
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 [source,xml]
 .META-INF/spring/async-batch-daemon.xml
@@ -1236,10 +1208,7 @@ public JobRequestPollTask jobRequestPollTask(@Qualifier("adminTransactionManager
 </bean>
 ----
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============ 
 
 
@@ -1291,12 +1260,9 @@ $ java -cp dependency/* org.terasoluna.batch.async.db.AsyncBatchDaemon
 下記に日時を固定し、タイムゾーンを変更するための設定例を示す。
 
 // ============ Java/XML Config Tab start. ============ 
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup040307" class="JavaConfigTab" id="tabgroup040307_1" checked><label for="tabgroup040307_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup040307" class="XMLConfigTab" id="tabgroup040307_2"><label for="tabgroup040307_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 [source,java]
 .org.terasoluna.batch.config.ch04.asyncjobwithdb.AsyncBatchDaemonClockConfig.java
@@ -1326,10 +1292,10 @@ public JobRequestPollTask jobRequestPollTask(@Qualifier("adminTransactionManager
 ロサンゼルス時間のタイムゾーンIDは``PST``である。
 |===
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 [source,xml]
 .META-INF/ch04/asyncjobwithdb/async-batch-daemon-clock.xml
@@ -1363,10 +1329,7 @@ public JobRequestPollTask jobRequestPollTask(@Qualifier("adminTransactionManager
 ロサンゼルス時間のタイムゾーンIDは``PST``である。
 |===
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============ 
 
 [[Ch04_AsyncJobWithDB_HowToExtend_MultiDaemon]]

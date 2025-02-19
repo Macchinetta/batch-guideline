@@ -122,12 +122,9 @@ Parallel Stepの概要図を例にしたParallel Stepの定義方法を以下に
 
 .Parallel Stepのジョブ定義
 // ============ Java/XML Config Tab start. ============
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup080201" class="JavaConfigTab" id="tabgroup080201_1" checked><label for="tabgroup080201_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup080201" class="XMLConfigTab" id="tabgroup080201_2"><label for="tabgroup080201_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 [source,java]
 ----
@@ -239,10 +236,10 @@ public Job parallelSummarizeJob(JobRepository jobRepository,
 }
 ----
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 [source,xml]
 ----
@@ -294,10 +291,7 @@ public Job parallelSummarizeJob(JobRepository jobRepository,
 </batch:job>
 ----
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============
 
 [cols="10,90",options="header"]
@@ -348,12 +342,9 @@ public Job parallelSummarizeJob(JobRepository jobRepository,
 
 .共通処理ステップを含むParallel Stepの例
 // ============ Java/XML Config Tab start. ============
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup080202" class="JavaConfigTab" id="tabgroup080202_1" checked><label for="tabgroup080202_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup080202" class="XMLConfigTab" id="tabgroup080202_2"><label for="tabgroup080202_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 [source,java]
 ----
@@ -437,10 +428,10 @@ public Job parallelRegisterJob(JobRepository jobRepository,
 }
 ----
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 [source,xml]
 ----
@@ -475,10 +466,7 @@ public Job parallelRegisterJob(JobRepository jobRepository,
 
 ----
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============
 
 [cols="10,90",options="header"]
@@ -646,12 +634,9 @@ public class BranchPartitioner implements Partitioner {
 
 .Bean定義
 // ============ Java/XML Config Tab start. ============
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup080203" class="JavaConfigTab" id="tabgroup080203_1" checked><label for="tabgroup080203_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup080203" class="XMLConfigTab" id="tabgroup080203_2"><label for="tabgroup080203_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 [source,java]
 ----
@@ -734,10 +719,10 @@ public Job multipleInvoiceSummarizeJob(JobRepository jobRepository,
 }
 ----
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 [source,xml]
 ----
@@ -779,10 +764,7 @@ public Job multipleInvoiceSummarizeJob(JobRepository jobRepository,
 </batch:step>
 ----
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============
 
 [cols="10,90",options="header"]
@@ -842,12 +824,9 @@ Managerステップはメインスレッドで処理される。
 
 .ファイル処理を多重化する例
 // ============ Java/XML Config Tab start. ============
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup080204" class="JavaConfigTab" id="tabgroup080204_1" checked><label for="tabgroup080204_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup080204" class="XMLConfigTab" id="tabgroup080204_2"><label for="tabgroup080204_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 [source,java]
 ----
@@ -938,10 +917,10 @@ public Job multiplePartitioninglStepFileJob(JobRepository jobRepository,
 }
 ----
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 [source,xml]
 ----
@@ -989,10 +968,7 @@ public Job multiplePartitioninglStepFileJob(JobRepository jobRepository,
 </batch:step>
 ----
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============
 
 [cols="10,90",options="header"]
@@ -1111,12 +1087,9 @@ public class SalesDataPartitioner implements Partitioner {
 
 .Bean定義
 // ============ Java/XML Config Tab start. ============
-++++
-<div class="tabbox">
-  <input type="radio" name="tabgroup080205" class="JavaConfigTab" id="tabgroup080205_1" checked><label for="tabgroup080205_1" class="tab">JavaConfig</label>
-  <input type="radio" name="tabgroup080205" class="XMLConfigTab" id="tabgroup080205_2"><label for="tabgroup080205_2" class="tab">XMLConfig</label>
-  <div class="tabcontent" name="JavaConfigContent">
-++++
+[source,java,indent=0,role="primary"]
+.JavaConfig
+====
 // Java Config start.
 [source,java]
 ----
@@ -1206,10 +1179,10 @@ public Job multipleCreateSalesPlanSummaryJob(JobRepository jobRepository,
 }
 ----
 // Java Config end.
-++++
-  </div>
-  <div class="tabcontent" name="XMLConfigContent">
-++++
+====
+[source,xml,indent=0,role="secondary"]
+.XMLConfig
+====
 // XML Config start.
 [source,xml]
 ----
@@ -1257,10 +1230,7 @@ public Job multipleCreateSalesPlanSummaryJob(JobRepository jobRepository,
 </batch:step>
 ----
 // XML Config end.
-++++
-  </div>
-</div>
-++++
+====
 // ============ Java/XML Config Tab end. ============
 
 [cols="10,90",options="header"]

@@ -48,23 +48,9 @@ or
 $ git clone https://github.com/{your account}/batch-guideline.git
 ----
 
-=== Build HTML and PDF files for the Japanese
-
-Please execute the two ``mvn`` command.
-If build is successful, HTML and PDF files generate to the directory below.
-
-* HTML : ``{your repository}/target/generated-docs/html``
-* PDF  : ``{your repository}/target/generated-docs/pdf``
-
-[source, text]
-----
-$ mvn -f image_pom.xml
-$ mvn
-----
-
 === Build HTML files for the Japanese
 
-Please execute the two ``mvn`` command with profile specification.
+Please execute the two ``mvn`` command.
 If build is successful, HTML files generate to the directory below.
 
 * HTML : ``{your repository}/target/generated-docs/html``
@@ -72,7 +58,7 @@ If build is successful, HTML files generate to the directory below.
 [source, text]
 ----
 $ mvn -f image_pom.xml
-$ mvn -P ja-html-only
+$ mvn
 ----
 
 == Terms of use
