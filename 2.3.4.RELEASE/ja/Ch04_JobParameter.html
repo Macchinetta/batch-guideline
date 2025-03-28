@@ -1,0 +1,1231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Asciidoctor 2.0.10">
+<title>ジョブの起動パラメータ</title>
+<link rel="stylesheet" href="./theme/css/readthedocs.css">
+<link rel="stylesheet" href="./theme/css/font-awesome.min.css">
+<link rel="stylesheet" href="./theme/css/coderay-asciidoctor.css">
+<link rel="stylesheet" href="./theme/css/header-footer.css">
+<title>Macchinetta Batch Framework (2.x) Development Guideline</title>
+
+<div class="common-bg">
+  <div class="information">
+    Macchinetta Batch Framework (2.x) Development Guideline - version 2.3.4.RELEASE, 2025-3-28
+  </div>
+  <div class="index">
+    <a href="index.html">&gt; INDEX</a>
+  </div>
+</div>
+</head>
+<body id="Ch04_JobParameter" class="book toc2 toc-left">
+<div id="header">
+<h1>ジョブの起動パラメータ</h1>
+<div id="toc" class="toc2">
+<div id="toctitle">Table of Contents</div>
+<ul class="sectlevel1">
+<li><a href="#Ch04_JobParameter_Overview">Overview</a></li>
+<li><a href="#Ch04_JobParameter_HowToUse">How to use</a>
+<ul class="sectlevel2">
+<li><a href="#Ch04_JobParameter_HowToUse_Converter">パラメータ変換クラスについて</a></li>
+<li><a href="#Ch04_JobParameter_HowToUse_CLIArgs">コマンドライン引数から与える</a></li>
+<li><a href="#Ch04_JobParameter_HowToUse_FromFile">ファイルから標準入力へリダイレクトする</a></li>
+<li><a href="#Ch04_JobParameter_HowToUse_DefaultValue">パラメータのデフォルト値を設定する</a></li>
+<li><a href="#Ch04_JobParameter_HowToUse_ParamsValidation">パラメータの妥当性検証</a>
+<ul class="sectlevel3">
+<li><a href="#Ch04_JobParameter_HowToUse_ParamsValidation_Default">簡易な妥当性検証</a></li>
+<li><a href="#Ch04_JobParameter_HowToUse_ParamsValidation_Origin">複雑な妥当性検証</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="#Ch04_JobParameter_HowToExtend">How to extend</a>
+<ul class="sectlevel2">
+<li><a href="#Ch04_JobParameter_HowToExtend_PropertyConbination">パラメータとプロパティの併用</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div id="content">
+<div class="sect1">
+<h2 id="Ch04_JobParameter_Overview"><a class="anchor" href="#Ch04_JobParameter_Overview"></a>Overview</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>本節では、ジョブの起動パラメータ(以降、パラメータ)の利用方法について説明する。</p>
+</div>
+<div class="paragraph">
+<p>本機能は、チャンクモデルとタスクレットモデルとで同じ使い方になる。</p>
+</div>
+<div class="paragraph">
+<p>パラメータは、以下のような実行環境や実行タイミングに応じてジョブの動作を柔軟に切替える際に使用する。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>処理対象のファイルパス</p>
+</li>
+<li>
+<p>システムの運用日時</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>パラメータを与える方法は、以下のとおりである。</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p><a href="#Ch04_JobParameter_HowToUse_CLIArgs">コマンドライン引数から与える</a></p>
+</li>
+<li>
+<p><a href="#Ch04_JobParameter_HowToUse_FromFile">ファイルから標準入力へリダイレクトする</a></p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>指定したパラメータは、Bean定義やSpring管理下のJavaで参照できる。</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="Ch04_JobParameter_HowToUse"><a class="anchor" href="#Ch04_JobParameter_HowToUse"></a>How to use</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="Ch04_JobParameter_HowToUse_Converter"><a class="anchor" href="#Ch04_JobParameter_HowToUse_Converter"></a>パラメータ変換クラスについて</h3>
+<div class="paragraph">
+<p>Spring Batchでは、受け取ったパラメータを以下の流れで処理する。</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p><code>JobParametersConverter</code>の実装クラスが<code>JobParameters</code>に変換する。</p>
+</li>
+<li>
+<p>Bean定義やSpring管理下のJavaにて<code>JobParameters</code>からパラメータを参照する。</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<div class="title">パラメータ変換クラスの実装クラスについて</div>
+<p>前述した<code>JobParametersConverter</code>の実装クラスは複数提供されている。
+以下にそれぞれの特徴を示す。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>DefaultJobParametersConverter</p>
+<div class="ulist">
+<ul>
+<li>
+<p>パラメータのデータ型を指定することができる(String、Long、Date、Doubleの4種類)。</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>JsrJobParametersConverter</p>
+<div class="ulist">
+<ul>
+<li>
+<p>パラメータのデータ型を指定することができない(Stringのみ)。</p>
+</li>
+<li>
+<p>パラメータにジョブ実行を識別するID(RUN_ID)を<code>jsr_batch_run_id</code>という名称で自動的に付与する。</p>
+<div class="ulist">
+<ul>
+<li>
+<p>RUN_IDは、ジョブが実行される都度増加する。増加は、データベースのSEQUENCE(名称は<code>JOB_SEQ</code>となる)を利用するため、重複することがない。</p>
+</li>
+<li>
+<p>Spring Batchでは、同じパラメータで起動したジョブは同一ジョブとして認識され、同一ジョブは1度しか実行できない、という仕様がある。
+これに対し、<code>jsr_batch_run_id</code>という名称のパラメータを一意な値で付加することにより、別のジョブと認識する仕組みとなっている。
+詳細は、<a href="Ch02_SpringBatchArchitecture.html#Ch02_SpringBatchArch">Spring Batchのアーキテクチャ</a>を参照。</p>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Spring BatchではBean定義で使用する<code>JobParametersConverter</code>の実装クラスを指定しない場合、<code>DefaultJobParametersConverter</code>が使用される。<br>
+しかし、Macchinetta Batch 2.xでは以下の理由により<code>DefaultJobParametersConverter</code>は採用しない。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>1つのジョブを同じパラメータによって、異なるタイミングで起動することは一般的である。</p>
+</li>
+<li>
+<p>起動時刻のタイムスタンプなどを指定し、異なるジョブとして管理することも可能だが、それだけのためにジョブパラメータを指定するのは煩雑である。</p>
+</li>
+<li>
+<p><code>DefaultJobParametersConverter</code>はパラメータに対しデータ型を指定することができるが、型変換に失敗した場合のハンドリングが煩雑になる。</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Macchinetta Batch 2.xでは、<code>JsrJobParametersConverter</code>を利用することで、ユーザが意識することなく自動的にRUN_IDを付与している。
+この仕組みにより、ユーザから見ると同一ジョブをSpring Batchとしては異なるジョブとして扱っている。</p>
+</div>
+<div class="paragraph">
+<div class="title">パラメータ変換クラスの設定について</div>
+<p>ブランクプロジェクトでは、あらかじめ<code>launch-context.xml</code>にて<code>JsrJobParametersConverter</code>を使用するように設定している。<br>
+そのためMacchinetta Batch 2.xを推奨設定で使用する場合は<code>JobParametersConverter</code>の設定を行う必要はない。</p>
+</div>
+<div class="listingblock">
+<div class="title">META-INF\spring\launch-context.xml</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"><span class="tag">&lt;bean</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobParametersConverter</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">org.springframework.batch.core.jsr.JsrJobParametersConverter</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">c:dataSource-ref</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">adminDataSource</span><span class="delimiter">&quot;</span></span> <span class="tag">/&gt;</span>
+
+<span class="tag">&lt;bean</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobOperator</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">org.springframework.batch.core.launch.support.SimpleJobOperator</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">p:jobRepository-ref</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobRepository</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">p:jobRegistry-ref</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobRegistry</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">p:jobExplorer-ref</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobExplorer</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">p:jobParametersConverter-ref</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobParametersConverter</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">p:jobLauncher-ref</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobLauncher</span><span class="delimiter">&quot;</span></span> <span class="tag">/&gt;</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>以降は<code>JsrJobParametersConverter</code>を利用する前提で説明する。</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="Ch04_JobParameter_HowToUse_CLIArgs"><a class="anchor" href="#Ch04_JobParameter_HowToUse_CLIArgs"></a>コマンドライン引数から与える</h3>
+<div class="paragraph">
+<p>まず、もっとも基本的な、コマンドライン引数から与える方法について説明する。</p>
+</div>
+<div class="paragraph">
+<div class="title">パラメータの付与</div>
+<p>コマンドライン引数として<code>CommandLineJobRunner</code>の第3引数以降に<code>&lt;パラメータ名&gt;=&lt;値&gt;</code>形式で列挙する。</p>
+</div>
+<div class="paragraph">
+<p>パラメータの個数や長さは、Spring BatchやMacchinetta Batch 2.xにおいては制限がない。
+しかし、OSにはコマンド引数の長さに制限がある。<br>
+そのため、あまりに大量の引数が必要な場合は、<a href="#Ch04_JobParameter_HowToUse_FromFile">ファイルから標準入力へリダイレクトする</a>や
+<a href="#Ch04_JobParameter_HowToExtend_PropertyConbination">パラメータとプロパティの併用</a>などの方法を活用すること。</p>
+</div>
+<div class="listingblock">
+<div class="title">コマンドライン引数としてパラメータを設定する例</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="console">$ # Execute job
+$ java org.springframework.batch.core.launch.support.CommandLineJobRunner \
+    JobDefined.xml JOBID param1=abc outputFileName=/tmp/result.csv</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<div class="title">パラメータの参照</div>
+<p>以下のように、Bean定義またはJavaで参照することができる。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Bean定義で参照する</p>
+<div class="ulist">
+<ul>
+<li>
+<p><code>#{jobParameters['xxx']}</code>で参照可能</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>Javaで参照する</p>
+<div class="ulist">
+<ul>
+<li>
+<p><code>@Value("#{jobParameters['xxx']}")</code>で参照可能</p>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-important" title="Important"></i>
+</td>
+<td class="content">
+<div class="title">JobParametersを参照するBeanのスコープはStepスコープでなければならない</div>
+<div class="paragraph">
+<p><code>JobParameters</code>を参照する際は、参照するBeanのスコープを<code>Step</code>スコープとする必要がある。
+これは、<code>JobParameters</code>を参照する際に、Spring Batchの<strong>late binding</strong>という仕組みを使用しているためである。</p>
+</div>
+<div class="paragraph">
+<p><strong>late binding</strong>とはその名のとおり、遅延して値を設定することである。
+Spring Frameworkの<code>ApplicationContext</code>は、デフォルトでは各種Beanのプロパティを解決してから<code>ApplicationContext</code>のインスタンスを生成する。
+Spring Batchでは<code>ApplicationContext</code>のインスタンスを生成する時にはプロパティを解決せず、
+各種Beanが必要になった際にプロパティを解決する機能をもつ。これが<strong>遅延</strong>という言葉が意味することである。
+この機能により、Spring Batch自体の実行に必要な<code>ApplicationContext</code>を生成し実行した後に、
+パラメータに応じて各種Beanの振る舞いを切替えることが可能となる。</p>
+</div>
+<div class="paragraph">
+<p>なお、<code>Step</code>スコープはSpring Batch独自のスコープであり、Stepの実行ごとに新たなインスタンスが生成される。
+また、<strong>late binding</strong>による値の解決は、Bean定義においてSpEL式を用いることで可能となる。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-important" title="Important"></i>
+</td>
+<td class="content">
+<div class="title">Macchinetta Batch 2.xでは、Stepスコープの指定に@StepScopeを使用しない</div>
+<div class="paragraph">
+<p><code>Step</code>スコープの指定は以下のいずれかの方法で行える。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>XMLでのBean定義で、<code>&lt;bean&gt;</code>要素に<code>scope="step"</code>を設定する</p>
+</li>
+<li>
+<p>アノテーションでのBean定義で、<code>@Component</code>を付与するクラスに<code>@Scope("step")</code>を付与する</p>
+</li>
+<li>
+<p>JavaConfigでのBean定義で、<code>@Bean</code>を付与するメソッドに<code>@StepScope</code>を付与する</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>しかしMacchinetta Batch 2.xでは、以下二つの前提によってStepスコープの指定には<a href="https://docs.spring.io/spring-batch/docs/4.3.10/api/org/springframework/batch/core/configuration/annotation/StepScope.html"><code>@StepScope</code></a>ではなく、<code>scope="step"</code>か<code>@Scope("step")</code>を使用する。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>ジョブの定義は、XMLによるBean定義ファイルに記述する</p>
+</li>
+<li>
+<p>チャンクモデル/タスクレットモデルの構成要素を実装したクラスは、<code>@Component</code>を付与してBean定義する</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p><code>scope="step"</code>の実装例は<a href="#Ch04_JobParameter_HowToUse_CLIArgs_RefByXML">コマンドライン引数で与えたパラメータをBean定義で参照する例</a>を参照し、<code>@Scope("step")</code>の実装例は<a href="#Ch04_JobParameter_HowToUse_CLIArgs_RefByJava">コマンドライン引数で与えたパラメータをJavaで参照する例</a>を参照。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div id="Ch04_JobParameter_HowToUse_CLIArgs_RefByXML" class="listingblock">
+<div class="title">コマンドライン引数で与えたパラメータをBean定義で参照する例</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"><span class="comment">&lt;!-- (1) --&gt;</span>
+<span class="tag">&lt;bean</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">reader</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">org.springframework.batch.item.file.FlatFileItemReader</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">scope</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">step</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">p:resource</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">file:#{jobParameters['inputFile']}</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>  <span class="comment">&lt;!-- (2) --&gt;</span>
+    <span class="tag">&lt;property</span> <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">lineMapper</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+        <span class="comment">&lt;!-- omitted settings --&gt;</span>
+    <span class="tag">&lt;/property&gt;</span>
+<span class="tag">&lt;/bean&gt;</span></code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 1. 設定内容の項目一覧</caption>
+<colgroup>
+<col style="width: 10%;">
+<col style="width: 90%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>&lt;bean&gt;</code>要素の<code>scope</code>属性でスコープを指定する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(2)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">参照するパラメータを指定する。</p></td>
+</tr>
+</tbody>
+</table>
+<div id="Ch04_JobParameter_HowToUse_CLIArgs_RefByJava" class="listingblock">
+<div class="title">コマンドライン引数で与えたパラメータをJavaで参照する例</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="java"><span class="annotation">@Component</span>
+<span class="annotation">@Scope</span>(<span class="string"><span class="delimiter">&quot;</span><span class="content">step</span><span class="delimiter">&quot;</span></span>)  <span class="comment">// (1)</span>
+<span class="directive">public</span> <span class="type">class</span> <span class="class">ParamRefInJavaTasklet</span> <span class="directive">implements</span> Tasklet {
+
+    <span class="comment">/**
+     * Holds a String type value
+     */</span>
+    <span class="annotation">@Value</span>(<span class="string"><span class="delimiter">&quot;</span><span class="content">#{jobParameters['str']}</span><span class="delimiter">&quot;</span></span>)  <span class="comment">// (2)</span>
+    <span class="directive">private</span> <span class="predefined-type">String</span> str;
+
+    <span class="comment">// omitted execute()</span>
+}</code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 2. 設定内容の項目一覧</caption>
+<colgroup>
+<col style="width: 10%;">
+<col style="width: 90%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">クラスに<code>@Scope</code>アノテーションを付与してスコープを指定する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(2)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>@Value</code>アノテーションを使用して参照するパラメータを指定する。</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect2">
+<h3 id="Ch04_JobParameter_HowToUse_FromFile"><a class="anchor" href="#Ch04_JobParameter_HowToUse_FromFile"></a>ファイルから標準入力へリダイレクトする</h3>
+<div class="paragraph">
+<p>ファイルから標準入力へリダイレクトする方法について説明する。</p>
+</div>
+<div class="paragraph">
+<div class="title">パラメータを定義するファイルの作成</div>
+<p>パラメータは下記のようにファイルに定義する。</p>
+</div>
+<div class="listingblock">
+<div class="title">params.txt</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="txt">param1=abc
+outputFile=/tmp/result.csv</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<div class="title">パラメータを定義したファイルを標準入力へリダイレクトする</div>
+<p>コマンドライン引数としてパラメータを定義したファイルをリダイレクトする。</p>
+</div>
+<div class="listingblock">
+<div class="title">実行方法</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="console">$ # Execute job
+$ java org.springframework.batch.core.launch.support.CommandLineJobRunner \
+    JobDefined.xml JOBID &lt; params.txt</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<div class="title">パラメータの参照</div>
+<p>パラメータの参照方法は<a href="#Ch04_JobParameter_HowToUse_CLIArgs">コマンドライン引数から与える</a>方法と同様である。</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="Ch04_JobParameter_HowToUse_DefaultValue"><a class="anchor" href="#Ch04_JobParameter_HowToUse_DefaultValue"></a>パラメータのデフォルト値を設定する</h3>
+<div class="paragraph">
+<p>パラメータを任意とした場合、以下の形式でデフォルト値を設定することができる。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>#{jobParameters['パラメータ名'] ?: デフォルト値}</code></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>ただし、パラメータを使用して値を設定している項目であるということは、デフォルト値もパラメータと同様に環境や実行タイミングによって異なる可能性がある。</p>
+</div>
+<div class="paragraph">
+<p>まずは、デフォルト値をソースコード上にハードコードをする方法を説明する。
+しかし、後述の<a href="#Ch04_JobParameter_HowToExtend_PropertyConbination">パラメータとプロパティの併用</a>を活用する方が適切なケースが多いため、合わせて参照。</p>
+</div>
+<div class="paragraph">
+<div class="title">デフォルト値を設定したパラメータの参照</div>
+<p>該当するパラメータが設定されなかった場合にデフォルト値に設定した値が参照される。</p>
+</div>
+<div class="listingblock">
+<div class="title">コマンドライン引数で与えたパラメータをBean定義で参照する例</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"><span class="comment">&lt;!-- (1) --&gt;</span>
+<span class="tag">&lt;bean</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">reader</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">org.springframework.batch.item.file.FlatFileItemReader</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">scope</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">step</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">p:resource</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">file:#{jobParameters['inputFile'] ?: '/input/sample.csv'}</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>  <span class="comment">&lt;!-- (2) --&gt;</span>
+    <span class="tag">&lt;property</span> <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">lineMapper</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+        <span class="comment">&lt;!-- omitted settings --&gt;</span>
+    <span class="tag">&lt;/property&gt;</span>
+<span class="tag">&lt;/bean&gt;</span></code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 3. 設定内容の項目一覧</caption>
+<colgroup>
+<col style="width: 10%;">
+<col style="width: 90%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>&lt;bean&gt;</code>要素の<code>scope</code>属性でスコープを指定する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(2)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">参照するパラメータを指定する。<br>
+デフォルト値に<code>/input/sample.csv</code>を設定している。</p></td>
+</tr>
+</tbody>
+</table>
+<div class="listingblock">
+<div class="title">コマンドライン引数で与えたパラメータをJavaで参照する例</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="java"><span class="annotation">@Component</span>
+<span class="annotation">@Scope</span>(<span class="string"><span class="delimiter">&quot;</span><span class="content">step</span><span class="delimiter">&quot;</span></span>)  <span class="comment">// (1)</span>
+<span class="directive">public</span> <span class="type">class</span> <span class="class">ParamRefInJavaTasklet</span> <span class="directive">implements</span> Tasklet {
+
+    <span class="comment">/**
+     * Holds a String type value
+     */</span>
+    <span class="annotation">@Value</span>(<span class="string"><span class="delimiter">&quot;</span><span class="content">#{jobParameters['str'] ?: 'xyz'}</span><span class="delimiter">&quot;</span></span>)  <span class="comment">// (2)</span>
+    <span class="directive">private</span> <span class="predefined-type">String</span> str;
+
+    <span class="comment">// omitted execute()</span>
+}</code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 4. 設定内容の項目一覧</caption>
+<colgroup>
+<col style="width: 10%;">
+<col style="width: 90%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">クラスに<code>@Scope</code>アノテーションを付与してスコープを指定する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(2)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>@Value</code>アノテーションを使用して参照するパラメータを指定する。<br>
+デフォルト値に<code>xyz</code>を設定している。</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect2">
+<h3 id="Ch04_JobParameter_HowToUse_ParamsValidation"><a class="anchor" href="#Ch04_JobParameter_HowToUse_ParamsValidation"></a>パラメータの妥当性検証</h3>
+<div class="paragraph">
+<p>オペレーションミスや意図しない挙動を防ぐために、ジョブの起動時にパラメータの妥当性検証が必要となる場合もある。<br>
+パラメータの妥当性検証はSpring Batchが提供する<code>JobParametersValidator</code>を活用することで実現可能である。</p>
+</div>
+<div class="paragraph">
+<p>パラメータはItemReader/ItemProcessor/ItemWriterといった様々な場所で参照するため、
+ジョブの起動直後に妥当性検証が行われる。</p>
+</div>
+<div class="paragraph">
+<p>パラメータの妥当性を検証する方法は2つあり、検証の複雑度によって異なる。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="#Ch04_JobParameter_HowToUse_ParamsValidation_Default">簡易な妥当性検証</a></p>
+<div class="ulist">
+<ul>
+<li>
+<p>適用例</p>
+<div class="ulist">
+<ul>
+<li>
+<p>必須パラメータが設定されていることの検証</p>
+</li>
+<li>
+<p>意図しないパラメータが設定されていないことの検証</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>使用するバリデータ</p>
+<div class="ulist">
+<ul>
+<li>
+<p>Spring Batchが提供している<code>DefaultJobParametersValidator</code></p>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p><a href="#Ch04_JobParameter_HowToUse_ParamsValidation_Origin">複雑な妥当性検証</a></p>
+<div class="ulist">
+<ul>
+<li>
+<p>適用例</p>
+<div class="ulist">
+<ul>
+<li>
+<p>数値の範囲検証やパラメータ間の相関チェックなどの複雑な検証</p>
+</li>
+<li>
+<p>Spring Batchが提供している<code>DefaultJobParametersValidator</code>にて実現不可能な検証</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>使用するバリデータ</p>
+<div class="ulist">
+<ul>
+<li>
+<p><code>JobParametersValidator</code>を自作で実装したクラス</p>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p><a href="#Ch04_JobParameter_HowToUse_ParamsValidation_Default">簡易な妥当性検証</a>および<a href="#Ch04_JobParameter_HowToUse_ParamsValidation_Origin">複雑な妥当性検証</a>の妥当性を検証する方法についてそれぞれ説明する。</p>
+</div>
+<div class="sect3">
+<h4 id="Ch04_JobParameter_HowToUse_ParamsValidation_Default"><a class="anchor" href="#Ch04_JobParameter_HowToUse_ParamsValidation_Default"></a>簡易な妥当性検証</h4>
+<div class="paragraph">
+<p>Spring Batchは<code>JobParametersValidator</code>のデフォルト実装として、<code>DefaultJobParametersValidator</code>を提供している。<br>
+このバリデータでは設定により以下を検証することができる。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>必須パラメータが設定されていること</p>
+</li>
+<li>
+<p>必須または任意パラメータ以外のパラメータが指定されていないこと</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>以下に定義例を示す。</p>
+</div>
+<div class="listingblock">
+<div class="title">DefaultJobParametersValidatorを使用する妥当性検証の定義</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"><span class="comment">&lt;!-- (1) --&gt;</span>
+<span class="tag">&lt;bean</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobParametersValidator</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">org.springframework.batch.core.job.DefaultJobParametersValidator</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+  <span class="tag">&lt;property</span> <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">requiredKeys</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>  <span class="comment">&lt;!-- (2) --&gt;</span>
+    <span class="tag">&lt;list&gt;</span>
+        <span class="tag">&lt;value&gt;</span>jsr_batch_run_id<span class="tag">&lt;/value&gt;</span>  <span class="comment">&lt;!-- (3) --&gt;</span>
+        <span class="tag">&lt;value&gt;</span>inputFileName<span class="tag">&lt;/value&gt;</span>
+        <span class="tag">&lt;value&gt;</span>outputFileName<span class="tag">&lt;/value&gt;</span>
+    <span class="tag">&lt;/list&gt;</span>
+  <span class="tag">&lt;/property&gt;</span>
+  <span class="tag">&lt;property</span> <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">optionalKeys</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>  <span class="comment">&lt;!-- (4) --&gt;</span>
+    <span class="tag">&lt;list&gt;</span>
+        <span class="tag">&lt;value&gt;</span>param1<span class="tag">&lt;/value&gt;</span>
+        <span class="tag">&lt;value&gt;</span>param2<span class="tag">&lt;/value&gt;</span>
+    <span class="tag">&lt;/list&gt;</span>
+  <span class="tag">&lt;/property&gt;</span>
+<span class="tag">&lt;/bean&gt;</span>
+
+<span class="tag">&lt;batch:job</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobUseDefaultJobParametersValidator</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">job-repository</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobRepository</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+  <span class="tag">&lt;batch:step</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobUseDefaultJobParametersValidator.step01</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+    <span class="tag">&lt;batch:tasklet</span> <span class="attribute-name">ref</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">sampleTasklet</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">transaction-manager</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobTransactionManager</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+  <span class="tag">&lt;/batch:step&gt;</span>
+  <span class="tag">&lt;batch:validator</span> <span class="attribute-name">ref</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobParametersValidator</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>  <span class="comment">&lt;!-- (5) --&gt;</span>
+<span class="tag">&lt;/batch:job&gt;</span></code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 5. 設定内容の項目一覧</caption>
+<colgroup>
+<col style="width: 10%;">
+<col style="width: 90%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>DefaultJobParametersValidator</code>のBeanを定義する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(2)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">必須パラメータは<code>requiredKeys</code>に設定する。<br>
+<code>&lt;list&gt;</code>要素を使用して必須パラメータのパラメータ名を複数指定できる。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(3)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">必須パラメータに<code>jsr_batch_run_id</code>を設定する。<br>
+Macchinetta Batch 2.xでは、<code>DefaultJobParametersValidator</code>を使用する場合はこの設定が必須である。<br>
+必須となる理由は後述する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(4)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">任意パラメータは<code>optionalKeys</code>に設定する。<br>
+<code>&lt;list&gt;</code>要素を使用して任意パラメータのパラメータ名を複数指定できる。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(5)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>&lt;batch:job&gt;</code>要素内に<code>&lt;batch:validator&gt;</code>要素を使用してジョブにバリデータを適用する。</p></td>
+</tr>
+</tbody>
+</table>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-important" title="Important"></i>
+</td>
+<td class="content">
+<div class="title">Macchinetta Batch 2.xでは省略できない必須パラメータ</div>
+<div class="paragraph">
+<p>Macchinetta Batch 2.xではパラメータ変換に<code>JsrJobParametersConverter</code>を採用しているため、以下のパラメータが常に設定される。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>jsr_batch_run_id</code></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>そのため、<code>requiredKeys</code>には、<code>jsr_batch_run_id</code>を必ず含めること。<br>
+詳細な説明は、<a href="#Ch04_JobParameter_HowToUse_Converter">パラメータ変換クラスについて</a>を参照。</p>
+</div>
+<div class="listingblock">
+<div class="title">パラメータの定義例</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"><span class="tag">&lt;bean</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobParametersValidator</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">org.springframework.batch.core.job.DefaultJobParametersValidator</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+  <span class="tag">&lt;property</span> <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">requiredKeys</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+    <span class="tag">&lt;list&gt;</span>
+        <span class="tag">&lt;value&gt;</span>jsr_batch_run_id<span class="tag">&lt;/value&gt;</span>  <span class="comment">&lt;!-- mandatory --&gt;</span>
+        <span class="tag">&lt;value&gt;</span>inputFileName<span class="tag">&lt;/value&gt;</span>
+        <span class="tag">&lt;value&gt;</span>outputFileName<span class="tag">&lt;/value&gt;</span>
+    <span class="tag">&lt;/list&gt;</span>
+  <span class="tag">&lt;/property&gt;</span>
+  <span class="tag">&lt;property</span> <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">optionalKeys</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+    <span class="tag">&lt;list&gt;</span>
+        <span class="tag">&lt;value&gt;</span>param1<span class="tag">&lt;/value&gt;</span>
+        <span class="tag">&lt;value&gt;</span>param2<span class="tag">&lt;/value&gt;</span>
+    <span class="tag">&lt;/list&gt;</span>
+  <span class="tag">&lt;/property&gt;</span>
+<span class="tag">&lt;/bean&gt;</span></code></pre>
+</div>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<div class="title">DefaultJobParametersValidatorを使用した場合のOKケースとNGケース</div>
+<p><code>DefaultJobParametersValidator</code>にて検証可能な条件の理解を深めるため、検証結果がOKとなる場合とNGとなる場合の例を示す。</p>
+</div>
+<div class="listingblock">
+<div class="title">DefaultJobParametersValidator定義例</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"><span class="tag">&lt;bean</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobParametersValidator</span><span class="delimiter">&quot;</span></span>
+    <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">org.springframework.batch.core.job.DefaultJobParametersValidator</span><span class="delimiter">&quot;</span></span>
+    <span class="attribute-name">p:requiredKeys</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">outputFileName</span><span class="delimiter">&quot;</span></span>
+    <span class="attribute-name">p:optionalKeys</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">param1</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span></code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">NGケース1</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="console">$ # Execute job
+$ java org.springframework.batch.core.launch.support.CommandLineJobRunner \
+    JobDefined.xml JOBID param1=aaa</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>必須パラメータ<code>outputFile</code>が設定されていないためNGとなる。</p>
+</div>
+<div class="listingblock">
+<div class="title">NGケース2</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="console">$ # Execute job
+$ java org.springframework.batch.core.launch.support.CommandLineJobRunner \
+    JobDefined.xml JOBID outputFileName=/tmp/result.csv param2=aaa</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>必須パラメータ、任意パラメータのどちらにも指定されていないパラメータ<code>param2</code>が設定されたためNGとなる。</p>
+</div>
+<div class="listingblock">
+<div class="title">OKケース1</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="console">$ # Execute job
+$ java org.springframework.batch.core.launch.support.CommandLineJobRunner \
+    JobDefined.xml JOBID param1=aaa outputFileName=/tmp/result.csv</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>必須および任意として指定されたパラメータが設定されているためOKとなる。</p>
+</div>
+<div class="listingblock">
+<div class="title">OKケース2</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="console">$ # Execute job
+$ java org.springframework.batch.core.launch.support.CommandLineJobRunner \
+    JobDefined.xml JOBID fileoutputFilename=/tmp/result.csv</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>必須パラメータが設定されているためOKとなる、任意パラメータは設定されていなくてもよい。</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="Ch04_JobParameter_HowToUse_ParamsValidation_Origin"><a class="anchor" href="#Ch04_JobParameter_HowToUse_ParamsValidation_Origin"></a>複雑な妥当性検証</h4>
+<div class="paragraph">
+<p><code>JobParametersValidator</code>インタフェースの実装を自作することで、
+要件に応じたパラメータの検証を実現することができる。</p>
+</div>
+<div class="paragraph">
+<p><code>JobParametersValidator</code>クラスは以下の要領で実装する。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>JobParametersValidator</code>クラスを実装し、<code>validate</code>メソッドをオーバーライドする</p>
+</li>
+<li>
+<p><code>validate</code>メソッドは以下の要領で実装する</p>
+<div class="ulist">
+<ul>
+<li>
+<p><code>JobParameters</code>から各パラメータを取得し検証する</p>
+<div class="ulist">
+<ul>
+<li>
+<p>検証の結果がOKである場合には、何もする必要はない</p>
+</li>
+<li>
+<p>検証の結果がNGである場合には、<code>JobParametersInvalidException</code>をスローする</p>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p><code>JobParametersValidator</code>クラスの実装例を示す。
+ここでは、<code>str</code>で指定された文字列の長さが、<code>num</code>で指定された数値以下であることを検証している。</p>
+</div>
+<div class="listingblock">
+<div class="title">JobParametersValidatorインタフェースの実装例</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="java"><span class="directive">public</span> <span class="type">class</span> <span class="class">ComplexJobParametersValidator</span> <span class="directive">implements</span> JobParametersValidator {  <span class="comment">// (1)</span>
+    <span class="annotation">@Override</span>
+    <span class="directive">public</span> <span class="type">void</span> validate(JobParameters parameters) <span class="directive">throws</span> JobParametersInvalidException {
+        <span class="predefined-type">Map</span>&lt;<span class="predefined-type">String</span>, JobParameter&gt; params = parameters.getParameters();  <span class="comment">// (2)</span>
+
+        <span class="predefined-type">String</span> str = params.get(<span class="string"><span class="delimiter">&quot;</span><span class="content">str</span><span class="delimiter">&quot;</span></span>).getValue().toString();  <span class="comment">// (3)</span>
+        <span class="type">int</span> num = <span class="predefined-type">Integer</span>.parseInt(params.get(<span class="string"><span class="delimiter">&quot;</span><span class="content">num</span><span class="delimiter">&quot;</span></span>).getValue().toString()); <span class="comment">// (4)</span>
+
+        <span class="keyword">if</span>(str.length() &gt; num){
+            <span class="keyword">throw</span> <span class="keyword">new</span> JobParametersInvalidException(
+            <span class="string"><span class="delimiter">&quot;</span><span class="content">The str must be less than or equal to num. [str:</span><span class="delimiter">&quot;</span></span>
+                    + str + <span class="string"><span class="delimiter">&quot;</span><span class="content">][num:</span><span class="delimiter">&quot;</span></span> + num + <span class="string"><span class="delimiter">&quot;</span><span class="content">]</span><span class="delimiter">&quot;</span></span>);  <span class="comment">// (5)</span>
+        }
+    }
+}</code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 6. 設定内容の項目一覧</caption>
+<colgroup>
+<col style="width: 10%;">
+<col style="width: 90%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>JobParametersValidator</code>クラスを実装し<code>validate</code>メソッドをオーバーライドする。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(2)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">パラメータは<code>JobParameters</code>型で引数として受ける。<br>
+<code>parameters.getParameters()</code>とすることで、Map形式で取得することでパラメータの参照が容易になる。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(3)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">keyを指定してパラメータを取得する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(4)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">パラメータをint型へ変換する。String型以外を扱う場合は適宜変換を行うこと。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(5)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">パラメータ<code>str</code>の文字列長がパラメータ<code>num</code>の値を超えている場合に妥当性検証結果NGとしている。</p></td>
+</tr>
+</tbody>
+</table>
+<div class="listingblock">
+<div class="title">ジョブの定義例</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"><span class="tag">&lt;batch:job</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobUseComplexJobParametersValidator</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">job-repository</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobRepository</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+    <span class="tag">&lt;batch:step</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobUseComplexJobParametersValidator.step01</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+        <span class="tag">&lt;batch:tasklet</span> <span class="attribute-name">ref</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">sampleTasklet</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">transaction-manager</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobTransactionManager</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+    <span class="tag">&lt;/batch:step&gt;</span>
+    <span class="tag">&lt;batch:validator&gt;</span>  <span class="comment">&lt;!-- (1) --&gt;</span>
+        <span class="tag">&lt;bean</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jp.co.ntt.fw.macchinetta.batch.functionaltest.ch04.jobparameter.ComplexJobParametersValidator</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+    <span class="tag">&lt;/batch:validator&gt;</span>
+<span class="tag">&lt;/batch:job&gt;</span></code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 7. 設定内容の項目一覧</caption>
+<colgroup>
+<col style="width: 10%;">
+<col style="width: 90%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>&lt;batch:job&gt;</code>要素内に<code>&lt;batch:validator&gt;</code>要素を使用してジョブにバリデータを適用する。</p></td>
+</tr>
+</tbody>
+</table>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-warning" title="Warning"></i>
+</td>
+<td class="content">
+<div class="title">非同期起動時におけるパラメータの妥当性検証について</div>
+<div class="paragraph">
+<p>非同期起動方式(DBポーリングやWebコンテナ)でも、同様にジョブ起動時に検証することは可能だが、
+以下のようなタイミングでジョブを起動する前に検証することが望ましい。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>DBポーリング</p>
+<div class="ulist">
+<ul>
+<li>
+<p>ジョブ要求テーブルへのINSERT前</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>Webコンテナ</p>
+<div class="ulist">
+<ul>
+<li>
+<p>Controller呼び出し時(@Validatedを付与する)</p>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>非同期起動の場合、結果は別途確認する必要が生じるため、パラメータ設定ミスのような
+場合は早期にエラーを応答し、ジョブの要求をリジェクトすることが望ましい。</p>
+</div>
+<div class="paragraph">
+<p>また、この時の妥当性検証において、<code>JobParametersValidator</code>を使う必要はない。
+ジョブ要求テーブルへINSERTする機能や、Webコンテナ上のControllerは
+多くの場合Spring Batchに依存していないはずであり、
+<code>JobParametersValidator</code>を使用するためだけにSpring Batchに依存することは避けた方がよい。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="Ch04_JobParameter_HowToExtend"><a class="anchor" href="#Ch04_JobParameter_HowToExtend"></a>How to extend</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="Ch04_JobParameter_HowToExtend_PropertyConbination"><a class="anchor" href="#Ch04_JobParameter_HowToExtend_PropertyConbination"></a>パラメータとプロパティの併用</h3>
+<div class="paragraph">
+<p>Spring BatchのベースであるSpring Frameworkには、プロパティ管理の機能が備わっており、
+環境変数やプロパティファイルに設定した値を扱うことができる。
+詳細は、Macchinetta Server 1.x 開発ガイドラインの
+<a href="https://macchinetta.github.io/server-guideline/1.8.4.RELEASE/ja/ArchitectureInDetail/GeneralFuncDetail/PropertyManagement.html">プロパティ管理</a> を参照。</p>
+</div>
+<div class="paragraph">
+<p>プロパティとパラメータを組み合わせることで、大部分のジョブに共通的な設定をプロパティファイルに行ったうえで、一部をパラメータで上書きするといったことが可能になる。</p>
+</div>
+<div class="admonitionblock tip">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+<div class="title">パラメータとプロパティが解決されるタイミングについて</div>
+<div class="paragraph">
+<p>前述のとおり、パラメータとプロパティは、機能を提供するコンポーネントが異なる。<br>
+Spring Batchはパラメータ管理の機能をもち、Spring Frameworkはプロパティ管理の機能をもつ。<br>
+この差は記述方法の差に現れている。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Spring Batchがもつ機能の場合</p>
+<div class="ulist">
+<ul>
+<li>
+<p><code>#{jobParameters[xxx]}</code></p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>Spring Frameworkがもつ機能の場合</p>
+<div class="ulist">
+<ul>
+<li>
+<p><code>@Value("${xxx}")</code></p>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>また、それぞれの値が解決されるタイミングが異なる。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Spring Batchがもつ機能の場合</p>
+<div class="ulist">
+<ul>
+<li>
+<p>Application Contextを生成後、ジョブを実行するタイミングで設定される。</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>Spring Frameworkがもつ機能の場合</p>
+<div class="ulist">
+<ul>
+<li>
+<p>Application Contextの生成時に設定される。</p>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>よって、Spring Batchによるパラメータの値が優先される結果になる。<br>
+この点を念頭におくと、組み合わせる際に応用が効くため両者を区別して扱うこと。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>以降、プロパティとパラメータを組み合わせて設定する方法について説明する。</p>
+</div>
+<div class="paragraph">
+<div class="title">環境変数による設定に加えて、コマンドライン引数で追加設定する場合</div>
+<p>環境変数による設定に加えて、コマンドライン引数を使用してパラメータを設定する方法を説明する。<br>
+Bean定義においても同様に参照可能である。</p>
+</div>
+<div class="listingblock">
+<div class="title">環境変数に加えてコマンドライン引数でパラメータを設定する例</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="console">$ # Set environment variables
+$ export env1=aaa
+$ export env2=bbb
+
+$ # Execute job
+$ java org.springframework.batch.core.launch.support.CommandLineJobRunner \
+    JobDefined.xml JOBID param3=ccc outputFile=/tmp/result.csv</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">Javaにおいて環境変数とパラメータを参照する例</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="java"><span class="annotation">@Value</span>(<span class="string"><span class="delimiter">&quot;</span><span class="content">${env1}</span><span class="delimiter">&quot;</span></span>)  <span class="comment">// (1)</span>
+<span class="directive">private</span> <span class="predefined-type">String</span> param1;
+
+<span class="annotation">@Value</span>(<span class="string"><span class="delimiter">&quot;</span><span class="content">${env2}</span><span class="delimiter">&quot;</span></span>)  <span class="comment">// (1)</span>
+<span class="directive">private</span> <span class="predefined-type">String</span> param2;
+
+<span class="directive">private</span> <span class="predefined-type">String</span> param3;
+
+<span class="annotation">@Value</span>(<span class="string"><span class="delimiter">&quot;</span><span class="content">#{jobParameters['param3']</span><span class="delimiter">&quot;</span></span>)  <span class="comment">// (2)</span>
+<span class="directive">public</span> <span class="type">void</span> setParam3(<span class="predefined-type">String</span> param3) {
+    <span class="local-variable">this</span>.param3 = param3;
+}</code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 8. 設定内容の項目一覧</caption>
+<colgroup>
+<col style="width: 10%;">
+<col style="width: 90%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>@Value</code>アノテーションを使用して参照する環境変数を指定する。<br>
+参照する際の形式は<code>${環境変数名}</code>である。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(2)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>@Value</code>アノテーションを使用して参照するパラメータを指定する。<br>
+参照する際の形式は<code>#{jobParameters['パラメータ名']</code>である。</p></td>
+</tr>
+</tbody>
+</table>
+<div class="listingblock">
+<div class="title">環境変数をデフォルトとする場合の例</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="console">$ # Set environment variables
+$ export env1=aaa
+
+$ # Execute job
+$ java org.springframework.batch.core.launch.support.CommandLineJobRunner \
+    JobDefined.xml JOBID param1=bbb outputFile=/tmp/result.csv</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">Javaにおいて環境変数をデフォルト値としてパラメータを参照する例</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="java"><span class="annotation">@Value</span>(<span class="string"><span class="delimiter">&quot;</span><span class="content">#{jobParameters['param1'] ?: '${env1}'}</span><span class="delimiter">&quot;</span></span>)  <span class="comment">// (1)</span>
+<span class="directive">public</span> <span class="type">void</span> setParam1(<span class="predefined-type">String</span> param1) {
+    <span class="local-variable">this</span>.param1 = param1;
+}</code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 9. 設定内容の項目一覧</caption>
+<colgroup>
+<col style="width: 10%;">
+<col style="width: 90%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">環境変数をデフォルト値として<code>@Value</code>アノテーションを使用して参照するパラメータを指定する。<br>
+パラメータが設定されなかった場合、環境変数の値が設定される。</p></td>
+</tr>
+</tbody>
+</table>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-warning" title="Warning"></i>
+</td>
+<td class="content">
+<div class="title">誤ったデフォルト値の設定方法</div>
+<div class="paragraph">
+<p>以下の要領で定義した場合、コマンドライン引数からparam1を設定しない場合に、
+env1の値が設定されてほしいにも関わらず、param1にnullが設定されてしまうため注意すること。</p>
+</div>
+<div class="listingblock">
+<div class="title">誤ったデフォルト値の設定方法例</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="java"><span class="annotation">@Value</span>(<span class="string"><span class="delimiter">&quot;</span><span class="content">${env1}</span><span class="delimiter">&quot;</span></span>)
+<span class="directive">private</span> <span class="predefined-type">String</span> param1;
+
+<span class="annotation">@Value</span>(<span class="string"><span class="delimiter">&quot;</span><span class="content">#{jobParameters['param1']}</span><span class="delimiter">&quot;</span></span>)
+<span class="directive">public</span> <span class="type">void</span> setParam1(<span class="predefined-type">String</span> param1) {
+  <span class="local-variable">this</span>.param1 = param1;
+}</code></pre>
+</div>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</div>
+</div>
+</div>
+</div>
+<link rel="stylesheet" href="./theme/css/coderay-asciidoctor.css">
+<div class="container">
+
+  <div class="common-bg">
+    <div class="information">
+      Macchinetta Batch Framework (2.x) Development Guideline - version 2.3.4.RELEASE, 2025-3-28
+    </div>
+    <div class="index">
+      <a href="index.html">&gt; INDEX</a>
+    </div>
+  </div>
+
+  <div class="footer-bg">
+    <div class="copyright">
+      &copy; Copyright 2017 NTT Corporation.
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

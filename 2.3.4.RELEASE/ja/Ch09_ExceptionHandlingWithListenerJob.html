@@ -1,0 +1,1490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Asciidoctor 2.0.10">
+<title>ChunkListenerで例外ハンドリングを行うジョブ</title>
+<link rel="stylesheet" href="./theme/css/readthedocs.css">
+<link rel="stylesheet" href="./theme/css/font-awesome.min.css">
+<link rel="stylesheet" href="./theme/css/coderay-asciidoctor.css">
+<link rel="stylesheet" href="./theme/css/header-footer.css">
+<title>Macchinetta Batch Framework (2.x) Development Guideline</title>
+
+<div class="common-bg">
+  <div class="information">
+    Macchinetta Batch Framework (2.x) Development Guideline - version 2.3.4.RELEASE, 2025-3-28
+  </div>
+  <div class="index">
+    <a href="index.html">&gt; INDEX</a>
+  </div>
+</div>
+</head>
+<body id="Ch09_Impl_ExceptionHandlingWithListenerJob" class="book toc2 toc-left">
+<div id="header">
+<h1>ChunkListenerで例外ハンドリングを行うジョブ</h1>
+<div id="toc" class="toc2">
+<div id="toctitle">Table of Contents</div>
+<ul class="sectlevel1">
+<li><a href="#Ch09_Impl_ExceptionHandlingWithListenerJob_Overview">概要</a>
+<ul class="sectlevel2">
+<li><a href="#Ch09_Impl_ExceptionHandlingWithListenerJob_Overview_Background">背景</a></li>
+<li><a href="#Ch09_Impl_ExceptionHandlingWithListenerJob_Overview_ProcessOverview">処理概要</a></li>
+<li><a href="#Ch09_Impl_ExceptionHandlingWithListenerJob_Overview_BusinessSpecification">業務仕様</a></li>
+<li><a href="#Ch09_Impl_ExceptionHandlingWithListenerJob_Overview_TableSpecification">テーブル仕様</a></li>
+<li><a href="#Ch09_Impl_ExceptionHandlingWithListenerJob_Overview_JobOverview">ジョブの概要</a></li>
+</ul>
+</li>
+<li><a href="#Ch09_Impl_ExceptionHandlingWithListenerJob_Chunk">チャンクモデルでの実装</a>
+<ul class="sectlevel2">
+<li><a href="#Ch09_Impl_ExceptionHandlingWithListenerJob_Chunk_MessageDefinition">メッセージ定義の追加</a></li>
+<li><a href="#Ch09_Impl_ExceptionHandlingWithListenerJob_Chunk_Coding">例外ハンドリングの実装</a>
+<ul class="sectlevel3">
+<li><a href="#Ch09_Impl_ExceptionHandlingWithListenerJob_Chunk_Coding_Listener">ChunkErrorLoggingListenerクラスの実装</a></li>
+<li><a href="#Ch09_Impl_ExceptionHandlingWithListenerJob_Chunk_Coding_Bean">ジョブBean定義ファイルの設定</a></li>
+</ul>
+</li>
+<li><a href="#Ch09_Impl_ExceptionHandlingWithListenerJob_Chunk_Execution">ジョブの実行と結果の確認</a>
+<ul class="sectlevel3">
+<li><a href="#Ch09_Impl_ExceptionHandlingWithListenerJob_Chunk_Execution_Run">実行構成からジョブを実行</a></li>
+<li><a href="#Ch09_Impl_ExceptionHandlingWithListenerJob_Chunk_Execution_Console">コンソールログの確認</a></li>
+<li><a href="#Ch09_Impl_ExceptionHandlingWithListenerJob_Chunk_Execution_Exitcode">終了コードの確認</a></li>
+<li><a href="#Ch09_Impl_ExceptionHandlingWithListenerJob_Chunk_Execution_Output">出力リソースの確認</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="#Ch09_Impl_ExceptionHandlingWithListenerJob_Tasklet">タスクレットモデルでの実装</a>
+<ul class="sectlevel2">
+<li><a href="#Ch09_Impl_ExceptionHandlingWithListenerJob_Tasklet_MessageDefinition">メッセージ定義の追加</a></li>
+<li><a href="#Ch09_Impl_ExceptionHandlingWithListenerJob_Tasklet_Coding">例外ハンドリングの実装</a>
+<ul class="sectlevel3">
+<li><a href="#Ch09_Impl_ExceptionHandlingWithListenerJob_Tasklet_Coding_Listener">ChunkErrorLoggingListenerクラスの実装</a></li>
+<li><a href="#Ch09_Impl_ExceptionHandlingWithListenerJob_Tasklet_Coding_Bean">ジョブBean定義ファイルの設定</a></li>
+</ul>
+</li>
+<li><a href="#Ch09_Impl_ExceptionHandlingWithListenerJob_Tasklet_Execution">ジョブの実行と結果の確認</a>
+<ul class="sectlevel3">
+<li><a href="#Ch09_Impl_ExceptionHandlingWithListenerJob_Tasklet_Execution_Run">実行構成からジョブを実行</a></li>
+<li><a href="#Ch09_Impl_ExceptionHandlingWithListenerJob_Tasklet_Execution_Console">コンソールログの確認</a></li>
+<li><a href="#Ch09_Impl_ExceptionHandlingWithListenerJob_Tasklet_Execution_Exitcode">終了コードの確認</a></li>
+<li><a href="#Ch09_Impl_ExceptionHandlingWithListenerJob_Tasklet_Execution_Output">出力リソースの確認</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div id="content">
+<div id="preamble">
+<div class="sectionbody">
+<div id="Ch09_Impl_ExceptionHandlingWithListenerJob_Prerequisite" class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+<div class="title">前提</div>
+<div class="paragraph">
+<p><a href="Ch09_Introduction.html#Ch09_Introduction_HowToProceed">チュートリアルの進め方</a>で説明しているとおり、
+<a href="Ch09_ValidationJob.html#Ch09_Impl_ValidationJob">入力データの妥当性検証を行うジョブ</a>に対して、
+例外ハンドリングの実装を追加していく形式とする。なお、例外ハンドリング方式にはtry-catchやChunkListenerなど様々な方式がある。<br>
+ただし、記述はデータベースアクセスするジョブに実装を追加した場合の説明としているため留意すること。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="Ch09_Impl_ExceptionHandlingWithListenerJob_Overview"><a class="anchor" href="#Ch09_Impl_ExceptionHandlingWithListenerJob_Overview"></a>概要</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>ChunkListenerで例外ハンドリングを行うジョブを作成する。</p>
+</div>
+<div class="paragraph">
+<p>なお、詳細についてはMacchinetta Batch 2.x 開発ガイドラインの<a href="Ch06_ExceptionHandling.html#Ch06_ExceptionHandling_HowToUse_StepExceptionHandling_ChunkListener"><code>ChunkListener</code>インタフェースによる例外ハンドリング</a>を参照。</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+<div class="title">リスナーの用途について</div>
+<div class="paragraph">
+<p>ここでは、リスナーによりステップの実行後に例外発生の有無をチェックすることで例外ハンドリングを実現するが、
+リスナーの用途は例外ハンドリングに限定されてはいないため、
+詳細については<a href="Ch04_Listener.html#Ch04_Listener">リスナー</a>を参照。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p><a href="Ch09_TutorialApplication.html#Ch09_TutorialApplication">作成するアプリケーションの説明</a>の
+背景、処理概要、業務仕様を以下に再掲する。</p>
+</div>
+<div class="sect2">
+<h3 id="Ch09_Impl_ExceptionHandlingWithListenerJob_Overview_Background"><a class="anchor" href="#Ch09_Impl_ExceptionHandlingWithListenerJob_Overview_Background"></a>背景</h3>
+<div class="paragraph">
+<p>とある量販店では、会員に対してポイントカードを発行している。<br>
+会員には「ゴールド会員」「一般会員」の会員種別が存在し、会員種別に応じたサービスを提供している。<br>
+今回そのサービスの一環として、月内に商品を購入した会員のうち、
+会員種別が「ゴールド会員」の場合は100ポイント、「一般会員」の場合は10ポイントを月末に加算することにした。</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="Ch09_Impl_ExceptionHandlingWithListenerJob_Overview_ProcessOverview"><a class="anchor" href="#Ch09_Impl_ExceptionHandlingWithListenerJob_Overview_ProcessOverview"></a>処理概要</h3>
+<div class="paragraph">
+<p>会員種別に応じてポイント加算を行うアプリケーションを
+月次バッチ処理としてMacchinetta Batch 2.xを使用して実装する。<br>
+入力データにポイントの上限値を超えるデータが存在するか妥当性検証を行う処理を追加実装し、
+エラーの場合ログを出力し、異常終了させる。</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="Ch09_Impl_ExceptionHandlingWithListenerJob_Overview_BusinessSpecification"><a class="anchor" href="#Ch09_Impl_ExceptionHandlingWithListenerJob_Overview_BusinessSpecification"></a>業務仕様</h3>
+<div class="paragraph">
+<p>業務仕様は以下のとおり。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>入力データのポイントが1,000,000ポイントを超過していないことをチェックする</p>
+<div class="ulist">
+<ul>
+<li>
+<p>チェックエラーとなる場合は、エラーメッセージをログに出力して処理を異常終了する</p>
+</li>
+<li>
+<p>エラーメッセージはリスナーによる後処理で実現する</p>
+</li>
+<li>
+<p>メッセージ内容は「The point exceeds 1000000.」(ポイントが1,000,000を超えています)とする</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>商品購入フラグが"1"(処理対象)の場合に、会員種別に応じてポイントを加算する</p>
+<div class="ulist">
+<ul>
+<li>
+<p>会員種別が"G"(ゴールド会員)の場合は100ポイント、"N"(一般会員)の場合は10ポイント加算する</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>商品購入フラグはポイント加算後に"0"(初期状態)に更新する</p>
+</li>
+<li>
+<p>ポイントの上限値は1,000,000ポイントとする</p>
+</li>
+<li>
+<p>ポイント加算後に1,000,000ポイントを超えた場合は、1,000,000ポイントに補正する</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect2">
+<h3 id="Ch09_Impl_ExceptionHandlingWithListenerJob_Overview_TableSpecification"><a class="anchor" href="#Ch09_Impl_ExceptionHandlingWithListenerJob_Overview_TableSpecification"></a>テーブル仕様</h3>
+<div class="paragraph">
+<p>入出力リソースとなる会員情報テーブルの仕様は以下のとおり。<br>
+<a href="#Ch09_Impl_ExceptionHandlingWithListenerJob_Prerequisite">前提</a>のとおりデータベースアクセスするジョブの場合の説明となるため、ファイルアクセスするジョブの場合の
+入出力のリソース仕様は<a href="Ch09_FileAccessJob.html#Ch09_Impl_FileAccessJob_Overview_FileSpecification">ファイル仕様</a>を参照。</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 1. 会員情報テーブル(member_info)</caption>
+<colgroup>
+<col style="width: 3.0927%;">
+<col style="width: 15.4639%;">
+<col style="width: 10.3092%;">
+<col style="width: 4.1237%;">
+<col style="width: 12.3711%;">
+<col style="width: 8.2474%;">
+<col style="width: 46.392%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">No</th>
+<th class="tableblock halign-left valign-top">属性名</th>
+<th class="tableblock halign-left valign-top">カラム名</th>
+<th class="tableblock halign-left valign-top">PK</th>
+<th class="tableblock halign-left valign-top">データ型</th>
+<th class="tableblock halign-left valign-top">桁数</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">会員番号</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">id</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><span class="icon"><i class="fa fa-check"></i></span></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">CHAR</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">8</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">会員を一意に示す8桁固定の番号を表す。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">2</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">会員種別</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">type</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">CHAR</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">会員の種別を以下のとおり表す。<br>
+"G"(ゴールド会員)、"N"(一般会員)</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">3</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">商品購入フラグ</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">status</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">CHAR</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">月内に商品を買ったかどうかを表す。<br>
+商品購入で"1"(処理対象)、月次バッチ処理で"0"(初期状態)に更新される。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">4</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ポイント</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">point</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">INT</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">7</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">会員の保有するポイントを表す。<br>
+初期値は0。</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect2">
+<h3 id="Ch09_Impl_ExceptionHandlingWithListenerJob_Overview_JobOverview"><a class="anchor" href="#Ch09_Impl_ExceptionHandlingWithListenerJob_Overview_JobOverview"></a>ジョブの概要</h3>
+<div class="paragraph">
+<p>ここで作成する入力チェックを行うジョブの概要を把握するために、
+処理フローおよび処理シーケンスを以下に示す。</p>
+</div>
+<div class="paragraph">
+<p><a href="#Ch09_Impl_ExceptionHandlingWithListenerJob_Prerequisite">前提</a>のとおりデータベースアクセスするジョブの場合の説明となるため、
+ファイルアクセスするジョブの場合の処理フローおよび処理シーケンスとは異なる部分があるため留意する。</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">処理フロー概要</dt>
+<dd>
+<p>処理フローの概要を以下に示す。</p>
+</dd>
+</dl>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/ch09/ExceptionHandlingWithListener/Ch09_ExceptionHandlingWithListenerJob_ProcessFlow.png" alt="ProcessFlow of ExceptionHandlingWithListener Job">
+</div>
+<div class="title">図 1. 例外ハンドリングを行うジョブの処理フロー</div>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">チャンクモデルの場合の処理シーケンス</dt>
+<dd>
+<p>チャンクモデルの場合の処理シーケンスを説明する。<br>
+本ジョブは異常系データを利用することを前提として説明しているため、
+このシーケンス図は入力チェックでエラー(異常終了)となった場合を示している。<br>
+入力チェックが正常の場合、入力チェック以降の処理シーケンスはデータベースアクセスのシーケンス図
+(<a href="Ch09_DBAccessJob.html#Ch09_Impl_DBAccessJob_Overview_JobOverview">ジョブの概要</a>を参照)と同じである。</p>
+</dd>
+</dl>
+</div>
+<div class="paragraph">
+<p>橙色のオブジェクトは今回実装するクラスを表す。</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/Ch09_ExceptionHandlingWithListenerJob_ProcessSequence_ChunkModel.png" alt="ProcessSequence of ExceptionHandlingWithListener Job by ChunkModel">
+</div>
+<div class="title">図 2. チャンクモデルのシーケンス図</div>
+</div>
+<div class="olist arabic">
+<div class="title">シーケンス図の説明</div>
+<ol class="arabic">
+<li>
+<p>ジョブからステップが実行される。</p>
+</li>
+<li>
+<p>ステップは、リソースをオープンする。</p>
+</li>
+<li>
+<p><code>MyBatisCursorItemReader</code>は、member_infoテーブルから会員情報をすべて取得(select文の発行)する。</p>
+<div class="ulist">
+<ul>
+<li>
+<p>入力データがなくなるまで、以降の処理を繰り返す。</p>
+</li>
+<li>
+<p>チャンク単位で、フレームワークトランザクションを開始する。</p>
+</li>
+<li>
+<p>チャンクサイズに達するまで4から12までの処理を繰り返す。</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>ステップは、<code>MyBatisCursorItemReader</code>から入力データを1件取得する。</p>
+</li>
+<li>
+<p><code>MyBatisCursorItemReader</code>は、member_infoテーブルから入力データを1件取得する。</p>
+</li>
+<li>
+<p>member_infoテーブルは、<code>MyBatisCursorItemReader</code>に入力データを返却する。</p>
+</li>
+<li>
+<p><code>MyBatisCursorItemReader</code>は、ステップに入力データを返却する。</p>
+</li>
+<li>
+<p>ステップは、<code>PointAddItemProcessor</code>で入力データに対して処理を行う。</p>
+</li>
+<li>
+<p><code>PointAddItemProcessor</code>は、<code>SpringValidator</code>に入力チェック処理を依頼する。</p>
+</li>
+<li>
+<p><code>SpringValidator</code>は、入力チェックルールに基づき入力チェックを行い、チェックエラーの場合は例外(ValidationException)をスローする。</p>
+</li>
+<li>
+<p><code>PointAddItemProcessor</code>は、入力データを読み込んでポイント加算処理を行う。</p>
+</li>
+<li>
+<p><code>PointAddItemProcessor</code>は、ステップに処理結果を返却する。</p>
+</li>
+<li>
+<p>ステップは、チャンクサイズ分のデータを<code>MyBatisBatchItemWriter</code>で出力する。</p>
+</li>
+<li>
+<p><code>MyBatisBatchItemWriter</code>は、member_infoテーブルに対して会員情報の更新(update文の発行)を行う。</p>
+<div class="ulist">
+<ul>
+<li>
+<p>4から14までの処理過程で<strong>例外が発生</strong>すると、以降の処理を行う。</p>
+</li>
+</ul>
+</div>
+</li>
+</ol>
+</div>
+<div class="olist arabic">
+<ol class="arabic" start="15">
+<li>
+<p>ステップはフレームワークトランザクションをロールバックする。</p>
+</li>
+<li>
+<p>ステップは<code>ChunkErrorLoggingListener</code>を実行する。</p>
+</li>
+<li>
+<p><code>ChunkErrorLoggingListener</code>はERRORログ出力処理を行う。</p>
+</li>
+<li>
+<p>ステップはジョブに終了コード(ここでは異常終了:255)を返却する。</p>
+</li>
+</ol>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">タスクレットモデルの場合の処理シーケンス</dt>
+<dd>
+<p>タスクレットモデルの場合の処理シーケンスについて説明する。<br>
+本ジョブは異常系データを利用することを前提として説明しているため、
+このシーケンス図は入力チェックでエラー(異常終了)となった場合を示している。<br>
+入力チェックが正常の場合、入力チェック以降の処理シーケンスはデータベースアクセスのシーケンス図
+(<a href="Ch09_DBAccessJob.html#Ch09_Impl_DBAccessJob_Overview_JobOverview">ジョブの概要</a>を参照)と同じである。</p>
+</dd>
+</dl>
+</div>
+<div class="paragraph">
+<p>橙色のオブジェクトは今回実装するクラスを表す。</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/Ch09_ExceptionHandlingWithListenerJob_ProcessSequence_TaskletModel.png" alt="ProcessSequence of ExceptionHandlingWithListener Job by TaskletModel">
+</div>
+<div class="title">図 3. タスクレットモデルのシーケンス図</div>
+</div>
+<div class="olist arabic">
+<div class="title">シーケンス図の説明</div>
+<ol class="arabic">
+<li>
+<p>ジョブからステップが実行される。</p>
+<div class="ulist">
+<ul>
+<li>
+<p>ステップはフレームワークトランザクションを開始する。</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>ステップは<code>PointAddTasklet</code>を実行する。</p>
+</li>
+<li>
+<p><code>PointAddTasklet</code>は、リソースをオープンする。</p>
+</li>
+<li>
+<p><code>MyBatisCursorItemReader</code>は、member_infoテーブルから会員情報をすべて取得(select文の発行)する。</p>
+<div class="ulist">
+<ul>
+<li>
+<p>入力データがなくなるまで5から13までの処理を繰り返す。</p>
+</li>
+<li>
+<p>一定件数に達するまで5から11までの処理を繰り返す。</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p><code>PointAddTasklet</code>は、<code>MyBatisCursorItemReader</code>から入力データを1件取得する。</p>
+</li>
+<li>
+<p><code>MyBatisCursorItemReader</code>は、member_infoテーブルから入力データを1件取得する。</p>
+</li>
+<li>
+<p>member_infoテーブルは、<code>MyBatisCursorItemReader</code>に入力データを返却する。</p>
+</li>
+<li>
+<p><code>MyBatisCursorItemReader</code>は、タスクレットに入力データを返却する。</p>
+</li>
+<li>
+<p><code>PointAddTasklet</code>は、<code>SpringValidator</code>に入力チェック処理を依頼する。</p>
+</li>
+<li>
+<p><code>SpringValidator</code>は、入力チェックルールに基づき入力チェックを行い、チェックエラーの場合は例外(ValidationException)をスローする。</p>
+</li>
+<li>
+<p><code>PointAddTasklet</code>は、入力データを読み込んでポイント加算処理を行う。</p>
+</li>
+<li>
+<p><code>PointAddTasklet</code>は、一定件数分のデータを<code>MyBatisBatchItemWriter</code>で出力する。</p>
+</li>
+<li>
+<p><code>MyBatisBatchItemWriter</code>は、member_infoテーブルに対して会員情報の更新(update文の発行)を行う。</p>
+<div class="ulist">
+<ul>
+<li>
+<p>2から13までの処理過程で<strong>例外が発生</strong>すると、以降の処理を行う。</p>
+</li>
+</ul>
+</div>
+</li>
+</ol>
+</div>
+<div class="olist arabic">
+<ol class="arabic" start="14">
+<li>
+<p><code>PointAddTasklet</code>はステップへ例外(ここではValidationException)をスローする。</p>
+</li>
+<li>
+<p>ステップはフレームワークトランザクションをロールバックする。</p>
+</li>
+<li>
+<p>ステップは<code>ChunkErrorLoggingListener</code>を実行する。</p>
+</li>
+<li>
+<p><code>ChunkErrorLoggingListener</code>はERRORログ出力処理を行う。</p>
+</li>
+<li>
+<p>ステップはジョブに終了コード(ここでは異常終了:255)を返却する。</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>以降で、チャンクモデル、タスクレットモデルそれぞれの実装方法を説明する。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="#Ch09_Impl_ExceptionHandlingWithListenerJob_Chunk">チャンクモデルでの実装</a></p>
+</li>
+<li>
+<p><a href="#Ch09_Impl_ExceptionHandlingWithListenerJob_Tasklet">タスクレットモデルでの実装</a></p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="Ch09_Impl_ExceptionHandlingWithListenerJob_Chunk"><a class="anchor" href="#Ch09_Impl_ExceptionHandlingWithListenerJob_Chunk"></a>チャンクモデルでの実装</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>チャンクモデルで入力チェックを行うジョブの作成から実行までを以下の手順で実施する。</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p><a href="#Ch09_Impl_ExceptionHandlingWithListenerJob_Chunk_MessageDefinition">メッセージ定義の追加</a></p>
+</li>
+<li>
+<p><a href="#Ch09_Impl_ExceptionHandlingWithListenerJob_Chunk_Coding">例外ハンドリングの実装</a></p>
+</li>
+<li>
+<p><a href="#Ch09_Impl_ExceptionHandlingWithListenerJob_Chunk_Execution">ジョブの実行と結果の確認</a></p>
+</li>
+</ol>
+</div>
+<div class="sect2">
+<h3 id="Ch09_Impl_ExceptionHandlingWithListenerJob_Chunk_MessageDefinition"><a class="anchor" href="#Ch09_Impl_ExceptionHandlingWithListenerJob_Chunk_MessageDefinition"></a>メッセージ定義の追加</h3>
+<div class="paragraph">
+<p>コード体系のばらつき防止や、監視対象のキーワードとしての抽出を設計しやすくするため、
+ログメッセージはメッセージ定義を使用し、ログ出力時に使用する。</p>
+</div>
+<div class="paragraph">
+<p>チャンクモデル/タスクレットモデルで共通して利用するため、既に作成している場合は読み飛ばしてよい。</p>
+</div>
+<div class="paragraph">
+<p><code>application-messages.properties</code>および<code>launch-context.xml</code>を以下のとおり設定する。<br>
+なお、<code>launch-context.xml</code>の設定はブランクプロジェクトに設定済みである。</p>
+</div>
+<div class="listingblock">
+<div class="title">src/main/resources/i18n/application-messages.properties</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"># (1)
+errors.maxInteger=The {0} exceeds {1}.</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">src/main/resources/META-INF/spring/launch-context.xml</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"><span class="comment">&lt;!-- omitted --&gt;</span>
+
+<span class="tag">&lt;bean</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">messageSource</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">org.springframework.context.support.ResourceBundleMessageSource</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">p:basenames</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">i18n/application-messages</span><span class="delimiter">&quot;</span></span> <span class="tag">/&gt;</span> <span class="comment">&lt;!-- (2) --&gt;</span>
+
+<span class="comment">&lt;!-- omitted --&gt;</span></code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 2. 説明</caption>
+<colgroup>
+<col style="width: 10%;">
+<col style="width: 90%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ポイント上限超過時に出力するメッセージを設定する。<br>
+{0)に項目名、{1}に上限値を割り当てる。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(2)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">プロパティファイルからメッセージを使用するために、<code>MessageSource</code>を設定する。<br>
+<code>basenames</code>に、プロパティファイルの格納場所を指定する。</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect2">
+<h3 id="Ch09_Impl_ExceptionHandlingWithListenerJob_Chunk_Coding"><a class="anchor" href="#Ch09_Impl_ExceptionHandlingWithListenerJob_Chunk_Coding"></a>例外ハンドリングの実装</h3>
+<div class="paragraph">
+<p>例外ハンドリング処理を実装する。</p>
+</div>
+<div class="paragraph">
+<p>以下の作業を実施する。</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p><a href="#Ch09_Impl_ExceptionHandlingWithListenerJob_Chunk_Coding_Listener">ChunkErrorLoggingListenerクラスの実装</a></p>
+</li>
+<li>
+<p><a href="#Ch09_Impl_ExceptionHandlingWithListenerJob_Chunk_Coding_Bean">ジョブBean定義ファイルの設定</a></p>
+</li>
+</ol>
+</div>
+<div class="sect3">
+<h4 id="Ch09_Impl_ExceptionHandlingWithListenerJob_Chunk_Coding_Listener"><a class="anchor" href="#Ch09_Impl_ExceptionHandlingWithListenerJob_Chunk_Coding_Listener"></a>ChunkErrorLoggingListenerクラスの実装</h4>
+<div class="paragraph">
+<p><code>ChunkListener</code>インタフェースを利用して例外ハンドリングする。<br>
+ここでは、<code>ChunkListener</code>インタフェースの実装クラスとして、例外発生時にERRORログを出力する処理を実装する。</p>
+</div>
+<div class="listingblock">
+<div class="title">com.example.batch.tutorial.common.listener.ChunkErrorLoggingListener</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="java"><span class="keyword">package</span> <span class="namespace">com.example.batch.tutorial.common.listener</span>;
+
+<span class="keyword">import</span> <span class="include">org.slf4j.Logger</span>;
+<span class="keyword">import</span> <span class="include">org.slf4j.LoggerFactory</span>;
+<span class="keyword">import</span> <span class="include">org.springframework.batch.core.ChunkListener</span>;
+<span class="keyword">import</span> <span class="include">org.springframework.batch.core.scope.context.ChunkContext</span>;
+<span class="keyword">import</span> <span class="include">org.springframework.batch.item.validator.ValidationException</span>;
+<span class="keyword">import</span> <span class="include">org.springframework.context.MessageSource</span>;
+<span class="keyword">import</span> <span class="include">org.springframework.stereotype.Component</span>;
+
+<span class="keyword">import</span> <span class="include">javax.inject.Inject</span>;
+<span class="keyword">import</span> <span class="include">java.util.Locale</span>;
+
+<span class="annotation">@Component</span>
+<span class="directive">public</span> <span class="type">class</span> <span class="class">ChunkErrorLoggingListener</span> <span class="directive">implements</span> ChunkListener {
+    <span class="directive">private</span> <span class="directive">static</span> <span class="directive">final</span> <span class="predefined-type">Logger</span> logger = LoggerFactory.getLogger(ChunkErrorLoggingListener.class);
+
+    <span class="annotation">@Inject</span>
+    MessageSource messageSource; <span class="comment">// (1)</span>
+
+    <span class="annotation">@Override</span>
+    <span class="directive">public</span> <span class="type">void</span> beforeChunk(ChunkContext chunkContext) {
+        <span class="comment">// do nothing.</span>
+    }
+
+    <span class="annotation">@Override</span>
+    <span class="directive">public</span> <span class="type">void</span> afterChunk(ChunkContext chunkContext) {
+        <span class="comment">// do nothing.</span>
+    }
+
+    <span class="annotation">@Override</span>
+    <span class="directive">public</span> <span class="type">void</span> afterChunkError(ChunkContext chunkContext) {
+        <span class="exception">Exception</span> e = (<span class="exception">Exception</span>) chunkContext.getAttribute(ChunkListener.ROLLBACK_EXCEPTION_KEY); <span class="comment">// (2)</span>
+        <span class="keyword">if</span> (e <span class="keyword">instanceof</span> ValidationException) {
+            logger.error(messageSource
+                    .getMessage(<span class="string"><span class="delimiter">&quot;</span><span class="content">errors.maxInteger</span><span class="delimiter">&quot;</span></span>, <span class="keyword">new</span> <span class="predefined-type">String</span><span class="type">[]</span> { <span class="string"><span class="delimiter">&quot;</span><span class="content">point</span><span class="delimiter">&quot;</span></span>, <span class="string"><span class="delimiter">&quot;</span><span class="content">1000000</span><span class="delimiter">&quot;</span></span> }, <span class="predefined-type">Locale</span>.getDefault())); <span class="comment">// (3)</span>
+        }
+    }
+}</code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 3. 説明</caption>
+<colgroup>
+<col style="width: 10%;">
+<col style="width: 90%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>ResourceBundleMessageSource</code>のインスタンスをインジェクトする。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(2)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>ROLLBACK_EXCEPTION_KEY</code>に設定された値をキーにして発生した例外を取得する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(3)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">プロパティファイルからメッセージIDが<code>errors.maxInteger</code>のメッセージを取得し、ログに出力する。</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect3">
+<h4 id="Ch09_Impl_ExceptionHandlingWithListenerJob_Chunk_Coding_Bean"><a class="anchor" href="#Ch09_Impl_ExceptionHandlingWithListenerJob_Chunk_Coding_Bean"></a>ジョブBean定義ファイルの設定</h4>
+<div class="paragraph">
+<p>例外ハンドリングをChunkListenerで行うためのジョブBean定義ファイルの設定を以下に示す。</p>
+</div>
+<div class="listingblock">
+<div class="title">src/main/resources/META-INF/jobs/dbaccess/jobPointAddChunk.xml</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"><span class="preprocessor">&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;</span>
+<span class="tag">&lt;beans</span> <span class="attribute-name">xmlns</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">http://www.springframework.org/schema/beans</span><span class="delimiter">&quot;</span></span>
+       <span class="attribute-name">xmlns:xsi</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">http://www.w3.org/2001/XMLSchema-instance</span><span class="delimiter">&quot;</span></span>
+       <span class="attribute-name">xmlns:context</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">http://www.springframework.org/schema/context</span><span class="delimiter">&quot;</span></span>
+       <span class="attribute-name">xmlns:batch</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">http://www.springframework.org/schema/batch</span><span class="delimiter">&quot;</span></span>
+       <span class="attribute-name">xmlns:p</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">http://www.springframework.org/schema/p</span><span class="delimiter">&quot;</span></span>
+       <span class="attribute-name">xmlns:mybatis</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">http://mybatis.org/schema/mybatis-spring</span><span class="delimiter">&quot;</span></span>
+       <span class="attribute-name">xsi:schemaLocation</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd</span>
+             <span class="content">http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd</span>
+             <span class="content">http://www.springframework.org/schema/batch https://www.springframework.org/schema/batch/spring-batch.xsd</span>
+             <span class="content">http://mybatis.org/schema/mybatis-spring http://mybatis.org/schema/mybatis-spring.xsd</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+
+    <span class="comment">&lt;!-- omitted --&gt;</span>
+
+    <span class="tag">&lt;context:component-scan</span> <span class="attribute-name">base-package</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">com.example.batch.tutorial.dbaccess.chunk,</span>
+            <span class="content">com.example.batch.tutorial.common.listener</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span> <span class="comment">&lt;!-- (1) --&gt;</span>
+
+    <span class="comment">&lt;!-- omitted --&gt;</span>
+
+    <span class="tag">&lt;batch:job</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobPointAddChunk</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">job-repository</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobRepository</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+        <span class="tag">&lt;batch:step</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobPointAddChunk.step01</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+            <span class="tag">&lt;batch:tasklet</span> <span class="attribute-name">transaction-manager</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobTransactionManager</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+                <span class="tag">&lt;batch:chunk</span> <span class="attribute-name">reader</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">reader</span><span class="delimiter">&quot;</span></span>
+                             <span class="attribute-name">processor</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">pointAddItemProcessor</span><span class="delimiter">&quot;</span></span>
+                             <span class="attribute-name">writer</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">writer</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">commit-interval</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">10</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+                <span class="tag">&lt;batch:listeners&gt;</span>
+                    <span class="tag">&lt;batch:listener</span> <span class="attribute-name">ref</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">chunkErrorLoggingListener</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span> <span class="comment">&lt;!--(2)--&gt;</span>
+                <span class="tag">&lt;/batch:listeners&gt;</span>
+            <span class="tag">&lt;/batch:tasklet&gt;</span>
+        <span class="tag">&lt;/batch:step&gt;</span>
+    <span class="tag">&lt;/batch:job&gt;</span>
+
+<span class="tag">&lt;/beans&gt;</span></code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 4. 説明</caption>
+<colgroup>
+<col style="width: 10%;">
+<col style="width: 90%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">コンポーネントスキャン対象とするベースパッケージの設定を行う。<br>
+<code>base-package</code>属性に、<code>ChunkListener</code>の実装クラスが格納されているパッケージを追加で指定する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(2)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>StepListener</code>の実装クラスを設定する。
+なお、<code>ChunkListener</code>は<code>StepListener</code>の拡張インタフェースである。<br>
+ここでは、ChunkListenerの実装クラスのBeanIDである<code>chunkErrorLoggingListener</code>を指定する。</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="sect2">
+<h3 id="Ch09_Impl_ExceptionHandlingWithListenerJob_Chunk_Execution"><a class="anchor" href="#Ch09_Impl_ExceptionHandlingWithListenerJob_Chunk_Execution"></a>ジョブの実行と結果の確認</h3>
+<div class="paragraph">
+<p>作成したジョブをSTS上で実行し、結果を確認する。</p>
+</div>
+<div class="sect3">
+<h4 id="Ch09_Impl_ExceptionHandlingWithListenerJob_Chunk_Execution_Run"><a class="anchor" href="#Ch09_Impl_ExceptionHandlingWithListenerJob_Chunk_Execution_Run"></a>実行構成からジョブを実行</h4>
+<div class="paragraph">
+<p>既に作成してある実行構成から、ジョブを実行する。</p>
+</div>
+<div class="paragraph">
+<p>ここでは、異常系データを利用してジョブを実行する。<br>
+入力チェックを実装したジョブが扱うリソース(データベース or ファイル)によって、
+入力データの切替方法が異なるため、以下のとおり実行すること。</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">データベースアクセスでデータ入出力を行うジョブに対して入力チェックを実装した場合</dt>
+<dd>
+<p>データベースアクセスでデータ入出力を行うジョブの<a href="Ch09_DBAccessJob.html#Ch09_Impl_DBAccessJob_Chunk_Execution_Run">実行構成からジョブを実行</a>
+で作成した実行構成を使ってジョブを実行する。</p>
+</dd>
+</dl>
+</div>
+<div class="paragraph">
+<p>異常系データを利用するために、<code>batch-application.proeprties</code>のDatabase Initializeで
+正常系データのスクリプトをコメントアウトし、異常系データのスクリプトのコメントアウトを解除する。</p>
+</div>
+<div class="listingblock">
+<div class="title">src/main/resources/batch-application.proeprties</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"># Database Initialize
+tutorial.create-table.script=file:sqls/create-member-info-table.sql
+#tutorial.insert-data.script=file:sqls/insert-member-info-data.sql
+tutorial.insert-data.script=file:sqls/insert-member-info-error-data.sql</code></pre>
+</div>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">ファイルアクセスでデータ入出力を行うジョブに対して入力チェックを実装した場合</dt>
+<dd>
+<p>ファイルアクセスでデータ入出力を行うジョブの<a href="Ch09_FileAccessJob.html#Ch09_Impl_FileAccessJob_Chunk_Execution_Run">実行構成からジョブを実行</a>
+で作成した実行構成を使ってジョブを実行する。</p>
+</dd>
+</dl>
+</div>
+<div class="paragraph">
+<p>異常系データを利用するために、実行構成で設定する引数のうち、
+入力ファイル(inputFile)のパスを正常系データ(input-member-info-data.csv)から異常系データ(input-member-info-error-data.csv)に変更する。</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="Ch09_Impl_ExceptionHandlingWithListenerJob_Chunk_Execution_Console"><a class="anchor" href="#Ch09_Impl_ExceptionHandlingWithListenerJob_Chunk_Execution_Console"></a>コンソールログの確認</h4>
+<div class="paragraph">
+<p>Console Viewを開き、以下の内容のログが出力されていることを確認する。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>処理が異常終了(FAILED)していること。</p>
+</li>
+<li>
+<p><code>org.springframework.batch.item.validator.ValidationException</code>が発生していること。</p>
+</li>
+<li>
+<p><code>com.example.batch.tutorial.common.listener.ChunkErrorLoggingListener</code>がERRORログとして次のメッセージを出力していること。</p>
+<div class="ulist">
+<ul>
+<li>
+<p>「The point exceeds 1000000.」</p>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+<div class="listingblock">
+<div class="title">コンソールログ出力例</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="console">(.. omitted)
+
+[2020/03/10 16:08:08] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=jobPointAddChunk]] launched with the following parameters: [{jsr_batch_run_id=144}]
+[2020/03/10 16:08:08] [main] [o.s.b.c.j.SimpleStepHandler] [INFO ] Executing step: [jobPointAddChunk.step01]
+[2020/03/10 16:08:08] [main] [c.e.b.t.c.l.ChunkErrorLoggingListener] [ERROR] The point exceeds 1000000.
+[2020/03/10 16:08:08] [main] [o.s.b.c.s.AbstractStep] [ERROR] Encountered an error executing step jobPointAddChunk.step01 in job jobPointAddChunk
+org.springframework.batch.item.validator.ValidationException: Validation failed for com.example.batch.tutorial.common.dto.MemberInfoDto@65fe2691:
+Field error in object 'item' on field 'point': rejected value [1000001]; codes [Max.item.point,Max.point,Max.int,Max]; arguments [org.springframework.context.support.DefaultMessageSourceResolvable: codes [item.point,point]; arguments []; default message [point],1000000]; default message [must be less than or equal to 1000000]
+        at org.springframework.batch.item.validator.SpringValidator.validate(SpringValidator.java:54)
+
+(.. omitted)
+
+Caused by: org.springframework.validation.BindException: org.springframework.validation.BeanPropertyBindingResult: 1 errors
+Field error in object 'item' on field 'point': rejected value [1000001]; codes [Max.item.point,Max.point,Max.int,Max]; arguments [org.springframework.context.support.DefaultMessageSourceResolvable: codes [item.point,point]; arguments []; default message [point],1000000]; default message [must be less than or equal to 1000000]
+        ... 29 common frames omitted
+[2020/03/10 16:08:08] [main] [o.s.b.c.s.AbstractStep] [INFO ] Step: [jobPointAddChunk.step01] executed in 235ms
+[2020/03/10 16:08:08] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=jobPointAddChunk]] completed with the following parameters: [{jsr_batch_run_id=144}] and the following status: [FAILED] in 297ms</code></pre>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="Ch09_Impl_ExceptionHandlingWithListenerJob_Chunk_Execution_Exitcode"><a class="anchor" href="#Ch09_Impl_ExceptionHandlingWithListenerJob_Chunk_Execution_Exitcode"></a>終了コードの確認</h4>
+<div class="paragraph">
+<p>終了コードにより、異常終了したことを確認する。<br>
+確認手順は<a href="Ch09_EnvironmentConstruction.html#Ch09_EnvironmentConstruction_OperationCheck_ExecJob_Run">ジョブの実行と結果の確認</a>を参照。
+終了コード(exit value)が255(異常終了)となっていることを確認する。</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/ch09/ExceptionHandlingWithListener/Ch09_ExceptionHandlingWithListenerJob_ExitCode_ChunkModel.png" alt="Confirm the Exit Code of ExceptionHandlingWithListenerJob for ChunkModel">
+</div>
+<div class="title">図 4. 終了コードの確認</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="Ch09_Impl_ExceptionHandlingWithListenerJob_Chunk_Execution_Output"><a class="anchor" href="#Ch09_Impl_ExceptionHandlingWithListenerJob_Chunk_Execution_Output"></a>出力リソースの確認</h4>
+<div class="paragraph">
+<p>入力チェックを実装したジョブによって出力リソース(データベース or ファイル)を確認する。</p>
+</div>
+<div class="paragraph">
+<p>チャンクモデルの場合、中間コミット方式をとっているため、エラー箇所直前のチャンクまで更新が確定していることを確認する。</p>
+</div>
+<div class="sect4">
+<h5 id="Ch09_Impl_ExceptionHandlingWithListenerJob_Chunk_Execution_Output_Table"><a class="anchor" href="#Ch09_Impl_ExceptionHandlingWithListenerJob_Chunk_Execution_Output_Table"></a>会員情報テーブルの確認</h5>
+<div class="paragraph">
+<p>更新前後の会員情報テーブルの内容を比較し、確認内容のとおりとなっていることを確認する。<br>
+確認手順は<a href="Ch09_EnvironmentConstruction.html#Ch09_EnvironmentConstruction_OperationCheck_RefDB">H2 Consoleを使用してデータベースを参照する</a>を参照。</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">確認内容</dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>1から10番目のレコード(会員番号が"00000001"から"00000010"のレコード)について</p>
+<div class="ulist">
+<ul>
+<li>
+<p>statusカラム</p>
+<div class="ulist">
+<ul>
+<li>
+<p>"1"(処理対象)から"0"(初期状態)に更新されていること</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>pointカラム</p>
+<div class="ulist">
+<ul>
+<li>
+<p>ポイント加算対象について、会員種別に応じたポイントが加算されていること</p>
+<div class="ulist">
+<ul>
+<li>
+<p>typeカラムが"G"(ゴールド会員)の場合は100ポイント</p>
+</li>
+<li>
+<p>typeカラムが"N"(一般会員)の場合は10ポイント</p>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>11から15番目のレコード(会員番号が"00000011"から"00000015"のレコード)について</p>
+<div class="ulist">
+<ul>
+<li>
+<p>更新されていないこと(破線の赤枠で示した範囲)</p>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+</dd>
+</dl>
+</div>
+<div class="paragraph">
+<p>更新前後の会員情報テーブルの内容は以下のとおり。</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/ch09/ExceptionHandlingWithListener/Ch09_ExceptionHandlingWithListenerJob_Result_MemberInfoTable.png" alt="Table of member_info">
+</div>
+<div class="title">図 5. 更新前後の会員情報テーブルの内容</div>
+</div>
+</div>
+<div class="sect4">
+<h5 id="Ch09_Impl_ExceptionHandlingWithListenerJob_Chunk_Execution_Output_File"><a class="anchor" href="#Ch09_Impl_ExceptionHandlingWithListenerJob_Chunk_Execution_Output_File"></a>会員情報ファイルの確認</h5>
+<div class="paragraph">
+<p>会員情報ファイルの入出力内容を比較し、確認内容のとおりとなっていることを確認する。</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">確認内容</dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>出力ディレクトリに会員情報ファイルが出力されていること</p>
+<div class="ulist">
+<ul>
+<li>
+<p>出力ファイル: files/output/output-member-info-data.csv</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>1から10番目のレコード(会員番号が"00000001"から"00000010"のレコード)について</p>
+<div class="ulist">
+<ul>
+<li>
+<p>statusフィールド</p>
+<div class="ulist">
+<ul>
+<li>
+<p>"1"(処理対象)から"0"(初期状態)に更新されていること</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>pointフィールド</p>
+<div class="ulist">
+<ul>
+<li>
+<p>ポイント加算対象について、会員種別に応じたポイントが加算されていること</p>
+<div class="ulist">
+<ul>
+<li>
+<p>typeフィールドが"G"(ゴールド会員)の場合は100ポイント</p>
+</li>
+<li>
+<p>typeフィールドが"N"(一般会員)の場合は10ポイント</p>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>11から15番目のレコード(会員番号が"00000011"から"00000015"のレコード)について</p>
+<div class="ulist">
+<ul>
+<li>
+<p>出力されていないこと(破線の赤枠で示した範囲)</p>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+</dd>
+</dl>
+</div>
+<div class="paragraph">
+<p>会員情報ファイルの入出力内容は以下のとおり。<br>
+ファイルのフィールドはid(会員番号)、type(会員種別)、status(商品購入フラグ)、point(ポイント)の順で出力される。</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/ch09/ExceptionHandlingWithListener/Ch09_ExceptionHandlingWithListenerJob_Result_MemberInfoFile.png" alt="File of member_info">
+</div>
+<div class="title">図 6. 会員情報ファイルの入出力内容</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="Ch09_Impl_ExceptionHandlingWithListenerJob_Tasklet"><a class="anchor" href="#Ch09_Impl_ExceptionHandlingWithListenerJob_Tasklet"></a>タスクレットモデルでの実装</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>タスクレットモデルで入力チェックを行うジョブの作成から実行までを以下の手順で実施する。</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p><a href="#Ch09_Impl_ExceptionHandlingWithListenerJob_Tasklet_MessageDefinition">メッセージ定義の追加</a></p>
+</li>
+<li>
+<p><a href="#Ch09_Impl_ExceptionHandlingWithListenerJob_Tasklet_Coding">例外ハンドリングの実装</a></p>
+</li>
+<li>
+<p><a href="#Ch09_Impl_ExceptionHandlingWithListenerJob_Tasklet_Execution">ジョブの実行と結果の確認</a></p>
+</li>
+</ol>
+</div>
+<div class="sect2">
+<h3 id="Ch09_Impl_ExceptionHandlingWithListenerJob_Tasklet_MessageDefinition"><a class="anchor" href="#Ch09_Impl_ExceptionHandlingWithListenerJob_Tasklet_MessageDefinition"></a>メッセージ定義の追加</h3>
+<div class="paragraph">
+<p>コード体系のばらつき防止や、監視対象のキーワードとしての抽出を設計しやすくするため、
+ログメッセージはメッセージ定義を使用し、ログ出力時に使用する。</p>
+</div>
+<div class="paragraph">
+<p>チャンクモデル/タスクレットモデルで共通して利用するため、既に作成している場合は読み飛ばしてよい。</p>
+</div>
+<div class="paragraph">
+<p><code>application-messages.properties</code>および<code>launch-context.xml</code>を以下のとおり設定する。<br>
+なお、<code>launch-context.xml</code>の設定はブランクプロジェクトに設定済みである。</p>
+</div>
+<div class="listingblock">
+<div class="title">src/main/resources/i18n/application-messages.properties</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"># (1)
+errors.maxInteger=The {0} exceeds {1}.</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">src/main/resources/META-INF/spring/launch-context.xml</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"><span class="comment">&lt;!-- omitted --&gt;</span>
+
+<span class="tag">&lt;bean</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">messageSource</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">org.springframework.context.support.ResourceBundleMessageSource</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">p:basenames</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">i18n/application-messages</span><span class="delimiter">&quot;</span></span> <span class="tag">/&gt;</span> <span class="comment">&lt;!-- (2) --&gt;</span>
+
+<span class="comment">&lt;!-- omitted --&gt;</span></code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 5. 説明</caption>
+<colgroup>
+<col style="width: 10%;">
+<col style="width: 90%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ポイント上限超過時に出力するメッセージを設定する。<br>
+{0)に項目名、{1}に上限値を割り当てる。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(2)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">プロパティファイルからメッセージを使用するために、<code>MessageSource</code>を設定する。<br>
+<code>basenames</code>に、プロパティファイルの格納場所を指定する。</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect2">
+<h3 id="Ch09_Impl_ExceptionHandlingWithListenerJob_Tasklet_Coding"><a class="anchor" href="#Ch09_Impl_ExceptionHandlingWithListenerJob_Tasklet_Coding"></a>例外ハンドリングの実装</h3>
+<div class="paragraph">
+<p>例外ハンドリング処理を実装する。</p>
+</div>
+<div class="paragraph">
+<p>以下の作業を実施する。</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p><a href="#Ch09_Impl_ExceptionHandlingWithListenerJob_Tasklet_Coding_Listener">ChunkErrorLoggingListenerクラスの実装</a></p>
+</li>
+<li>
+<p><a href="#Ch09_Impl_ExceptionHandlingWithListenerJob_Tasklet_Coding_Bean">ジョブBean定義ファイルの設定</a></p>
+</li>
+</ol>
+</div>
+<div class="sect3">
+<h4 id="Ch09_Impl_ExceptionHandlingWithListenerJob_Tasklet_Coding_Listener"><a class="anchor" href="#Ch09_Impl_ExceptionHandlingWithListenerJob_Tasklet_Coding_Listener"></a>ChunkErrorLoggingListenerクラスの実装</h4>
+<div class="paragraph">
+<p><code>ChunkListener</code>インタフェースを利用して例外ハンドリングする。<br>
+ここでは、<code>ChunkListener</code>インタフェースの実装クラスとして、例外発生時にERRORログを出力する処理を実装する。</p>
+</div>
+<div class="listingblock">
+<div class="title">com.example.batch.tutorial.common.listener.ChunkErrorLoggingListener</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="java"><span class="keyword">package</span> <span class="namespace">com.example.batch.tutorial.common.listener</span>;
+
+<span class="keyword">import</span> <span class="include">org.slf4j.Logger</span>;
+<span class="keyword">import</span> <span class="include">org.slf4j.LoggerFactory</span>;
+<span class="keyword">import</span> <span class="include">org.springframework.batch.core.ChunkListener</span>;
+<span class="keyword">import</span> <span class="include">org.springframework.batch.core.scope.context.ChunkContext</span>;
+<span class="keyword">import</span> <span class="include">org.springframework.batch.item.validator.ValidationException</span>;
+<span class="keyword">import</span> <span class="include">org.springframework.context.MessageSource</span>;
+<span class="keyword">import</span> <span class="include">org.springframework.stereotype.Component</span>;
+
+<span class="keyword">import</span> <span class="include">javax.inject.Inject</span>;
+<span class="keyword">import</span> <span class="include">java.util.Locale</span>;
+
+<span class="annotation">@Component</span>
+<span class="directive">public</span> <span class="type">class</span> <span class="class">ChunkErrorLoggingListener</span> <span class="directive">implements</span> ChunkListener {
+    <span class="directive">private</span> <span class="directive">static</span> <span class="directive">final</span> <span class="predefined-type">Logger</span> logger = LoggerFactory.getLogger(ChunkErrorLoggingListener.class);
+
+    <span class="annotation">@Inject</span>
+    MessageSource messageSource; <span class="comment">// (1)</span>
+
+    <span class="annotation">@Override</span>
+    <span class="directive">public</span> <span class="type">void</span> beforeChunk(ChunkContext chunkContext) {
+        <span class="comment">// do nothing.</span>
+    }
+
+    <span class="annotation">@Override</span>
+    <span class="directive">public</span> <span class="type">void</span> afterChunk(ChunkContext chunkContext) {
+        <span class="comment">// do nothing.</span>
+    }
+
+    <span class="annotation">@Override</span>
+    <span class="directive">public</span> <span class="type">void</span> afterChunkError(ChunkContext chunkContext) {
+        <span class="exception">Exception</span> e = (<span class="exception">Exception</span>) chunkContext.getAttribute(ChunkListener.ROLLBACK_EXCEPTION_KEY); <span class="comment">// (2)</span>
+        <span class="keyword">if</span> (e <span class="keyword">instanceof</span> ValidationException) {
+            logger.error(messageSource
+                    .getMessage(<span class="string"><span class="delimiter">&quot;</span><span class="content">errors.maxInteger</span><span class="delimiter">&quot;</span></span>, <span class="keyword">new</span> <span class="predefined-type">String</span><span class="type">[]</span> { <span class="string"><span class="delimiter">&quot;</span><span class="content">point</span><span class="delimiter">&quot;</span></span>, <span class="string"><span class="delimiter">&quot;</span><span class="content">1000000</span><span class="delimiter">&quot;</span></span> }, <span class="predefined-type">Locale</span>.getDefault())); <span class="comment">// (3)</span>
+        }
+    }
+}</code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 6. 説明</caption>
+<colgroup>
+<col style="width: 10%;">
+<col style="width: 90%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>ResourceBundleMessageSource</code>のインスタンスをインジェクトする。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(2)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>ROLLBACK_EXCEPTION_KEY</code>に設定された値をキーにして発生した例外を取得する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(3)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">プロパティファイルからメッセージIDが<code>errors.maxInteger</code>のメッセージを取得し、ログに出力する。</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect3">
+<h4 id="Ch09_Impl_ExceptionHandlingWithListenerJob_Tasklet_Coding_Bean"><a class="anchor" href="#Ch09_Impl_ExceptionHandlingWithListenerJob_Tasklet_Coding_Bean"></a>ジョブBean定義ファイルの設定</h4>
+<div class="paragraph">
+<p>例外ハンドリングをChunkListenerで行うためのジョブBean定義ファイルの設定を以下に示す。</p>
+</div>
+<div class="listingblock">
+<div class="title">src/main/resources/META-INF/jobs/dbaccess/jobPointAddTasklet.xml</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"><span class="preprocessor">&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;</span>
+<span class="tag">&lt;beans</span> <span class="attribute-name">xmlns</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">http://www.springframework.org/schema/beans</span><span class="delimiter">&quot;</span></span>
+       <span class="attribute-name">xmlns:xsi</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">http://www.w3.org/2001/XMLSchema-instance</span><span class="delimiter">&quot;</span></span>
+       <span class="attribute-name">xmlns:context</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">http://www.springframework.org/schema/context</span><span class="delimiter">&quot;</span></span>
+       <span class="attribute-name">xmlns:batch</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">http://www.springframework.org/schema/batch</span><span class="delimiter">&quot;</span></span>
+       <span class="attribute-name">xmlns:p</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">http://www.springframework.org/schema/p</span><span class="delimiter">&quot;</span></span>
+       <span class="attribute-name">xmlns:mybatis</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">http://mybatis.org/schema/mybatis-spring</span><span class="delimiter">&quot;</span></span>
+       <span class="attribute-name">xsi:schemaLocation</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd</span>
+             <span class="content">http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd</span>
+             <span class="content">http://www.springframework.org/schema/batch https://www.springframework.org/schema/batch/spring-batch.xsd</span>
+             <span class="content">http://mybatis.org/schema/mybatis-spring http://mybatis.org/schema/mybatis-spring.xsd</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+
+    <span class="comment">&lt;!-- omitted --&gt;</span>
+
+    <span class="tag">&lt;context:component-scan</span> <span class="attribute-name">base-package</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">com.example.batch.tutorial.dbaccess.tasklet,</span>
+            <span class="content">com.example.batch.tutorial.common.listener</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span> <span class="comment">&lt;!-- (1) --&gt;</span>
+
+    <span class="comment">&lt;!-- omitted --&gt;</span>
+
+    <span class="tag">&lt;batch:job</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobPointAddTasklet</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">job-repository</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobRepository</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+        <span class="tag">&lt;batch:step</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobPointAddTasklet.step01</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+            <span class="tag">&lt;batch:tasklet</span> <span class="attribute-name">transaction-manager</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobTransactionManager</span><span class="delimiter">&quot;</span></span>
+                           <span class="attribute-name">ref</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">pointAddTasklet</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+                <span class="tag">&lt;batch:listeners&gt;</span>
+                    <span class="tag">&lt;batch:listener</span> <span class="attribute-name">ref</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">chunkErrorLoggingListener</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span> <span class="comment">&lt;!-- (2) --&gt;</span>
+                <span class="tag">&lt;/batch:listeners&gt;</span>
+            <span class="tag">&lt;/batch:tasklet&gt;</span>
+        <span class="tag">&lt;/batch:step&gt;</span>
+    <span class="tag">&lt;/batch:job&gt;</span>
+
+<span class="tag">&lt;/beans&gt;</span></code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 7. 説明</caption>
+<colgroup>
+<col style="width: 10%;">
+<col style="width: 90%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">コンポーネントスキャン対象とするベースパッケージの設定を行う。<br>
+<code>base-package</code>属性に、<code>ChunkListener</code>の実装クラスが格納されているパッケージを追加で指定する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(2)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>StepListener</code>の実装クラスを設定する。
+なお、<code>ChunkListener</code>は<code>StepListener</code>の拡張インタフェースである。<br>
+ここでは、ChunkListenerの実装クラスのBeanIDである<code>chunkErrorLoggingListener</code>を指定する。</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="sect2">
+<h3 id="Ch09_Impl_ExceptionHandlingWithListenerJob_Tasklet_Execution"><a class="anchor" href="#Ch09_Impl_ExceptionHandlingWithListenerJob_Tasklet_Execution"></a>ジョブの実行と結果の確認</h3>
+<div class="paragraph">
+<p>作成したジョブをSTS上で実行し、結果を確認する。</p>
+</div>
+<div class="sect3">
+<h4 id="Ch09_Impl_ExceptionHandlingWithListenerJob_Tasklet_Execution_Run"><a class="anchor" href="#Ch09_Impl_ExceptionHandlingWithListenerJob_Tasklet_Execution_Run"></a>実行構成からジョブを実行</h4>
+<div class="paragraph">
+<p>既に作成してある実行構成から、ジョブを実行する。</p>
+</div>
+<div class="paragraph">
+<p>ここでは、異常系データを利用してジョブを実行する。<br>
+入力チェックを実装したジョブが扱うリソース(データベース or ファイル)によって
+入力データの切替方法が異なるため、以下のとおり実行すること。</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">データベースアクセスでデータ入出力を行うジョブに対して入力チェックを実装した場合</dt>
+<dd>
+<p>データベースアクセスでデータ入出力を行うジョブの<a href="Ch09_DBAccessJob.html#Ch09_Impl_DBAccessJob_Chunk_Execution_Run">実行構成からジョブを実行</a>
+で作成した実行構成を使ってジョブを実行する。</p>
+</dd>
+</dl>
+</div>
+<div class="paragraph">
+<p>異常系データを利用するために、<code>batch-application.proeprties</code>のDatabase Initializeで
+正常系データのスクリプトをコメントアウトし、異常系データのスクリプトのコメントアウトを解除する。</p>
+</div>
+<div class="listingblock">
+<div class="title">src/main/resources/batch-application.proeprties</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"># Database Initialize
+tutorial.create-table.script=file:sqls/create-member-info-table.sql
+#tutorial.insert-data.script=file:sqls/insert-member-info-data.sql
+tutorial.insert-data.script=file:sqls/insert-member-info-error-data.sql</code></pre>
+</div>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">ファイルアクセスでデータ入出力を行うジョブに対して入力チェックを実装した場合</dt>
+<dd>
+<p>ファイルアクセスでデータ入出力を行うジョブの<a href="Ch09_FileAccessJob.html#Ch09_Impl_FileAccessJob_Chunk_Execution_Run">実行構成からジョブを実行</a>
+で作成した実行構成を使ってジョブを実行する。</p>
+</dd>
+</dl>
+</div>
+<div class="paragraph">
+<p>異常系データを利用するために、実行構成で設定する引数のうち、
+入力ファイル(inputFile)のパスを正常系データ(input-member-info-data.csv)から異常系データ(input-member-info-error-data.csv)に変更する。</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="Ch09_Impl_ExceptionHandlingWithListenerJob_Tasklet_Execution_Console"><a class="anchor" href="#Ch09_Impl_ExceptionHandlingWithListenerJob_Tasklet_Execution_Console"></a>コンソールログの確認</h4>
+<div class="paragraph">
+<p>Console Viewを開き、以下の内容のログが出力されていることを確認する。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>処理が異常終了(FAILED)していること。</p>
+</li>
+<li>
+<p><code>org.springframework.batch.item.validator.ValidationException</code>が発生していること。</p>
+</li>
+<li>
+<p><code>com.example.batch.tutorial.common.listener.ChunkErrorLoggingListener</code>がERRORログとして次のメッセージを出力していること。</p>
+<div class="ulist">
+<ul>
+<li>
+<p>「The point exceeds 1000000.」</p>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+<div class="listingblock">
+<div class="title">コンソールログ出力例</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="console">(.. omitted)
+
+[2020/03/10 16:09:34] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=jobPointAddTasklet]] launched with the following parameters: [{jsr_batch_run_id=146}]
+[2020/03/10 16:09:34] [main] [o.s.b.c.j.SimpleStepHandler] [INFO ] Executing step: [jobPointAddTasklet.step01]
+[2020/03/10 16:09:35] [main] [c.e.b.t.c.l.ChunkErrorLoggingListener] [ERROR] The point exceeds 1000000.
+[2020/03/10 16:09:35] [main] [o.s.b.c.s.AbstractStep] [ERROR] Encountered an error executing step jobPointAddTasklet.step01 in job jobPointAddTasklet
+org.springframework.batch.item.validator.ValidationException: Validation failed for com.example.batch.tutorial.common.dto.MemberInfoDto@61514735:
+Field error in object 'item' on field 'point': rejected value [1000001]; codes [Max.item.point,Max.point,Max.int,Max]; arguments [org.springframework.context.support.DefaultMessageSourceResolvable: codes [item.point,point]; arguments []; default message [point],1000000]; default message [must be less than or equal to 1000000]
+        at org.springframework.batch.item.validator.SpringValidator.validate(SpringValidator.java:54)
+
+(.. omitted)
+
+Caused by: org.springframework.validation.BindException: org.springframework.validation.BeanPropertyBindingResult: 1 errors
+Field error in object 'item' on field 'point': rejected value [1000001]; codes [Max.item.point,Max.point,Max.int,Max]; arguments [org.springframework.context.support.DefaultMessageSourceResolvable: codes [item.point,point]; arguments []; default message [point],1000000]; default message [must be less than or equal to 1000000]
+        ... 24 common frames omitted
+[2020/03/10 16:09:35] [main] [o.s.b.c.s.AbstractStep] [INFO ] Step: [jobPointAddTasklet.step01] executed in 193ms
+[2020/03/10 16:09:35] [main] [o.s.b.c.l.s.SimpleJobLauncher] [INFO ] Job: [FlowJob: [name=jobPointAddTasklet]] completed with the following parameters: [{jsr_batch_run_id=146}] and the following status: [FAILED] in 273ms</code></pre>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="Ch09_Impl_ExceptionHandlingWithListenerJob_Tasklet_Execution_Exitcode"><a class="anchor" href="#Ch09_Impl_ExceptionHandlingWithListenerJob_Tasklet_Execution_Exitcode"></a>終了コードの確認</h4>
+<div class="paragraph">
+<p>終了コードにより、異常終了したことを確認する。<br>
+確認手順は<a href="Ch09_EnvironmentConstruction.html#Ch09_EnvironmentConstruction_OperationCheck_ExecJob_Run">ジョブの実行と結果の確認</a>を参照。
+終了コード(exit value)が255(異常終了)となっていることを確認する。</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/ch09/ExceptionHandlingWithListener/Ch09_ExceptionHandlingWithListenerJob_ExitCode_TaskletModel.png" alt="Confirm the Exit Code of ExceptionHandlingWithListenerJob for TaskletModel">
+</div>
+<div class="title">図 7. 終了コードの確認</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="Ch09_Impl_ExceptionHandlingWithListenerJob_Tasklet_Execution_Output"><a class="anchor" href="#Ch09_Impl_ExceptionHandlingWithListenerJob_Tasklet_Execution_Output"></a>出力リソースの確認</h4>
+<div class="paragraph">
+<p>入力チェックを実装したジョブによって出力リソース(データベース or ファイル)を確認する。</p>
+</div>
+<div class="paragraph">
+<p>タスクレットモデルの場合、一括コミット方式をとっているため、エラーが発生した場合は一切更新されていないことを確認してほしい。</p>
+</div>
+<div class="sect4">
+<h5 id="Ch09_Impl_ExceptionHandlingWithListenerJob_Tasklet_Execution_Output_Table"><a class="anchor" href="#Ch09_Impl_ExceptionHandlingWithListenerJob_Tasklet_Execution_Output_Table"></a>会員情報テーブルの確認</h5>
+<div class="paragraph">
+<p>更新前後の会員情報テーブルの内容を比較し、確認内容のとおりとなっていることを確認する。<br>
+確認手順は<a href="Ch09_EnvironmentConstruction.html#Ch09_EnvironmentConstruction_OperationCheck_RefDB">H2 Consoleを使用してデータベースを参照する</a>を参照。</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">確認内容</dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>すべてのレコードについて、データが更新されていないこと</p>
+</li>
+</ul>
+</div>
+</dd>
+</dl>
+</div>
+<div class="paragraph">
+<p>初期状態の会員情報テーブルの内容を以下に示す。</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/ch09/ExceptionHandlingWithListener/Ch09_ExceptionHandlingWithListenerJob_Initial_MemberInfoTable.png" alt="member_info table in the initial state">
+</div>
+<div class="title">図 8. 初期状態の会員情報テーブルの内容</div>
+</div>
+</div>
+<div class="sect4">
+<h5 id="Ch09_Impl_ExceptionHandlingWithListenerJob_Tasklet_Execution_Output_File"><a class="anchor" href="#Ch09_Impl_ExceptionHandlingWithListenerJob_Tasklet_Execution_Output_File"></a>会員情報ファイルの確認</h5>
+<div class="paragraph">
+<p>会員情報ファイルの入出力内容を比較し、確認内容のとおりとなっていることを確認する。</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">確認内容</dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>出力ディレクトリに会員情報ファイルが<strong>空ファイル</strong>で出力されていること</p>
+<div class="ulist">
+<ul>
+<li>
+<p>出力ファイル: files/output/output-member-info-data.csv</p>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+</dd>
+</dl>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<link rel="stylesheet" href="./theme/css/coderay-asciidoctor.css">
+<div class="container">
+
+  <div class="common-bg">
+    <div class="information">
+      Macchinetta Batch Framework (2.x) Development Guideline - version 2.3.4.RELEASE, 2025-3-28
+    </div>
+    <div class="index">
+      <a href="index.html">&gt; INDEX</a>
+    </div>
+  </div>
+
+  <div class="footer-bg">
+    <div class="copyright">
+      &copy; Copyright 2017 NTT Corporation.
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Asciidoctor 2.0.10">
+<title>チャンクモデルジョブの作成</title>
+<link rel="stylesheet" href="./theme/css/readthedocs.css">
+<link rel="stylesheet" href="./theme/css/font-awesome.min.css">
+<link rel="stylesheet" href="./theme/css/coderay-asciidoctor.css">
+<link rel="stylesheet" href="./theme/css/header-footer.css">
+<title>Macchinetta Batch Framework (2.x) Development Guideline</title>
+
+<div class="common-bg">
+  <div class="information">
+    Macchinetta Batch Framework (2.x) Development Guideline - version 2.3.4.RELEASE, 2025-3-28
+  </div>
+  <div class="index">
+    <a href="index.html">&gt; INDEX</a>
+  </div>
+</div>
+</head>
+<body id="Ch03_CreateChunkJob" class="book toc2 toc-left">
+<div id="header">
+<h1>チャンクモデルジョブの作成</h1>
+<div id="toc" class="toc2">
+<div id="toctitle">Table of Contents</div>
+<ul class="sectlevel1">
+<li><a href="#Ch03_CreateChunkJob_Overview">Overview</a>
+<ul class="sectlevel2">
+<li><a href="#Ch03_CreateChunkJob_Overview_Components">構成要素</a></li>
+</ul>
+</li>
+<li><a href="#Ch03_CreateChunkJob_HowToUse">How to use</a>
+<ul class="sectlevel2">
+<li><a href="#Ch03_CreateChunkJob_HowToUse_JobConfig">ジョブの設定</a></li>
+<li><a href="#Ch03_CreateChunkJob_HowToUse_Components">コンポーネントの実装</a>
+<ul class="sectlevel3">
+<li><a href="#Ch03_CreateChunkJob_HowToUse_Components_Processor">ItemProcessorの実装</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="#Ch03_CreateChunkJob_HowToExtend">How to extend</a></li>
+</ul>
+</div>
+</div>
+<div id="content">
+<div class="sect1">
+<h2 id="Ch03_CreateChunkJob_Overview"><a class="anchor" href="#Ch03_CreateChunkJob_Overview"></a>Overview</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>チャンクモデルジョブの作成方法について説明する。
+チャンクモデルのアーキテクチャについては、<a href="Ch02_SpringBatchArchitecture.html#Ch02_SpringBatchArch">Spring Batchのアーキテクチャ</a>を参照。</p>
+</div>
+<div class="paragraph">
+<p>ここでは、チャンクモデルジョブの構成要素について説明する。</p>
+</div>
+<div class="sect2">
+<h3 id="Ch03_CreateChunkJob_Overview_Components"><a class="anchor" href="#Ch03_CreateChunkJob_Overview_Components"></a>構成要素</h3>
+<div class="paragraph">
+<p>チャンクモデルジョブの構成要素を以下に示す。
+これらの構成要素をBean定義にて組み合わせることで1つのジョブを実現する。</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 1. チャンクモデルジョブの構成要素</caption>
+<colgroup>
+<col style="width: 5.2631%;">
+<col style="width: 21.0526%;">
+<col style="width: 52.6315%;">
+<col style="width: 10.5263%;">
+<col style="width: 10.5265%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">名称</th>
+<th class="tableblock halign-left valign-top">役割</th>
+<th class="tableblock halign-left valign-top">設定必須</th>
+<th class="tableblock halign-left valign-top">実装必須</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ItemReader</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">様々なリソースからデータを取得するためのインタフェース。<br>
+Spring Batchにより、フラットファイルや<br>
+データベースを対象とした実装が提供されているため、ユーザにて作成する必要はない。</p></td>
+<td class="tableblock halign-center valign-top"><p class="tableblock"><span class="icon"><i class="fa fa-check"></i></span></p></td>
+<td class="tableblock halign-center valign-top"><p class="tableblock"><span class="icon"><i class="fa fa-minus"></i></span></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">2</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ItemProcessor</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">入力から出力へデータを加工するためのインタフェース。<br>
+ユーザは必要に応じてこのインタフェースを<code>implements</code>し、ビジネスロジックを実装する。</p></td>
+<td class="tableblock halign-center valign-top"><p class="tableblock"><span class="icon"><i class="fa fa-minus"></i></span></p></td>
+<td class="tableblock halign-center valign-top"><p class="tableblock"><span class="icon"><i class="fa fa-minus"></i></span></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">3</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ItemWriter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">様々なリソースへデータを出力するためのインタフェース。<br>
+<code>ItemReader</code>と対になるインタフェースと考えてよい。<br>
+Spring Batchにより、フラットファイルや<br>
+データベースのための実装が提供されているため、ユーザにて作成する必要はない。</p></td>
+<td class="tableblock halign-center valign-top"><p class="tableblock"><span class="icon"><i class="fa fa-check"></i></span></p></td>
+<td class="tableblock halign-center valign-top"><p class="tableblock"><span class="icon"><i class="fa fa-minus"></i></span></p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>この表のポイントは以下である。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>入力リソースから出力リソースへ単純にデータを移し替えるだけであれば、設定のみで実現できる。</p>
+</li>
+<li>
+<p><code>ItemProcessor</code>は、必要が生じた際にのみ実装すればよい。</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>以降、これらの構成要素を用いたジョブの実装方法について説明する。</p>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="Ch03_CreateChunkJob_HowToUse"><a class="anchor" href="#Ch03_CreateChunkJob_HowToUse"></a>How to use</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>ここでは、実際にチャンクモデルジョブを実装する方法について、以下の順序で説明する。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="#Ch03_CreateChunkJob_HowToUse_JobConfig">ジョブの設定</a></p>
+</li>
+<li>
+<p><a href="#Ch03_CreateChunkJob_HowToUse_Components">コンポーネントの実装</a></p>
+</li>
+</ul>
+</div>
+<div class="sect2">
+<h3 id="Ch03_CreateChunkJob_HowToUse_JobConfig"><a class="anchor" href="#Ch03_CreateChunkJob_HowToUse_JobConfig"></a>ジョブの設定</h3>
+<div class="paragraph">
+<p>Bean定義ファイルにて、チャンクモデルジョブを構成する要素の組み合わせ方を定義する。
+以下に例を示し、構成要素の繋がりを説明する。</p>
+</div>
+<div id="Ch03_CreateChunkJob_HowToUse_JobConfig_exmaple" class="listingblock">
+<div class="title">Bean定義ファイルの例(チャンクモデル)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"><span class="preprocessor">&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;</span>
+<span class="tag">&lt;beans</span> <span class="attribute-name">xmlns</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">http://www.springframework.org/schema/beans</span><span class="delimiter">&quot;</span></span>
+       <span class="attribute-name">xmlns:xsi</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">http://www.w3.org/2001/XMLSchema-instance</span><span class="delimiter">&quot;</span></span>
+       <span class="attribute-name">xmlns:context</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">http://www.springframework.org/schema/context</span><span class="delimiter">&quot;</span></span>
+       <span class="attribute-name">xmlns:batch</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">http://www.springframework.org/schema/batch</span><span class="delimiter">&quot;</span></span>
+       <span class="attribute-name">xmlns:p</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">http://www.springframework.org/schema/p</span><span class="delimiter">&quot;</span></span>
+       <span class="attribute-name">xmlns:mybatis</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">http://mybatis.org/schema/mybatis-spring</span><span class="delimiter">&quot;</span></span>
+       <span class="attribute-name">xsi:schemaLocation</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd</span>
+             <span class="content">http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd</span>
+             <span class="content">http://www.springframework.org/schema/batch https://www.springframework.org/schema/batch/spring-batch.xsd</span>
+             <span class="content">http://mybatis.org/schema/mybatis-spring http://mybatis.org/schema/mybatis-spring.xsd</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+
+    <span class="comment">&lt;!-- (1) --&gt;</span>
+    <span class="tag">&lt;import</span> <span class="attribute-name">resource</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">classpath:META-INF/spring/job-base-context.xml</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+
+    <span class="comment">&lt;!-- (2) --&gt;</span>
+    <span class="tag">&lt;context:component-scan</span>
+        <span class="attribute-name">base-package</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jp.co.ntt.fw.macchinetta.batch.functionaltest.app.common</span><span class="delimiter">&quot;</span></span> <span class="tag">/&gt;</span>
+
+    <span class="comment">&lt;!-- (3) --&gt;</span>
+    <span class="tag">&lt;mybatis:scan</span>
+        <span class="attribute-name">base-package</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jp.co.ntt.fw.macchinetta.batch.functionaltest.app.repository.mst</span><span class="delimiter">&quot;</span></span>
+        <span class="attribute-name">factory-ref</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobSqlSessionFactory</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+
+    <span class="comment">&lt;!-- (4) --&gt;</span>
+    <span class="tag">&lt;bean</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">reader</span><span class="delimiter">&quot;</span></span>
+          <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">org.mybatis.spring.batch.MyBatisCursorItemReader</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">scope</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">step</span><span class="delimiter">&quot;</span></span>
+          <span class="attribute-name">p:queryId</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jp.co.ntt.fw.macchinetta.batch.functionaltest.app.repository.mst.CustomerRepository.findAll</span><span class="delimiter">&quot;</span></span>
+          <span class="attribute-name">p:sqlSessionFactory-ref</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobSqlSessionFactory</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+
+    <span class="comment">&lt;!-- (5) --&gt;</span>
+    <span class="comment">&lt;!-- Item Processor --&gt;</span>
+    <span class="comment">&lt;!-- Item Processor in order that based on the Bean defined by the annotations, not defined here --&gt;</span>
+
+    <span class="comment">&lt;!-- (6) --&gt;</span>
+    <span class="tag">&lt;bean</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">writer</span><span class="delimiter">&quot;</span></span>
+          <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">org.springframework.batch.item.file.FlatFileItemWriter</span><span class="delimiter">&quot;</span></span>
+          <span class="attribute-name">scope</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">step</span><span class="delimiter">&quot;</span></span>
+          <span class="attribute-name">p:resource</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">file:#{jobParameters['outputFile']}</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+        <span class="tag">&lt;property</span> <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">lineAggregator</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+            <span class="tag">&lt;bean</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">org.springframework.batch.item.file.transform.DelimitedLineAggregator</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+                <span class="tag">&lt;property</span> <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">fieldExtractor</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+                    <span class="tag">&lt;bean</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">org.springframework.batch.item.file.transform.BeanWrapperFieldExtractor</span><span class="delimiter">&quot;</span></span>
+                          <span class="attribute-name">p:names</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">customerId,customerName,customerAddress,customerTel,chargeBranchId</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+                <span class="tag">&lt;/property&gt;</span>
+            <span class="tag">&lt;/bean&gt;</span>
+        <span class="tag">&lt;/property&gt;</span>
+    <span class="tag">&lt;/bean&gt;</span>
+
+    <span class="comment">&lt;!-- (7) --&gt;</span>
+    <span class="tag">&lt;batch:job</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobCustomerList01</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">job-repository</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobRepository</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span> <span class="comment">&lt;!-- (8) --&gt;</span>
+        <span class="tag">&lt;batch:step</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobCustomerList01.step01</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span> <span class="comment">&lt;!-- (9) --&gt;</span>
+            <span class="tag">&lt;batch:tasklet</span> <span class="attribute-name">transaction-manager</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">jobTransactionManager</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span> <span class="comment">&lt;!-- (10) --&gt;</span>
+                <span class="tag">&lt;batch:chunk</span> <span class="attribute-name">reader</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">reader</span><span class="delimiter">&quot;</span></span>
+                             <span class="attribute-name">processor</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">processor</span><span class="delimiter">&quot;</span></span>
+                             <span class="attribute-name">writer</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">writer</span><span class="delimiter">&quot;</span></span>
+                             <span class="attribute-name">commit-interval</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">10</span><span class="delimiter">&quot;</span></span> <span class="tag">/&gt;</span> <span class="comment">&lt;!-- (11) --&gt;</span>
+            <span class="tag">&lt;/batch:tasklet&gt;</span>
+        <span class="tag">&lt;/batch:step&gt;</span>
+    <span class="tag">&lt;/batch:job&gt;</span>
+<span class="tag">&lt;/beans&gt;</span></code></pre>
+</div>
+</div>
+<div id="Ch03_CreateChunkJob_HowToUse_Components_exmaple" class="listingblock">
+<div class="title">ItemProcessor実装クラスの設定</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="java"><span class="annotation">@Component</span>(<span class="string"><span class="delimiter">&quot;</span><span class="content">processor</span><span class="delimiter">&quot;</span></span>) <span class="comment">// (5)</span>
+<span class="directive">public</span> <span class="type">class</span> <span class="class">CustomerProcessor</span> <span class="directive">implements</span> ItemProcessor&lt;Customer, Customer&gt; {
+  <span class="comment">// omitted.</span>
+}</code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 10%;">
+<col style="width: 90%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Macchinetta Batch 2.xを利用する際に、常に必要なBean定義を読み込む設定をインポートする。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(2)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">コンポーネントスキャン対象のベースパッケージを設定する。<br>
+<span class="icon"><i class="fa fa-warning"></i></span> コンポーネントスキャンを使用したアノテーションベースのBean定義を行わない場合、かつアノテーションを使用してBeanの依存性解決を行う場合は、<code>&lt;context:annotation-config/&gt;</code>要素の定義が必要となる。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(3)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">MyBatis-Springの設定。<br>
+MyBatis-Springの設定の詳細は、<a href="Ch05_DBAccess.html#Ch05_DBAccess">データベースアクセス</a>を参照。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(4)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ItemReaderの設定。<br>
+ItemReaderの詳細は、<a href="Ch05_DBAccess.html#Ch05_DBAccess">データベースアクセス</a>、<a href="Ch05_FileAccess.html#Ch05_FileAccess">ファイルアクセス</a>を参照。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(5)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ItemProcessorは、(2)によりアノテーションにて定義することができ、Bean定義ファイルで定義する必要がない。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(6)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ItemWriterの設定。<br>
+ItemWriterの詳細は、<a href="Ch05_DBAccess.html#Ch05_DBAccess">データベースアクセス</a>、<a href="Ch05_FileAccess.html#Ch05_FileAccess">ファイルアクセス</a>を参照。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(7)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ジョブの設定。<br>
+<code>id</code>属性は、1つのバッチアプリケーションに含まれる全ジョブの範囲内で一意とする必要がある。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(8)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>JobRepository</code>の設定。<br>
+<code>job-repository</code>属性に設定する値は、特別な理由がない限り<code>jobRepository</code>固定とすること。<br>
+これにより、すべてのジョブが1つの<code>JobRepository</code>で管理できる。
+<code>jobRepository</code>のBean定義は、(1)により解決する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(9)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ステップの設定。<br>
+<code>id</code>属性は、1つのバッチアプリケーションに含まれる全ジョブの範囲内で一意とする必要はないが、障害発生時に追跡しやすくなる等の様々なメリットがあるため一意とする。<br>
+特別な理由がない限り、(7)で指定した<code>id</code>属性に[step+連番]を付加する形式とする。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(10)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">タスクレットの設定。<br>
+<code>transaction-manager</code>属性に設定する値は、特別な理由がない限り<code>jobTransactionManager</code>固定とすること。<br>
+これにより、(11)の<code>commit-interval</code>ごとにトランザクションが管理される。
+詳細については、<a href="Ch05_Transaction.html#Ch05_Transaction">トランザクション制御</a>を参照。<br>
+<code>jobTransactionManager</code>のBean定義は、(1)により解決する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(11)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">チャンクモデルジョブの設定。<br>
+<code>reader</code>、<code>writer</code>それぞれの属性に、前項までに定義した<code>ItemReader</code>、<code>ItemWriter</code>のBeanIDを指定する。<br>
+<code>processor</code>属性に、ItemProcessorの実装クラスのBeanIDを指定する。<br>
+<code>commit-interval</code>属性に1チャンクあたりの入力データ件数を設定する。</p></td>
+</tr>
+</tbody>
+</table>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-important" title="Important"></i>
+</td>
+<td class="content">
+<div class="title">commit-intervalのチューニング</div>
+<div class="paragraph">
+<p><code>commit-interval</code>はチャンクモデルジョブにおける、性能上のチューニングポイントである。</p>
+</div>
+<div class="paragraph">
+<p>前述の例では10件としているが、利用できるマシンリソースやジョブの特性によって適切な件数は異なる。
+複数のリソースにアクセスしてデータを加工するジョブであれば10件から100件程度で処理スループットが頭打ちになることもある。
+一方、入出力リソースが1:1対応しておりデータを移し替える程度のジョブであれば5000件や10000件でも処理スループットが伸びることがある。</p>
+</div>
+<div class="paragraph">
+<p>ジョブ実装時の<code>commit-interval</code>は100件程度で仮置きしておき、
+その後に実施した性能測定の結果に応じてジョブごとにチューニングするとよい。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect2">
+<h3 id="Ch03_CreateChunkJob_HowToUse_Components"><a class="anchor" href="#Ch03_CreateChunkJob_HowToUse_Components"></a>コンポーネントの実装</h3>
+<div class="paragraph">
+<p>ここでは主に、ItemProcessorを実装する方法について説明する。</p>
+</div>
+<div class="paragraph">
+<p>他のコンポーネントについては、以下を参照。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>ItemReader、ItemWriter</p>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="Ch05_DBAccess.html#Ch05_DBAccess">データベースアクセス</a>、
+<a href="Ch05_FileAccess.html#Ch05_FileAccess">ファイルアクセス</a></p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>Listener</p>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="Ch04_Listener.html#Ch04_Listener">リスナー</a></p>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+<div class="sect3">
+<h4 id="Ch03_CreateChunkJob_HowToUse_Components_Processor"><a class="anchor" href="#Ch03_CreateChunkJob_HowToUse_Components_Processor"></a>ItemProcessorの実装</h4>
+<div class="paragraph">
+<p>ItemProcessorの実装方法を説明する。</p>
+</div>
+<div class="paragraph">
+<p><code>ItemProcessor</code>は、以下のインタフェースが示すとおり、入力リソースから取得したデータ<strong>1件</strong>をもとに、
+出力リソースに向けたデータ<strong>1件</strong>を作成する役目を担う。
+つまり、<code>ItemProcessor</code>はデータ<strong>1件</strong>に対するビジネスロジックを実装する箇所、と言える。</p>
+</div>
+<div class="listingblock">
+<div class="title">ItemProcessorインタフェース</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="java"><span class="directive">public</span> <span class="type">interface</span> <span class="class">ItemProcessor</span>&lt;I, O&gt; {
+    O process(I item) <span class="directive">throws</span> <span class="exception">Exception</span>;
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>なお、インタフェースが示す<code>I</code>と<code>O</code>は以下のとおり同じ型でも異なる型でもよい。
+同じ型であれば入力データを一部修正することを意味し、
+異なる型であれば入力データをもとに出力データを生成することを意味する。</p>
+</div>
+<div class="listingblock">
+<div class="title">ItemProcessor実装例(入出力が同じ型)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="java"><span class="annotation">@Component</span>
+<span class="directive">public</span> <span class="type">class</span> <span class="class">AmountUpdateItemProcessor</span> <span class="directive">implements</span>
+        ItemProcessor&lt;SalesPlanDetail, SalesPlanDetail&gt; {
+
+    <span class="annotation">@Override</span>
+    <span class="directive">public</span> SalesPlanDetail process(SalesPlanDetail item) <span class="directive">throws</span> <span class="exception">Exception</span> {
+        item.setAmount(<span class="keyword">new</span> <span class="predefined-type">BigDecimal</span>(<span class="string"><span class="delimiter">&quot;</span><span class="content">1000</span><span class="delimiter">&quot;</span></span>));
+        <span class="keyword">return</span> item;
+    }
+}</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">ItemProcessor実装例(入出力が異なる型)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="java"><span class="annotation">@Component</span>
+<span class="directive">public</span> <span class="type">class</span> <span class="class">UpdateItemFromDBProcessor</span> <span class="directive">implements</span>
+        ItemProcessor&lt;SalesPerformanceDetail, SalesPlanDetail&gt; {
+
+    <span class="annotation">@Inject</span>
+    CustomerRepository customerRepository;
+
+    <span class="annotation">@Override</span>
+    <span class="directive">public</span> SalesPlanDetail process(SalesPerformanceDetail readItem) <span class="directive">throws</span> <span class="exception">Exception</span> {
+        Customer customer = customerRepository.findOne(readItem.getCustomerId());
+
+        SalesPlanDetail writeItem = <span class="keyword">new</span> SalesPlanDetail();
+        writeItem.setBranchId(customer.getChargeBranchId());
+        writeItem.setYear(readItem.getYear());
+        writeItem.setMonth(readItem.getMonth());
+        writeItem.setCustomerId(readItem.getCustomerId());
+        writeItem.setAmount(readItem.getAmount());
+        <span class="keyword">return</span> writeItem;
+    }
+}</code></pre>
+</div>
+</div>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-important" title="Important"></i>
+</td>
+<td class="content">
+<div class="title">ItemProcessorからnullを返却することの意味</div>
+<div class="paragraph">
+<p>ItemProcessorからnullを返却することは、当該データを後続処理(Writer)に渡さないことを意味し、
+言い換えるとデータをフィルタすることになる。
+これは、入力データの妥当性検証を実施する上で有効活用できる。
+詳細については、<a href="Ch06_InputValidation.html#Ch06_InputValidation">入力チェック</a>を参照。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-important" title="Important"></i>
+</td>
+<td class="content">
+<div class="title">ItemProcessorの処理スループットをあげるには</div>
+<div class="paragraph">
+<p>前述した実装例のように、ItemProcessorの実装クラスではデータベースやファイルを始めとしたリソースにアクセスしなければならないことがある。
+ItemProcessorは入力データ1件ごとに実行されるため、入出力が少しでも発生するとジョブ全体では大量の入出力が発生することになる。
+そのため、極力入出力を抑えることが処理スループットをあげる上で重要となる。</p>
+</div>
+<div class="paragraph">
+<p>1つの方法として、後述のListenerを活用することで事前に必要なデータをメモリ上に確保しておき、
+ItemProcessorにおける処理の大半を、CPU/メモリ間で完結するように実装する手段がある。
+ただし、1ジョブあたりのメモリを大量に消費することにも繋がるので、何でもメモリ上に確保すればよいわけではない。
+入出力回数やデータサイズをもとに、メモリに格納するデータを検討すること。</p>
+</div>
+<div class="paragraph">
+<p>この点については、<a href="Ch05_index.html#Ch05">データの入出力</a>でも紹介する。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="Ch03_CreateChunkJob_HowToExtend"><a class="anchor" href="#Ch03_CreateChunkJob_HowToExtend"></a>How to extend</h2>
+<div class="sectionbody">
+<div id="Ch03_CreateChunkJob_ItemProcessor" class="dlist">
+<dl>
+<dt class="hdlist1">ItemProcessorの省略</dt>
+<dd>
+<p>入力データを加工せず、そのまま出力する場合は、<code>ItemProcessor</code>を省略するか、<code>PassThroughItemProcessor</code>を利用する。
+以下には<code>ItemProcessor</code>を省略する設定例となる。</p>
+</dd>
+</dl>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"><span class="tag">&lt;batch:job</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">exampleJob</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+    <span class="tag">&lt;batch:step</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">exampleStep</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+        <span class="tag">&lt;batch:tasklet&gt;</span>
+            <span class="tag">&lt;batch:chunk</span> <span class="attribute-name">reader</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">reader</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">writer</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">writer</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">commit-interval</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">10</span><span class="delimiter">&quot;</span></span> <span class="tag">/&gt;</span>
+        <span class="tag">&lt;/batch:tasklet&gt;</span>
+    <span class="tag">&lt;/batch:step&gt;</span>
+<span class="tag">&lt;/batch:job&gt;</span></code></pre>
+</div>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">複数のItemProcessorを同時に利用する</dt>
+<dd>
+<p>複数のItemProcessorを同時に利用したい場合は、
+Spring Batchが提供する<code>CompositeItemProcessor</code>を利用し連結することで実現できる。</p>
+</dd>
+</dl>
+</div>
+<div class="listingblock">
+<div class="title">CompositeItemProcessorによる複数ItemProcessorの連結</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"><span class="tag">&lt;bean</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">processor</span><span class="delimiter">&quot;</span></span>
+      <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">org.springframework.batch.item.support.CompositeItemProcessor</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+    <span class="tag">&lt;property</span> <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">delegates</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+        <span class="tag">&lt;list&gt;</span>
+            <span class="tag">&lt;ref</span> <span class="attribute-name">bean</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">commonItemProcessor</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+            <span class="tag">&lt;ref</span> <span class="attribute-name">bean</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">businessLogicItemProcessor</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+        <span class="tag">&lt;/list&gt;</span>
+    <span class="tag">&lt;/property&gt;</span>
+<span class="tag">&lt;/bean&gt;</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><code>delegates</code>属性に指定した順番に処理されることに留意すること。</p>
+</div>
+</div>
+</div>
+</div>
+<link rel="stylesheet" href="./theme/css/coderay-asciidoctor.css">
+<div class="container">
+
+  <div class="common-bg">
+    <div class="information">
+      Macchinetta Batch Framework (2.x) Development Guideline - version 2.3.4.RELEASE, 2025-3-28
+    </div>
+    <div class="index">
+      <a href="index.html">&gt; INDEX</a>
+    </div>
+  </div>
+
+  <div class="footer-bg">
+    <div class="copyright">
+      &copy; Copyright 2017 NTT Corporation.
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

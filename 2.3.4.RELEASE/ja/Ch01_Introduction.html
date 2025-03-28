@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Asciidoctor 2.0.10">
+<title>導入</title>
+<link rel="stylesheet" href="./theme/css/readthedocs.css">
+<link rel="stylesheet" href="./theme/css/font-awesome.min.css">
+<link rel="stylesheet" href="./theme/css/coderay-asciidoctor.css">
+<link rel="stylesheet" href="./theme/css/header-footer.css">
+<title>Macchinetta Batch Framework (2.x) Development Guideline</title>
+
+<div class="common-bg">
+  <div class="information">
+    Macchinetta Batch Framework (2.x) Development Guideline - version 2.3.4.RELEASE, 2025-3-28
+  </div>
+  <div class="index">
+    <a href="index.html">&gt; INDEX</a>
+  </div>
+</div>
+</head>
+<body id="Ch01_Intro" class="book toc2 toc-left">
+<div id="header">
+<h1>導入</h1>
+<div id="toc" class="toc2">
+<div id="toctitle">Table of Contents</div>
+<ul class="sectlevel1">
+<li><a href="#Ch01_Intro_Goal">ガイドラインの目的</a></li>
+<li><a href="#Ch01_Intro_TargetReaders">ガイドラインの対象読者</a></li>
+<li><a href="#Ch01_Intro_Structure">ガイドラインの構成</a></li>
+<li><a href="#Ch01_Intro_HowToReadGuide">ガイドラインの読み方</a>
+<ul class="sectlevel2">
+<li><a href="#Ch01_Intro_HowToReadGuide_representation">ガイドラインの表記</a></li>
+</ul>
+</li>
+<li><a href="#Ch01_Intro_TestedEnvironments">ガイドラインの動作検証環境</a></li>
+</ul>
+</div>
+</div>
+<div id="content">
+<div class="sect1">
+<h2 id="Ch01_Intro_Goal"><a class="anchor" href="#Ch01_Intro_Goal"></a>ガイドラインの目的</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>本ガイドラインではSpring Framework、Spring Batch、MyBatis を中心としたフルスタックフレームワークを利用して、
+保守性の高いバッチアプリケーション開発をするためのベストプラクティスを提供する。</p>
+</div>
+<div class="paragraph">
+<p>本ガイドラインを読むことで、ソフトウェア開発(主にコーディング)が円滑に進むことを期待する。</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="Ch01_Intro_TargetReaders"><a class="anchor" href="#Ch01_Intro_TargetReaders"></a>ガイドラインの対象読者</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>本ガイドラインはソフトウェア開発経験のあるアーキテクトやプログラマ向けに書かれており、
+以下の知識があることを前提としている。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Spring FrameworkのDIやAOPに関する基礎的な知識がある</p>
+</li>
+<li>
+<p>Javaを使用してアプリケーションを開発したことがある</p>
+</li>
+<li>
+<p>SQLに関する知識がある</p>
+</li>
+<li>
+<p>Mavenを使用したことがある</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>これからJavaを勉強し始めるという人向けではない。</p>
+</div>
+<div class="paragraph">
+<p>Spring Frameworkに関して、本ドキュメントを読むための基礎知識があるかどうかを測るために
+<a href="https://macchinetta.github.io/server-guideline/1.8.4.RELEASE/ja/Appendix/SpringComprehensionCheck.html">Spring Framework理解度チェックテスト</a>
+を実施するとよい。
+この理解度テストが4割回答できない場合は、別途以下のような書籍で学習することを推奨する。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="https://www.shoeisha.co.jp/book/detail/9784798142470">Spring徹底入門 (翔泳社) [日本語] </a></p>
+</li>
+<li>
+<p><a href="https://gihyo.jp/book/2016/978-4-7741-8217-9">［改訂新版］Spring入門――Javaフレームワーク・より良い設計とアーキテクチャ [日本語]</a></p>
+</li>
+<li>
+<p><a href="https://link.springer.com/book/10.1007/978-1-4842-2808-1">Pro Spring 5th Edition (Apress)</a></p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="Ch01_Intro_Structure"><a class="anchor" href="#Ch01_Intro_Structure"></a>ガイドラインの構成</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>まず、重要なこととして、本ガイドラインは
+<a href="https://macchinetta.github.io/server-guideline/1.8.4.RELEASE/ja/index.html">Macchinetta Server Framework (1.x) Development Guideline</a>
+(以降、Macchinetta Server 1.x 開発ガイドライン)のサブセットとして位置づけている。
+出来る限りMacchinetta Server 1.x 開発ガイドラインを活用し説明の重複を省くことで、ユーザの学習コスト低減を狙っている。
+よって随所にMacchinetta Server 1.x 開発ガイドラインへの参照を示しているため、両方のガイドを活用しながら開発を進めていってほしい。</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1"><a href="Ch02_index.html#Ch02">Macchinetta Batch Framework (2.x)のコンセプト</a></dt>
+<dd>
+<p>バッチ処理の基本的な考え方、Macchinetta Batch Framework (2.x)の基本的な考え方、Spring Batchの概要を説明する。</p>
+</dd>
+<dt class="hdlist1"><a href="Ch03_index.html#Ch03">アプリケーション開発の流れ</a></dt>
+<dd>
+<p>Macchinetta Batch Framework (2.x)を利用してアプリケーション開発する上で必ず押さえておかなくてはならない知識や作法について説明する。</p>
+</dd>
+<dt class="hdlist1"><a href="Ch04_index.html#Ch04">ジョブの起動</a></dt>
+<dd>
+<p>同期実行、非同期実行、起動パラメータといったジョブの起動方法について説明する。</p>
+</dd>
+<dt class="hdlist1"><a href="Ch05_index.html#Ch05">データの入出力</a></dt>
+<dd>
+<p>データベースアクセス、ファイルアクセスといった、各種リソースへの入出力について説明する。</p>
+</dd>
+<dt class="hdlist1"><a href="Ch06_index.html#Ch06">異常系への対応</a></dt>
+<dd>
+<p>入力チェックや例外ハンドリングといった異常系について説明する。</p>
+</dd>
+<dt class="hdlist1"><a href="Ch07_JobManagement.html#Ch07_JobManagement">ジョブの管理</a></dt>
+<dd>
+<p>ジョブの実行管理の方法について説明する。</p>
+</dd>
+<dt class="hdlist1"><a href="Ch08_index.html#Ch08">フロー制御と並列･多重処理</a></dt>
+<dd>
+<p>ジョブを並列処理/分散処理する方法について説明する。</p>
+</dd>
+<dt class="hdlist1"><a href="Ch09_index.html#Ch09">チュートリアル</a></dt>
+<dd>
+<p>基本的なバッチアプリケーション開発をとおして、Macchinetta Batch Framework (2.x)によるバッチアプリケーション開発を体験する。</p>
+</dd>
+</dl>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="Ch01_Intro_HowToReadGuide"><a class="anchor" href="#Ch01_Intro_HowToReadGuide"></a>ガイドラインの読み方</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>以下のコンテンツはMacchinetta Batch Framework (2.x)を使用するすべての開発者が読むことを強く推奨する。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="Ch02_index.html#Ch02">Macchinetta Batch Framework (2.x)のコンセプト</a></p>
+</li>
+<li>
+<p><a href="Ch03_index.html#Ch03">アプリケーション開発の流れ</a></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>以下のコンテンツは通常必要となるため、基本的には読んでおくこと。
+開発対象に応じて、取捨選択するとよい。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="Ch04_index.html#Ch04">ジョブの起動</a></p>
+</li>
+<li>
+<p><a href="Ch05_index.html#Ch05">データの入出力</a></p>
+</li>
+<li>
+<p><a href="Ch06_index.html#Ch06">異常系への対応</a></p>
+</li>
+<li>
+<p><a href="Ch07_JobManagement.html#Ch07_JobManagement">ジョブの管理</a></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>以下のコンテンツは一歩進んだ実装をする際にはじめて参照すれば良い。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="Ch08_index.html#Ch08">フロー制御と並列･多重処理</a></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>以下のコンテンツはMacchinetta Batch Framework (2.x)を使用して実際のアプリケーション開発を体験したい開発者が読むことを推奨する。
+はじめてMacchinetta Batch Framework (2.x)に触れる場合は、まずこのコンテンツから読み始め、他のコンテンツを参照しながら進めるとよい。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="Ch09_index.html#Ch09">チュートリアル</a></p>
+</li>
+</ul>
+</div>
+<div class="sect2">
+<h3 id="Ch01_Intro_HowToReadGuide_representation"><a class="anchor" href="#Ch01_Intro_HowToReadGuide_representation"></a>ガイドラインの表記</h3>
+<div class="paragraph">
+<p>本ガイドラインの表記について、留意事項を述べる。</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">WindowsコマンドプロンプトとUnix系ターミナルについて</dt>
+<dd>
+<p>WindowsとUnix系の表記の違いで動作しなくなる場合は併記する。
+そうでない場合は、Unix系の表記で統一する。</p>
+</dd>
+<dt class="hdlist1">プロンプト記号</dt>
+<dd>
+<p>Unix系の<code>$</code>にて表記する。</p>
+</dd>
+</dl>
+</div>
+<div class="listingblock">
+<div class="title">プロンプト表記例</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="console">$ java -version</code></pre>
+</div>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">コメント記号</dt>
+<dd>
+<p>Unix系の<code>#</code>にて表記する。<br>
+なお、本ガイドラインでは、root権限でコマンドを実行することはなく、<code>#</code>はコメント記号としてのみ扱う。</p>
+</dd>
+</dl>
+</div>
+<div class="listingblock">
+<div class="title">コメント表記例</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="console">$ # 行頭コメント
+$ java -version # 行末コメント</code></pre>
+</div>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">Bean定義のプロパティとコンストラクタについて</dt>
+<dd>
+<p>本ガイドラインでは、<code>p</code>と<code>c</code>のネームスペースを用いた表記とする。
+ネームスペースを用いることで、Bean定義の記述が簡潔になったり、コンストラクタ引数が明確になる効果がある。</p>
+</dd>
+</dl>
+</div>
+<div class="listingblock">
+<div class="title">ネームスペースを利用した記述</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"><span class="tag">&lt;bean</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">org.springframework.batch.item.file.mapping.DefaultLineMapper</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+    <span class="tag">&lt;property</span> <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">lineTokenizer</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+        <span class="tag">&lt;bean</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">org.terasoluna.batch.item.file.transform.FixedByteLengthLineTokenizer</span><span class="delimiter">&quot;</span></span>
+              <span class="attribute-name">c:ranges</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">1-6, 7-10, 11-12, 13-22, 23-32</span><span class="delimiter">&quot;</span></span>
+              <span class="attribute-name">c:charset</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">MS932</span><span class="delimiter">&quot;</span></span>
+              <span class="attribute-name">p:names</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">branchId,year,month,customerId,amount</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+    <span class="tag">&lt;/property&gt;</span>
+<span class="tag">&lt;/bean&gt;</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>参考までに、ネームスペースを利用しない記述を示す。</p>
+</div>
+<div class="listingblock">
+<div class="title">ネームスペースを利用しない記述</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"><span class="tag">&lt;bean</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">org.springframework.batch.item.file.mapping.DefaultLineMapper</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+    <span class="tag">&lt;property</span> <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">lineTokenizer</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+        <span class="tag">&lt;bean</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">org.terasoluna.batch.item.file.transform.FixedByteLengthLineTokenizer</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+            <span class="tag">&lt;constructor-arg</span> <span class="attribute-name">index</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">0</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">value</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">1-6, 7-10, 11-12, 13-22, 23-32</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+            <span class="tag">&lt;constructor-arg</span> <span class="attribute-name">index</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">1</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">value</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">MS932</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+            <span class="tag">&lt;property</span> <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">names</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">value</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">branchId,year,month,customerId,amount</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+        <span class="tag">&lt;/bean&gt;</span>
+    <span class="tag">&lt;/property&gt;</span>
+<span class="tag">&lt;/bean&gt;</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>なお、ユーザに対してネームスペースを用いる記述を強要することはない。
+あくまで説明を簡潔にするための配慮であると受け止めてほしい。</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">注釈の凡例</dt>
+<dd>
+<p>本ガイドラインで記載する注釈表記の凡例を以下に示す。</p>
+</dd>
+</dl>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+<div class="title">NOTE</div>
+<div class="paragraph">
+<p>補足説明について記す。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="admonitionblock tip">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+<div class="title">TIP</div>
+<div class="paragraph">
+<p>簡単な拡張方法や参考資料などについて記す。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-important" title="Important"></i>
+</td>
+<td class="content">
+<div class="title">IMPORTANT</div>
+<div class="paragraph">
+<p>順守すべき事など重要事項について記す。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-warning" title="Warning"></i>
+</td>
+<td class="content">
+<div class="title">WARNING</div>
+<div class="paragraph">
+<p>間違えやすい内容など注意すべき事項について記す。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="admonitionblock caution">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-caution" title="Caution"></i>
+</td>
+<td class="content">
+<div class="title">CAUTION</div>
+<div class="paragraph">
+<p>問題を引き起こしかねない設定や実装など非推奨事項について記す。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="Ch01_Intro_TestedEnvironments"><a class="anchor" href="#Ch01_Intro_TestedEnvironments"></a>ガイドラインの動作検証環境</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>本ガイドラインで説明している内容の動作検証環境については、
+「 <a href="https://github.com/Macchinetta/macchinetta-batch-functionaltest/wiki/Tested-Environment">テスト済み環境</a> 」を参照。</p>
+</div>
+</div>
+</div>
+</div>
+<link rel="stylesheet" href="./theme/css/coderay-asciidoctor.css">
+<div class="container">
+
+  <div class="common-bg">
+    <div class="information">
+      Macchinetta Batch Framework (2.x) Development Guideline - version 2.3.4.RELEASE, 2025-3-28
+    </div>
+    <div class="index">
+      <a href="index.html">&gt; INDEX</a>
+    </div>
+  </div>
+
+  <div class="footer-bg">
+    <div class="copyright">
+      &copy; Copyright 2017 NTT Corporation.
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

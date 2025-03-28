@@ -1,0 +1,1232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Asciidoctor 2.0.10">
+<title>Spring Batchのアーキテクチャ</title>
+<link rel="stylesheet" href="./theme/css/readthedocs.css">
+<link rel="stylesheet" href="./theme/css/font-awesome.min.css">
+<link rel="stylesheet" href="./theme/css/coderay-asciidoctor.css">
+<link rel="stylesheet" href="./theme/css/header-footer.css">
+<title>Macchinetta Batch Framework (2.x) Development Guideline</title>
+
+<div class="common-bg">
+  <div class="information">
+    Macchinetta Batch Framework (2.x) Development Guideline - version 2.3.4.RELEASE, 2025-3-28
+  </div>
+  <div class="index">
+    <a href="index.html">&gt; INDEX</a>
+  </div>
+</div>
+</head>
+<body id="Ch02_SpringBatchArch" class="book toc2 toc-left">
+<div id="header">
+<h1>Spring Batchのアーキテクチャ</h1>
+<div id="toc" class="toc2">
+<div id="toctitle">Table of Contents</div>
+<ul class="sectlevel1">
+<li><a href="#Ch02_SpringBatchArch_Overview">Overview</a>
+<ul class="sectlevel2">
+<li><a href="#Ch02_SpringBatchArch_Overview_SpringBatch">Spring Batchとは</a></li>
+<li><a href="#Ch02_SpringBatchArch_Overview_HelloWorld">Hello, Spring Batch！</a></li>
+<li><a href="#Ch02_SpringBatchArch_Overview_BasicStructure">Spring Batchの基本構造</a></li>
+</ul>
+</li>
+<li><a href="#Ch02_SpringBatchArch_Arch">Architecture</a>
+<ul class="sectlevel2">
+<li><a href="#Ch02_SpringBatchArch_Arch_ProcessFlow">処理全体の流れ</a></li>
+<li><a href="#Ch02_SpringBatchArch_Arch_ExecutionOfJob">Jobの起動</a></li>
+<li><a href="#Ch02_SpringBatchArch_Arch_BusinessLogic">ビジネスロジックの実行</a>
+<ul class="sectlevel3">
+<li><a href="#Ch02_SpringBatchArch_Arch_BusinessLogic_Chunk">チャンクモデル</a></li>
+<li><a href="#Ch02_SpringBatchArch_Arch_BusinessLogic_Tasklet">タスクレットモデル</a></li>
+</ul>
+</li>
+<li><a href="#Ch02_SpringBatchArch_Arch_MetadataSchema">JobRepositoryのメタデータスキーマ</a>
+<ul class="sectlevel3">
+<li><a href="#Ch02_SpringBatchArch_Arch_MetadataSchema_Version">バージョン</a></li>
+<li><a href="#Ch02_SpringBatchArch_Arch_MetadataSchema_SequenceID">ID(シーケンス)定義</a></li>
+<li><a href="#Ch02_SpringBatchArch_Arch_MetadataSchema_TableDefinition">テーブル定義</a></li>
+<li><a href="#Ch02_SpringBatchArch_Arch_MetadataSchema_DDL">DDLスクリプト</a></li>
+</ul>
+</li>
+<li><a href="#Ch02_SpringBatchArch_Arch_Performance">代表的な性能チューニングポイント</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div id="content">
+<div class="sect1">
+<h2 id="Ch02_SpringBatchArch_Overview"><a class="anchor" href="#Ch02_SpringBatchArch_Overview"></a>Overview</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Macchinetta Server Framework (1.x)の基盤となる、Spring Batchのアーキテクチャについて説明をする。</p>
+</div>
+<div class="sect2">
+<h3 id="Ch02_SpringBatchArch_Overview_SpringBatch"><a class="anchor" href="#Ch02_SpringBatchArch_Overview_SpringBatch"></a>Spring Batchとは</h3>
+<div class="paragraph">
+<p>Spring Batchは、その名のとおりバッチアプリケーションフレームワークである。
+SpringがもつDIコンテナやAOP、トランザクション管理機能をベースとして以下の機能を提供している。</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">処理の流れを定型化する機能</dt>
+<dd>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">タスクレットモデル</dt>
+<dd>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">シンプルな処理</dt>
+<dd>
+<p>自由に処理を記述する方式である。SQLを1回発行するだけ、コマンドを発行するだけ、といった簡素なケースや
+複数のデータベースやファイルにアクセスしながら処理するような複雑で定型化しにくいケースで用いる。</p>
+</dd>
+</dl>
+</div>
+</dd>
+<dt class="hdlist1">チャンクモデル</dt>
+<dd>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">大量データを効率よく処理</dt>
+<dd>
+<p>一定件数のデータごとにまとめて入力/加工/出力する方式。データの入力/加工/出力といった処理の流れを定型化し、
+一部を実装するだけでジョブが実装できる。</p>
+</dd>
+</dl>
+</div>
+</dd>
+</dl>
+</div>
+</dd>
+<dt class="hdlist1">様々な起動方法</dt>
+<dd>
+<p>コマンドライン実行、Servlet上で実行、その他のさまざまな契機での実行を実現する。</p>
+</dd>
+<dt class="hdlist1">様々なデータ形式の入出力</dt>
+<dd>
+<p>ファイル、データベース、メッセージキューをはじめとするさまざまなデータリソースとの入出力を簡単に行う。</p>
+</dd>
+<dt class="hdlist1">処理の効率化</dt>
+<dd>
+<p>多重実行、並列実行、条件分岐を設定ベースで行う。</p>
+</dd>
+<dt class="hdlist1">ジョブの管理</dt>
+<dd>
+<p>実行状況の永続化、データ件数を基準にしたリスタートなどを可能にする。</p>
+</dd>
+</dl>
+</div>
+</div>
+<div class="sect2">
+<h3 id="Ch02_SpringBatchArch_Overview_HelloWorld"><a class="anchor" href="#Ch02_SpringBatchArch_Overview_HelloWorld"></a>Hello, Spring Batch！</h3>
+<div class="paragraph">
+<p>Spring Batchのアーキテクチャを理解する上で、未だSpring Batchに触れたことがない場合は、
+以下の公式ドキュメントを一読するとよい。
+Spring Batchを用いた簡単なアプリケーションの作成を通して、イメージを掴んでほしい。</p>
+</div>
+<div class="paragraph">
+<p><a href="https://spring.io/guides/gs/batch-processing/">Creating a Batch Service</a></p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="Ch02_SpringBatchArch_Overview_BasicStructure"><a class="anchor" href="#Ch02_SpringBatchArch_Overview_BasicStructure"></a>Spring Batchの基本構造</h3>
+<div class="paragraph">
+<p>Spring Batchの基本的な構造を説明する。</p>
+</div>
+<div class="paragraph">
+<p>Spring Batchはバッチ処理の構造を定義している。この構造を理解してから開発を行うことを推奨する。</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/Ch02_SpringBatchArchitecture_Overview_MainComponents.png" alt="Spring Batch Main Components">
+</div>
+<div class="title">図 1. Spring Batchに登場する主な構成要素</div>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 1. Spring Batchに登場する主な構成要素</caption>
+<colgroup>
+<col style="width: 20%;">
+<col style="width: 80%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-middle">構成要素</th>
+<th class="tableblock halign-left valign-top">役割</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-middle"><p class="tableblock">Job</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Spring Batchにおけるバッチアプリケーションの一連の処理をまとめた1実行単位。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-middle"><p class="tableblock">Step</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Jobを構成する処理の単位。1つのJobに1～N個のStepをもたせることが可能。<br>
+1つのJobを複数のStepに分割して処理することにより、処理の再利用、並列化、条件分岐が可能になる。
+Stepは、チャンクモデルまたはタスクレットモデル(これらについては後述する)のいずれかで実装する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-middle"><p class="tableblock">JobLauncher</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Jobを起動するためのインタフェース。<br>
+JobLauncherをユーザが直接利用することも可能だが、javaコマンドから<br>
+<code>CommandLineJobRunner</code>を起動することでより簡単にバッチ処理を開始できる。
+<code>CommandLineJobRunner</code>は、JobLauncherを起動するための各種処理を引き受けてくれる。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-middle"><p class="tableblock">ItemReader<br>
+ItemProcessor<br>
+ItemWriter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">チャンクモデルを実装する際に、データの入力/加工/出力の3つに分割するためのインタフェース。<br>
+バッチアプリケーションは、この3パターンの処理で構成されることが多いことに由来し、
+Spring Batchでは主にチャンクモデルでこれらインタフェースの実装を活用する。
+ユーザはビジネスロジックをそれぞれの役割に応じて分割して記述する。<br>
+データの入出力を担う<code>ItemReader</code>と<code>ItemWriter</code>は、データベースやファイルからJavaオブジェクトへの変換、もしくはその逆の処理であることが多い。
+そのため、Spring Batchから標準的な実装が提供されている。
+ファイルやデータベースからデータの入出力を行う一般的なバッチアプリケーションの場合は、<br>
+Spring Batchの標準実装をそのまま使用するだけで要件を満たせるケースもある。<br>
+データの加工を担う<code>ItemProcessor</code>は、入力チェックやビジネスロジックを実装する。</p>
+<p class="tableblock">タスクレットモデルでは、<code>ItemReader</code>/<code>ItemProcessor</code>/<code>ItemWriter</code>が、1つの<code>Tasklet</code>インタフェース実装に置き換わる。Tasklet内に入出力、入力チェック、ビジネスロジックのすべてを実装する必要がある。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-middle"><p class="tableblock">JobRepository</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">JobやStepの状況を管理する機構。これらの管理情報は、Spring Batchが規定するテーブルスキーマをもとにデータベース上に永続化される。</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="Ch02_SpringBatchArch_Arch"><a class="anchor" href="#Ch02_SpringBatchArch_Arch"></a>Architecture</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p><a href="#Ch02_SpringBatchArch_Overview">Overview</a>ではSpring Batchの基本構造については簡単に説明した。</p>
+</div>
+<div class="paragraph">
+<p>これを踏まえて、以下の点について説明をする。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="#Ch02_SpringBatchArch_Arch_ProcessFlow">処理全体の流れ</a></p>
+</li>
+<li>
+<p><a href="#Ch02_SpringBatchArch_Arch_ExecutionOfJob">Jobの起動</a></p>
+</li>
+<li>
+<p><a href="#Ch02_SpringBatchArch_Arch_BusinessLogic">ビジネスロジックの実行</a></p>
+</li>
+<li>
+<p><a href="#Ch02_SpringBatchArch_Arch_MetadataSchema">JobRepositoryのメタデータスキーマ</a></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>最後に、Spring Batchを利用したバッチアプリケーションの性能チューニングポイントについて説明をする。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="#Ch02_SpringBatchArch_Arch_Performance">代表的な性能チューニングポイント</a></p>
+</li>
+</ul>
+</div>
+<div class="sect2">
+<h3 id="Ch02_SpringBatchArch_Arch_ProcessFlow"><a class="anchor" href="#Ch02_SpringBatchArch_Arch_ProcessFlow"></a>処理全体の流れ</h3>
+<div class="paragraph">
+<p>Spring Batchの主な構成要素と処理全体の流れについて説明をする。
+また、ジョブの実行状況などのメタデータがどのように管理されているかについても説明する。</p>
+</div>
+<div class="paragraph">
+<p>Spring Batchの主な構成要素と処理全体の流れ(チャンクモデル)を下図に示す。</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/ch02/SpringBatchArchitecture/Ch02_SpringBatchArchitecture_Architecture_ProcessFlow.png" alt="Spring Batch Process Flow">
+</div>
+<div class="title">図 2. Spring Batchの主な構成要素と処理全体の流れ</div>
+</div>
+<div class="paragraph">
+<p>中心的な処理の流れ(黒線)とジョブ情報を永続化する流れ(赤線)について説明する。</p>
+</div>
+<div class="olist arabic">
+<div class="title">中心的な処理の流れ</div>
+<ol class="arabic">
+<li>
+<p>ジョブスケジューラからJobLauncherが起動される。</p>
+</li>
+<li>
+<p>JobLauncherからJobを実行する。</p>
+</li>
+<li>
+<p>JobからStepを実行する。</p>
+</li>
+<li>
+<p>StepはItemReaderによって入力データを取得する。</p>
+</li>
+<li>
+<p>StepはItemProcessorによって入力データを加工する。</p>
+</li>
+<li>
+<p>StepはItemWriterによって加工されたデータを出力する</p>
+</li>
+</ol>
+</div>
+<div class="olist arabic">
+<div class="title">ジョブ情報を永続化する流れ</div>
+<ol class="arabic">
+<li>
+<p>JobLauncherはJobRepositoryを介してDatabaseにJobInstanceを登録する。</p>
+</li>
+<li>
+<p>JobLauncherはJobRepositoryを介してDatabaseにジョブが実行開始したことを登録する。</p>
+</li>
+<li>
+<p>JobStepはJobRepositoryを介してDatabaseに入出力件数や状態など各種情報を更新する。</p>
+</li>
+<li>
+<p>JobLauncherはJobRepositoryを介してDatabaseにジョブが実行終了したことを登録する。</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>新たに構成要素と永続化に焦点をあてたJobRepositoryについての説明を以下に示す。</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 2. 永続化に関連する構成要素</caption>
+<colgroup>
+<col style="width: 20%;">
+<col style="width: 80%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-middle">構成要素</th>
+<th class="tableblock halign-left valign-top">役割</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-middle"><p class="tableblock">JobInstance</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Spring BatchはJobの「論理的」な実行を示す。JobInstanceをJob名と引数によって識別している。
+言い換えると、Job名と引数が同一である実行は、同一JobInstanceの実行と認識し、前回起動時の続きとしてJobを実行する。<br>
+対象のJobが再実行をサポートしており、前回実行時にエラーなどで処理が途中で中断していた場合は処理の途中から実行される。
+一方、再実行をサポートしていないJobや、対象のJobInstanceがすでに正常に処理が完了している場合は例外が発生し、Javaプロセスが異常終了する。
+たとえば、すでに正常に処理が完了している場合はJobInstanceAlreadyCompleteExceptionが発生する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-middle"><p class="tableblock">JobExecution<br>
+ExecutionContext</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">JobExecutionはJobの「物理的」な実行を示す。JobInstance とは異なり、同一のJobを再実行する場
+合も別のJobExecutionとなる。結果、JobInstanceとJobExecutionは1対多の関係になる。<br>
+同一のJobExecution内で処理の進捗状況などのメタデータを共有するための領域として、ExecutionContextがある。
+ExecutionContextは主にSpring Batchがフレームワークの状態などを記録するために使用されているが、アプリケーションがExecutionContextへアクセスする手段も提供されている。<br>
+JobExecutionContextに格納するオブジェクトは、<code>java.io.Serializable</code>を実装したクラスでなければならない。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-middle"><p class="tableblock">StepExecution<br>
+ExecutionContext</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">StepExecutionはStep の「物理的」な実行を示す。JobExecutionとStepExecutionは1対多の関係になる。<br>
+JobExecutionと同様に、Step内でデータを共有するための領域としてExecutionCotnextがある。データの局所化という観点から、
+複数のStepで共有しなくてもよい情報はJobのExecutionContextを使用するのでなく、対象StepのExecutionContextを利用したほうがよい。<br>
+StepExecutionContextに格納するオブジェクトは、<code>java.io.Serializable</code>を実装したクラスでなければならない。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-middle"><p class="tableblock">JobRepository</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">JobExecutionやStepExecutionなどのバッチアプリケーション実行結果や状態を管理するためのデータを管理、永続化する機能を提供する。<br>
+一般的なバッチアプリケーションはJavaプロセスを起動することで処理が開始し、処理の終了とともにJavaプロセスも終了させるケースが多い。
+そのためこれらのデータはJavaプロセスを跨いで参照される可能性があることから、揮発性なメモリ上だけではなくデータベースなどの永続層へ格納する。
+データベースに格納する場合は、JobExecutionやStepExecutionを格納するためのテーブルやシーケンスなどのデータベースオブジェクトが必要になる。<br>
+Spring Batch が提供するスキーマ情報をもとにデータベースオブジェクトを生成する必要がある。</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>Spring Batchが重厚にメタデータの管理を行っている理由は、再実行を実現するためである。
+バッチ処理を再実行可能にするには、前回実行時のスナップショットを残しておく必要があり、メタデータやJobRepositoryはそのための基盤となっている。</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="Ch02_SpringBatchArch_Arch_ExecutionOfJob"><a class="anchor" href="#Ch02_SpringBatchArch_Arch_ExecutionOfJob"></a>Jobの起動</h3>
+<div class="paragraph">
+<p>Jobをどのように起動するかについて説明する。</p>
+</div>
+<div class="paragraph">
+<p>Javaプロセス起動直後にバッチ処理を開始し、バッチ処理完了後にJavaプロセスを終了するケースを考える。
+Spring Batch上で定義されたJobを開始するには、Javaを起動するシェルスクリプトを記述するのが一般的である。
+また、Spring Batchが提供するCommandLineJobRunnerを使用することで、ユーザが定義したSpring Batch上のJobを簡単に起動することができる。</p>
+</div>
+<div class="paragraph">
+<p>下図にJavaプロセス起動からバッチ処理開始までの流れを示す。</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/ch02/SpringBatchArchitecture/Ch02_SpringBatchArchitecture_Architecture_LaunchFlow.png" alt="Job Launch Flow">
+</div>
+<div class="title">図 3. Javaプロセス起動からバッチ処理開始までの流れ</div>
+</div>
+<div class="paragraph">
+<p>Javaプロセス起動からバッチ処理開始までの流れについて説明する。</p>
+</div>
+<div class="olist arabic">
+<div class="title">Javaプロセス起動からバッチ処理開始までの流れ</div>
+<ol class="arabic">
+<li>
+<p>シェルスクリプトからジョブを起動するためにCommandLineJobRunnerを起動する。<br></p>
+<div class="ulist">
+<ul>
+<li>
+<p>CommandLineJobRunnerは起動するJob名だけでなく、引数(ジョブパラメータ)を渡すことも可能であり、引数は<code>&lt;Job引数名&gt;=&lt;値&gt;</code>の形式で指定する。</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>CommandLineJobRunnerはJobLauncherを起動する。</p>
+</li>
+<li>
+<p>JobLauncherはJobRepositoryからJob名と引数に合致するJobInstanceをデータベースから取得する。</p>
+<div class="ulist">
+<ul>
+<li>
+<p>該当するJobInstanceが存在しない場合は、JobInstanceを新規登録する。</p>
+</li>
+<li>
+<p>該当するJobInstanceが存在した場合は、紐付いているJobExecutionを復元する。</p>
+</li>
+<li>
+<p>Spring Batchでは日次実行など繰り返して起動する可能性のあるJobに対しては、JobExecutionをユニークにするためだけの引数を追加する方法がとられている。
+たとえば、システム時刻であったり、乱数を引数に追加する方法が挙げられる。<br>
+本ガイドラインで推奨している方法については<a href="Ch04_JobParameter.html#Ch04_JobParameter_HowToUse_Converter">パラメータ変換クラスについて</a>を参照。</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>JobLauncherはJobExecutionを生成する。</p>
+</li>
+<li>
+<p>JobLauncherはExecutionContextおよびJobParametersを登録する。</p>
+<div class="ulist">
+<ul>
+<li>
+<p>CommandLineJobRunnerに渡されたすべての引数はCommandLineJobRunnerおよびJobLauncherが解釈とチェックを行なったうえで、JobExecutionへJobParametersに変換して格納される。詳細は<a href="Ch04_JobParameter.html#Ch04_JobParameter">ジョブの起動パラメータ</a>を参照。</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>JobLauncherはjobを実行する。</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>CommandLineJobRunnerを使用したジョブの起動コマンドは以下のとおりである。</p>
+</div>
+<div class="listingblock">
+<div class="title">XMLによるBean定義を行った場合の起動コマンド</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="sh">$ java -cp ${CLASSPATH} org.springframework.batch.core.launch.support.CommandLineJobRunner &lt;jobPath&gt; &lt;jobName&gt; &lt;JobArgumentName1&gt;=&lt;value1&gt; &lt;JobArgumentName2&gt;=&lt;value2&gt; ...</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="Ch02_SpringBatchArch_Arch_BusinessLogic"><a class="anchor" href="#Ch02_SpringBatchArch_Arch_BusinessLogic"></a>ビジネスロジックの実行</h3>
+<div class="paragraph">
+<p>Spring Batchでは、JobをStepと呼ぶさらに細かい単位に分割する。
+Jobが起動すると、StepExecutionを生成し、Jobは自身に登録されているStepを起動する。
+Stepはあくまで処理を分割するための枠組みであり、ビジネスロジックの実行はStepから呼び出されるTaskletに任されている。</p>
+</div>
+<div class="paragraph">
+<p>StepからTaskletへの流れを以下に示す。</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/ch02/SpringBatchArchitecture/Ch02_SpringBatchArchitecture_Architecture_StepTaskletFlow.png" alt="Step-Tasklet Flow">
+</div>
+<div class="title">図 4. StepからTaskletへの流れ</div>
+</div>
+<div class="paragraph">
+<p>StepからTaskletへの流れについて説明する。</p>
+</div>
+<div class="olist arabic">
+<div class="title">StepからTaskletへの流れ</div>
+<ol class="arabic">
+<li>
+<p>JobはStepExecutionを生成する。</p>
+</li>
+<li>
+<p>JobはExecutionContextを登録する。</p>
+</li>
+<li>
+<p>JobはStepを実行する。</p>
+</li>
+<li>
+<p>StepはTaskletを実行する。</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>Taskletの実装方法には「チャンクモデル」と「タスクレットモデル」の2つの方式がある。
+概要についてはすでに説明しているため、ここではその構造について説明する。</p>
+</div>
+<div class="sect3">
+<h4 id="Ch02_SpringBatchArch_Arch_BusinessLogic_Chunk"><a class="anchor" href="#Ch02_SpringBatchArch_Arch_BusinessLogic_Chunk"></a>チャンクモデル</h4>
+<div class="paragraph">
+<p>前述したようにチャンクモデルとは、処理対象となるデータを1件ずつ処理するのではなく、一定数の塊(チャンク)を単位として処理を行う方式である。
+ChunkOrientedTaskletがチャンク処理をサポートしたTaskletの具象クラスとなる。
+このクラスがもつcommit-intervalという設定値により、チャンクに含めるデータの最大件数(以降、「チャンク数」と呼ぶ)を調整することができる。
+<code>ItemReader</code>、<code>ItemProcessor</code>、<code>ItemWriter</code>は、いずれもチャンク処理を前提としたインタフェースとなっている。</p>
+</div>
+<div class="paragraph">
+<p>次に、ChunkOrientedTasklet がどのように<code>ItemReader</code>、<code>ItemProcessor</code>、<code>ItemWriter</code>を呼び出しているかを説明する。</p>
+</div>
+<div class="paragraph">
+<p>ChunkOrientedTaskletが1つのチャンクを処理するシーケンス図を以下に示す。</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/Ch02_SpringBatchArchitecture_Architecture_Sequence_ChunkOrientedTasklet.png" alt="Sequence of Chunk processing with ChunkOrientedTasklet">
+</div>
+<div class="title">図 5. ChunkOrientedTaskletによるチャンク処理</div>
+</div>
+<div class="paragraph">
+<p>ChunkOrientedTaskletは、チャンク数分だけ<code>ItemReader</code>および<code>ItemProcessor</code>、すなわちデータの読み込みと加工を繰り返し実行する。
+チャンク数分のデータすべての読み込みが完了してから、ItemWriterのデータ書き込み処理が1回だけ呼び出され、チャンクに含まれるすべての加工済みデータが渡される。
+データの更新処理がチャンクに対して1回呼び出されるように設計されているのは、JDBCのaddBatch、executeBatchのように入出力をまとめやすくするためである。</p>
+</div>
+<div class="paragraph">
+<p>次に、チャンク処理において実際の処理を担う<code>ItemReader</code>、<code>ItemProcessor</code>、<code>ItemWriter</code>について紹介する。
+各インタフェースともユーザが独自に実装を行うことが想定されているが、Spring Batchが提供する汎用的な具象クラスでまかなうことができる場合がある。</p>
+</div>
+<div class="paragraph">
+<p>特に<code>ItemProcessor</code>はビジネスロジックそのものが記述されることが多いため、Spring Batchからは具象クラスがあまり提供されていない。
+ビジネスロジックを記述する場合は<code>ItemProcessor</code>インタフェースを実装する。
+<code>ItemProcessor</code>はタイプセーフなプログラミングが可能になるよう、入出力で使用するオブジェクトの型をそれぞれ型引数に指定できるようになっている。</p>
+</div>
+<div class="paragraph">
+<p>以下に簡単なItemProcessorの実装例を示す。</p>
+</div>
+<div class="listingblock">
+<div class="title">ItemProcessorの実装例</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="java"><span class="directive">public</span> <span class="type">class</span> <span class="class">MyItemProcessor</span> <span class="directive">implements</span>
+      ItemProcessor&lt;MyInputObject, MyOutputObject&gt; {  <span class="comment">// (1)</span>
+  <span class="annotation">@Override</span>
+    <span class="directive">public</span> MyOutputObject process(MyInputObject item) <span class="directive">throws</span> <span class="exception">Exception</span> {  <span class="comment">// (2)</span>
+
+        MyOutputObject processedObject = <span class="keyword">new</span> MyOutputObject();  <span class="comment">// (3)</span>
+
+        <span class="comment">// Coding business logic for item of input data</span>
+
+    <span class="keyword">return</span> processedObject; <span class="comment">// (4)</span>
+  }
+}</code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 10%;">
+<col style="width: 90%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">項番</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">入出力で使用するオブジェクトの型をそれぞれ型引数に指定した<code>ItemProcessor</code>インタフェースを実装する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(2)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>process</code>メソッドを実装する。引数のitemが入力データである。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(3)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">出力オブジェクトを作成し、入力データのitemに対して処理したビジネスロジックの結果を格納する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(4)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">出力オブジェクトを返却する。</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>ItemReaderやItemWriterは様々な具象クラスがSpring Batchから提供されており、それらを利用することで十分な場合が多い。
+しかし、特殊な形式のファイルを入出力したりする場合は、独自のItemReaderやItemWriterを実装した具象クラスを作成し使用することができる。</p>
+</div>
+<div class="paragraph">
+<p>実際のアプリケーション開発時におけるビジネスロジックの実装に関しては、<a href="Ch03_index.html#Ch03">アプリケーション開発の流れ</a>を参照。</p>
+</div>
+<div class="paragraph">
+<p>最後にSpring Batchが提供するItemReader、ItemProcessor、ItemWriterの代表的な具象クラスを示す。</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 3. Spring Batchが提供するItemReader、ItemProcessor、ItemWriterの代表的な具象クラス</caption>
+<colgroup>
+<col style="width: 15%;">
+<col style="width: 25%;">
+<col style="width: 60%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-middle">インタフェース</th>
+<th class="tableblock halign-left valign-top">具象クラス名</th>
+<th class="tableblock halign-left valign-top">概要</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-middle" rowspan="7"><p class="tableblock">ItemReader</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">FlatFileItemReader</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">CSVファイルなどの、フラットファイル(非構造的なファイル)の読み込みを行う。Resourceオブジェクトをインプットとし、区切り文字やオブジェクトへのマッピングルールをカスタマイズすることができる。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-middle"><p class="tableblock">StaxEventItemReader</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">XMLファイルの読み込みを行う。名前のとおり、StAXをベースとしたXMLファイルの読み込みを行う実装となっている。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-middle"><p class="tableblock">JdbcCursorItemReader<br>
+JdbcPagingItemReader</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">JDBCを使用してSQLを実行し、データベース上のレコードを読み込む。データベース上にある大量のデータを処理する場合は、全件をメモリ上に読み込むことを避け、一度の処理に必要なデータのみの読み込み、破棄を繰り返す必要がある。<br>
+JdbcPagingItemReaderはJdbcTemplateを用いてSELECT SQLをページごとに分けて発行することで実現する。一方、JdbcCursorItemReaderはJDBCのカーソルを使用することで、1回のSELECT SQLの発行で実現する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-middle"><p class="tableblock">MyBatisCursorItemReader<br>
+MyBatisPagingItemReader</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">MyBatisと連携してデータベース上のレコードを読み込む。MyBatisが提供しているSpring連携ライブラリMyBatis-Springから提供されている。PagingとCursorの違いについては、MyBatisを利用して実現していること以外はJdbcXXXItemReaderと同様。<br>
+<span class="icon"><i class="fa fa-warning"></i></span> Macchinetta Batch 2.xでは、データベースを参照する際には<code>MyBatisCursorItemReader</code>を利用することを基本とする。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-middle"><p class="tableblock">JmsItemReader<br>
+AmqpItemReader</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">JMSやAMQPからメッセージを受信し、その中に含まれるデータの読み込みを行う。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-middle"><p class="tableblock">JpaCursorItemReader<br>
+JpaPagingItemReader</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">JPA実装と連携してデータベース上のレコードを読み込む。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-middle"><p class="tableblock">HibernateCursorItemReader<br>
+HibernatePagingItemReader</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Hibernateと連携してデータベース上のレコードを読み込む。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-middle" rowspan="3"><p class="tableblock">ItemProcessor</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">PassThroughItemProcessor</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">何も行なわない。入力データの加工や修正が不要な場合に使用する。<br>
+詳細は、<a href="Ch03_CreateChunkJob.html#Ch03_CreateChunkJob_ItemProcessor">ItemProcessorの省略</a>を参照。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-middle"><p class="tableblock">ValidatingItemProcessor</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">入力チェックを行う。入力チェックルールの実装には、Spring Batch独自の<br>
+org.springframework.batch.item.validator.Validatorを実装する必要がある。<br>
+しかし、Springから提供されている汎用的なorg.springframework.validation.ValidatorへのアダプタであるSpringValidatorが提供されており、
+org.springframework.validation.Validatorのルールを利用できる。<br>
+<span class="icon"><i class="fa fa-warning"></i></span> Macchinetta Batch 2.xではValidatingItemProcessorの利用は禁止している。<br>
+詳細は、<a href="Ch06_InputValidation.html#Ch06_InputValidation">入力チェック</a>を参照。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-middle"><p class="tableblock">CompositeItemProcessor</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">同一の入力データに対し、複数のItemProcessorを逐次的に実行する。ValidatingItemProcessorによる入力チェックの後にビジネスロジックを実行したい場合などに有効。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-middle" rowspan="7"><p class="tableblock">ItemWriter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">FlatFileItemWriter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">処理済みのJavaオブジェクトを、CSVファイルなどのフラットファイルとして書き込みを行う。区切り文字やオブジェクトからファイル行へのマッピングルールをカスタマイズできる。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-middle"><p class="tableblock">StaxEventItemWriter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">処理済みのJavaオブジェクトをXMLファイルとして書き込みを行う。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-middle"><p class="tableblock">JdbcBatchItemWriter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">JDBCを使用してSQLを実行し、処理済みのJavaオブジェクトをデータベースへ出力する。内部ではJdbcTemplateが使用されている。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-middle"><p class="tableblock">MyBatisBatchItemWriter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">MyBatisと連携して、処理済みのJavaオブジェクトをデータベースへ出力する。MyBatisが提供しているSpring連携ライブラリMyBatis-Springから提供されている。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-middle"><p class="tableblock">JmsItemWriter<br>
+AmqpItemWriter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">処理済みのJavaオブジェクトを、JMSやAMQPでメッセージを送信する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-middle"><p class="tableblock">JpaItemWriter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">JPA実装と連携してデータベースへの出力を行う。<br>
+<span class="icon"><i class="fa fa-warning"></i></span> Macchinetta Batch 2.xでは、JpaItemWriterは利用しない。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-middle"><p class="tableblock">HibernateItemWriter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Hibernateと連携してデータベースへの出力を行う。<br>
+<span class="icon"><i class="fa fa-warning"></i></span> Macchinetta Batch 2.xでは、HibernateItemWriterは利用しない。</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect3">
+<h4 id="Ch02_SpringBatchArch_Arch_BusinessLogic_Tasklet"><a class="anchor" href="#Ch02_SpringBatchArch_Arch_BusinessLogic_Tasklet"></a>タスクレットモデル</h4>
+<div class="paragraph">
+<p>チャンクモデルは、複数の入力データを1件ずつ読み込み、一連の処理を行うバッチアプリケーションに適した枠組みとなっている。
+しかし、時にはチャンク処理の型に当てはまらないような処理を実装することもある。
+たとえば、システムコマンドを実行したり、制御用テーブルのレコードを1件だけ更新したいような場合などである。</p>
+</div>
+<div class="paragraph">
+<p>そのような場合には、チャンク処理によって得られる性能面のメリットが少なく、
+設計や実装を困難にするデメリットの方が大きいため、タスクレットモデルを使用するほうが合理的である。</p>
+</div>
+<div class="paragraph">
+<p>タスクレットモデルを使用する場合は、Spring Batchから提供されている<code>Tasklet</code>インタフェースをユーザが実装する必要がある。
+また、Spring Batchでは以下の具象クラスが提供されているが、Macchinetta Batch 2.xでは以降説明しない。</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 4. Spring Batchが提供するTaskletの具象クラス</caption>
+<colgroup>
+<col style="width: 30%;">
+<col style="width: 70%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-middle">クラス名</th>
+<th class="tableblock halign-left valign-top">概要</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-middle"><p class="tableblock">SystemCommandTasklet</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">非同期にシステムコマンドを実行するためのTasklet。commandプロパティに実行したいコマンドを指定する。<br>
+システムコマンドは呼び出しもとのスレッドと別スレッドで実行されるため、タイムアウトを設定したり、処理中にシステムコマンドの実行スレッドをキャンセルすることも可能である。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-middle"><p class="tableblock">MethodInvokingTaskletAdapter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">POJOクラスに定義された特定のメソッドを実行するためのTasklet。targetObjectプロパティに対象クラスのBeanを、targetMethodプロパティに実行させたいメソッド名を指定する。<br>
+POJOクラスはバッチ処理の終了した状態をメソッドの返り値として返却することができるが、その場合は後述する<code>ExitStatus</code>をメソッドの返り値とする必要がある。
+他の型で返り値を返却した場合は、返り値の内容にかかわらず正常終了した(ExitStatus.COMPLETED)とみなされる。</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="sect2">
+<h3 id="Ch02_SpringBatchArch_Arch_MetadataSchema"><a class="anchor" href="#Ch02_SpringBatchArch_Arch_MetadataSchema"></a>JobRepositoryのメタデータスキーマ</h3>
+<div class="paragraph">
+<p>JobRepositoryのメタデータスキーマについて説明する。</p>
+</div>
+<div class="paragraph">
+<p>なお、Spring Batchのリファレンス
+<a href="https://docs.spring.io/spring-batch/docs/4.3.10/reference/html/schema-appendix.html">Appendix B. Meta-Data Schema</a>
+にて説明されている内容も含めて、全体像を説明する。</p>
+</div>
+<div class="paragraph">
+<p>Spring Batchメタデータテーブルは、Javaでそれらを表すドメインオブジェクト(Entityオブジェクト)に対応している。</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 5. 対応一覧</caption>
+<colgroup>
+<col style="width: 30%;">
+<col style="width: 30%;">
+<col style="width: 40%;">
+</colgroup>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">テーブル</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Entityオブジェクト</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">概要</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">BATCH_JOB_INSTANCE</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">JobInstance</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ジョブ名、およびジョブパラメータをシリアライズした文字列を保持する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">BATCH_JOB_EXECUTION</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">JobExecution</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ジョブの状態・実行結果を保持する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">BATCH_JOB_EXECUTION_PARAMS</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">JobExecutionParams</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">起動時に与えられたジョブパラメータを保持する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">BATCH_JOB_EXECUTION_CONTEXT</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">JobExecutionContext</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ジョブ内部のコンテキストを保持する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">BATCH_STEP_EXECUTION</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">StepExecution</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ステップの状態・実行結果、コミット・ロールバック件数を保持する。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">BATCH_STEP_EXECUTION_CONTEXT</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">StepExecutionContext</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ステップ内部のコンテキストを保持する。</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>JobRepositoryは、各Javaオブジェクトに保存された内容を、テーブルへ正確に格納する責任がある。</p>
+</div>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-important" title="Important"></i>
+</td>
+<td class="content">
+<div class="title">メタデータテーブルへ格納する文字列について</div>
+<div class="paragraph">
+<p>メタデータテーブルへ格納する文字列には文字数の制限があり、制限を超えた分の文字列を切り捨てる。<br>
+またSpring Batchではマルチバイト文字を考慮しておらず、Spring Batchが提供するメタデータテーブルのDDLでは格納する文字列が制限に収まる文字数でもエラーになる可能性がある。
+マルチバイト文字を格納するためには、メタデータテーブルのカラムを使用するエンコーディングによってサイズ拡張したり、文字データ型を文字数定義に設定する必要がある。</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>6つの全テーブルと相互関係のERDモデルを以下に示す。</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/Ch02_SpringBatchArchitecture_Architecture_ER.png" alt="ER Diagram">
+</div>
+<div class="title">図 6. ER図</div>
+</div>
+<div class="sect3">
+<h4 id="Ch02_SpringBatchArch_Arch_MetadataSchema_Version"><a class="anchor" href="#Ch02_SpringBatchArch_Arch_MetadataSchema_Version"></a>バージョン</h4>
+<div class="paragraph">
+<p>データベーステーブルの多くは、バージョンカラムが含まれている。
+Spring Batchは、データベースへの更新を扱う楽観的ロック戦略を採用しているため、このカラムは重要となる。
+このレコードは、バージョンカラムの値がインクリメントされるたびに更新されることを意味している。
+JobRepositoryが値の更新時に、バージョン番号が変更されている場合、同時アクセスのエラーが発生したことを示すOptimisticLockingFailureExceptionがスローされる。
+別のバッチジョブは異なるマシンで実行されているかもしれないが、それらはすべて同じデータベーステーブルを使用しているため、このチェックが必要となる。</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="Ch02_SpringBatchArch_Arch_MetadataSchema_SequenceID"><a class="anchor" href="#Ch02_SpringBatchArch_Arch_MetadataSchema_SequenceID"></a>ID(シーケンス)定義</h4>
+<div class="paragraph">
+<p>BATCH_JOB_INSTANCE、BATCH_JOB_EXECUTION、およびBATCH_STEP_EXECUTIONはそれぞれ、JOB_INSTANCE_ID、JOB_EXECUTION_ID、STEP_EXECUTION_IDという列を有している。
+これらの列は、それぞれのテーブル用主キーとして機能し、個別のシーケンスによって生成される。
+これは、データベースにドメインオブジェクトの一つを挿入した後、与えられたキーをJavaで一意に識別できるように、実際のオブジェクトに設定する必要があるためである。<br>
+データベースによってはシーケンスをサポートしていないことがある。この場合、以下のようにテーブルをシーケンスとして作成する。以下のクエリはいずれのデータベースでも適用できるものではないので、利用するデータベースに合わせて適宜読み替えてほしい。</p>
+</div>
+<div class="listingblock">
+<div class="title">テーブルをシーケンスとして作成する例</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="sql"><span class="class">CREATE</span> <span class="type">TABLE</span> BATCH_JOB_SEQ (ID <span class="predefined-type">BIGINT</span> <span class="keyword">NOT</span> <span class="predefined-constant">NULL</span>);
+<span class="class">INSERT</span> <span class="class">INTO</span> BATCH_JOB_SEQ <span class="keyword">values</span>(<span class="integer">0</span>);</code></pre>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="Ch02_SpringBatchArch_Arch_MetadataSchema_TableDefinition"><a class="anchor" href="#Ch02_SpringBatchArch_Arch_MetadataSchema_TableDefinition"></a>テーブル定義</h4>
+<div class="paragraph">
+<p>各テーブルの項目について説明をする。</p>
+</div>
+<div class="sect4">
+<h5 id="Ch02_SpringBatchArch_Arch_MetadataSchema_TableDefinition_JobInstance"><a class="anchor" href="#Ch02_SpringBatchArch_Arch_MetadataSchema_TableDefinition_JobInstance"></a>BATCH_JOB_INSTANCE</h5>
+<div class="paragraph">
+<p>BATCH_JOB_INSTANCEテーブルはJobInstanceに関連するすべての情報を保持し、全体的な階層の最上位である。</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 6. BATCH_JOB_INSTANCEの定義</caption>
+<colgroup>
+<col style="width: 30%;">
+<col style="width: 70%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">カラム名</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">JOB_INSTANCE_ID</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">インスタンスを識別する一意のIDで主キーである。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">VERSION</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#Ch02_SpringBatchArch_Arch_MetadataSchema_Version">バージョン</a>を参照。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">JOB_NAME</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ジョブの名前。 インスタンスを識別するために必要とされるので非nullである。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">JOB_KEY</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">同じジョブを別々のインスタンスとして一意に識別するためのシリアライズ化されたJobParameters。<br>
+同じジョブ名をもつJobInstancesは、異なるJobParameters(つまり、異なるJOB_KEY値)をもつ必要がある。</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect4">
+<h5 id="Ch02_SpringBatchArch_Arch_MetadataSchema_TableDefinition_JobExecution"><a class="anchor" href="#Ch02_SpringBatchArch_Arch_MetadataSchema_TableDefinition_JobExecution"></a>BATCH_JOB_EXECUTION</h5>
+<div class="paragraph">
+<p>BATCH_JOB_EXECUTIONテーブルはJobExecutionオブジェクトに関連するすべての情報を保持する。
+ジョブが実行されるたびに、常に新しいJobExecutionでこの表に新しい行が登録される。</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 7. BATCH_JOB_EXECUTIONの定義</caption>
+<colgroup>
+<col style="width: 30%;">
+<col style="width: 70%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">カラム名</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">JOB_EXECUTION_ID</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">一意にこのジョブ実行を識別する主キー。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">VERSION</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#Ch02_SpringBatchArch_Arch_MetadataSchema_Version">バージョン</a>を参照。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">JOB_INSTANCE_ID</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">このジョブ実行が属するインスタンスを示すBATCH_JOB_INSTANCEテーブルからの外部キー。
+インスタンスごとに複数の実行が存在する場合がある。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">CREATE_TIME</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ジョブ実行が作成された時刻。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">START_TIME</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ジョブ実行が開始された時刻。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">END_TIME</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ジョブ実行が成功または失敗に関係なく、終了した時刻を表す。<br>
+ジョブが現在実行されていないにもかかわらず、このカラムの値が空であることは、いくつかのエラータイプがあり、フレームワークが最後のセーブを実行できなかったことを示す。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">STATUS</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ジョブ実行のステータスを表す文字列。BatchStatus列挙オブジェクトが出力する文字列である。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">EXIT_CODE</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ジョブ実行の終了コードを表す文字列。 CommandLineJobRunnerによる起動の場合、これを数値に変換することができる。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">EXIT_MESSAGE</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ジョブが終了した状態をより詳細に説明する文字列。
+障害が発生した場合には、可能であればスタックトレースをできるだけ多く含む文字列となる場合がある。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">LAST_UPDATED</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">このレコードのジョブ実行が最後に更新された時刻。</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect4">
+<h5 id="Ch02_SpringBatchArch_Arch_MetadataSchema_TableDefinition_JobExecutionParams"><a class="anchor" href="#Ch02_SpringBatchArch_Arch_MetadataSchema_TableDefinition_JobExecutionParams"></a>BATCH_JOB_EXECUTION_PARAMS</h5>
+<div class="paragraph">
+<p>BATCH_JOB_EXECUTION_PARAMSテーブルは、JobParametersオブジェクトに関連するすべての情報を保持する。
+これはジョブに渡された0以上のキーと値とのペアが含まれ、ジョブが実行されたパラメータを記録する役割を果たす。</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 8. BATCH_JOB_EXECUTION_PARAMSの定義</caption>
+<colgroup>
+<col style="width: 30%;">
+<col style="width: 70%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">カラム名</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">JOB_EXECUTION_ID</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">このジョブパラメータが属するジョブ実行を示すBATCH_JOB_EXECUTIONテーブルからの外部キー。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">TYPE_CD</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">String、date、long、またはdoubleのいずれかのデータ型であることを示す文字列。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">KEY_NAME</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">パラメータキー。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">STRING_VAL</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">データ型が文字列である場合のパラメータ値。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">DATE_VAL</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">データ型が日時である場合のパラメータ値。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">LONG_VAL</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">データ型が整数値である場合のパラメータ値。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">DOUBLE_VAL</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">データ型が実数である場合のパラメータ値。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">IDENTIFYING</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">パラメータがジョブインスタンスが一意であることを識別するための値であることを示すフラグ。</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect4">
+<h5 id="Ch02_SpringBatchArch_Arch_MetadataSchema_TableDefinition_JobExecutionContext"><a class="anchor" href="#Ch02_SpringBatchArch_Arch_MetadataSchema_TableDefinition_JobExecutionContext"></a>BATCH_JOB_EXECUTION_CONTEXT</h5>
+<div class="paragraph">
+<p>BATCH_JOB_EXECUTION_CONTEXTテーブルは、JobのExecutionContextに関連するすべての情報を保持する。
+特定のジョブ実行に必要とされるジョブレベルのデータがすべて含まれている。
+このデータは、ジョブが失敗した後で処理を再処理する際に取得しなければならない状態を表し、失敗したジョブが「処理を中断したところから始める」ことを可能にする。</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 9. BATCH_JOB_EXECUTION_CONTEXTの定義</caption>
+<colgroup>
+<col style="width: 30%;">
+<col style="width: 70%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">カラム名</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">JOB_EXECUTION_ID</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">このJobのExecutionContextが属するジョブ実行を示すBATCH_JOB_EXECUTIONテーブルからの外部キー。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">SHORT_CONTEXT</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">SERIALIZED_CONTEXTの文字列表現。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">SERIALIZED_CONTEXT</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">シリアライズされたコンテキスト全体。</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect4">
+<h5 id="Ch02_SpringBatchArch_Arch_MetadataSchema_TableDefinition_StepExecution"><a class="anchor" href="#Ch02_SpringBatchArch_Arch_MetadataSchema_TableDefinition_StepExecution"></a>BATCH_STEP_EXECUTION</h5>
+<div class="paragraph">
+<p>BATCH_STEP_EXECUTIONテーブルは、StepExecutionオブジェクトに関連するすべての情報を保持する。
+このテーブルには、BATCH_JOB_EXECUTIONテーブルと多くの点で非常に類似しており、各JobExecutionが作られるごとに常にStepごとに少なくとも1つのエントリがある。</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 10. BATCH_STEP_EXECUTIONの定義</caption>
+<colgroup>
+<col style="width: 30%;">
+<col style="width: 70%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">カラム名</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">STEP_EXECUTION_ID</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">一意にこのステップ実行を識別する主キー。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">VERSION</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#Ch02_SpringBatchArch_Arch_MetadataSchema_Version">バージョン</a>を参照。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">STEP_NAME</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ステップの名前。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">JOB_EXECUTION_ID</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">このStepExecutionが属するJobExecutionを示すBATCH_JOB_EXECUTIONテーブルからの外部キー。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">START_TIME</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ステップ実行が開始された時刻。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">END_TIME</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ステップ実行が成功または失敗に関係なく、終了した時刻を表す。<br>
+ジョブが現在実行されていないにもかかわらず、このカラムの値が空であることは、いくつかのエラータイプがあり、フレームワークが最後のセーブを実行できなかったことを示す。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">STATUS</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ステップ実行のステータスを表す文字列。BatchStatus列挙オブジェクトが出力する文字列である。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">COMMIT_COUNT</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">トランザクションをコミットしている回数。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">READ_COUNT</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ItemReaderで読み込んだデータ件数。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">FILTER_COUNT</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ItemProcessorでフィルタリングしたデータ件数。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">WRITE_COUNT</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ItemWriterで書き込んだデータ件数。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">READ_SKIP_COUNT</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ItemReaderでスキップしたデータ件数。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">WRITE_SKIP_COUNT</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ItemWriterでスキップしたデータ件数。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">PROCESS_SKIP_COUNT</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ItemProcessorでスキップしたデータ件数。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ROLLBACK_COUNT</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">トランザクションをロールバックしている回数。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">EXIT_CODE</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ステップ実行の終了コードを表す文字列。 CommandLineJobRunnerによる起動の場合、これを数値に変換することができる。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">EXIT_MESSAGE</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ステップが終了した状態をより詳細に説明する文字列。
+障害が発生した場合には、可能であればスタックトレースをできるだけ多く含む文字列となる場合がある。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">LAST_UPDATED</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">このレコードのステップ実行が最後に更新された時刻。</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect4">
+<h5 id="Ch02_SpringBatchArch_Arch_MetadataSchema_TableDefinition_StepExecutionContext"><a class="anchor" href="#Ch02_SpringBatchArch_Arch_MetadataSchema_TableDefinition_StepExecutionContext"></a>BATCH_STEP_EXECUTION_CONTEXT</h5>
+<div class="paragraph">
+<p>BATCH_STEP_EXECUTION_CONTEXTテーブルは、StepのExecutionContext に関連するすべての情報を保持する。
+特定のステップ実行に必要とされるステップレベルのデータがすべて含まれている。
+このデータは、ジョブが失敗した後で処理を再処理する際に取得しなければならない状態を表し、失敗したジョブが「処理を中断したところから始める」ことを可能にする。</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">表 11. BATCH_STEP_EXECUTION_CONTEXTの定義</caption>
+<colgroup>
+<col style="width: 30%;">
+<col style="width: 70%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">カラム名</th>
+<th class="tableblock halign-left valign-top">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">STEP_EXECUTION_ID</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">このStepのExecutionContextが属するジョブ実行を示すBATCH_STEP_EXECUTIONテーブルからの外部キー。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">SHORT_CONTEXT</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">SERIALIZED_CONTEXTの文字列表現。</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">SERIALIZED_CONTEXT</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">シリアライズされたコンテキスト全体。</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="sect3">
+<h4 id="Ch02_SpringBatchArch_Arch_MetadataSchema_DDL"><a class="anchor" href="#Ch02_SpringBatchArch_Arch_MetadataSchema_DDL"></a>DDLスクリプト</h4>
+<div class="paragraph">
+<p>Spring Batch CoreのJARファイルには、いくつかのデータベースプラットフォームに応じたリレーショナル表を作成するサンプルスクリプトが含まれている。
+これらのスクリプトはそのまま使用、または必要に応じて追加のインデックスと制約を変更することができる。<br>
+スクリプトは、org.springframework.batch.coreのパッケージに含まれており、ファイル名は、<code>schema-*.sql</code>で形成されている。
+"*"は、ターゲット・データベース・プラットフォームの短い名前である。</p>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="Ch02_SpringBatchArch_Arch_Performance"><a class="anchor" href="#Ch02_SpringBatchArch_Arch_Performance"></a>代表的な性能チューニングポイント</h3>
+<div class="paragraph">
+<p>Spring Batchにおける代表的な性能チューニングポイントを説明する。</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">チャンクサイズの調整</dt>
+<dd>
+<p>リソースへの出力によるオーバヘッドを抑えるために、チャンクサイズを大きくする。<br>
+ただし、チャンクサイズを大きくしすぎるとリソース側の負荷が高くなりかえって性能が低下することがあるので、
+適度なサイズになるように調整を行う。</p>
+</dd>
+<dt class="hdlist1">フェッチサイズの調整</dt>
+<dd>
+<p>リソースからの入力によるオーバヘッドを抑えるために、リソースに対するフェッチサイズ(バッファサイズ)を大きくする。</p>
+</dd>
+<dt class="hdlist1">ファイル読み込みの効率化</dt>
+<dd>
+<p>BeanWrapperFieldSetMapperを使用すると、Beanのクラスとプロパティ名を順番に指定するだけでレコードをBeanにマッピングしてくれる。
+しかし、内部で複雑な処理を行うため時間がかかる。マッピングを行う専用の<code>FieldSetMapper</code>インタフェース実装を用いることで処理時間を短縮できる可能性がある。<br>
+ファイル入出力の詳細は、<a href="Ch05_FileAccess.html#Ch05_FileAccess">"ファイルアクセス"</a>を参照。</p>
+</dd>
+<dt class="hdlist1">並列処理・多重処理</dt>
+<dd>
+<p>Spring Batchでは、Step実行の並列化、データ分割による多重処理をサポートしている。並列化もしくは多重化を行い、処理を並列走行させることで性能を改善できる。
+しかし、並列数および多重数を大きくしすぎるとリソース側の負荷が高くなりかえって性能が低下することがあるので、適度なサイズになるように調整を行う。<br>
+並列処理・多重処理の詳細は、<a href="Ch08_ParallelAndMultiple.html#Ch08_ParallelAndMultiple">"並列処理と多重処理"</a>を参照。</p>
+</dd>
+<dt class="hdlist1">分散処理の検討</dt>
+<dd>
+<p>Spring Batchでは、複数マシンでの分散処理もサポートしている。指針は、並列処理・多重処理と同様である。<br>
+分散処理は、基盤設計や運用設計が複雑化するため、本ガイドラインでは説明を行わない。</p>
+</dd>
+</dl>
+</div>
+</div>
+</div>
+</div>
+</div>
+<link rel="stylesheet" href="./theme/css/coderay-asciidoctor.css">
+<div class="container">
+
+  <div class="common-bg">
+    <div class="information">
+      Macchinetta Batch Framework (2.x) Development Guideline - version 2.3.4.RELEASE, 2025-3-28
+    </div>
+    <div class="index">
+      <a href="index.html">&gt; INDEX</a>
+    </div>
+  </div>
+
+  <div class="footer-bg">
+    <div class="copyright">
+      &copy; Copyright 2017 NTT Corporation.
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
