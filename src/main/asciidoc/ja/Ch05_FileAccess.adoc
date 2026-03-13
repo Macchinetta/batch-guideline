@@ -587,8 +587,8 @@ public class Customer {
     private String customerAddress;
     private String customerTel;
     private String chargeBranchId;
-    private Timestamp createDate;
-    private Timestamp updateDate;
+    private LocalDateTime createDate;
+    private LocalDateTime updateDate;
 
     // omitted getter/setter
 }
@@ -3413,40 +3413,6 @@ public CustomerListResourceSuffixCreator customerListResourceSuffixCreator() {
 |
 |===
 
-:four_space: &#160;&#160;&#160;&#160;
-[WARNING]
-.``itemCountLimitPerResource``で指定されたレコード件数で意図通りに出力されないことがある
-====
-``itemCountLimitPerResource``は1ファイルのレコードの出力件数を決定するものだが、 +
-この値は``commit-interval``で指定された数のレコードが出力された後で評価される。 +
-このため、``itemCountLimitPerResource``で指定された値以上のレコードが1ファイルに出力される場合がある。 +
-
-* ``itemCountLimitPerResource \<= commit-interval``の場合 +
-
-{four_space}1ファイルのレコードの出力件数は``commit-interval``の値になる。 +
-{four_space}例：入力データ全部で10件あり、``itemCountLimitPerResource=4, commit-interval=5``の場合 +
-{four_space}{four_space}1ファイル目のレコードの出力件数は5件になる +
-{four_space}{four_space}2ファイル目のレコードの出力件数は5件になる +
-
-* ``itemCountLimitPerResource > commit-interval``の場合 +
-
-{four_space}1ファイルのレコードの出力件数は``itemCountLimitPerResource``の値を超えたら、 +
-{four_space}次のチャンクが新しく作成されたファイルに書き込まれる。 +
-{four_space}例：入力データ全部で21件あり、``itemCountLimitPerResource=6, commit-interval=4``の場合 +
-{four_space}{four_space}1ファイル目のレコードの出力件数は8件になる +
-{four_space}{four_space}2ファイル目のレコードの出力件数は8件になる +
-{four_space}{four_space}3ファイル目のレコードの出力件数は5件になる +
-{four_space}{four_space}補足：最初4件は1ファイル目に出力された後``itemCountLimitPerResource``の6を超えていない、 +
-{four_space}{four_space}そのため次の4件も1ファイル目に出力され、全部で8件になる。 +
-{four_space}{four_space}さらに次の4件は来た時、8件はすでに``itemCountLimitPerResource``の6を超えているため、 +
-{four_space}{four_space}この4件は2ファイル目に出力される。 +
-{four_space}{four_space}結果として、1ファイル目と2ファイル目は8件になり、3ファイル目は5件になる +
-
-よって、``itemCountLimitPerResource``で指定されたレコード件数でファイルの出力を分けるためには、 +
-``commit-interval``と``itemCountLimitPerResource``の値を同数とするか、 +
-``commit-interval``を``itemCountLimitPerResource``の約数となるように設定する。
-====
-
 [IMPORTANT]
 .MultiResourceItemWriterが使用するItemWriterにresourceの指定は不要である
 ====
@@ -3776,7 +3742,7 @@ public FlatFileItemReader<SalesPerformanceDetail> delegateReader(
 ** ``FieldSet``クラスは``LineTokenizer``によって分割されたレコードの各フィールドの値を保持する
 ** インデックスまたは名前を指定して値を格納および取得することができる
 
-下記のような西暦フォーマットのDate型やカンマを含むBigDecimal型の変換を行うファイルを読み込む場合の実装例を示す。
+下記のような西暦フォーマットのLocalDate型やカンマを含むBigDecimal型の変換を行うファイルを読み込む場合の実装例を示す。
 
 [source, csv]
 .入力ファイル例
@@ -3801,7 +3767,7 @@ public FlatFileItemReader<SalesPerformanceDetail> delegateReader(
 
 |(2)
 |日付
-|Date
+|LocalDate
 |西暦フォーマット
 
 |(3)
@@ -3821,7 +3787,7 @@ public FlatFileItemReader<SalesPerformanceDetail> delegateReader(
 public class UseDateSalesPlanDetail {
 
     private String branchId;
-    private Date date;
+    private LocalDate date;
     private String customerId;
     private BigDecimal amount;
 
@@ -3848,10 +3814,10 @@ public class UseDateSalesPlanDetailFieldSetMapper implements FieldSetMapper<UseD
         item.setBranchId(fieldSet.readString("branchId"));  // (3)
 
         // (4)
-        DateFormat japaneseFormat = new SimpleDateFormat("yyyy年M月d日");
+        DateTimeFormatter japaneseFormat = DateTimeFormatter.ofPattern("yyyy年M月d日");
         try {
-            item.setDate(japaneseFormat.parse(fieldSet.readString("date")));
-        } catch (ParseException e) {
+            item.setDate(LocalDate.parse(fieldSet.readString("date"), japaneseFormat));
+        } catch (DateTimeParseException e) {
             // omitted exception handling
         }
 
@@ -3891,7 +3857,7 @@ public class UseDateSalesPlanDetailFieldSetMapper implements FieldSetMapper<UseD
 
 |(4)
 |引数で受けた``FieldSet``から``date``を取得し、変換対象クラスの変数へ格納する。 +
-西暦フォーマットの日付をDate型へ変換するため、``SimpleDateFormat``でフォーマットを指定している。
+西暦フォーマットの日付をLocalDate型へ変換するため、``DateTimeFormatter``でフォーマットを指定している。
 
 |(5)
 |引数で受けた``FieldSet``から``customerId``を取得し、変換対象クラスの変数へ格納する。 +
@@ -4496,16 +4462,16 @@ public class CustomerToJaxb {
     private String customerAddress;
     private String customerTel;
     private String chargeBranchId;
-    private Timestamp createDate;
-    private Timestamp updateDate;
+    private LocalDateTime createDate;
+    private LocalDateTime updateDate;
 
     // omitted getter/setter
 
     @XmlTransient  // (3)
-    public Timestamp getCreateDate() { return createDate; }
+    public LocalDateTime getCreateDate() { return createDate; }
 
     @XmlTransient  // (3)
-    public Timestamp getUpdateDate() { return updateDate; }
+    public LocalDateTime getUpdateDate() { return updateDate; }
 }
 ----
 

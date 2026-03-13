@@ -751,7 +751,7 @@ public class SpringMvcRestConfig implements WebMvcConfigurer {
 |(3)
 |``RESTful Web Service``を提供するために必要となる``Spring MVC``のフレームワークコンポーネントをbean登録する。
 本設定を行うことで、リソースのフォーマットとしてJSONを使用する事ができる。
-上記例では、``configureMessageConverters/<mvc:message-converters>タグ``を実装することでデフォルトの``MessageConverter``を登録させないようにしており、リソースの形式はJSONに限定される。ｓ
+上記例では、``configureMessageConverters/<mvc:message-converters>タグ``を実装することでデフォルトの``MessageConverter``を登録させないようにしており、リソースの形式はJSONに限定される。
 
 リソースのフォーマットとしてXMLを使用する場合は、XXE 対策が行われているXML用の``MessageConverter``を指定すること。指定方法は、「link:{server5_url}/ArchitectureInDetail/WebServiceDetail/REST.html#restappendixenabledxxeprotection[XXE 対策の有効化]」を参照されたい。
 

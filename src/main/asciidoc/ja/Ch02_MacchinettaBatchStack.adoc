@@ -26,7 +26,7 @@ image::Ch02_MacchinettaBatchStack_Stack.png[{batch5_fullname} Stack]
 ====
 {batch5_fullname}で使用するOSSのバージョンは、原則として、Spring Boot Dependenciesの定義に準じている。
 なお、バージョン{batch5_version}におけるSpring Boot Dependenciesのバージョンは、
-https://docs.spring.io/spring-boot/3.4.1/index.html[3.4.1]である。
+https://docs.spring.io/spring-boot/{spring_boot_version}/index.html[{spring_boot_version}]である。
 ====
 
 [cols="20,35,20,15,10", options="header"]
@@ -43,7 +43,7 @@ https://docs.spring.io/spring-boot/3.4.1/index.html[3.4.1]である。
 |バッチフレームワークを拡張する。
 |org.terasoluna.batch
 |https://terasoluna-batch.github.io/[terasoluna-batch]
-|5.7.0.RELEASE
+|5.7.1.RELEASE
 
 .2+|バッチフレームワーク
 .2+|バッチフレームワークとして、Spring Batchを利用する。
@@ -91,23 +91,23 @@ https://docs.spring.io/spring-boot/3.4.1/index.html[3.4.1]である。
 
 |org.springframework.retry
 |https://docs.spring.io/spring-batch/reference/{spring_batch_version}/retry.html#retry[spring-retry]
-|2.0.11
+|2.0.12
 
 |Webコンテナ起動の際に、Spring Batchと連携する。
 |org.springframework
-|https://docs.spring.io/spring-framework/docs/{spring_fw_version}/reference/html/web.html#mvc[spring-webmvc]
+|https://docs.spring.io/spring-framework/reference/{spring_fw_version}/web/webmvc.html#mvc[spring-webmvc]
 |{spring_fw_version}
 
 .2+|O/R Mapper
 |
 |org.mybatis
 |https://mybatis.org/mybatis-3/[mybatis]
-|3.5.17
+|3.5.19
 
 |
 |org.mybatis
 |https://mybatis.org/spring/[mybatis-spring]
-|3.0.4
+|3.0.5
 
 |DI
 |
@@ -115,19 +115,15 @@ https://docs.spring.io/spring-boot/3.4.1/index.html[3.4.1]である。
 |https://jakarta.ee/specifications/dependency-injection/2.0/apidocs/[jakarta.inject-api]
 |2.0.1
 
-.3+|ログ出力
-.3+|実装にLogbackを利用し、SLF4Jはロギングの抽象化レイヤーを提供する。
+.2+|ログ出力
+.2+|実装にLogbackを利用し、SLF4Jはロギングの抽象化レイヤーを提供する。
 |ch.qos.logback
 |https://logback.qos.ch/[logback-classic]
-|1.5.12
-
-|org.slf4j
-|https://www.slf4j.org/legacy.html#jclOverSLF4J[jcl-over-slf4j]
-|2.0.16
+|1.5.22
 
 |org.slf4j
 |https://www.slf4j.org/[slf4j-api]
-|2.0.16
+|2.0.17
 
 .2+|入力チェック
 .2+|単項目チェックにJakarta Validationを利用し、実装にはHibernate Validatorを使用する。
@@ -136,20 +132,20 @@ https://docs.spring.io/spring-boot/3.4.1/index.html[3.4.1]である。
 |3.0.2
 
 |org.hibernate.validator
-|https://docs.jboss.org/hibernate/validator/8.0/reference/en-US/html_single/[hibernate-validator]
-|8.0.2.Final
+|https://docs.hibernate.org/validator/8.0/reference/en-US/html_single/[hibernate-validator]
+|8.0.3.Final
 
 |コネクションプール
 |
 |org.apache.commons
 |https://commons.apache.org/proper/commons-dbcp/[commons-dbcp2]
-|2.12.0
+|2.13.0
 
 |EL式
 |
 |org.apache.tomcat.embed
 |https://tomcat.apache.org/[tomcat-embed-el]
-|10.1.34
+|10.1.50
 
 |インメモリデータベース
 |H2をデフォルトで使用しているが切り替え可能。
@@ -161,25 +157,38 @@ https://docs.spring.io/spring-boot/3.4.1/index.html[3.4.1]である。
 |
 |org.postgresql
 |https://jdbc.postgresql.org/[postgresql]
-|42.7.4
+|42.7.8
 
 |JSON
 |JSONデータのシリアライズおよびデシリアライズに使用する。
 |com.fasterxml.jackson.core
-|https://github.com/FasterXML/jackson-databind/blob/2.18/README.md[jackson-databind]
-|2.18.2
+|https://github.com/FasterXML/jackson-databind/blob/2.19/README.md[jackson-databind]
+|2.19.4
 
 .3+|XML
 .3+|XMLデータのシリアライズおよびデシリアライズに使用する。
 |jakarta.xml.bind
 |https://jakarta.ee/ja/specifications/xml-binding/4.0/[jakarta.xml.bind-api]
-|4.0.2
+|4.0.4
 
 |com.sun.xml.bind
 |jaxb-impl
-|4.0.5
+|4.0.6
 
 |===
+
+[[Ch02_MacchinettaBatchStack_TerasolunaBOM]]
+=== {terabom_fullname}
+{terabom_fullname} (https://github.com/terasolunaorg/terasoluna-dependencies/tree/2.0.1.RELEASE[terasoluna-dependencies])は{batch5_fullname}で使用するOSSライブラリのバージョンを一元管理するためのBOM(Project Object Model)プロジェクトである。
+terasoluna-dependenciesでは以下を定義している。
+
+** {batch5_fullname}が参照する https://docs.spring.io/spring-boot/3.5/reference/using/build-systems.html#using.build-systems.dependency-management[spring-boot-dependencies]のバージョン
+
+** spring-boot-dependenciesが管理しているライブラリ以外で{batch5_fullname}が参照するライブラリのバージョン
+
+terasoluna-dependenciesで管理されているライブラリのバージョンをそのまま利用する場合は、アプリケーション側のpom.xmlにおいて、ライブラリのバージョンを定義する必要はない。
+
+terasoluna-dependenciesで定義しているライブラリとそのバージョンについては、 https://github.com/terasolunaorg/terasoluna-dependencies/wiki#managed-dependency-coordinates[Managed Dependency Coordinates]で公開している。
 
 [[Ch02_MacchinettaBatchStack_Components]]
 == {batch5_fullname}の構成要素

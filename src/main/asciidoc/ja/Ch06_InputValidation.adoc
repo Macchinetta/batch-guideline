@@ -602,7 +602,7 @@ public class ValidateAndMessageItemProcessor implements ItemProcessor<Verificati
             // (5)
             for (FieldError fieldError : errors.getFieldErrors()) {
                 // (6)
-                logger.warn(messageSource.getMessage(fieldError, null) +
+                logger.warn(messageSource.getMessage(fieldError, Locale.getDefault()) +
                                 "Skipping item because exception occurred in input validation at the {} th item. [message:{}]",
                                     item.getCount(), e.getMessage());
             // (7)
@@ -691,7 +691,7 @@ public class ValidateAndBulkMessageItemProcessor implements ItemProcessor<Verifi
             // (7)
             for (FieldError fieldError : errors.getFieldErrors()) {
                 String itemNumber = item.getCount() + " th item";
-                String errorMessage = messageSource.getMessage(fieldError, null);
+                String errorMessage = messageSource.getMessage(fieldError, Locale.getDefault());
                 String detailErrorMessage = e.getMessage();
 
                 String message = MessageFormat

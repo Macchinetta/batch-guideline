@@ -495,9 +495,9 @@ MyBatisBatchItemWriterがもつ``assertUpdates``プロパティの設定によ�
 ----
 @Configuration
 @Import(JobBaseContextConfig.class)
-@ComponentScan(value = { "org.terasoluna.batch.functionaltest.app.common",
-"org.terasoluna.batch.functionaltest.ch05.exclusivecontrol"}, scopedProxy = ScopedProxyMode.TARGET_CLASS)
-@MapperScan(basePackages = "org.terasoluna.batch.functionaltest.ch05.exclusivecontrol.repository", sqlSessionFactoryRef = "jobSqlSessionFactory")
+@ComponentScan(value = { "jp.co.ntt.fw.macchinetta.batch.functionaltest.app.common",
+"jp.co.ntt.fw.macchinetta.batch.functionaltest.ch05.exclusivecontrol"}, scopedProxy = ScopedProxyMode.TARGET_CLASS)
+@MapperScan(basePackages = "jp.co.ntt.fw.macchinetta.batch.functionaltest.ch05.exclusivecontrol.repository", sqlSessionFactoryRef = "jobSqlSessionFactory")
 public class ChunkOptimisticLockCheckJobConfig {
 
     @Bean
@@ -511,7 +511,7 @@ public class ChunkOptimisticLockCheckJobConfig {
                 .sqlSessionFactory(jobSqlSessionFactory)
                 .parameterValues(parameterValues)
                 .queryId(
-                        "org.terasoluna.batch.functionaltest.ch05.exclusivecontrol.repository.ExclusiveControlRepository.branchFindOne") // (1)
+                        "jp.co.ntt.fw.macchinetta.batch.functionaltest.ch05.exclusivecontrol.repository.ExclusiveControlRepository.branchFindOne") // (1)
                 .build();
     }
 
@@ -524,7 +524,7 @@ public class ChunkOptimisticLockCheckJobConfig {
         return new MyBatisBatchItemWriterBuilder<ExclusiveBranch>()
                 .sqlSessionFactory(jobSqlSessionFactory)
                 .statementId(
-                        "org.terasoluna.batch.functionaltest.ch05.exclusivecontrol.repository.ExclusiveControlRepository.branchExclusiveUpdate") // (2)
+                        "jp.co.ntt.fw.macchinetta.batch.functionaltest.ch05.exclusivecontrol.repository.ExclusiveControlRepository.branchExclusiveUpdate") // (2)
                 .sqlSessionTemplate(batchModeSqlSessionTemplate)
                 .assertUpdates(assertUpdates) // (3)
                 .build();
@@ -630,9 +630,9 @@ public class ChunkOptimisticLockCheckJobConfig {
 ----
 @Configuration
 @Import(JobBaseContextConfig.class)
-@ComponentScan(value = { "org.terasoluna.batch.functionaltest.app.common",
-"org.terasoluna.batch.functionaltest.ch05.exclusivecontrol"}, scopedProxy = ScopedProxyMode.TARGET_CLASS)
-@MapperScan(basePackages = "org.terasoluna.batch.functionaltest.ch05.exclusivecontrol.repository", sqlSessionTemplateRef = "batchModeSqlSessionTemplate") // (1)
+@ComponentScan(value = { "jp.co.ntt.fw.macchinetta.batch.functionaltest.app.common",
+"jp.co.ntt.fw.macchinetta.batch.functionaltest.ch05.exclusivecontrol"}, scopedProxy = ScopedProxyMode.TARGET_CLASS)
+@MapperScan(basePackages = "jp.co.ntt.fw.macchinetta.batch.functionaltest.ch05.exclusivecontrol.repository", sqlSessionTemplateRef = "batchModeSqlSessionTemplate") // (1)
 public class ChunkPessimisticLockCheckJobConfig {
 
     @Bean
@@ -646,7 +646,7 @@ public class ChunkPessimisticLockCheckJobConfig {
                 .sqlSessionFactory(jobSqlSessionFactory)
                 .parameterValues(parameterValues)
                 .queryId(
-                        "org.terasoluna.batch.functionaltest.ch05.exclusivecontrol.repository.ExclusiveControlRepository.branchIdFindByName") // (2)
+                        "jp.co.ntt.fw.macchinetta.batch.functionaltest.ch05.exclusivecontrol.repository.ExclusiveControlRepository.branchIdFindByName") // (2)
                 .build();
     }
 
@@ -659,7 +659,7 @@ public class ChunkPessimisticLockCheckJobConfig {
         return new MyBatisBatchItemWriterBuilder<ExclusiveBranch>()
                 .sqlSessionFactory(jobSqlSessionFactory)
                 .statementId(
-                        "org.terasoluna.batch.functionaltest.ch05.exclusivecontrol.repository.ExclusiveControlRepository.branchUpdate") // (3)
+                        "jp.co.ntt.fw.macchinetta.batch.functionaltest.ch05.exclusivecontrol.repository.ExclusiveControlRepository.branchUpdate") // (3)
                 .sqlSessionTemplate(batchModeSqlSessionTemplate)
                 .assertUpdates(assertUpdates)
                 .build();
@@ -766,7 +766,7 @@ public class BranchEditWithkPessimisticLockItemProcessor implements ItemProcesso
             updatedBranch.setBranchAddress(branch.getBranchAddress() + " - " + identifier);
             updatedBranch.setBranchTel(branch.getBranchTel());
             updatedBranch.setCreateDate(branch.getUpdateDate());
-            updatedBranch.setUpdateDate(new Timestamp(clock.millis()));
+            updatedBranch.setUpdateDate(LocalDateTime.now(clock));
             updatedBranch.setOldBranchName(branch.getBranchName());
 
             return updatedBranch;

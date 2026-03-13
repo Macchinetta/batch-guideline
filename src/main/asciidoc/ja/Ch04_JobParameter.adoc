@@ -563,7 +563,7 @@ public class ParamRefInJavaTasklet implements Tasklet {
 ----
 @Configuration
 @Import(JobBaseContextConfig.class)
-@ComponentScan(value = "org.terasoluna.batch.functionaltest.ch04.jobparameter", scopedProxy = ScopedProxyMode.TARGET_CLASS)
+@ComponentScan(value = "jp.co.ntt.fw.macchinetta.batch.functionaltest.ch04.jobparameter", scopedProxy = ScopedProxyMode.TARGET_CLASS)
 public class JobDefaultJobParametersValidatorConfig {
 
     // (1)

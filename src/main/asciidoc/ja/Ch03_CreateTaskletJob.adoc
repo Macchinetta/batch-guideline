@@ -40,7 +40,7 @@ Bean定義ファイルにて、タスクレットモデルジョブを定義す�
 ----
 @Configuration
 @Import(JobBaseContextConfig.class) // (1)
-@ComponentScan("org.terasoluna.batch.functionaltest.app.common") // (2)
+@ComponentScan("jp.co.ntt.fw.macchinetta.batch.functionaltest.app.common") // (2)
 public class JobSimpleJobConfig {
 
     // (3)
@@ -315,8 +315,8 @@ public class SalesPlanChunkTranTask implements Tasklet {
 ----
 @Configuration
 @Import(JobBaseContextConfig.class)
-@ComponentScan(value = "org.terasoluna.batch.functionaltest.ch05.transaction.component", scopedProxy = ScopedProxyMode.TARGET_CLASS)
-@MapperScan(basePackages = "org.terasoluna.batch.functionaltest.app.repository.plan", sqlSessionFactoryRef = "jobSqlSessionFactory") // (9)
+@ComponentScan(value = "jp.co.ntt.fw.macchinetta.batch.functionaltest.ch05.transaction.component", scopedProxy = ScopedProxyMode.TARGET_CLASS)
+@MapperScan(basePackages = "jp.co.ntt.fw.macchinetta.batch.functionaltest.app.repository.plan", sqlSessionFactoryRef = "jobSqlSessionFactory") // (9)
 public class CreateSalesPlanChunkTranTaskConfig {
 
     // (10)
@@ -566,9 +566,9 @@ public class SalesPerformanceTasklet implements Tasklet {
 ----
 @Configuration
 @Import(JobBaseContextConfig.class)
-@ComponentScan(value = { "org.terasoluna.batch.functionaltest.app.common",
-        "org.terasoluna.batch.functionaltest.ch06.exceptionhandling" }, scopedProxy = ScopedProxyMode.TARGET_CLASS)
-@MapperScan(value = "org.terasoluna.batch.functionaltest.app.repository.performance", sqlSessionFactoryRef = "jobSqlSessionFactory")
+@ComponentScan(value = { "jp.co.ntt.fw.macchinetta.batch.functionaltest.app.common",
+        "jp.co.ntt.fw.macchinetta.batch.functionaltest.functionaltest.ch06.exceptionhandling" }, scopedProxy = ScopedProxyMode.TARGET_CLASS)
+@MapperScan(value = "jp.co.ntt.fw.macchinetta.batch.functionaltest.app.repository.performance", sqlSessionFactoryRef = "jobSqlSessionFactory")
 public class JobSalesPerfTaskletConfig {
 
     @Bean
@@ -597,7 +597,7 @@ public class JobSalesPerfTaskletConfig {
         return new MyBatisBatchItemWriterBuilder<SalesPerformanceDetail>()
                 .sqlSessionFactory(jobSqlSessionFactory)
                 .statementId(
-                        "org.terasoluna.batch.functionaltest.app.repository.performance.SalesPerformanceDetailRepository.create")
+                        "jp.co.ntt.fw.macchinetta.batch.functionaltest.app.repository.performance.SalesPerformanceDetailRepository.create")
                 .sqlSessionTemplate(batchModeSqlSessionTemplate).build();
     }
 

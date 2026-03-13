@@ -28,13 +28,13 @@ include::_include_all.adoc[]
 |製品名
 
 |OS
-|Microsoft Windows 10 Enterprise (64bit)
+|Microsoft Windows 11 Enterprise (64bit)
 
 |JDK
-|RedHat OpenJDK 17.0.13
+|RedHat OpenJDK 21.0.9
 
 |IDE
-|Spring Tool Suite 4.27.0 released
+|Spring Tool Suite 5.0.0 released
 
 |Build Tool
 |Apache Maven 3.9.9

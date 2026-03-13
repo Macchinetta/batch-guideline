@@ -661,7 +661,7 @@ public MyBatisCursorItemReader<SalesPerformanceDetail> reader(
     return new MyBatisCursorItemReaderBuilder<SalesPerformanceDetail>()
             .sqlSessionFactory(jobSqlSessionFactory)
             .queryId(
-                    "org.terasoluna.batch.functionaltest.app.repository.performance.InvoiceRepository.summarizeInvoice")
+                    "jp.co.ntt.fw.macchinetta.batch.functionaltest.app.repository.performance.InvoiceRepository.summarizeInvoice")
             .parameterValues(parameterValues)
             .build();
 }
@@ -1120,7 +1120,7 @@ public MyBatisCursorItemReader<SalesPerformanceSummary> reader(
     return new MyBatisCursorItemReaderBuilder<SalesPerformanceSummary>()
             .sqlSessionFactory(jobSqlSessionFactory)
             .queryId(
-                    "org.terasoluna.batch.functionaltest.ch08.parallelandmultiple.repository.SalesSummaryRepository.findByYearAndMonth")
+                    "jp.co.ntt.fw.macchinetta.batch.functionaltest.ch08.parallelandmultiple.repository.SalesSummaryRepository.findByYearAndMonth")
             .parameterValues(parameterValues)
             .build();
 }

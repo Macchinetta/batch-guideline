@@ -308,7 +308,7 @@ public MyBatisCursorItemReader<SalesPlanDetail> reader(
     return new MyBatisCursorItemReaderBuilder<SalesPlanDetail>()
             .sqlSessionFactory(jobSqlSessionFactory)
             .queryId(
-                    "org.terasoluna.batch.functionaltest.ch06.reprocessing.repository.RestartOnConditionRepository.findByZeroOrLessAmount")
+                    "jp.co.ntt.fw.macchinetta.batch.functionaltest.ch06.reprocessing.repository.RestartOnConditionRepository.findByZeroOrLessAmount")
             .build();
 }
 
@@ -320,7 +320,7 @@ public MyBatisBatchItemWriter<SalesPlanDetail> dbWriter(
     return new MyBatisBatchItemWriterBuilder<SalesPlanDetail>()
             .sqlSessionFactory(jobSqlSessionFactory)
             .statementId(
-                    "org.terasoluna.batch.functionaltest.ch06.reprocessing.repository.RestartOnConditionRepository.update")
+                    "jp.co.ntt.fw.macchinetta.batch.functionaltest.ch06.reprocessing.repository.RestartOnConditionRepository.update")
             .sqlSessionTemplate(batchModeSqlSessionTemplate)
             .build();
 }

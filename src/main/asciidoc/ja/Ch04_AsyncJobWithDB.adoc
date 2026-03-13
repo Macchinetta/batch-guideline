@@ -935,7 +935,7 @@ public interface CustomizedBatchJobRequestRepository extends BatchJobRequestRepo
 .SQLMap定義(CustomizedBatchJobRequestRepository.xml)
 ----
 <!-- (1) -->
-<mapper namespace="jp.co.ntt.fw.macchinetta.batch.extend.repository.CustomizedBatchJobRequestRepository">
+<mapper namespace="jp.co.ntt.fw.macchinetta.batch.functionaltest.ch04.asyncjobwithdb.repository.CustomizedBatchJobRequestRepository">
 
     <select id="find" resultType="org.terasoluna.batch.async.db.model.BatchJobRequest">
         SELECT
@@ -1038,7 +1038,7 @@ public MapperFactoryBean<CustomizedBatchJobRequestRepository> batchJobRequestRep
  <!--(1) -->
 <bean id="batchJobRequestRepository"
       class="org.mybatis.spring.mapper.MapperFactoryBean"
-      p:mapperInterface="jp.co.ntt.fw.macchinetta.batch.extend.repository.CustomizedBatchJobRequestRepository"
+      p:mapperInterface="jp.co.ntt.fw.macchinetta.batch.functionaltest.ch04.asyncjobwithdb.repository.CustomizedBatchJobRequestRepository"
       p:sqlSessionFactory-ref="adminSqlSessionFactory" />
 ----
 
@@ -1094,7 +1094,7 @@ CREATE TABLE IF NOT EXISTS batch_job_request (
 .SQLMap定義(CustomizedBatchJobRequestRepository.xml)
 ----
 <!-- (1) -->
-<mapper namespace="jp.co.ntt.fw.macchinetta.batch.extend.repository.CustomizedBatchJobRequestRepository">
+<mapper namespace="jp.co.ntt.fw.macchinetta.batch.functionaltest.ch04.asyncjobwithdb.repository.CustomizedBatchJobRequestRepository">
 
     <select id="find" resultType="org.terasoluna.batch.async.db.model.BatchJobRequest">
         SELECT
@@ -1186,7 +1186,7 @@ public JobRequestPollTask jobRequestPollTask(@Qualifier("adminTransactionManager
  <!--(1) -->
 <bean id="batchJobRequestRepository"
       class="org.mybatis.spring.mapper.MapperFactoryBean"
-      p:mapperInterface="jp.co.ntt.fw.macchinetta.batch.extend.repository.CustomizedBatchJobRequestRepository"
+      p:mapperInterface="jp.co.ntt.fw.macchinetta.batch.functionaltest.ch04.asyncjobwithdb.repository.CustomizedBatchJobRequestRepository"
       p:sqlSessionFactory-ref="adminSqlSessionFactory" />
 
 <bean id="jobRequestPollTask"
@@ -1265,7 +1265,7 @@ $ java -cp dependency/* org.terasoluna.batch.async.db.AsyncBatchDaemon
 ====
 // Java Config start.
 [source,java]
-.org.terasoluna.batch.config.ch04.asyncjobwithdb.AsyncBatchDaemonClockConfig.java
+.jp.co.ntt.fw.macchinetta.batch.functionaltest.config.ch04.asyncjobwithdb.AsyncBatchDaemonClockConfig.java
 ----
 @Bean
 public JobRequestPollTask jobRequestPollTask(@Qualifier("adminTransactionManager") DataSourceTransactionManager adminTransactionManager,

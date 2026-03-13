@@ -5,7 +5,7 @@ include::_include_all.adoc[]
 
 [[Ch02_SpringBatchArch_Overview]]
 == Overview
-{server5_fullname}の基盤となる、{SB}のアーキテクチャについて説明をする。
+{batch5_fullname}の基盤となる、{SB}のアーキテクチャについて説明をする。
 
 [[Ch02_SpringBatchArch_Overview_SpringBatch]]
 === {SB}とは

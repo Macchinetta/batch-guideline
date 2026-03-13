@@ -1447,7 +1447,6 @@ fi
 
 詳しくは、{SB}の公式リファレンス（以下）を参照のこと。
 
-* https://docs.spring.io/spring-batch/reference/job/java-config.html[Java構成]
 * https://docs.spring.io/spring-batch/docs/{spring_batch_version}/api/org/springframework/batch/core/configuration/support/DefaultBatchConfiguration.html[クラス DefaultBatchConfiguration]
 
 ``DefaultBatchConfiguration``は、Spring Batchの動作に必要ないくつかのBean定義（以下）を、あらかじめ設定済みにして提供する。
@@ -1492,7 +1491,6 @@ public JobRepository jobRepository() throws BatchConfigurationException {
     jobRepositoryFactoryBean.setSerializer(getExecutionContextSerializer());
     jobRepositoryFactoryBean.setConversionService(getConversionService());
     jobRepositoryFactoryBean.setJdbcOperations(getJdbcOperations());
-    jobRepositoryFactoryBean.setLobHandler(getLobHandler());
     jobRepositoryFactoryBean.setCharset(getCharset());
     jobRepositoryFactoryBean.setMaxVarCharLength(getMaxVarCharLength());
     jobRepositoryFactoryBean.setIsolationLevelForCreateEnum(
